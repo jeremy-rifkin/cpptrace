@@ -1,0 +1,4 @@
+.vscode
+build
+a.out
+test/build
