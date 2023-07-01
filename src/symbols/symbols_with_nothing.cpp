@@ -1,7 +1,7 @@
 #ifdef LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING
 
 #include <cpptrace/cpptrace.hpp>
-#include "libcpp_symbolize.hpp"
+#include "libcpp_symbols.hpp"
 #include "../platform/libcpp_program_name.hpp"
 
 #include <vector>

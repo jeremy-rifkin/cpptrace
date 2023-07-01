@@ -6,7 +6,11 @@
 
 #include <vector>
 
+#ifdef LIBCPP_BACKTRACE_PATH
+#include LIBCPP_BACKTRACE_PATH
+#else
 #include <backtrace.h>
+#endif
 
 namespace cpptrace {
     namespace detail {

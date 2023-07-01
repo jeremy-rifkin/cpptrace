@@ -1,6 +1,6 @@
-#include <execinfo.h>
+#include <cxxabi.h>
 
 int main() {
-    void* frames[10];
-    int size = backtrace(frames, 10);
+    int status;
+    abi::__cxa_demangle("_Z3foov", nullptr, nullptr, &status);
 }

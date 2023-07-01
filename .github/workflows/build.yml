@@ -1,34 +1,70 @@
-name: build c++20
+name: build
 
 on:
   push:
   pull_request:
 
 jobs:
-  build-gcc:
+  build-linux:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-10, clang++-14]
+        target: [Debug]
+        std: [11, 20]
+        unwind: [
+          LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE,
+          LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING,
+        ]
+        symbols: [
+          LIBCPPTRACE_UNWIND_WITH_EXECINFO,
+          LIBCPPTRACE_UNWIND_WITH_NOTHING,
+        ]
+        demangle: [
+          LIBCPPTRACE_DEMANGLE_WITH_CXXABI,
+          LIBCPPTRACE_DEMANGLE_WITH_NOTHING,
+        ]
     steps:
     - uses: actions/checkout@v2
     - name: dependencies
-      run: sudo apt install gcc-10 g++-10
+      run: sudo apt install gcc-10 g++-10 libgcc-10-dev
     - name: build
       run: |
            mkdir -p build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++-10
+           cmake .. \
+            -DCMAKE_BUILD_TYPE=${{matrix.target}} \
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
+            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+            -D${{matrix.unwind}}=On \
+            -D${{matrix.symbols}}=On \
+            -D${{matrix.demangle}}=On \
+            -DLIBCPP_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h
            make
-  build-clang:
-    runs-on: ubuntu-22.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: build
-      run: |
-           mkdir -p build
-           cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-14
-           make
-  build-msvc:
+  build-windows:
     runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [cl, clang++]
+        target: [Debug]
+        std: [11, 20]
+        unwind: [
+          # LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
+          LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING,
+        ]
+        symbols: [
+          LIBCPPTRACE_UNWIND_WITH_WINAPI,
+          LIBCPPTRACE_UNWIND_WITH_NOTHING,
+        ]
+        demangle: [
+          # LIBCPPTRACE_DEMANGLE_WITH_CXXABI,
+          LIBCPPTRACE_DEMANGLE_WITH_NOTHING,
+        ]
+        exclude:
+          - demangle: LIBCPPTRACE_DEMANGLE_WITH_CXXABI
+            compiler: cl
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
@@ -37,5 +73,61 @@ jobs:
       run: |
            mkdir -p build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=cl
+           cmake .. `
+            -DCMAKE_BUILD_TYPE=Debug `
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
+            -DCMAKE_CXX_STANDARD=${{matrix.std}} `
+            -D${{matrix.unwind}}=On `
+            -D${{matrix.symbols}}=On `
+            -D${{matrix.demangle}}=On
+           msbuild .\libcpptrace.sln
+
+  build-linux-full-or-auto:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-10, clang++-14]
+        target: [Debug]
+        std: [11, 20]
+        config: ["-DLIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On", ""]
+    steps:
+    - uses: actions/checkout@v2
+    - name: dependencies
+      run: sudo apt install gcc-10 g++-10 libgcc-10-dev
+    - name: build
+      run: |
+           mkdir -p build
+           cd build
+           cmake .. \
+            -DCMAKE_BUILD_TYPE=${{matrix.target}} \
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
+            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+            -DLIBCPP_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h \
+            ${{matrix.config}}
            make
+  build-windows-full-or-auto:
+    runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [cl, clang++]
+        target: [Debug]
+        std: [11, 20]
+        config: [""]
+        exclude:
+          - config: -DLIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On # TODO
+    steps:
+    - uses: actions/checkout@v2
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.10.0
+    - name: build
+      run: |
+           mkdir -p build
+           cd build
+           cmake .. `
+            -DCMAKE_BUILD_TYPE=Debug `
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
+            -DCMAKE_CXX_STANDARD=${{matrix.std}} `
+            ${{matrix.config}}
+           msbuild .\libcpptrace.sln

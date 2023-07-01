@@ -1,4 +1,6 @@
-# libcpptrace
+# Cpptrace
+
+[![build](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml)
 
 Libcpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, Unix, MacOS, and Windows
 (including cygwin / mingw environments). The goal: Make traces simple for once.

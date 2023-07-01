@@ -3,8 +3,6 @@
 #include <cpptrace/cpptrace.hpp>
 #include "libcpp_demangle.hpp"
 
-#include <cxxabi.h>
-
 #include <cstdlib>
 #include <string>
 
