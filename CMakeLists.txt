@@ -205,6 +205,23 @@ if(LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
   target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
 endif()
 
+if(LIBCPPTRACE_GET_SYMBOLS_WITH_LIBDL)
+  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_LIBDL)
+endif()
+
+if(LIBCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
+  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
+endif()
+
+if(LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+  target_link_libraries(cpptrace PRIVATE dbghelp)
+endif()
+
+if(LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING)
+  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING)
+endif()
+
 # Unwinding
 if(LIBCPPTRACE_UNWIND_WITH_EXECINFO)
   if(NOT HAS_EXECINFO)
@@ -215,6 +232,10 @@ endif()
 
 if(LIBCPPTRACE_UNWIND_WITH_WINAPI)
   target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_UNWIND_WITH_WINAPI)
+endif()
+
+if(LIBCPPTRACE_UNWIND_WITH_NOTHING)
+  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_UNWIND_WITH_NOTHING)
 endif()
 
 # Demangling
@@ -235,12 +256,12 @@ endif()
 
 # ======================================================================================================================
 
-target_link_libraries(
-  cpptrace
-  PRIVATE
-  $<$<CXX_COMPILER_ID:MSVC>:dbghelp>
-  ${CMAKE_DL_LIBS}
-)
+#target_link_libraries(
+#  cpptrace
+#  PRIVATE
+#  #$<$<CXX_COMPILER_ID:MSVC>:dbghelp>
+#  #${CMAKE_DL_LIBS}
+#)
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
   message(FATAL_ERROR "Setting CMAKE_BUILD_TYPE is required")
