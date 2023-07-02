@@ -64,7 +64,7 @@ can hold addresses for 100 frames. This is configurable with `CPPTRACE_HARD_MAX_
 
 | Library | CMake config | Windows | Linux | Info |
 |---------|--------------|---------|-------|------|
-| libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | ❌ | ✔️ | Libbacktrace is already installed on most systems, or available through the compiler directly. If it is installed but backtrace.h is not already in the include path (this can happen when using clang when backtrace lives in gcc's include folder), `LIBCPP_BACKTRACE_PATH` can be used to specify where the library should be looked for. |
+| libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | ❌ | ✔️ | Libbacktrace is already installed on most systems, or available through the compiler directly. If it is installed but backtrace.h is not already in the include path (this can happen when using clang when backtrace lives in gcc's include folder), `CPPTRACE_BACKTRACE_PATH` can be used to specify where the library should be looked for. |
 | libdl | `CPPTRACE_GET_SYMBOLS_WITH_LIBDL` | ❌ | ✔️ | Libdl uses dynamic export information. Compiling with `-rdynamic` is often needed. |
 | addr2line | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE` | ❌ | ✔️ | Symbols are resolved by invoking `addr2line` via `fork()`. |
 | dbghelp | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP` | ✔️ | ❌ | Dbghelp.h allows access to symbols via debug info. |

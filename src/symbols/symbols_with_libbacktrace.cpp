@@ -7,8 +7,8 @@
 #include <memory>
 #include <vector>
 
-#ifdef LIBCPP_BACKTRACE_PATH
-#include LIBCPP_BACKTRACE_PATH
+#ifdef CPPTRACE_BACKTRACE_PATH
+#include CPPTRACE_BACKTRACE_PATH
 #else
 #include <backtrace.h>
 #endif
