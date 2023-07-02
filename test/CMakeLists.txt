@@ -5,7 +5,7 @@ if(${CMAKE_VERSION} VERSION_LESS 3.12)
 endif()
 
 project(
-  test-libcpptrace
+  test-cpptrace
   VERSION 1.0.0
   LANGUAGES CXX
 )
@@ -22,8 +22,8 @@ target_link_libraries(test PRIVATE cpptrace)
 target_include_directories(test PRIVATE ../include)
 target_link_directories(test PRIVATE ../build)
 
-file(GLOB_RECURSE CPPTRACE_PATHS ../build/cpptrace.dll ../build/libcpptrace.so ../build/**/cpptrace.dll ../build/**/libcpptrace.so)
+file(GLOB_RECURSE CPPTRACE_PATHS ../build/cpptrace.dll ../build/cpptrace.so ../build/**/cpptrace.dll ../build/**/cpptrace.so)
 list(POP_BACK CPPTRACE_PATHS CPPTRACE_PATH)
-#find_library(CPPTRACE_PATH NAMES "cpptrace.dll" "libcpptrace.so" PATHS ../build PATH_SUFFIXES Debug Release)
+#find_library(CPPTRACE_PATH NAMES "cpptrace.dll" "cpptrace.so" PATHS ../build PATH_SUFFIXES Debug Release)
 message(STATUS "Copying lib from " ${CPPTRACE_PATH})
 file(COPY ${CPPTRACE_PATH} DESTINATION .)

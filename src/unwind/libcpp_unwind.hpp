@@ -8,12 +8,12 @@
 
 namespace cpptrace {
     namespace detail {
-        #ifdef LIBCPPTRACE_HARD_MAX_FRAMES
-        constexpr size_t hard_max_frames = LIBCPPTRACE_HARD_MAX_FRAMES;
+        #ifdef CPPTRACE_HARD_MAX_FRAMES
+        constexpr size_t hard_max_frames = CPPTRACE_HARD_MAX_FRAMES;
         #else
         constexpr size_t hard_max_frames = 100;
         #endif
-        LIBCPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE
         std::vector<void*> capture_frames(size_t skip);
     }
 }

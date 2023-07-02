@@ -1,4 +1,4 @@
-#ifdef LIBCPPTRACE_UNWIND_WITH_EXECINFO
+#ifdef CPPTRACE_UNWIND_WITH_EXECINFO
 
 #include <cpptrace/cpptrace.hpp>
 #include "libcpp_unwind.hpp"
@@ -11,7 +11,7 @@
 
 namespace cpptrace {
     namespace detail {
-        LIBCPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE
         std::vector<void*> capture_frames(size_t skip) {
             std::vector<void*> frames(hard_max_frames + skip, nullptr);
             int n_frames = backtrace(frames.data(), hard_max_frames + skip);

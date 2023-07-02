@@ -5,7 +5,7 @@ if(${CMAKE_VERSION} VERSION_LESS 3.12)
 endif()
 
 project(
-  libcpptrace
+  cpptrace
   VERSION 1.0.0
   LANGUAGES CXX
 )
@@ -47,23 +47,23 @@ target_compile_options(
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
 
-option(LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE "" OFF)
+option(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE "" OFF)
 
-option(LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE "" OFF)
-option(LIBCPPTRACE_GET_SYMBOLS_WITH_LIBDL "" OFF)
-option(LIBCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE "" OFF)
-option(LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP "" OFF)
-option(LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING "" OFF)
+option(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE "" OFF)
+option(CPPTRACE_GET_SYMBOLS_WITH_LIBDL "" OFF)
+option(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE "" OFF)
+option(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP "" OFF)
+option(CPPTRACE_GET_SYMBOLS_WITH_NOTHING "" OFF)
 
-option(LIBCPPTRACE_UNWIND_WITH_EXECINFO "" OFF)
-option(LIBCPPTRACE_UNWIND_WITH_WINAPI "" OFF)
-option(LIBCPPTRACE_UNWIND_WITH_NOTHING "" OFF)
+option(CPPTRACE_UNWIND_WITH_EXECINFO "" OFF)
+option(CPPTRACE_UNWIND_WITH_WINAPI "" OFF)
+option(CPPTRACE_UNWIND_WITH_NOTHING "" OFF)
 
-option(LIBCPPTRACE_DEMANGLE_WITH_CXXABI "" OFF)
-option(LIBCPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
+option(CPPTRACE_DEMANGLE_WITH_CXXABI "" OFF)
+option(CPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
 
 set(LIBCPP_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
-set(LIBCPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 100.")
+set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 100.")
 
 if(NOT "${LIBCPP_BACKTRACE_PATH}" STREQUAL "")
   # quotes used over <> because of a macro substitution issue where
@@ -97,42 +97,42 @@ check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
 # If nothing is specified, attempt to use libbacktrace's full dump
 if(
   NOT (
-    LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
-    LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
-    LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING OR
-    LIBCPPTRACE_UNWIND_WITH_EXECINFO OR
-    LIBCPPTRACE_UNWIND_WITH_WINAPI OR
-    LIBCPPTRACE_UNWIND_WITH_NOTHING
+    CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
+    CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
+    CPPTRACE_GET_SYMBOLS_WITH_NOTHING OR
+    CPPTRACE_UNWIND_WITH_EXECINFO OR
+    CPPTRACE_UNWIND_WITH_WINAPI OR
+    CPPTRACE_UNWIND_WITH_NOTHING
   )
 )
   # Attempt to auto-config
   if(HAS_BACKTRACE)
-    set(LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
+    set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
     message(STATUS "Cpptrace auto config: Using libbacktrace for the full trace")
   endif()
 endif()
 
 # =============================================== Autoconfig unwinding ===============================================
-# Unwind back-ends (If not doing LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
+# Unwind back-ends (If not doing CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
 if(
   NOT (
-    LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
-    LIBCPPTRACE_UNWIND_WITH_EXECINFO OR
-    LIBCPPTRACE_UNWIND_WITH_WINAPI OR
-    LIBCPPTRACE_UNWIND_WITH_NOTHING
+    CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
+    CPPTRACE_UNWIND_WITH_EXECINFO OR
+    CPPTRACE_UNWIND_WITH_WINAPI OR
+    CPPTRACE_UNWIND_WITH_NOTHING
   )
 )
   # Attempt to auto-config
   if(UNIX)
     if(HAS_EXECINFO)
-      set(LIBCPPTRACE_UNWIND_WITH_EXECINFO On)
+      set(CPPTRACE_UNWIND_WITH_EXECINFO On)
       message(STATUS "Cpptrace auto config: Using execinfo.h for unwinding")
     else()
-      set(LIBCPPTRACE_UNWIND_WITH_NOTHING On)
-      message(FATAL_ERROR "Cpptrace auto config: <execinfo.h> doesn't seem to be supported, stack tracing will not work. To compile anyway set LIBCPPTRACE_UNWIND_WITH_NOTHING.")
+      set(CPPTRACE_UNWIND_WITH_NOTHING On)
+      message(FATAL_ERROR "Cpptrace auto config: <execinfo.h> doesn't seem to be supported, stack tracing will not work. To compile anyway set CPPTRACE_UNWIND_WITH_NOTHING.")
     endif()
   elseif(WIN32)
-    set(LIBCPPTRACE_UNWIND_WITH_WINAPI On)
+    set(CPPTRACE_UNWIND_WITH_WINAPI On)
     message(STATUS "Cpptrace auto config: Using winapi for unwinding")
   endif()
 else()
@@ -140,24 +140,24 @@ else()
 endif()
 
 # =============================================== Autoconfig symbols ===============================================
-# Symbol back-ends (If not doing LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
+# Symbol back-ends (If not doing CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
 if(
   NOT (
-    LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
-    LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
-    LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING
+    CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
+    CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
+    CPPTRACE_GET_SYMBOLS_WITH_NOTHING
   )
 )
   # Attempt to auto-config
   if(UNIX)
     if(HAS_BACKTRACE)
-      set(LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
+      set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
       message(STATUS "Cpptrace auto config: Using libbacktrace for symbols")
     else()
-      message(FATAL_ERROR "Cpptrace auto config: No symbol back end could be automatically configured. To compile anyway set LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING.")
+      message(FATAL_ERROR "Cpptrace auto config: No symbol back end could be automatically configured. To compile anyway set CPPTRACE_GET_SYMBOLS_WITH_NOTHING.")
     endif()
   elseif(WIN32)
-    #set(LIBCPPTRACE_UNWIND_WITH_WINAPI On)
+    #set(CPPTRACE_UNWIND_WITH_WINAPI On)
     #message(STATUS "Cpptrace auto config: Using winapi for unwinding")
   endif()
 else()
@@ -168,14 +168,14 @@ endif()
 # Handle demangle configuration
 if(
   NOT (
-    LIBCPPTRACE_DEMANGLE_WITH_CXXABI OR
-    LIBCPPTRACE_DEMANGLE_WITH_NOTHING
+    CPPTRACE_DEMANGLE_WITH_CXXABI OR
+    CPPTRACE_DEMANGLE_WITH_NOTHING
   )
 )
   if(HAS_CXXABI)
-    set(LIBCPPTRACE_DEMANGLE_WITH_CXXABI On)
+    set(CPPTRACE_DEMANGLE_WITH_CXXABI On)
   else()
-    set(LIBCPPTRACE_DEMANGLE_WITH_NOTHING On)
+    set(CPPTRACE_DEMANGLE_WITH_NOTHING On)
   endif()
 else()
   #message(STATUS "Manual demangling back-end specified")
@@ -186,77 +186,77 @@ endif()
 function(check_backtrace_error)
   if(NOT HAS_BACKTRACE)
     if(NOT "${LIBCPP_BACKTRACE_PATH}" STREQUAL "")
-      message(WARNING "Cpptrace: LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE specified but libbacktrace doesn't appear installed or configured properly.")
+      message(WARNING "Cpptrace: CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE specified but libbacktrace doesn't appear installed or configured properly.")
     else()
-      message(WARNING "Cpptrace: LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE specified but libbacktrace doesn't appear installed or configured properly. You may need to specify LIBCPP_BACKTRACE_PATH.")
+      message(WARNING "Cpptrace: CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE specified but libbacktrace doesn't appear installed or configured properly. You may need to specify LIBCPP_BACKTRACE_PATH.")
     endif()
   endif()
 endfunction()
 
 # Full
-if(LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
+if(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
   check_backtrace_error()
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
   target_link_libraries(cpptrace PRIVATE backtrace)
 endif()
 
 # Symbols
-if(LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
+if(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
   check_backtrace_error()
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
 endif()
 
-if(LIBCPPTRACE_GET_SYMBOLS_WITH_LIBDL)
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_LIBDL)
+if(CPPTRACE_GET_SYMBOLS_WITH_LIBDL)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDL)
 endif()
 
-if(LIBCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
+if(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
 endif()
 
-if(LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+if(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
   target_link_libraries(cpptrace PRIVATE dbghelp)
 endif()
 
-if(LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING)
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING)
+if(CPPTRACE_GET_SYMBOLS_WITH_NOTHING)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_NOTHING)
 endif()
 
 # Unwinding
-if(LIBCPPTRACE_UNWIND_WITH_EXECINFO)
+if(CPPTRACE_UNWIND_WITH_EXECINFO)
   if(NOT HAS_EXECINFO)
-    message(WARNING "Cpptrace: LIBCPPTRACE_UNWIND_WITH_EXECINFO specified but execinfo.h doesn't seem to be available.")
+    message(WARNING "Cpptrace: CPPTRACE_UNWIND_WITH_EXECINFO specified but execinfo.h doesn't seem to be available.")
   endif()
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_UNWIND_WITH_EXECINFO)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_EXECINFO)
 endif()
 
-if(LIBCPPTRACE_UNWIND_WITH_WINAPI)
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_UNWIND_WITH_WINAPI)
+if(CPPTRACE_UNWIND_WITH_WINAPI)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_WINAPI)
 endif()
 
-if(LIBCPPTRACE_UNWIND_WITH_NOTHING)
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_UNWIND_WITH_NOTHING)
+if(CPPTRACE_UNWIND_WITH_NOTHING)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_NOTHING)
 endif()
 
 # Demangling
-if(LIBCPPTRACE_DEMANGLE_WITH_CXXABI)
+if(CPPTRACE_DEMANGLE_WITH_CXXABI)
   if(NOT HAS_CXXABI)
-    message(WARNING "Cpptrace: LIBCPPTRACE_DEMANGLE_WITH_CXXABI specified but cxxabi.h doesn't seem to be available.")
+    message(WARNING "Cpptrace: CPPTRACE_DEMANGLE_WITH_CXXABI specified but cxxabi.h doesn't seem to be available.")
   endif()
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_DEMANGLE_WITH_CXXABI)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_DEMANGLE_WITH_CXXABI)
 endif()
 
-if(LIBCPPTRACE_DEMANGLE_WITH_NOTHING)
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_DEMANGLE_WITH_NOTHING)
+if(CPPTRACE_DEMANGLE_WITH_NOTHING)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_DEMANGLE_WITH_NOTHING)
 endif()
 
 if(NOT "${LIBCPP_BACKTRACE_PATH}" STREQUAL "")
   target_compile_definitions(cpptrace PUBLIC LIBCPP_BACKTRACE_PATH=${LIBCPP_BACKTRACE_PATH})
 endif()
 
-if(NOT "${LIBCPPTRACE_HARD_MAX_FRAMES}" STREQUAL "")
-  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_HARD_MAX_FRAMES=${LIBCPPTRACE_HARD_MAX_FRAMES})
+if(NOT "${CPPTRACE_HARD_MAX_FRAMES}" STREQUAL "")
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_HARD_MAX_FRAMES=${CPPTRACE_HARD_MAX_FRAMES})
 endif()
 
 # ======================================================================================================================

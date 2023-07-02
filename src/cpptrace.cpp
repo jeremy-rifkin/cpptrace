@@ -5,7 +5,7 @@
 #include <vector>
 #include <iostream>
 
-#ifndef LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE
+#ifndef CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE
 
 #include "symbols/libcpp_symbols.hpp"
 #include "unwind/libcpp_unwind.hpp"
@@ -13,7 +13,7 @@
 #include "platform/libcpp_common.hpp"
 
 namespace cpptrace {
-    LIBCPPTRACE_FORCE_NO_INLINE
+    CPPTRACE_FORCE_NO_INLINE
     std::vector<stacktrace_frame> generate_trace() {
         std::vector<void*> frames = detail::capture_frames(1);
         std::vector<stacktrace_frame> trace;
@@ -35,7 +35,7 @@ namespace cpptrace {
 #include "demangle/libcpp_demangle.hpp"
 
 namespace cpptrace {
-    LIBCPPTRACE_FORCE_NO_INLINE
+    CPPTRACE_FORCE_NO_INLINE
     std::vector<stacktrace_frame> generate_trace() {
         auto trace = detail::generate_trace(1);
         for(auto& entry : trace) {

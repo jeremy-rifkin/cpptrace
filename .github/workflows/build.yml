@@ -14,16 +14,16 @@ jobs:
         target: [Debug]
         std: [11, 20]
         unwind: [
-          LIBCPPTRACE_UNWIND_WITH_EXECINFO,
-          LIBCPPTRACE_UNWIND_WITH_NOTHING,
+          CPPTRACE_UNWIND_WITH_EXECINFO,
+          CPPTRACE_UNWIND_WITH_NOTHING,
         ]
         symbols: [
-          LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE,
-          LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING,
+          CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE,
+          CPPTRACE_GET_SYMBOLS_WITH_NOTHING,
         ]
         demangle: [
-          LIBCPPTRACE_DEMANGLE_WITH_CXXABI,
-          LIBCPPTRACE_DEMANGLE_WITH_NOTHING,
+          CPPTRACE_DEMANGLE_WITH_CXXABI,
+          CPPTRACE_DEMANGLE_WITH_NOTHING,
         ]
     steps:
     - uses: actions/checkout@v2
@@ -51,19 +51,19 @@ jobs:
         target: [Debug]
         std: [11, 20]
         unwind: [
-          LIBCPPTRACE_UNWIND_WITH_WINAPI,
-          LIBCPPTRACE_UNWIND_WITH_NOTHING,
+          CPPTRACE_UNWIND_WITH_WINAPI,
+          CPPTRACE_UNWIND_WITH_NOTHING,
         ]
         symbols: [
-          LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP,
-          LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING,
+          CPPTRACE_GET_SYMBOLS_WITH_DBGHELP,
+          CPPTRACE_GET_SYMBOLS_WITH_NOTHING,
         ]
         demangle: [
-          # LIBCPPTRACE_DEMANGLE_WITH_CXXABI,
-          LIBCPPTRACE_DEMANGLE_WITH_NOTHING,
+          # CPPTRACE_DEMANGLE_WITH_CXXABI,
+          CPPTRACE_DEMANGLE_WITH_NOTHING,
         ]
         exclude:
-          - demangle: LIBCPPTRACE_DEMANGLE_WITH_CXXABI
+          - demangle: CPPTRACE_DEMANGLE_WITH_CXXABI
             compiler: cl
     steps:
     - uses: actions/checkout@v2
@@ -80,7 +80,7 @@ jobs:
             -D${{matrix.unwind}}=On `
             -D${{matrix.symbols}}=On `
             -D${{matrix.demangle}}=On
-           msbuild .\libcpptrace.sln
+           msbuild .\cpptrace.sln
 
   build-linux-full-or-auto:
     runs-on: ubuntu-22.04
@@ -90,7 +90,7 @@ jobs:
         compiler: [g++-10, clang++-14]
         target: [Debug]
         std: [11, 20]
-        config: ["-DLIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On", ""]
+        config: ["-DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On", ""]
     steps:
     - uses: actions/checkout@v2
     - name: dependencies
@@ -116,7 +116,7 @@ jobs:
         std: [11, 20]
         config: [""]
         exclude:
-          - config: -DLIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On # TODO
+          - config: -DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On # TODO
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
@@ -130,4 +130,4 @@ jobs:
             -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
             -DCMAKE_CXX_STANDARD=${{matrix.std}} `
             ${{matrix.config}}
-           msbuild .\libcpptrace.sln
+           msbuild .\cpptrace.sln

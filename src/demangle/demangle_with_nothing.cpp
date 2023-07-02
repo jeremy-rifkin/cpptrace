@@ -1,4 +1,4 @@
-#ifdef LIBCPPTRACE_DEMANGLE_WITH_NOTHING
+#ifdef CPPTRACE_DEMANGLE_WITH_NOTHING
 
 #include <cpptrace/cpptrace.hpp>
 #include "libcpp_demangle.hpp"

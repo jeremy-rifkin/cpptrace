@@ -9,7 +9,7 @@
 
 namespace cpptrace {
     namespace detail {
-        LIBCPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE
         std::vector<stacktrace_frame> generate_trace(size_t skip);
     }
 }

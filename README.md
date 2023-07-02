@@ -4,7 +4,7 @@
 
 🚧 WIP 🏗️
 
-Libcpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, Unix, and Windows. The goal:
+Cpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, Unix, and Windows. The goal:
 Make stack traces simple for once.
 
 Support for MacOS and cygwin/mingw will be added soon.
@@ -13,7 +13,7 @@ Support for MacOS and cygwin/mingw will be added soon.
 
 ## Table of contents
 
-- [libcpptrace](#libcpptrace)
+- [cpptrace](#cpptrace)
   - [Table of contents](#table-of-contents)
   - [Docs](#docs)
   - [Backends](#backends)
@@ -53,22 +53,22 @@ also manually set which back-end you want used.
 
 | Library | CMake config | Windows | Linux | Info |
 |---------|--------------|---------|-------|------|
-| execinfo.h | `LIBCPPTRACE_UNWIND_WITH_EXECINFO` | ❌ | ✔️ | Frames are captured with `execinfo.h`'s `backtrace`, part of libc. |
-| winapi | `LIBCPPTRACE_UNWIND_WITH_WINAPI` | ✔️ | ❌ | Frames are captured with `CaptureStackBackTrace`. |
-| N/A | `LIBCPPTRACE_UNWIND_WITH_NOTHING` | ✔️ | ✔️ | Unwinding is not done, stack traces will be empty. |
+| execinfo.h | `CPPTRACE_UNWIND_WITH_EXECINFO` | ❌ | ✔️ | Frames are captured with `execinfo.h`'s `backtrace`, part of libc. |
+| winapi | `CPPTRACE_UNWIND_WITH_WINAPI` | ✔️ | ❌ | Frames are captured with `CaptureStackBackTrace`. |
+| N/A | `CPPTRACE_UNWIND_WITH_NOTHING` | ✔️ | ✔️ | Unwinding is not done, stack traces will be empty. |
 
 Some back-ends require a fixed buffer has to be created to read addresses into while unwinding. By default the buffer
-can hold addresses for 100 frames. This is configurable with `LIBCPPTRACE_HARD_MAX_FRAMES`.
+can hold addresses for 100 frames. This is configurable with `CPPTRACE_HARD_MAX_FRAMES`.
 
 **Symbol resolution**
 
 | Library | CMake config | Windows | Linux | Info |
 |---------|--------------|---------|-------|------|
-| libbacktrace | `LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | ❌ | ✔️ | Libbacktrace is already installed on most systems, or available through the compiler directly. If it is installed but backtrace.h is not already in the include path (this can happen when using clang when backtrace lives in gcc's include folder), `LIBCPP_BACKTRACE_PATH` can be used to specify where the library should be looked for. |
-| libdl | `LIBCPPTRACE_GET_SYMBOLS_WITH_LIBDL` | ❌ | ✔️ | Libdl uses dynamic export information. Compiling with `-rdynamic` is often needed. |
-| addr2line | `LIBCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE` | ❌ | ✔️ | Symbols are resolved by invoking `addr2line` via `fork()`. |
-| dbghelp.h | `LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP` | ✔️ | ❌ | Dbghelp.h allows access to symbols via debug info. |
-| N/A | `LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING` | ✔️ | ✔️ | No attempt is made to resolve symbols. |
+| libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | ❌ | ✔️ | Libbacktrace is already installed on most systems, or available through the compiler directly. If it is installed but backtrace.h is not already in the include path (this can happen when using clang when backtrace lives in gcc's include folder), `LIBCPP_BACKTRACE_PATH` can be used to specify where the library should be looked for. |
+| libdl | `CPPTRACE_GET_SYMBOLS_WITH_LIBDL` | ❌ | ✔️ | Libdl uses dynamic export information. Compiling with `-rdynamic` is often needed. |
+| addr2line | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE` | ❌ | ✔️ | Symbols are resolved by invoking `addr2line` via `fork()`. |
+| dbghelp.h | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP` | ✔️ | ❌ | Dbghelp.h allows access to symbols via debug info. |
+| N/A | `CPPTRACE_GET_SYMBOLS_WITH_NOTHING` | ✔️ | ✔️ | No attempt is made to resolve symbols. |
 
 **Demangling**
 
@@ -77,14 +77,14 @@ mangled.
 
 | Library | CMake config | Windows | Linux | Info |
 |---------|--------------|---------|-------|------|
-| cxxabi.h  | `LIBCPPTRACE_DEMANGLE_WITH_CXXABI` | | | Should be available everywhere other than [msvc](https://godbolt.org/z/93ca9rcdz). |
-| N/A  | `LIBCPPTRACE_DEMANGLE_WITH_NOTHING` | | | Don't attempt to do anything beyond what the symbol resolution back-end does. |
+| cxxabi.h  | `CPPTRACE_DEMANGLE_WITH_CXXABI` | | | Should be available everywhere other than [msvc](https://godbolt.org/z/93ca9rcdz). |
+| N/A  | `CPPTRACE_DEMANGLE_WITH_NOTHING` | | | Don't attempt to do anything beyond what the symbol resolution back-end does. |
 
 **Full tracing**
 
 Libbacktrace can generate a full stack trace itself, both unwinding and resolving symbols. This can be chosen with
-`LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. This is also the first configuration the auto config attempts to use. Full
-tracing with libbacktrace ignores `LIBCPPTRACE_HARD_MAX_FRAMES`.
+`CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. This is also the first configuration the auto config attempts to use. Full
+tracing with libbacktrace ignores `CPPTRACE_HARD_MAX_FRAMES`.
 
 There are plenty more libraries that can be used for unwinding, parsing debug information, and demangling. In the future
 more back-ends can be added. Ideally this library can "just work" on systems, without additional installation work.

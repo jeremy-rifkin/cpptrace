@@ -1,4 +1,4 @@
-#ifdef LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP
+#ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
 
 #include <cpptrace/cpptrace.hpp>
 #include "libcpp_symbols.hpp"

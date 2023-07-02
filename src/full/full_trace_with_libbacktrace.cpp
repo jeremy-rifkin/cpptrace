@@ -1,4 +1,4 @@
-#ifdef LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE
+#ifdef CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE
 
 #include <cpptrace/cpptrace.hpp>
 #include "libcpp_full_trace.hpp"
@@ -51,7 +51,7 @@ namespace cpptrace {
             return state;
         }
 
-        LIBCPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE
         std::vector<stacktrace_frame> generate_trace(size_t skip) {
             std::vector<stacktrace_frame> frames;
             skip++; // add one for this call

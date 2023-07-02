@@ -1,4 +1,4 @@
-#ifdef LIBCPPTRACE_DEMANGLE_WITH_CXXABI
+#ifdef CPPTRACE_DEMANGLE_WITH_CXXABI
 
 #include <cpptrace/cpptrace.hpp>
 #include "libcpp_demangle.hpp"

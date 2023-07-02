@@ -2,9 +2,9 @@
 #define LIBCPP_COMMON_HPP
 
 #ifdef _MSC_VER
-#define LIBCPPTRACE_FORCE_NO_INLINE __declspec(noinline)
+#define CPPTRACE_FORCE_NO_INLINE __declspec(noinline)
 #else
-#define LIBCPPTRACE_FORCE_NO_INLINE __attribute__((noinline))
+#define CPPTRACE_FORCE_NO_INLINE __attribute__((noinline))
 #endif
 
 #endif

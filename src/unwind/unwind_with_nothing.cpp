@@ -1,4 +1,4 @@
-#ifdef LIBCPPTRACE_UNWIND_WITH_NOTHING
+#ifdef CPPTRACE_UNWIND_WITH_NOTHING
 
 #include <cpptrace/cpptrace.hpp>
 #include "libcpp_unwind.hpp"
