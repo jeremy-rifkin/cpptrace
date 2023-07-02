@@ -80,7 +80,7 @@ namespace cpptrace {
                 );
             }
             // special case to properly free a buffer and convert string to narrow chars, only used for TI_GET_SYMNAME
-            static_assert(SymType == IMAGEHLP_SYMBOL_TYPE_INFO::TI_GET_SYMNAME);
+            static_assert(SymType == IMAGEHLP_SYMBOL_TYPE_INFO::TI_GET_SYMNAME, "get_info_wchar called with unexpected IMAGEHLP_SYMBOL_TYPE_INFO");
             std::wstring wstr(info);
             std::string str;
             str.reserve(wstr.size());

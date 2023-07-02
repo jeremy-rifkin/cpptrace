@@ -14,12 +14,12 @@ jobs:
         target: [Debug]
         std: [11, 20]
         unwind: [
-          LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE,
-          LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING,
-        ]
-        symbols: [
           LIBCPPTRACE_UNWIND_WITH_EXECINFO,
           LIBCPPTRACE_UNWIND_WITH_NOTHING,
+        ]
+        symbols: [
+          LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE,
+          LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING,
         ]
         demangle: [
           LIBCPPTRACE_DEMANGLE_WITH_CXXABI,
@@ -51,12 +51,12 @@ jobs:
         target: [Debug]
         std: [11, 20]
         unwind: [
-          # LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
-          LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING,
-        ]
-        symbols: [
           LIBCPPTRACE_UNWIND_WITH_WINAPI,
           LIBCPPTRACE_UNWIND_WITH_NOTHING,
+        ]
+        symbols: [
+          LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP,
+          LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING,
         ]
         demangle: [
           # LIBCPPTRACE_DEMANGLE_WITH_CXXABI,
