@@ -27,11 +27,11 @@ target_include_directories(
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/cpptrace>
 )
 
-target_compile_features(
-  cpptrace
-  PUBLIC
-  cxx_std_11
-)
+#target_compile_features(
+#  cpptrace
+#  PUBLIC
+#  cxx_std_11
+#)
 
 set_target_properties(
   cpptrace
@@ -48,6 +48,7 @@ target_compile_options(
 )
 
 option(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE "" OFF)
+option(CPPTRACE_FULL_TRACE_WITH_STACKTRACE "" OFF)
 
 option(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE "" OFF)
 option(CPPTRACE_GET_SYMBOLS_WITH_LIBDL "" OFF)
@@ -92,13 +93,23 @@ endfunction()
 check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
 check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${LIBCPP_BACKTRACE_PATH_DEFINITION}")
 check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
+if(NOT MSVC)
+  set(STACKTRACE_LINK_LIB "stdc++_libbacktrace")
+else()
+  set(STACKTRACE_LINK_LIB "")
+endif()
+check_support(HAS_STACKTRACE has_stacktrace.cpp "" "${STACKTRACE_LINK_LIB}" "")
 
 # =============================================== Autoconfig full dump ===============================================
 # If nothing is specified, attempt to use libbacktrace's full dump
 if(
   NOT (
     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
+    CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
     CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
+    CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
+    CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
+    CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
     CPPTRACE_GET_SYMBOLS_WITH_NOTHING OR
     CPPTRACE_UNWIND_WITH_EXECINFO OR
     CPPTRACE_UNWIND_WITH_WINAPI OR
@@ -106,7 +117,10 @@ if(
   )
 )
   # Attempt to auto-config
-  if(HAS_BACKTRACE)
+  if(HAS_STACKTRACE AND NOT WIN32)
+    set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
+    message(STATUS "Cpptrace auto config: Using C++23 <stacktrace> for the full trace")
+  elseif(HAS_BACKTRACE)
     set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
     message(STATUS "Cpptrace auto config: Using libbacktrace for the full trace")
   endif()
@@ -117,6 +131,7 @@ endif()
 if(
   NOT (
     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
+    CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
     CPPTRACE_UNWIND_WITH_EXECINFO OR
     CPPTRACE_UNWIND_WITH_WINAPI OR
     CPPTRACE_UNWIND_WITH_NOTHING
@@ -144,7 +159,11 @@ endif()
 if(
   NOT (
     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
+    CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
     CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
+    CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
+    CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
+    CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
     CPPTRACE_GET_SYMBOLS_WITH_NOTHING
   )
 )
@@ -198,6 +217,14 @@ if(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
   check_backtrace_error()
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
   target_link_libraries(cpptrace PRIVATE backtrace)
+endif()
+
+if(CPPTRACE_FULL_TRACE_WITH_STACKTRACE)
+  if(NOT HAS_STACKTRACE)
+    message(WARNING "Cpptrace: CPPTRACE_FULL_TRACE_WITH_STACKTRACE specified but <stacktrace> doesn't seem to be available.")
+  endif()
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_FULL_TRACE_WITH_STACKTRACE)
+  target_link_libraries(cpptrace PRIVATE "${STACKTRACE_LINK_LIB}")
 endif()
 
 # Symbols

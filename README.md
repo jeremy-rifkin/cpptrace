@@ -67,7 +67,7 @@ can hold addresses for 100 frames. This is configurable with `CPPTRACE_HARD_MAX_
 | libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | ❌ | ✔️ | Libbacktrace is already installed on most systems, or available through the compiler directly. If it is installed but backtrace.h is not already in the include path (this can happen when using clang when backtrace lives in gcc's include folder), `LIBCPP_BACKTRACE_PATH` can be used to specify where the library should be looked for. |
 | libdl | `CPPTRACE_GET_SYMBOLS_WITH_LIBDL` | ❌ | ✔️ | Libdl uses dynamic export information. Compiling with `-rdynamic` is often needed. |
 | addr2line | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE` | ❌ | ✔️ | Symbols are resolved by invoking `addr2line` via `fork()`. |
-| dbghelp.h | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP` | ✔️ | ❌ | Dbghelp.h allows access to symbols via debug info. |
+| dbghelp | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP` | ✔️ | ❌ | Dbghelp.h allows access to symbols via debug info. |
 | N/A | `CPPTRACE_GET_SYMBOLS_WITH_NOTHING` | ✔️ | ✔️ | No attempt is made to resolve symbols. |
 
 **Demangling**
@@ -83,8 +83,14 @@ mangled.
 **Full tracing**
 
 Libbacktrace can generate a full stack trace itself, both unwinding and resolving symbols. This can be chosen with
-`CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. This is also the first configuration the auto config attempts to use. Full
-tracing with libbacktrace ignores `CPPTRACE_HARD_MAX_FRAMES`.
+`CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. The auto config attempts to use this if it is available. Full tracing with
+libbacktrace ignores `CPPTRACE_HARD_MAX_FRAMES`.
+
+`<stacktrace>` can of course also generate a full trace, if you're using >=C++23 and your compiler supports it. This is
+controlled by `CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. The cmake script will attempt to auto configure to this if
+possible. `CPPTRACE_HARD_MAX_FRAMES` is ignored.
+
+**More?**
 
 There are plenty more libraries that can be used for unwinding, parsing debug information, and demangling. In the future
 more back-ends can be added. Ideally this library can "just work" on systems, without additional installation work.
