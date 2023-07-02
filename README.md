@@ -2,8 +2,12 @@
 
 [![build](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml)
 
-Libcpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, Unix, MacOS, and Windows
-(including cygwin / mingw environments). The goal: Make traces simple for once.
+🚧 WIP 🏗️
+
+Libcpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, Unix, and Windows. The goal:
+Make stack traces simple for once.
+
+Support for MacOS and cygwin/mingw will be added soon.
 
 *Some day C++23's `<stacktrace>` will be ubiquitous*
 
@@ -21,13 +25,14 @@ Libcpptrace is a lightweight C++ stacktrace library supporting C++11 and greater
 be used to get raw frame information for custom use.
 
 **Note:** Debug info (`-g`) is generally required for good trace information. Some back-ends read symbols from dynamic
-export information which requires `-rdynamic` or manually marking symbols for exporting.
+export information which may require `-rdynamic` or manually marking symbols for exporting.
 
 ```cpp
 namespace cpptrace {
     struct stacktrace_frame {
-        size_t line;
-        size_t col;
+        uintptr_t address;
+        int line;
+        int col;
         std::string filename;
         std::string symbol;
     };
@@ -60,13 +65,22 @@ also manually set which back-end you want used.
 | libdl | `LIBCPPTRACE_GET_SYMBOLS_WITH_LIBDL` | ❌ | ✔️ | Libdl uses dynamic export information. Compiling with `-rdynamic` is often needed. |
 | addr2line | `LIBCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE` | ❌ | ✔️ | Symbols are resolved by invoking `addr2line` via `fork()`. |
 | dbghelp.h | `LIBCPPTRACE_GET_SYMBOLS_WITH_DBGHELP` | ✔️ | ❌ | Dbghelp.h allows access to symbols via debug info. |
-| N/A | `LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING` | ✔️ | ✔️ | Don't attempt to resolve symbols. |
+| N/A | `LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING` | ✔️ | ✔️ | No attempt is made to resolve symbols. |
+
+**Demangling**
 
 Lastly, on unix systems symbol demangling is done with `<cxxabi.h>`. On windows symbols extracted with dbghelp.h aren't
 mangled.
 
-Libbacktrace can generate a full stack trace itself, both unwinding and resolving symbols, and this can be chosen with
-`LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`.
+| Library | CMake config | Windows | Linux | Info |
+|---------|--------------|---------|-------|------|
+| cxxabi.h  | `LIBCPPTRACE_DEMANGLE_WITH_CXXABI` | | | Should be available everywhere other than [msvc](https://godbolt.org/z/93ca9rcdz). |
+| N/A  | `LIBCPPTRACE_DEMANGLE_WITH_NOTHING` | | | Don't attempt to do anything beyond what the symbol resolution back-end does. |
+
+**Full tracing**
+
+Libbacktrace can generate a full stack trace itself, both unwinding and resolving symbols. This can be chosen with
+`LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. This is also the first configuration the auto config attempts to use.
 
 There are plenty more libraries that can be used for unwinding, parsing debug information, and demangling. In the future
 more back-ends can be added. Ideally this library can "just work" on systems, without additional installation work.
