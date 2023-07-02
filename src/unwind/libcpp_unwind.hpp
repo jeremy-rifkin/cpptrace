@@ -2,6 +2,7 @@
 #define LIBCPP_UNWIND_HPP
 
 #include <cpptrace/cpptrace.hpp>
+#include "../platform/libcpp_common.hpp"
 
 #include <cstddef>
 
@@ -12,7 +13,8 @@ namespace cpptrace {
         #else
         constexpr size_t hard_max_frames = 100;
         #endif
-        std::vector<void*> capture_frames();
+        LIBCPPTRACE_FORCE_NO_INLINE
+        std::vector<void*> capture_frames(size_t skip);
     }
 }
 

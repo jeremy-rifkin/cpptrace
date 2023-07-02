@@ -57,6 +57,9 @@ also manually set which back-end you want used.
 | winapi | `LIBCPPTRACE_UNWIND_WITH_WINAPI` | ✔️ | ❌ | Frames are captured with `CaptureStackBackTrace`. |
 | N/A | `LIBCPPTRACE_UNWIND_WITH_NOTHING` | ✔️ | ✔️ | Unwinding is not done, stack traces will be empty. |
 
+Some back-ends require a fixed buffer has to be created to read addresses into while unwinding. By default the buffer
+can hold addresses for 100 frames. This is configurable with `LIBCPPTRACE_HARD_MAX_FRAMES`.
+
 **Symbol resolution**
 
 | Library | CMake config | Windows | Linux | Info |
@@ -80,7 +83,8 @@ mangled.
 **Full tracing**
 
 Libbacktrace can generate a full stack trace itself, both unwinding and resolving symbols. This can be chosen with
-`LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. This is also the first configuration the auto config attempts to use.
+`LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. This is also the first configuration the auto config attempts to use. Full
+tracing with libbacktrace ignores `LIBCPPTRACE_HARD_MAX_FRAMES`.
 
 There are plenty more libraries that can be used for unwinding, parsing debug information, and demangling. In the future
 more back-ends can be added. Ideally this library can "just work" on systems, without additional installation work.

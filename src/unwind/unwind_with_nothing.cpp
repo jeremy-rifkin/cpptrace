@@ -7,7 +7,7 @@
 
 namespace cpptrace {
     namespace detail {
-        std::vector<void*> capture_frames() {
+        std::vector<void*> capture_frames(size_t) {
             return {};
         }
     }

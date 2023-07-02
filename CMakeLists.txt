@@ -12,7 +12,7 @@ project(
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-#set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(GNUInstallDirs)
 include(CheckCXXSourceCompiles)
@@ -63,6 +63,7 @@ option(LIBCPPTRACE_DEMANGLE_WITH_CXXABI "" OFF)
 option(LIBCPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
 
 set(LIBCPP_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
+set(LIBCPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 100.")
 
 if(NOT "${LIBCPP_BACKTRACE_PATH}" STREQUAL "")
   # quotes used over <> because of a macro substitution issue where
@@ -252,6 +253,10 @@ endif()
 
 if(NOT "${LIBCPP_BACKTRACE_PATH}" STREQUAL "")
   target_compile_definitions(cpptrace PUBLIC LIBCPP_BACKTRACE_PATH=${LIBCPP_BACKTRACE_PATH})
+endif()
+
+if(NOT "${LIBCPPTRACE_HARD_MAX_FRAMES}" STREQUAL "")
+  target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_HARD_MAX_FRAMES=${LIBCPPTRACE_HARD_MAX_FRAMES})
 endif()
 
 # ======================================================================================================================

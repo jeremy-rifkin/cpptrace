@@ -3,6 +3,7 @@
 #include <cpptrace/cpptrace.hpp>
 #include "libcpp_full_trace.hpp"
 #include "../platform/libcpp_program_name.hpp"
+#include "../platform/libcpp_common.hpp"
 
 #include <vector>
 
@@ -14,14 +15,24 @@
 
 namespace cpptrace {
     namespace detail {
-        int full_callback(void* data, uintptr_t address, const char* file, int line, const char* symbol) {
-            reinterpret_cast<std::vector<stacktrace_frame>*>(data)->push_back({
-                address,
-                line,
-                -1,
-                file ? file : "",
-                symbol ? symbol : ""
-            });
+        struct trace_data {
+            std::vector<stacktrace_frame>& frames;
+            size_t& skip;
+        };
+
+        int full_callback(void* data_pointer, uintptr_t address, const char* file, int line, const char* symbol) {
+            trace_data& data = *reinterpret_cast<trace_data*>(data_pointer);
+            if(data.skip > 0) {
+                data.skip--;
+            } else {
+                data.frames.push_back({
+                    address,
+                    line,
+                    -1,
+                    file ? file : "",
+                    symbol ? symbol : ""
+                });
+            }
             return 0;
         }
 
@@ -40,9 +51,12 @@ namespace cpptrace {
             return state;
         }
 
-        std::vector<stacktrace_frame> generate_trace() {
+        LIBCPPTRACE_FORCE_NO_INLINE
+        std::vector<stacktrace_frame> generate_trace(size_t skip) {
             std::vector<stacktrace_frame> frames;
-            backtrace_full(get_backtrace_state(), 0, full_callback, error_callback, &frames);
+            skip++; // add one for this call
+            trace_data data { frames, skip };
+            backtrace_full(get_backtrace_state(), 0, full_callback, error_callback, &data);
             return frames;
         }
     }
