@@ -18,7 +18,6 @@ include(GNUInstallDirs)
 include(CheckCXXSourceCompiles)
 
 file(GLOB_RECURSE sources src/*.cpp)
-#message(STATUS "Sources" ${sources})
 add_library(cpptrace ${sources} include/cpptrace/cpptrace.hpp)
 
 target_include_directories(
@@ -48,15 +47,6 @@ target_compile_options(
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
 
-function(check_support var source includes libraries definitions)
-  set(CMAKE_REQUIRED_INCLUDES "${includes}")
-  list(APPEND CMAKE_REQUIRED_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-  set(CMAKE_REQUIRED_LIBRARIES "${libraries}")
-  set(CMAKE_REQUIRED_DEFINITIONS "${definitions}")
-  check_cxx_source_compiles("#include \"${source}\"" ${var})
-  set(${var} ${${var}} PARENT_SCOPE)
-endfunction()
-
 option(LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE "" OFF)
 
 option(LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE "" OFF)
@@ -72,6 +62,36 @@ option(LIBCPPTRACE_UNWIND_WITH_NOTHING "" OFF)
 option(LIBCPPTRACE_DEMANGLE_WITH_CXXABI "" OFF)
 option(LIBCPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
 
+set(LIBCPP_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
+
+if(NOT "${LIBCPP_BACKTRACE_PATH}" STREQUAL "")
+  # quotes used over <> because of a macro substitution issue where
+  # </usr/lib/gcc/x86_64-linux-gnu/12/include/backtrace.h>
+  # is expanded to
+  # </usr/lib/gcc/x86_64-1-gnu/12/include/backtrace.h>
+  string(CONCAT LIBCPP_BACKTRACE_PATH "\"" ${LIBCPP_BACKTRACE_PATH})
+  string(CONCAT LIBCPP_BACKTRACE_PATH ${LIBCPP_BACKTRACE_PATH} "\"")
+  #message(STATUS ${LIBCPP_BACKTRACE_PATH})
+  string(CONCAT LIBCPP_BACKTRACE_PATH_DEFINITION "-DLIBCPP_BACKTRACE_PATH=" ${LIBCPP_BACKTRACE_PATH})
+  #message(STATUS ${LIBCPP_BACKTRACE_PATH_DEFINITION})
+else()
+  set(LIBCPP_BACKTRACE_PATH_DEFINITION "")
+endif()
+
+function(check_support var source includes libraries definitions)
+  set(CMAKE_REQUIRED_INCLUDES "${includes}")
+  list(APPEND CMAKE_REQUIRED_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+  set(CMAKE_REQUIRED_LIBRARIES "${libraries}")
+  set(CMAKE_REQUIRED_DEFINITIONS "${definitions}")
+  string(CONCAT full_source "#include \"${source}\"" ${nonce})
+  check_cxx_source_compiles(${full_source} ${var})
+  set(${var} ${${var}} PARENT_SCOPE)
+endfunction()
+
+check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
+check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${LIBCPP_BACKTRACE_PATH_DEFINITION}")
+check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
+
 # =============================================== Autoconfig full dump ===============================================
 # If nothing is specified, attempt to use libbacktrace's full dump
 if(
@@ -85,8 +105,6 @@ if(
   )
 )
   # Attempt to auto-config
-  check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "")
-
   if(HAS_BACKTRACE)
     set(LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
     message(STATUS "Cpptrace auto config: Using libbacktrace for the full trace")
@@ -105,14 +123,12 @@ if(
 )
   # Attempt to auto-config
   if(UNIX)
-    check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
-
     if(HAS_EXECINFO)
       set(LIBCPPTRACE_UNWIND_WITH_EXECINFO On)
       message(STATUS "Cpptrace auto config: Using execinfo.h for unwinding")
     else()
       set(LIBCPPTRACE_UNWIND_WITH_NOTHING On)
-      message(WARNING "Cpptrace auto config: <execinfo.h> doesn't seem to be supported, stack tracing will not work.")
+      message(FATAL_ERROR "Cpptrace auto config: <execinfo.h> doesn't seem to be supported, stack tracing will not work. To compile anyway set LIBCPPTRACE_UNWIND_WITH_NOTHING.")
     endif()
   elseif(WIN32)
     set(LIBCPPTRACE_UNWIND_WITH_WINAPI On)
@@ -133,13 +149,11 @@ if(
 )
   # Attempt to auto-config
   if(UNIX)
-    check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
-
-    if(HAS_EXECINFO)
+    if(HAS_BACKTRACE)
       set(LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
       message(STATUS "Cpptrace auto config: Using libbacktrace for symbols")
     else()
-      message(WARNING "Cpptrace auto config: No symbol back end could be automatically configured")
+      message(FATAL_ERROR "Cpptrace auto config: No symbol back end could be automatically configured. To compile anyway set LIBCPPTRACE_GET_SYMBOLS_WITH_NOTHING.")
     endif()
   elseif(WIN32)
     #set(LIBCPPTRACE_UNWIND_WITH_WINAPI On)
@@ -157,7 +171,6 @@ if(
     LIBCPPTRACE_DEMANGLE_WITH_NOTHING
   )
 )
-  check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
   if(HAS_CXXABI)
     set(LIBCPPTRACE_DEMANGLE_WITH_CXXABI On)
   else()
@@ -169,19 +182,34 @@ endif()
 
 # =============================================== Apply options to build ===============================================
 
+function(check_backtrace_error)
+  if(NOT HAS_BACKTRACE)
+    if(NOT "${LIBCPP_BACKTRACE_PATH}" STREQUAL "")
+      message(WARNING "Cpptrace: LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE specified but libbacktrace doesn't appear installed or configured properly.")
+    else()
+      message(WARNING "Cpptrace: LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE specified but libbacktrace doesn't appear installed or configured properly. You may need to specify LIBCPP_BACKTRACE_PATH.")
+    endif()
+  endif()
+endfunction()
+
 # Full
 if(LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
+  check_backtrace_error()
   target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
   target_link_libraries(cpptrace PRIVATE backtrace)
 endif()
 
 # Symbols
 if(LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
+  check_backtrace_error()
   target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
 endif()
 
 # Unwinding
 if(LIBCPPTRACE_UNWIND_WITH_EXECINFO)
+  if(NOT HAS_EXECINFO)
+    message(WARNING "Cpptrace: LIBCPPTRACE_UNWIND_WITH_EXECINFO specified but execinfo.h doesn't seem to be available.")
+  endif()
   target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_UNWIND_WITH_EXECINFO)
 endif()
 
@@ -191,12 +219,21 @@ endif()
 
 # Demangling
 if(LIBCPPTRACE_DEMANGLE_WITH_CXXABI)
+  if(NOT HAS_CXXABI)
+    message(WARNING "Cpptrace: LIBCPPTRACE_DEMANGLE_WITH_CXXABI specified but cxxabi.h doesn't seem to be available.")
+  endif()
   target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_DEMANGLE_WITH_CXXABI)
 endif()
 
 if(LIBCPPTRACE_DEMANGLE_WITH_NOTHING)
   target_compile_definitions(cpptrace PUBLIC LIBCPPTRACE_DEMANGLE_WITH_NOTHING)
 endif()
+
+if(NOT "${LIBCPP_BACKTRACE_PATH}" STREQUAL "")
+  target_compile_definitions(cpptrace PUBLIC LIBCPP_BACKTRACE_PATH=${LIBCPP_BACKTRACE_PATH})
+endif()
+
+# ======================================================================================================================
 
 target_link_libraries(
   cpptrace

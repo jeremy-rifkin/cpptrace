@@ -1,5 +1,5 @@
-#ifndef LIBCPP_SYMBOLIZE_HPP
-#define LIBCPP_SYMBOLIZE_HPP
+#ifndef LIBCPP_SYMBOLS_HPP
+#define LIBCPP_SYMBOLS_HPP
 
 #include <cpptrace/cpptrace.hpp>
 
@@ -10,7 +10,7 @@ namespace cpptrace {
     namespace detail {
         class symbolizer {
             struct impl;
-            std::unique_ptr<impl> impl;
+            std::unique_ptr<impl> pimpl;
         public:
             symbolizer();
             ~symbolizer();

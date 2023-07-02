@@ -1,5 +1,6 @@
-#include <backtrace.h>
+#include <execinfo.h>
 
 int main() {
-    backtrace_state* state = backtrace_create_state(nullptr, true, nullptr, nullptr);
+    void* frames[10];
+    backtrace(frames, 10);
 }
