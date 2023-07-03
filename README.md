@@ -1,6 +1,7 @@
 # Cpptrace
 
 [![build](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml)
+[![test](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/test.yml)
 
 🚧 WIP 🏗️
 

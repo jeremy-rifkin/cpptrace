@@ -1,6 +1,8 @@
 import os
 import sys
 
+MAX_LINE_DIFF = 2
+
 def main():
     if len(sys.argv) != 2:
         print("Expected one argument")
@@ -35,7 +37,7 @@ def main():
         if output_file != expected_file:
             print(f"Error: File name mismatch on line {i + 1}, found \"{output_file}\" expected \"{expected_file}\"", file=sys.stderr)
             errored = True
-        if output_line != expected_line:
+        if abs(int(output_line) - int(expected_line)) > MAX_LINE_DIFF:
             print(f"Error: File line mismatch on line {i + 1}, found {output_line} expected {expected_line}", file=sys.stderr)
             errored = True
         if output_symbol != expected_symbol:

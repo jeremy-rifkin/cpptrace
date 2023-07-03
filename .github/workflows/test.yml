@@ -29,7 +29,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: dependencies
       run: sudo apt install gcc-10 g++-10 libgcc-10-dev
-    - name: build & test
+    - name: build
       run: |
            mkdir -p build
            cd build
@@ -43,6 +43,10 @@ jobs:
             -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h \
             -DCPPTRACE_BUILD_TEST=On
            make
+    - name: test
+      working-directory: build
+      run: |
+           #readelf --debug-dump=info test | grep foo
            ./test | python3 ../test/test.py "${{matrix.compiler}}"
   test-windows:
     runs-on: windows-2019
@@ -71,7 +75,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
-    - name: build & test
+    - name: build
       run: |
            mkdir -p build
            cd build
@@ -84,6 +88,9 @@ jobs:
             -D${{matrix.demangle}}=On `
             -DCPPTRACE_BUILD_TEST=On
            msbuild .\cpptrace.sln
+    - name: test
+      working-directory: build
+      run: |
            .\${{matrix.target}}\test.exe | python3 ..\test\test.py "${{matrix.compiler}}"
 
   test-linux-full-or-auto:
@@ -99,7 +106,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: dependencies
       run: sudo apt install gcc-10 g++-10 libgcc-10-dev
-    - name: build & test
+    - name: build
       run: |
            mkdir -p build
            cd build
@@ -111,6 +118,9 @@ jobs:
             ${{matrix.config}} \
             -DCPPTRACE_BUILD_TEST=On
            make
+    - name: test
+      working-directory: build
+      run: |
            ./test | python3 ../test/test.py "${{matrix.compiler}}"
   test-windows-full-or-auto:
     runs-on: windows-2019
@@ -138,4 +148,7 @@ jobs:
             ${{matrix.config}} `
             -DCPPTRACE_BUILD_TEST=On
            msbuild .\cpptrace.sln
+    - name: test
+      working-directory: build
+      run: |
            .\${{matrix.target}}\test.exe | python3 ..\test\test.py "${{matrix.compiler}}"
