@@ -1,0 +1,27 @@
+test/test.cpp||18||trace()
+test/test.cpp||31||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||33||foo(int)
+test/test.cpp||39||void foo<int>(int, int)
+test/test.cpp||39||void foo<int, int>(int, int, int)
+test/test.cpp||39||void foo<int, int, int>(int, int, int, int)
+test/test.cpp||39||void foo<int, int, int, int>(int, int, int, int, int)
+test/test.cpp||39||void foo<int, int, int, int, int>(int, int, int, int, int, int)
+test/test.cpp||39||void foo<int, int, int, int, int, int>(int, int, int, int, int, int, int)
+test/test.cpp||39||void foo<int, int, int, int, int, int, int>(int, int, int, int, int, int, int, int)
+test/test.cpp||39||void foo<int, int, int, int, int, int, int, int>(int, int, int, int, int, int, int, int, int)
+test/test.cpp||39||void foo<int, int, int, int, int, int, int, int, int>(int, int, int, int, int, int, int, int, int, int)
+test/test.cpp||43||function_two(int, float)
+test/test.cpp||47||function_one(int)
+test/test.cpp||51||main
+../csu/libc-start.c||308||__libc_start_main
+||0||
+||0||

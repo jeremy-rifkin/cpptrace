@@ -7,8 +7,8 @@
 #include <memory>
 #include <vector>
 
-#ifdef LIBCPP_BACKTRACE_PATH
-#include LIBCPP_BACKTRACE_PATH
+#ifdef CPPTRACE_BACKTRACE_PATH
+#include CPPTRACE_BACKTRACE_PATH
 #else
 #include <backtrace.h>
 #endif
@@ -17,6 +17,9 @@ namespace cpptrace {
     namespace detail {
         int full_callback(void* data, uintptr_t address, const char* file, int line, const char* symbol) {
             stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
+            if(line == 0) {
+                fprintf(stderr, "Getting bad data for some reason\n");
+            }
             frame.address = address;
             frame.line = line;
             frame.filename = file ? file : "";
@@ -24,8 +27,9 @@ namespace cpptrace {
             return 0;
         }
 
-        void error_callback(void*, const char*, int) {
+        void error_callback(void* data, const char* msg, int errnum) {
             // nothing at the moment
+            fprintf(stderr, "Backtrace error %s %d %p\n", msg, errnum, data);
         }
 
         backtrace_state* get_backtrace_state() {
