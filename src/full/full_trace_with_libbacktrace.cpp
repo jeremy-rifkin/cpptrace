@@ -36,6 +36,11 @@ namespace cpptrace {
             return 0;
         }
 
+        void syminfo_callback(void* data, uintptr_t, const char* symbol, uintptr_t, uintptr_t) {
+            stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
+            frame.symbol = symbol ? symbol : "";
+        }
+
         void error_callback(void*, const char*, int) {
             // nothing for now
         }
@@ -57,6 +62,18 @@ namespace cpptrace {
             skip++; // add one for this call
             trace_data data { frames, skip };
             backtrace_full(get_backtrace_state(), 0, full_callback, error_callback, &data);
+            for(auto& frame : frames) {
+                if(frame.symbol.empty()) {
+                    // fallback, try to at least recover the symbol name with backtrace_syminfo
+                    backtrace_syminfo(
+                        get_backtrace_state(),
+                        reinterpret_cast<uintptr_t>(frame.address),
+                        syminfo_callback,
+                        error_callback,
+                        &frame
+                    );
+                }
+            }
             return frames;
         }
     }
