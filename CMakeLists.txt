@@ -64,6 +64,7 @@ option(CPPTRACE_DEMANGLE_WITH_CXXABI "" OFF)
 option(CPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
 
 option(CPPTRACE_BUILD_TEST "" OFF)
+option(CPPTRACE_BUILD_TEST_RDYNAMIC "" OFF)
 
 set(CPPTRACE_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
 set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 100.")
@@ -238,10 +239,12 @@ endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBDL)
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDL)
+  target_link_libraries(cpptrace PRIVATE dl)
 endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
+  target_link_libraries(cpptrace PRIVATE dl)
 endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
@@ -356,4 +359,7 @@ endif()
 if(CPPTRACE_BUILD_TEST)
   add_executable(test test/test.cpp)
   target_link_libraries(test PRIVATE cpptrace)
+  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
+    set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
+  endif()
 endif()

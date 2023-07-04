@@ -392,8 +392,17 @@ namespace cpptrace {
         symbolizer::symbolizer() : pimpl{new impl} {}
         symbolizer::~symbolizer() = default;
 
-        stacktrace_frame symbolizer::resolve_frame(void* addr) {
-            return pimpl->resolve_frame(addr);
+        //stacktrace_frame symbolizer::resolve_frame(void* addr) {
+        //    return pimpl->resolve_frame(addr);
+        //}
+
+        std::vector<stacktrace_frame> symbolizer::resolve_frames(const std::vector<void*>& frames) {
+            std::vector<stacktrace_frame> trace;
+            trace.reserve(frames.size());
+            for(const auto frame : frames) {
+                trace.push_back(pimpl->resolve_frame(frame));
+            }
+            return trace;
         }
     }
 }

@@ -1,23 +1,64 @@
 import os
 import sys
+from typing import List
 
 MAX_LINE_DIFF = 2
 
+def similarity(name: str, target: List[str]) -> int:
+    parts = name.split(".txt")[0].split(".")
+    c = 0
+    for part in parts:
+        if part in target:
+            c += 1
+        else:
+            return -1
+    return c
+
 def main():
-    if len(sys.argv) != 2:
-        print("Expected one argument")
+    if len(sys.argv) < 2:
+        print("Expected at least one arg")
         sys.exit(1)
 
-    if sys.argv[1].startswith("gcc") or sys.argv[1].startswith("g++"):
-        name = "gcc"
-    elif sys.argv[1].startswith("clang"):
-        name = "clang"
-    elif sys.argv[1].startswith("cl"):
-        name = "msvc"
-    if os.name == "nt":
-        name = "windows_" + name
+    target = []
 
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "expected/", name + ".txt"), "r") as f:
+    if sys.argv[1].startswith("gcc") or sys.argv[1].startswith("g++"):
+        target.append("gcc")
+    elif sys.argv[1].startswith("clang"):
+        target.append("clang")
+    elif sys.argv[1].startswith("cl"):
+        target.append("msvc")
+
+    if os.name == "nt":
+        target.append("windows")
+    else:
+        target.append("linux")
+
+    other_configs = sys.argv[2:]
+    for config in other_configs:
+        assert "WITH_" in config
+        target.append(config.split("WITH_")[1].lower())
+
+    print(f"Searching for expected file best matching {target}")
+
+    expected_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "expected/")
+    files = [f for f in os.listdir(expected_dir) if os.path.isfile(os.path.join(expected_dir, f))]
+    if len(files) == 0:
+        print(f"Error: No expected files to use (searching {expected_dir})", file=sys.stderr)
+        sys.exit(1)
+    files = list(map(lambda f: (f, similarity(f, target)), files))
+    m = max(files, key=lambda entry: entry[1])[1]
+    if m <= 0:
+        print(f"Error: Could not find match for {target} in {files}", file=sys.stderr)
+        sys.exit(1)
+    files = [entry[0] for entry in files if entry[1] == m]
+    if len(files) > 1:
+        print(f"Error: Ambiguous expected file to use ({files})", file=sys.stderr)
+        sys.exit(1)
+
+    file = files[0]
+    print(f"Reading from {file}")
+
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "expected/", file), "r") as f:
         expected = f.read()
 
     output = sys.stdin.read()
@@ -49,8 +90,6 @@ def main():
             break
 
     if errored:
-        #print("Test output:", file=sys.stderr)
-        #print(raw_output, file=sys.stderr)
         print("Test failed")
         sys.exit(1)
     else:
