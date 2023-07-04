@@ -14,7 +14,8 @@ namespace cpptrace {
         public:
             symbolizer();
             ~symbolizer();
-            stacktrace_frame resolve_frame(void* addr);
+            //stacktrace_frame resolve_frame(void* addr);
+            std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames);
         };
     }
 }

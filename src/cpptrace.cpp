@@ -16,12 +16,10 @@ namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
     std::vector<stacktrace_frame> generate_trace() {
         std::vector<void*> frames = detail::capture_frames(1);
-        std::vector<stacktrace_frame> trace;
         detail::symbolizer symbolizer;
-        for(const auto frame : frames) {
-            auto entry = symbolizer.resolve_frame(frame);
-            entry.symbol = detail::demangle(entry.symbol);
-            trace.push_back(entry);
+        std::vector<stacktrace_frame> trace = symbolizer.resolve_frames(frames);
+        for(auto& frame : trace) {
+            frame.symbol = detail::demangle(frame.symbol);
         }
         return trace;
     }
