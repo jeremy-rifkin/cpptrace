@@ -1,9 +1,9 @@
 #ifdef CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE
 
 #include <cpptrace/cpptrace.hpp>
-#include "libcpp_full_trace.hpp"
-#include "../platform/libcpp_program_name.hpp"
-#include "../platform/libcpp_common.hpp"
+#include "cpptrace_full_trace.hpp"
+#include "../platform/cpptrace_program_name.hpp"
+#include "../platform/cpptrace_common.hpp"
 
 #include <vector>
 
@@ -50,7 +50,7 @@ namespace cpptrace {
             static backtrace_state* state = nullptr;
             static bool called = false;
             if(!called) {
-                state = backtrace_create_state(program_name().c_str(), true, error_callback, nullptr);
+                state = backtrace_create_state(program_name(), true, error_callback, nullptr);
                 called = true;
             }
             return state;

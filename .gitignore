@@ -3,3 +3,4 @@ build
 build2
 a.out
 test/build
+repro*/

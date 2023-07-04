@@ -5,12 +5,12 @@
 #include <vector>
 #include <iostream>
 
-#ifndef CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE
+#if !(defined(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE) || defined(CPPTRACE_FULL_TRACE_WITH_STACKTRACE))
 
-#include "symbols/libcpp_symbols.hpp"
-#include "unwind/libcpp_unwind.hpp"
-#include "demangle/libcpp_demangle.hpp"
-#include "platform/libcpp_common.hpp"
+#include "symbols/cpptrace_symbols.hpp"
+#include "unwind/cpptrace_unwind.hpp"
+#include "demangle/cpptrace_demangle.hpp"
+#include "platform/cpptrace_common.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
@@ -31,8 +31,8 @@ namespace cpptrace {
 
 // full trace
 
-#include "full/libcpp_full_trace.hpp"
-#include "demangle/libcpp_demangle.hpp"
+#include "full/cpptrace_full_trace.hpp"
+#include "demangle/cpptrace_demangle.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE

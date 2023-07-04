@@ -1,5 +1,5 @@
-#ifndef LIBCPP_DEMANGLE_HPP
-#define LIBCPP_DEMANGLE_HPP
+#ifndef CPPTRACE_DEMANGLE_HPP
+#define CPPTRACE_DEMANGLE_HPP
 
 #include <cpptrace/cpptrace.hpp>
 

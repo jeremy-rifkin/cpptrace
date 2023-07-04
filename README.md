@@ -10,7 +10,7 @@ Make stack traces simple for once.
 
 Support for MacOS and cygwin/mingw will be added soon.
 
-*Some day C++23's `<stacktrace>` will be ubiquitous*
+*Some day C++23's `<stacktrace>` will be ubiquitous, and maybe one day the msvc implementation will be acceptable*
 
 ## Table of contents
 

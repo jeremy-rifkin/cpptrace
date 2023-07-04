@@ -1,8 +1,8 @@
-#ifndef LIBCPP_UNWIND_HPP
-#define LIBCPP_UNWIND_HPP
+#ifndef CPPTRACE_UNWIND_HPP
+#define CPPTRACE_UNWIND_HPP
 
 #include <cpptrace/cpptrace.hpp>
-#include "../platform/libcpp_common.hpp"
+#include "../platform/cpptrace_common.hpp"
 
 #include <cstddef>
 

@@ -22,6 +22,8 @@ def main():
 
     output = sys.stdin.read()
 
+    print(output) # for debug reasons
+
     if output.strip() == "":
         print(f"Error: No output from test", file=sys.stderr)
         sys.exit(1)
@@ -47,8 +49,11 @@ def main():
             break
 
     if errored:
-        print("Test output:", file=sys.stderr)
-        print(raw_output, file=sys.stderr)
+        #print("Test output:", file=sys.stderr)
+        #print(raw_output, file=sys.stderr)
+        print("Test failed")
         sys.exit(1)
+    else:
+        print("Test passed")
 
 main()

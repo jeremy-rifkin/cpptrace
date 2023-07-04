@@ -1,7 +1,7 @@
 #ifdef CPPTRACE_DEMANGLE_WITH_NOTHING
 
 #include <cpptrace/cpptrace.hpp>
-#include "libcpp_demangle.hpp"
+#include "cpptrace_demangle.hpp"
 
 #include <cstdlib>
 #include <string>

@@ -1,8 +1,8 @@
 #ifdef CPPTRACE_UNWIND_WITH_WINAPI
 
 #include <cpptrace/cpptrace.hpp>
-#include "libcpp_unwind.hpp"
-#include "../platform/libcpp_common.hpp"
+#include "cpptrace_unwind.hpp"
+#include "../platform/cpptrace_common.hpp"
 
 #include <vector>
 

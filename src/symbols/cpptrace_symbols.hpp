@@ -1,5 +1,5 @@
-#ifndef LIBCPP_SYMBOLS_HPP
-#define LIBCPP_SYMBOLS_HPP
+#ifndef CPPTRACE_SYMBOLS_HPP
+#define CPPTRACE_SYMBOLS_HPP
 
 #include <cpptrace/cpptrace.hpp>
 

@@ -1,8 +1,8 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
 
 #include <cpptrace/cpptrace.hpp>
-#include "libcpp_symbols.hpp"
-#include "../platform/libcpp_program_name.hpp"
+#include "cpptrace_symbols.hpp"
+#include "../platform/cpptrace_program_name.hpp"
 
 #include <memory>
 #include <vector>
@@ -18,7 +18,7 @@ namespace cpptrace {
         int full_callback(void* data, uintptr_t address, const char* file, int line, const char* symbol) {
             stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
             if(line == 0) {
-                fprintf(stderr, "Getting bad data for some reason\n");
+                ///fprintf(stderr, "Getting bad data for some reason\n"); // TODO: Eliminate
             }
             frame.address = address;
             frame.line = line;
@@ -37,7 +37,7 @@ namespace cpptrace {
 
         void error_callback(void* data, const char* msg, int errnum) {
             // nothing at the moment
-            fprintf(stderr, "Backtrace error %s %d %p\n", msg, errnum, data);
+            ///fprintf(stderr, "Backtrace error %s %d %p\n", msg, errnum, data); // TODO: Eliminate
         }
 
         backtrace_state* get_backtrace_state() {
@@ -45,7 +45,7 @@ namespace cpptrace {
             static backtrace_state* state = nullptr;
             static bool called = false;
             if(!called) {
-                state = backtrace_create_state(program_name().c_str(), true, error_callback, nullptr);
+                state = backtrace_create_state(program_name(), true, error_callback, nullptr);
                 called = true;
             }
             return state;
@@ -56,13 +56,15 @@ namespace cpptrace {
             stacktrace_frame resolve_frame(void* addr) {
                 stacktrace_frame frame;
                 frame.col = -1;
-                if(!backtrace_pcinfo(
+                backtrace_pcinfo(
                     get_backtrace_state(),
                     reinterpret_cast<uintptr_t>(addr),
                     full_callback,
                     error_callback,
                     &frame
-                )) {
+                );
+                if(frame.symbol.empty()) {
+                    // fallback, try to at least recover the symbol name with backtrace_syminfo
                     backtrace_syminfo(
                         get_backtrace_state(),
                         reinterpret_cast<uintptr_t>(addr),

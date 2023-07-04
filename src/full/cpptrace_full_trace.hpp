@@ -1,8 +1,8 @@
-#ifndef LIBCPP_FULL_TRACE_HPP
-#define LIBCPP_FULL_TRACE_HPP
+#ifndef CPPTRACE_FULL_TRACE_HPP
+#define CPPTRACE_FULL_TRACE_HPP
 
 #include <cpptrace/cpptrace.hpp>
-#include "../platform/libcpp_common.hpp"
+#include "../platform/cpptrace_common.hpp"
 
 #include <cstddef>
 #include <vector>
