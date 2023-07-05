@@ -92,7 +92,7 @@ namespace cpptrace {
 
         struct symbolizer::impl {
             std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
-                std::vector<stacktrace_frame> trace(frames.size());
+                std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
                 std::vector<dlframe> dlframes = backtrace_frames(frames);
                 std::unordered_map<
                     std::string,

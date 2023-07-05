@@ -7,9 +7,9 @@
 
 namespace cpptrace {
     struct stacktrace_frame {
-        uintptr_t address = 0;
-        int line = 0;
-        int col = 0;
+        uintptr_t address;
+        int line;
+        int col;
         std::string filename;
         std::string symbol;
     };

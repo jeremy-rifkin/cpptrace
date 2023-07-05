@@ -4,6 +4,7 @@
 #ifdef _MSC_VER
 #define CPPTRACE_FORCE_NO_INLINE __declspec(noinline)
 #define CPPTRACE_PFUNC __FUNCSIG__
+#define CPPTRACE_MAYBE_UNUSED
 #else
 #define CPPTRACE_FORCE_NO_INLINE __attribute__((noinline))
 #define CPPTRACE_PFUNC __extension__ __PRETTY_FUNCTION__
