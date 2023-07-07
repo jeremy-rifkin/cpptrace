@@ -27,11 +27,11 @@ target_include_directories(
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/cpptrace>
 )
 
-#target_compile_features(
-#  cpptrace
-#  PUBLIC
-#  cxx_std_11
-#)
+target_compile_features(
+  cpptrace
+  PUBLIC
+  cxx_std_11
+)
 
 set_target_properties(
   cpptrace
@@ -171,7 +171,9 @@ if(
   )
 )
   # Attempt to auto-config
-  if(UNIX)
+  if(APPLE)
+    set(CPPTRACE_GET_SYMBOLS_WITH_LIBDL ON)
+  elseif(UNIX)
     if(HAS_BACKTRACE)
       set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
       message(STATUS "Cpptrace auto config: Using libbacktrace for symbols")

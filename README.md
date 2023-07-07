@@ -5,10 +5,10 @@
 
 🚧 WIP 🏗️
 
-Cpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, Unix, and Windows. The goal:
+Cpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, Unix, macOS and Windows. The goal:
 Make stack traces simple for once.
 
-Support for MacOS and cygwin/mingw will be added soon.
+Support for cygwin/mingw will be added soon.
 
 *Some day C++23's `<stacktrace>` will be ubiquitous, and maybe one day the msvc implementation will be acceptable*
 
@@ -52,24 +52,24 @@ also manually set which back-end you want used.
 
 **Unwinding**
 
-| Library | CMake config | Windows | Linux | Info |
-|---------|--------------|---------|-------|------|
-| execinfo.h | `CPPTRACE_UNWIND_WITH_EXECINFO` | ❌ | ✔️ | Frames are captured with `execinfo.h`'s `backtrace`, part of libc. |
-| winapi | `CPPTRACE_UNWIND_WITH_WINAPI` | ✔️ | ❌ | Frames are captured with `CaptureStackBackTrace`. |
-| N/A | `CPPTRACE_UNWIND_WITH_NOTHING` | ✔️ | ✔️ | Unwinding is not done, stack traces will be empty. |
+| Library    | CMake config                    | Windows | Linux | macOS | Info                                                               |
+|------------|---------------------------------|---------|-------|-------|--------------------------------------------------------------------|
+| execinfo.h | `CPPTRACE_UNWIND_WITH_EXECINFO` | ❌       | ✔️    | ✔️    | Frames are captured with `execinfo.h`'s `backtrace`, part of libc. |
+| winapi     | `CPPTRACE_UNWIND_WITH_WINAPI`   | ✔️      | ❌     | ❌     | Frames are captured with `CaptureStackBackTrace`.                  |
+| N/A        | `CPPTRACE_UNWIND_WITH_NOTHING`  | ✔️      | ✔️    | ✔️    | Unwinding is not done, stack traces will be empty.                 |
 
 Some back-ends require a fixed buffer has to be created to read addresses into while unwinding. By default the buffer
 can hold addresses for 100 frames. This is configurable with `CPPTRACE_HARD_MAX_FRAMES`.
 
 **Symbol resolution**
 
-| Library | CMake config | Windows | Linux | Info |
-|---------|--------------|---------|-------|------|
-| libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | ❌ | ✔️ | Libbacktrace is already installed on most systems, or available through the compiler directly. If it is installed but backtrace.h is not already in the include path (this can happen when using clang when backtrace lives in gcc's include folder), `CPPTRACE_BACKTRACE_PATH` can be used to specify where the library should be looked for. |
-| libdl | `CPPTRACE_GET_SYMBOLS_WITH_LIBDL` | ❌ | ✔️ | Libdl uses dynamic export information. Compiling with `-rdynamic` is often needed. |
-| addr2line | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE` | ❌ | ✔️ | Symbols are resolved by invoking `addr2line` via `fork()`. |
-| dbghelp | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP` | ✔️ | ❌ | Dbghelp.h allows access to symbols via debug info. |
-| N/A | `CPPTRACE_GET_SYMBOLS_WITH_NOTHING` | ✔️ | ✔️ | No attempt is made to resolve symbols. |
+| Library      | CMake config                             | Windows | Linux | macOS | Info                                                                                                                                                                                                                                                                                                                                           |
+|--------------|------------------------------------------|---------|-------|-------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | ❌       | ✔️    | ❌     | Libbacktrace is already installed on most systems, or available through the compiler directly. If it is installed but backtrace.h is not already in the include path (this can happen when using clang when backtrace lives in gcc's include folder), `CPPTRACE_BACKTRACE_PATH` can be used to specify where the library should be looked for. |
+| libdl        | `CPPTRACE_GET_SYMBOLS_WITH_LIBDL`        | ❌       | ✔️    | ✔️    | Libdl uses dynamic export information. Compiling with `-rdynamic` is often needed.                                                                                                                                                                                                                                                             |
+| addr2line    | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE`    | ❌       | ✔️    | ❌     | Symbols are resolved by invoking `addr2line` via `fork()`.                                                                                                                                                                                                                                                                                     |
+| dbghelp      | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`      | ✔️      | ❌     | ❌     | Dbghelp.h allows access to symbols via debug info.                                                                                                                                                                                                                                                                                             |
+| N/A          | `CPPTRACE_GET_SYMBOLS_WITH_NOTHING`      | ✔️      | ✔️    | ✔️    | No attempt is made to resolve symbols.                                                                                                                                                                                                                                                                                                         |
 
 **Demangling**
 
