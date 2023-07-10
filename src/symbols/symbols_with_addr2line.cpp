@@ -72,7 +72,7 @@ namespace cpptrace {
                 close(STDERR_FILENO); // TODO: Might be worth conditionally enabling or piping
                 // TODO: Prevent against path injection?
                 execlp("addr2line", "addr2line", "-e", executable.c_str(), "-f", "-C", "-p", nullptr);
-                exit(1); // TODO: Diagnostic?
+                _exit(1); // TODO: Diagnostic?
             }
             internal_verify(write(input_pipe.write_end, addresses.data(), addresses.size()) != -1);
             close(input_pipe.read_end);
