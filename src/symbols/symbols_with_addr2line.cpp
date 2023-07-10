@@ -53,7 +53,7 @@ namespace cpptrace {
                 int data[2];
             };
         };
-        static_assert(sizeof(pipe_t) == 2 * sizeof(int));
+        static_assert(sizeof(pipe_t) == 2 * sizeof(int), "Unexpected struct packing");
 
         static std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
             pipe_t output_pipe;
@@ -105,8 +105,8 @@ namespace cpptrace {
                         trace[i]
                     });
                     // Set what is known for now, and resolutions from addr2line should overwrite
-                    trace[i].filename = entry.obj_path;
-                    trace[i].symbol = entry.symbol;
+                    //trace[i].filename = entry.obj_path;
+                    //trace[i].symbol = entry.symbol;
                 }
                 for(const auto& entry : entries) {
                     const auto& object_name = entry.first;
