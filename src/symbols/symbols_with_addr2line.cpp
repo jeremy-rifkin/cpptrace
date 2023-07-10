@@ -69,7 +69,7 @@ namespace cpptrace {
                 close(output_pipe.write_end);
                 close(input_pipe.read_end);
                 close(input_pipe.write_end);
-                //close(STDERR_FILENO); // TODO: Might be worth conditionally enabling or piping
+                close(STDERR_FILENO); // TODO: Might be worth conditionally enabling or piping
                 // TODO: Prevent against path injection?
                 execlp("addr2line", "addr2line", "-e", executable.c_str(), "-f", "-C", "-p", nullptr);
                 exit(1); // TODO: Diagnostic?
