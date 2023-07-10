@@ -5,6 +5,7 @@
 #define CPPTRACE_FORCE_NO_INLINE __declspec(noinline)
 #define CPPTRACE_PFUNC __FUNCSIG__
 #define CPPTRACE_MAYBE_UNUSED
+#pragma warning(disable: 4505) // Unused local function
 #else
 #define CPPTRACE_FORCE_NO_INLINE __attribute__((noinline))
 #define CPPTRACE_PFUNC __extension__ __PRETTY_FUNCTION__
