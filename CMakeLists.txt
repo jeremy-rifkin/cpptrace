@@ -16,6 +16,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(GNUInstallDirs)
 include(CheckCXXSourceCompiles)
+include(CheckCXXCompilerFlag)
 
 file(GLOB_RECURSE sources src/*.cpp)
 add_library(cpptrace ${sources} include/cpptrace/cpptrace.hpp)
