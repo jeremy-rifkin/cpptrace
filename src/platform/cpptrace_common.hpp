@@ -5,6 +5,7 @@
 #define CPPTRACE_FORCE_NO_INLINE __declspec(noinline)
 #define CPPTRACE_PFUNC __FUNCSIG__
 #define CPPTRACE_MAYBE_UNUSED
+#pragma warning(push)
 #pragma warning(disable: 4505) // Unused local function
 #else
 #define CPPTRACE_FORCE_NO_INLINE __attribute__((noinline))
@@ -112,5 +113,9 @@ static std::string to_hex(uintptr_t addr) {
     sstream<<std::hex<<uintptr_t(addr);
     return std::move(sstream).str();
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif
