@@ -17,7 +17,7 @@ namespace cpptrace {
                 frames.push_back({
                     entry.native_handle(),
                     entry.source_line(),
-                    -1,
+                    0,
                     entry.source_file(),
                     entry.description()
                 });

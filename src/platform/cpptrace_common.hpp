@@ -98,7 +98,7 @@ static std::string join(const C& container, const std::string& delim) {
     return str;
 }
 
-constexpr const char * const ws = " \t\n\r\f\v";
+constexpr const char* const ws = " \t\n\r\f\v";
 
 CPPTRACE_MAYBE_UNUSED
 static std::string trim(const std::string& s) {

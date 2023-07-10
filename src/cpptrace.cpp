@@ -14,8 +14,8 @@
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<stacktrace_frame> generate_trace() {
-        std::vector<void*> frames = detail::capture_frames(1);
+    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip) {
+        std::vector<void*> frames = detail::capture_frames(skip + 1);
         detail::symbolizer symbolizer;
         std::vector<stacktrace_frame> trace = symbolizer.resolve_frames(frames);
         for(auto& frame : trace) {
@@ -34,8 +34,8 @@ namespace cpptrace {
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<stacktrace_frame> generate_trace() {
-        auto trace = detail::generate_trace(1);
+    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip) {
+        auto trace = detail::generate_trace(skip + 1);
         for(auto& entry : trace) {
             entry.symbol = detail::demangle(entry.symbol);
         }
@@ -46,10 +46,10 @@ namespace cpptrace {
 #endif
 
 namespace cpptrace {
-    void print_trace() {
+    void print_trace(std::uint32_t skip) {
         std::cerr<<"Stack trace (most recent call first):"<<std::endl;
         std::size_t i = 0;
-        const auto trace = generate_trace();
+        const auto trace = generate_trace(skip + 1);
         // +1 to skip one frame
         for(auto it = trace.begin() + 1; it != trace.end(); it++) {
             const auto& frame = *it;

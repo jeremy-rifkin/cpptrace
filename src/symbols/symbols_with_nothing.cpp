@@ -14,8 +14,8 @@ namespace cpptrace {
         // stacktrace_frame symbolizer::resolve_frame(void*) {
         //     return {
         //         0,
-        //         -1,
-        //         -1,
+        //         0,
+        //         0,
         //         "",
         //         "",
         //     };
@@ -24,8 +24,8 @@ namespace cpptrace {
         std::vector<stacktrace_frame> symbolizer::resolve_frames(const std::vector<void*>& frames) {
             return std::vector<stacktrace_frame>(frames.size(), {
                 0,
-                -1,
-                -1,
+                0,
+                0,
                 "",
                 ""
             });

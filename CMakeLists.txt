@@ -121,7 +121,7 @@ if(
   )
 )
   # Attempt to auto-config
-  if(HAS_STACKTRACE AND NOT WIN32)
+  if(HAS_STACKTRACE AND NOT WIN32) # Our trace is better than msvc's <stacktrace>
     set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
     message(STATUS "Cpptrace auto config: Using C++23 <stacktrace> for the full trace")
   elseif(HAS_BACKTRACE)

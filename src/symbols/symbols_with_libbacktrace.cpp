@@ -55,7 +55,7 @@ namespace cpptrace {
         struct symbolizer::impl {
             stacktrace_frame resolve_frame(void* addr) {
                 stacktrace_frame frame;
-                frame.col = -1;
+                frame.col = 0;
                 backtrace_pcinfo(
                     get_backtrace_state(),
                     reinterpret_cast<uintptr_t>(addr),

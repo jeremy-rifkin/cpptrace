@@ -32,13 +32,13 @@ export information which may require `-rdynamic` or manually marking symbols for
 namespace cpptrace {
     struct stacktrace_frame {
         uintptr_t address;
-        int line;
-        int col;
+        std::uint_least32_t line;
+        std::uint_least32_t col;
         std::string filename;
         std::string symbol;
     };
-    std::vector<stacktrace_frame> generate_trace();
-    void print_trace();
+    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip = 0);
+    void print_trace(std::uint32_t skip = 0);
 }
 ```
 

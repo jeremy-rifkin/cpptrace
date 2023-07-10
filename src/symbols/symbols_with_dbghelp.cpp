@@ -339,8 +339,8 @@ namespace cpptrace {
                             fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
                             return {
                                 reinterpret_cast<uintptr_t>(addr),
-                                int(line.LineNumber),
-                                -1,
+                                static_cast<std::uint_least32_t>(line.LineNumber),
+                                0,
                                 line.FileName,
                                 symbol->Name
                             };
@@ -363,16 +363,16 @@ namespace cpptrace {
                         signature = std::regex_replace(signature, comma_re, ", ");
                         return {
                             reinterpret_cast<uintptr_t>(addr),
-                            int(line.LineNumber),
-                            -1,
+                            static_cast<std::uint_least32_t>(line.LineNumber),
+                            0,
                             line.FileName,
                             signature
                         };
                     } else {
                         return {
                             reinterpret_cast<uintptr_t>(addr),
-                            -1,
-                            -1,
+                            0,
+                            0,
                             "",
                             symbol->Name
                         };
@@ -380,8 +380,8 @@ namespace cpptrace {
                 } else {
                     return {
                         reinterpret_cast<uintptr_t>(addr),
-                        -1,
-                        -1,
+                        0,
+                        0,
                         "",
                         ""
                     };

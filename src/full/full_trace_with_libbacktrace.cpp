@@ -27,8 +27,8 @@ namespace cpptrace {
             } else {
                 data.frames.push_back({
                     address,
-                    line,
-                    -1,
+                    static_cast<std::uint_least32_t>(line),
+                    0,
                     file ? file : "",
                     symbol ? symbol : ""
                 });
