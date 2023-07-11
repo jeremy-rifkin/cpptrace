@@ -44,6 +44,42 @@ jobs:
             -D${{matrix.demangle}}=On \
             -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h
            make
+  build-macos:
+    runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-13, clang++]
+        target: [Debug]
+        std: [11, 20]
+        unwind: [
+          CPPTRACE_UNWIND_WITH_EXECINFO,
+          CPPTRACE_UNWIND_WITH_NOTHING,
+        ]
+        symbols: [
+          #CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE,
+          CPPTRACE_GET_SYMBOLS_WITH_LIBDL,
+          CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE,
+          CPPTRACE_GET_SYMBOLS_WITH_NOTHING,
+        ]
+        demangle: [
+          CPPTRACE_DEMANGLE_WITH_CXXABI,
+          CPPTRACE_DEMANGLE_WITH_NOTHING,
+        ]
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: |
+           mkdir -p build
+           cd build
+           cmake .. \
+            -DCMAKE_BUILD_TYPE=${{matrix.target}} \
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
+            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+            -D${{matrix.unwind}}=On \
+            -D${{matrix.symbols}}=On \
+            -D${{matrix.demangle}}=On
+           make
   build-windows:
     runs-on: windows-2019
     strategy:
@@ -108,7 +144,7 @@ jobs:
             -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h \
             ${{matrix.config}}
            make
-  build-mac-full-or-auto:
+  build-macos-full-or-auto:
     runs-on: macos-13
     strategy:
       fail-fast: false
