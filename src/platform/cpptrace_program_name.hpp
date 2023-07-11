@@ -20,7 +20,28 @@ namespace cpptrace {
     }
 }
 
-#else
+#elif __APPLE__
+
+#include <mach-o/dyld.h>
+#include <sys/syslimits.h>
+
+namespace cpptrace {
+    namespace detail {
+        inline const char* program_name() {
+            static std::string name;
+            if (!name.empty()) {
+                std::uint32_t bufferSize = PATH_MAX + 1;
+                char buffer[bufferSize];
+                if (_NSGetExecutablePath(buffer, &bufferSize) != 0)
+                    return nullptr;
+                name.assign(buffer, bufferSize);
+            }
+            return name.c_str();
+        }
+    }
+}
+
+#elif __linux__
 #include <linux/limits.h>
 #include <unistd.h>
 
