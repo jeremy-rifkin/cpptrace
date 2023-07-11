@@ -108,6 +108,27 @@ jobs:
             -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h \
             ${{matrix.config}}
            make
+  build-mac-full-or-auto:
+    runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-13, clang++]
+        target: [Debug]
+        std: [11, 20]
+        config: [""]
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: |
+           mkdir -p build
+           cd build
+           cmake .. \
+            -DCMAKE_BUILD_TYPE=${{matrix.target}} \
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
+            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+            ${{matrix.config}}
+           make
   # TODO: -DCMAKE_CXX_STANDARD isn't being honored?
   # build-linux-full-or-auto-23:
   #   runs-on: ubuntu-22.04
