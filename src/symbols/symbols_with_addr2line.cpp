@@ -14,6 +14,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <iostream>
+
 namespace cpptrace {
     namespace detail {
         struct dlframe {
@@ -122,10 +124,13 @@ namespace cpptrace {
                         // result will be of the form <identifier> " at " path:line
                         // path may be ?? if addr2line cannot resolve, line may be ?
                         const auto& line = output[i];
+                        std::cerr<<line<<std::endl;
                         auto at_location = line.find(" at ");
+                        std::cerr<<at_location<<std::endl;
                         internal_verify(at_location != std::string::npos);
                         auto symbol = line.substr(0, at_location);
                         auto colon = line.rfind(":");
+                        std::cerr<<colon<<std::endl;
                         internal_verify(colon != std::string::npos);
                         internal_verify(colon > at_location);
                         auto filename = line.substr(at_location + 4, colon - at_location - 4);
