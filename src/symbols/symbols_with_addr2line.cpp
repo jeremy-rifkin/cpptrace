@@ -87,6 +87,7 @@ namespace cpptrace {
             while((count = read(output_pipe.read_end, buffer, buffer_size)) > 0) {
                 output.insert(output.end(), buffer, buffer + count);
             }
+            std::cerr<<output<<std::endl;
             // TODO: check status from addr2line?
             waitpid(pid, nullptr, 0);
             return output;
