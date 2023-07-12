@@ -121,19 +121,27 @@ namespace cpptrace {
                     auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
                     internal_verify(output.size() == entries_vec.size());
                     for(size_t i = 0; i < output.size(); i++) {
-                        // result will be of the form <identifier> " at " path:line
-                        // path may be ?? if addr2line cannot resolve, line may be ?
+                        // Result will be of the form <identifier> " at " path:line
+                        // The path may be ?? if addr2line cannot resolve, line may be ?
+                        // Edge cases:
+                        // ?? ??:0
                         const auto& line = output[i];
-                        std::cerr<<line<<std::endl;
-                        auto at_location = line.find(" at ");
-                        std::cerr<<at_location<<std::endl;
-                        internal_verify(at_location != std::string::npos);
-                        auto symbol = line.substr(0, at_location);
+                        std::size_t at_location = line.find(" at ");
+                        std::size_t symbol_end;
+                        std::size_t filename_start;
+                        if(at_location != std::string::npos) {
+                            symbol_end = at_location;
+                            filename_start = at_location + 4;
+                        } else {
+                            internal_verify(line.find("?? ") == 0, "Unexpected edge case while processing addr2line output");
+                            symbol_end = 2;
+                            filename_start = 3;
+                        }
+                        auto symbol = line.substr(0, symbol_end);
                         auto colon = line.rfind(":");
-                        std::cerr<<colon<<std::endl;
                         internal_verify(colon != std::string::npos);
-                        internal_verify(colon > at_location);
-                        auto filename = line.substr(at_location + 4, colon - at_location - 4);
+                        internal_verify(colon > filename_start);
+                        auto filename = line.substr(filename_start, colon - filename_start);
                         auto line_number = line.substr(colon + 1);
                         if(line_number != "?") {
                             entries_vec[i].second.get().line = std::stoi(line_number);
