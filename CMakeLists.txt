@@ -393,7 +393,8 @@ if(CPPTRACE_BUILD_SPEEDTEST)
   # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
   if(HAS_DWARF4)
-   target_compile_options(speedtest PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+    target_compile_options(speedtest PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+    target_compile_options(googletest INTERFACE "$<$<CONFIG:Debug>:-gdwarf-4>")
   endif()
 
   if(WIN32)
