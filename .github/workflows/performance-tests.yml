@@ -39,6 +39,22 @@ jobs:
     - name: test
       working-directory: build
       run: |
+           addr2line --version
+           time addr2line -e lib/libgtest.so.1.12.1 -f -C -p << EOF
+           e4925
+           dc87f
+           b782e
+           b82fd
+           b8c48
+           c8aee
+           e5e37
+           dda9b
+           c70dd
+           EOF
+           time addr2line -e speedtest -f -C -p << EOF
+           3686
+           3545
+           EOF
            ./speedtest | python3 ../test/speedtest.py
   test-windows:
     runs-on: windows-2019

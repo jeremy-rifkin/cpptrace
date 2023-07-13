@@ -14,6 +14,10 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <chrono>
+#include <iostream>
+#include <ratio>
+
 namespace cpptrace {
     namespace detail {
         struct dlframe {
@@ -72,6 +76,8 @@ namespace cpptrace {
         static_assert(sizeof(pipe_t) == 2 * sizeof(int), "Unexpected struct packing");
 
         static std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
+            std::cerr << "addr2line invoke - " << executable << std::endl;
+            std::cerr << addresses << std::endl;
             pipe_t output_pipe;
             pipe_t input_pipe;
             internal_verify(pipe(output_pipe.data) == 0);
@@ -133,7 +139,11 @@ namespace cpptrace {
                             address_input += pair.first;
                             address_input += '\n';
                         }
+                        auto start = std::chrono::steady_clock::now();
                         auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
+                        auto end = std::chrono::steady_clock::now();
+                        auto diff = end - start;
+                        std::cerr << "ADDR2LINE TIME: " << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
                         internal_verify(output.size() == entries_vec.size());
                         for(size_t i = 0; i < output.size(); i++) {
                             // result will be of the form <identifier> " at " path:line
