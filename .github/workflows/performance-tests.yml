@@ -39,7 +39,7 @@ jobs:
     - name: test
       working-directory: build
       run: |
-           ./test | python3 ../test/speedtest.py
+           ./speedtest | python3 ../test/speedtest.py
   test-windows:
     runs-on: windows-2019
     strategy:
@@ -70,4 +70,4 @@ jobs:
     - name: test
       working-directory: build
       run: |
-           .\${{matrix.target}}\test.exe | python3 ..\test\test.py "${{matrix.compiler}}" "${{matrix.unwind}}" "${{matrix.symbols}}" "${{matrix.demangle}}"
+           .\${{matrix.target}}\speedtest.exe | python3 ../test/speedtest.py
