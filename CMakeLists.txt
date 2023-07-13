@@ -389,4 +389,12 @@ if(CPPTRACE_BUILD_SPEEDTEST)
     GTest::gtest_main
     cpptrace
   )
+
+  if(WIN32)
+    add_custom_command(
+        TARGET speedtest POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:speedtest> $<TARGET_FILE_DIR:speedtest>
+        COMMAND_EXPAND_LISTS
+    )
+  endif()
 endif()
