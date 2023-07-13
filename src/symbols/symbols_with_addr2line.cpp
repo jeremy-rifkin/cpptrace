@@ -44,6 +44,22 @@ namespace cpptrace {
             return frames;
         }
 
+        bool has_addr2line() {
+            // Detects if addr2line exists by trying to invoke addr2line --help
+            constexpr int magic = 42;
+            pid_t pid = fork();
+            if(pid == -1) { return false; }
+            if(pid == 0) { // child
+                close(STDOUT_FILENO);
+                // TODO: path
+                execlp("addr2line", "addr2line", "--help", nullptr);
+                exit(magic);
+            }
+            int status;
+            waitpid(pid, &status, 0);
+            return WEXITSTATUS(status) == 0;
+        }
+
         struct pipe_t {
             union {
                 struct {
@@ -93,51 +109,53 @@ namespace cpptrace {
         struct symbolizer::impl {
             std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
                 std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
-                std::vector<dlframe> dlframes = backtrace_frames(frames);
-                std::unordered_map<
-                    std::string,
-                    std::vector<std::pair<std::string, std::reference_wrapper<stacktrace_frame>>>
-                > entries;
-                for(size_t i = 0; i < dlframes.size(); i++) {
-                    const auto& entry = dlframes[i];
-                    entries[entry.obj_path].push_back({
-                        to_hex(entry.raw_address - entry.obj_base),
-                        trace[i]
-                    });
-                    // Set what is known for now, and resolutions from addr2line should overwrite
-                    trace[i].filename = entry.obj_path;
-                    trace[i].symbol = entry.symbol;
-                }
-                for(const auto& entry : entries) {
-                    const auto& object_name = entry.first;
-                    const auto& entries_vec = entry.second;
-                    std::string address_input;
-                    for(const auto& pair : entries_vec) {
-                        address_input += pair.first;
-                        address_input += '\n';
+                if(has_addr2line()) {
+                    std::vector<dlframe> dlframes = backtrace_frames(frames);
+                    std::unordered_map<
+                        std::string,
+                        std::vector<std::pair<std::string, std::reference_wrapper<stacktrace_frame>>>
+                    > entries;
+                    for(size_t i = 0; i < dlframes.size(); i++) {
+                        const auto& entry = dlframes[i];
+                        entries[entry.obj_path].push_back({
+                            to_hex(entry.raw_address - entry.obj_base),
+                            trace[i]
+                        });
+                        // Set what is known for now, and resolutions from addr2line should overwrite
+                        trace[i].filename = entry.obj_path;
+                        trace[i].symbol = entry.symbol;
                     }
-                    auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
-                    internal_verify(output.size() == entries_vec.size());
-                    for(size_t i = 0; i < output.size(); i++) {
-                        // result will be of the form <identifier> " at " path:line
-                        // path may be ?? if addr2line cannot resolve, line may be ?
-                        const auto& line = output[i];
-                        auto at_location = line.find(" at ");
-                        internal_verify(at_location != std::string::npos);
-                        auto symbol = line.substr(0, at_location);
-                        auto colon = line.rfind(":");
-                        internal_verify(colon != std::string::npos);
-                        internal_verify(colon > at_location);
-                        auto filename = line.substr(at_location + 4, colon - at_location - 4);
-                        auto line_number = line.substr(colon + 1);
-                        if(line_number != "?") {
-                            entries_vec[i].second.get().line = std::stoi(line_number);
+                    for(const auto& entry : entries) {
+                        const auto& object_name = entry.first;
+                        const auto& entries_vec = entry.second;
+                        std::string address_input;
+                        for(const auto& pair : entries_vec) {
+                            address_input += pair.first;
+                            address_input += '\n';
                         }
-                        if(filename != "??") {
-                            entries_vec[i].second.get().filename = filename;
-                        }
-                        if(symbol != "") {
-                            entries_vec[i].second.get().symbol = symbol;
+                        auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
+                        internal_verify(output.size() == entries_vec.size());
+                        for(size_t i = 0; i < output.size(); i++) {
+                            // result will be of the form <identifier> " at " path:line
+                            // path may be ?? if addr2line cannot resolve, line may be ?
+                            const auto& line = output[i];
+                            auto at_location = line.find(" at ");
+                            internal_verify(at_location != std::string::npos);
+                            auto symbol = line.substr(0, at_location);
+                            auto colon = line.rfind(":");
+                            internal_verify(colon != std::string::npos);
+                            internal_verify(colon > at_location);
+                            auto filename = line.substr(at_location + 4, colon - at_location - 4);
+                            auto line_number = line.substr(colon + 1);
+                            if(line_number != "?") {
+                                entries_vec[i].second.get().line = std::stoi(line_number);
+                            }
+                            if(filename != "??") {
+                                entries_vec[i].second.get().filename = filename;
+                            }
+                            if(symbol != "") {
+                                entries_vec[i].second.get().symbol = symbol;
+                            }
                         }
                     }
                 }
