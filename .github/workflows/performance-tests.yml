@@ -57,6 +57,7 @@ jobs:
            EOF
            echo FOOBAR
            ls -l lib/libgtest.so.1.12.1
+           readelf --debug-dump=info lib/libgtest.so.1.12.1 | head -n10
            echo FOOBAR
            ./speedtest | python3 ../test/speedtest.py
   test-windows:
