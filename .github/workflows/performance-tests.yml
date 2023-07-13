@@ -55,6 +55,9 @@ jobs:
            3686
            3545
            EOF
+           echo FOOBAR
+           ls -l lib/libgtest.so.1.12.1
+           echo FOOBAR
            ./speedtest | python3 ../test/speedtest.py
   test-windows:
     runs-on: windows-2019
