@@ -4,8 +4,6 @@ on:
   push:
   pull_request:
 
-# TODO: Test statically linked
-
 jobs:
   test-linux:
     runs-on: ubuntu-22.04
@@ -43,26 +41,6 @@ jobs:
     - name: test
       working-directory: build
       run: |
-           addr2line --version
-           time addr2line -e lib/libgtest.so.1.12.1 -f -C -p << EOF
-           e4925
-           dc87f
-           b782e
-           b82fd
-           b8c48
-           c8aee
-           e5e37
-           dda9b
-           c70dd
-           EOF
-           time addr2line -e speedtest -f -C -p << EOF
-           3686
-           3545
-           EOF
-           echo FOOBAR
-           ls -l lib/libgtest.so.1.12.1
-           readelf --debug-dump=info lib/libgtest.so.1.12.1 | head -n10
-           echo FOOBAR
            ./speedtest | python3 ../test/speedtest.py ${{matrix.config}}
   test-windows:
     runs-on: windows-2019
@@ -87,7 +65,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug `
             -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
             -DCMAKE_CXX_STANDARD=${{matrix.std}} `
-            ${{matrix.config}}=On `
+            ${{matrix.config}} `
             -DCPPTRACE_BUILD_SPEEDTEST=On `
             -DBUILD_SHARED_LIBS=On
            msbuild .\cpptrace.sln
