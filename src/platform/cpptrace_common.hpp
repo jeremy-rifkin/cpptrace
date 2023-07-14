@@ -102,6 +102,9 @@ constexpr const char* const ws = " \t\n\r\f\v";
 
 CPPTRACE_MAYBE_UNUSED
 static std::string trim(const std::string& s) {
+    if(s == "") {
+        return "";
+    }
     size_t l = s.find_first_not_of(ws);
     size_t r = s.find_last_not_of(ws) + 1;
     return s.substr(l, r - l);

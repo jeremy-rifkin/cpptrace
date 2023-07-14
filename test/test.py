@@ -1,5 +1,6 @@
 import os
 import sys
+import platform
 from typing import List
 
 MAX_LINE_DIFF = 2
@@ -28,8 +29,10 @@ def main():
     elif sys.argv[1].startswith("cl"):
         target.append("msvc")
 
-    if os.name == "nt":
+    if platform.system() == "Windows":
         target.append("windows")
+    elif platform.system() == "Darwin":
+        target.append("macos")
     else:
         target.append("linux")
 

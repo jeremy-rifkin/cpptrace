@@ -7,7 +7,8 @@
 
 std::string normalize_filename(std::string name) {
     if(name.find('/') == 0 || (name.find(':') == 1 && std::isupper(name[0]))) {
-        auto p = std::min(name.rfind("test/"), name.rfind("test\\"));
+        // build/test if the file is really an object name resolved by libdl
+        auto p = std::min({name.rfind("test/"), name.rfind("test\\"), name.rfind("build/test")});
         return p == std::string::npos ? name : name.substr(p);
     } else {
         return name;

@@ -22,6 +22,7 @@ namespace cpptrace {
 
 #elif __APPLE__
 
+#include <cstdint>
 #include <mach-o/dyld.h>
 #include <sys/syslimits.h>
 
