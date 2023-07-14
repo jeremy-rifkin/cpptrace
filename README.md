@@ -13,15 +13,38 @@ Make stack traces simple for once.
 
 Support for cygwin/mingw will be added soon.
 
-*Some day C++23's `<stacktrace>` will be ubiquitous, and maybe one day the msvc implementation will be acceptable*
+Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
 
 ## Table of contents
 
-- [cpptrace](#cpptrace)
+- [Cpptrace](#cpptrace)
   - [Table of contents](#table-of-contents)
+  - [How to use](#how-to-use)
+    - [CMake FetchContent](#cmake-fetchcontent)
+    - [System-wide installation](#system-wide-installation)
+    - [Conan](#conan)
+    - [Vcpkg](#vcpkg)
   - [Docs](#docs)
-  - [Backends](#backends)
+  - [Back-ends](#back-ends)
   - [License](#license)
+
+## How to use
+
+### CMake FetchContent
+
+TODO
+
+### System-wide installation
+
+TODO
+
+### Conan
+
+TODO
+
+### Vcpkg
+
+TODO
 
 ## Docs
 
