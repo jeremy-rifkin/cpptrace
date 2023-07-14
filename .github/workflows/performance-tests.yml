@@ -20,6 +20,9 @@ jobs:
           "-DCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF4=On",
           "-DCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF5=On"
         ]
+        exclude:
+          - config: -DCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF5=On
+            compiler: g++-11
     steps:
     - uses: actions/checkout@v2
     - name: dependencies
