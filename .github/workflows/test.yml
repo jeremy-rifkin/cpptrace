@@ -199,6 +199,7 @@ jobs:
     - name: test
       working-directory: build
       run: |
+           addr2line --version
            ./test | python3 ../test/test.py "${{matrix.compiler}}"
   test-windows-full-or-auto:
     runs-on: windows-2019
