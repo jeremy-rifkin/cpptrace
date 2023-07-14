@@ -17,7 +17,8 @@ jobs:
         std: [11, 20]
         config: [
           "-DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On",
-          "-DCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE=On"
+          "-DCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF4",
+          "-DCPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF5"
         ]
     steps:
     - uses: actions/checkout@v2
@@ -59,7 +60,7 @@ jobs:
            ls -l lib/libgtest.so.1.12.1
            readelf --debug-dump=info lib/libgtest.so.1.12.1 | head -n10
            echo FOOBAR
-           ./speedtest | python3 ../test/speedtest.py
+           ./speedtest | python3 ../test/speedtest.py ${{matrix.config}}
   test-windows:
     runs-on: windows-2019
     strategy:
@@ -90,4 +91,4 @@ jobs:
     - name: test
       working-directory: build
       run: |
-           .\${{matrix.target}}\speedtest.exe | python3 ../test/speedtest.py
+           .\${{matrix.target}}\speedtest.exe | python3 ../test/speedtest.py ${{matrix.config}}
