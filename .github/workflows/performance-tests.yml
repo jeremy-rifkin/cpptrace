@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler: [g++-10, clang++-14]
+        compiler: [g++-11, clang++-14]
         target: [Debug]
         std: [11, 20]
         config: [
@@ -23,7 +23,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: dependencies
-      run: sudo apt install gcc-10 g++-10 libgcc-10-dev
+      run: sudo apt install gcc-11 g++-11 libgcc-11-dev
     - name: build
       run: |
            mkdir -p build
@@ -33,7 +33,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
             -DCMAKE_CXX_STANDARD=${{matrix.std}} \
             ${{matrix.config}} \
-            -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h \
+            -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/include/backtrace.h \
             -DCPPTRACE_BUILD_SPEEDTEST=On \
             -DBUILD_SHARED_LIBS=On
            make
