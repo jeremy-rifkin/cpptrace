@@ -22,6 +22,7 @@ file(GLOB_RECURSE sources src/*.cpp)
 add_library(cpptrace ${sources} include/cpptrace/cpptrace.hpp)
 
 add_compile_options("$<$<CONFIG:Debug>:-fsanitize=address>")
+add_link_options("$<$<CONFIG:Debug>:-fsanitize=address>")
 
 target_include_directories(
   cpptrace
