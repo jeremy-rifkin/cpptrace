@@ -2,6 +2,7 @@
 
 [![build](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml)
 [![test](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/test.yml)
+[![performance-test](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/performance-tests.yml/badge.svg)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/performance-tests.yml)
 
 🚧 WIP 🏗️
 

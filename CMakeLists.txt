@@ -67,6 +67,10 @@ option(CPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
 option(CPPTRACE_BUILD_TEST "" OFF)
 option(CPPTRACE_BUILD_TEST_RDYNAMIC "" OFF)
 
+option(CPPTRACE_BUILD_SPEEDTEST "" OFF)
+option(CPPTRACE_BUILD_SPEEDTEST_DWARF4 "" OFF)
+option(CPPTRACE_BUILD_SPEEDTEST_DWARF5 "" OFF)
+
 set(CPPTRACE_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
 set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 100.")
 
@@ -369,5 +373,49 @@ if(CPPTRACE_BUILD_TEST)
   endif()
   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
     set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
+  endif()
+endif()
+
+if(CPPTRACE_BUILD_SPEEDTEST)
+  if(CPPTRACE_BUILD_SPEEDTEST_DWARF4)
+    check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
+    if(HAS_DWARF4)
+      add_compile_options("$<$<CONFIG:Debug>:-gdwarf-4>")
+      #target_compile_options(speedtest PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+      #target_compile_options(googletest INTERFACE "$<$<CONFIG:Debug>:-gdwarf-4>")
+    endif()
+  endif()
+  if(CPPTRACE_BUILD_SPEEDTEST_DWARF5)
+    check_cxx_compiler_flag("-gdwarf-5" HAS_DWARF5)
+    if(HAS_DWARF5)
+      add_compile_options("$<$<CONFIG:Debug>:-gdwarf-5>")
+      #target_compile_options(speedtest PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+      #target_compile_options(googletest INTERFACE "$<$<CONFIG:Debug>:-gdwarf-4>")
+    endif()
+  endif()
+
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  )
+  # For Windows: Prevent overriding the parent project's compiler/linker settings
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
+
+  add_executable(speedtest test/speedtest.cpp)
+  target_link_libraries(
+    speedtest
+    PRIVATE
+    GTest::gtest_main
+    cpptrace
+  )
+
+  if(WIN32)
+    add_custom_command(
+        TARGET speedtest POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:speedtest> $<TARGET_FILE_DIR:speedtest>
+        COMMAND_EXPAND_LISTS
+    )
   endif()
 endif()
