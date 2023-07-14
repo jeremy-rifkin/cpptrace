@@ -14,8 +14,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <iostream>
-
 namespace cpptrace {
     namespace detail {
         struct dlframe {
@@ -103,9 +101,6 @@ namespace cpptrace {
             while((count = read(output_pipe.read_end, buffer, buffer_size)) > 0) {
                 output.insert(output.end(), buffer, buffer + count);
             }
-            std::cerr<<"---E---"<<std::endl;
-            std::cerr<<output<<std::endl;
-            std::cerr<<"---F---"<<std::endl;
             // TODO: check status from addr2line?
             waitpid(pid, nullptr, 0);
             return output;
@@ -113,10 +108,8 @@ namespace cpptrace {
 
         struct symbolizer::impl {
             std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
-                std::cerr<<"---B---"<<std::endl;
                 std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
                 if(has_addr2line()) {
-                    std::cerr<<"---C---"<<std::endl;
                     std::vector<dlframe> dlframes = backtrace_frames(frames);
                     std::unordered_map<
                         std::string,
@@ -132,7 +125,6 @@ namespace cpptrace {
                         trace[i].filename = entry.obj_path;
                         trace[i].symbol = entry.symbol;
                     }
-                    std::cerr<<"---D---"<<std::endl;
                     for(const auto& entry : entries) {
                         const auto& object_name = entry.first;
                         const auto& entries_vec = entry.second;
@@ -190,7 +182,6 @@ namespace cpptrace {
         //}
 
         std::vector<stacktrace_frame> symbolizer::resolve_frames(const std::vector<void*>& frames) {
-            std::cerr<<"---A---"<<std::endl;
             return pimpl->resolve_frames(frames);
         }
     }
