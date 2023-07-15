@@ -326,8 +326,8 @@ if(NOT CMAKE_SKIP_INSTALL_RULES)
 
   install(
     FILES
-    include/cpptrace.hpp
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/cpptrace
+    include/cpptrace/cpptrace.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cpptrace
   )
 
   export(
