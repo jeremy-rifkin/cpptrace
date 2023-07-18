@@ -48,13 +48,13 @@ namespace cpptrace {
 namespace cpptrace {
     void print_trace(std::uint32_t skip) {
         std::cerr<<"Stack trace (most recent call first):"<<std::endl;
-        std::size_t i = 0;
+        std::size_t counter = 0;
         const auto trace = generate_trace(skip + 1);
         // +1 to skip one frame
         for(auto it = trace.begin() + 1; it != trace.end(); it++) {
             const auto& frame = *it;
             std::cerr
-                << i++
+                << counter++
                 << " "
                 << frame.filename
                 << ":"

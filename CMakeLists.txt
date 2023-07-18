@@ -427,4 +427,9 @@ if(CPPTRACE_RUN_CLANG_TIDY)
   find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
   set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}")
   set_target_properties(cpptrace PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+  target_compile_options(
+    cpptrace
+    PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/analyze>
+  )
 endif()
