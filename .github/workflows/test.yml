@@ -48,7 +48,7 @@ jobs:
             -DCPPTRACE_BUILD_TEST=On \
             $(if [ "${{matrix.symbols}}" = "CPPTRACE_GET_SYMBOLS_WITH_LIBDL" ]; then echo "-DCPPTRACE_BUILD_TEST_RDYNAMIC=On"; else echo ""; fi) \
             -DBUILD_SHARED_LIBS=On
-           make
+           make -j
     - name: test
       working-directory: build
       run: |
@@ -91,7 +91,7 @@ jobs:
             -DCPPTRACE_BUILD_TEST=On \
             $(if [ "${{matrix.symbols}}" = "CPPTRACE_GET_SYMBOLS_WITH_LIBDL" ]; then echo "-DCPPTRACE_BUILD_TEST_RDYNAMIC=On"; else echo ""; fi) \
             -DBUILD_SHARED_LIBS=On
-           make
+           make -j
     - name: test
       working-directory: build
       run: |
@@ -168,7 +168,7 @@ jobs:
             ${{matrix.config}} \
             -DCPPTRACE_BUILD_TEST=On \
             -DBUILD_SHARED_LIBS=On
-           make
+           make -j
     - name: test
       working-directory: build
       run: |
@@ -195,7 +195,7 @@ jobs:
             ${{matrix.config}} \
             -DCPPTRACE_BUILD_TEST=On \
             -DBUILD_SHARED_LIBS=On
-           make
+           make -j
     - name: test
       working-directory: build
       run: |

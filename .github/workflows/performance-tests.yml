@@ -37,7 +37,7 @@ jobs:
             -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/include/backtrace.h \
             -DCPPTRACE_BUILD_SPEEDTEST=On \
             -DBUILD_SHARED_LIBS=On
-           make
+           make -j
     - name: test
       working-directory: build
       run: |

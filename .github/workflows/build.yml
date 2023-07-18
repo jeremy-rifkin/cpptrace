@@ -43,7 +43,7 @@ jobs:
             -D${{matrix.symbols}}=On \
             -D${{matrix.demangle}}=On \
             -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h
-           make
+           make -j
   build-macos:
     runs-on: macos-13
     strategy:
@@ -79,7 +79,7 @@ jobs:
             -D${{matrix.unwind}}=On \
             -D${{matrix.symbols}}=On \
             -D${{matrix.demangle}}=On
-           make
+           make -j
   build-windows:
     runs-on: windows-2019
     strategy:
@@ -143,7 +143,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=${{matrix.std}} \
             -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h \
             ${{matrix.config}}
-           make
+           make -j
   build-macos-full-or-auto:
     runs-on: macos-13
     strategy:
@@ -164,7 +164,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
             -DCMAKE_CXX_STANDARD=${{matrix.std}} \
             ${{matrix.config}}
-           make
+           make -j
   # TODO: -DCMAKE_CXX_STANDARD isn't being honored?
   # build-linux-full-or-auto-23:
   #   runs-on: ubuntu-22.04
