@@ -78,7 +78,7 @@ static std::vector<std::string> split(const std::string& s, const std::string& d
         vec.emplace_back(s.substr(old_pos, pos - old_pos));
         old_pos = pos + 1;
     }
-    vec.emplace_back(std::string(s.substr(old_pos)));
+    vec.emplace_back(s.substr(old_pos));
     return vec;
 }
 
@@ -113,7 +113,7 @@ static std::string trim(const std::string& s) {
 CPPTRACE_MAYBE_UNUSED
 static std::string to_hex(uintptr_t addr) {
     std::stringstream sstream;
-    sstream<<std::hex<<uintptr_t(addr);
+    sstream<<std::hex<<addr;
     return std::move(sstream).str();
 }
 
