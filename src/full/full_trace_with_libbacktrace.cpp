@@ -71,7 +71,7 @@ namespace cpptrace {
                     // fallback, try to at least recover the symbol name with backtrace_syminfo
                     backtrace_syminfo(
                         get_backtrace_state(),
-                        reinterpret_cast<uintptr_t>(frame.address),
+                        frame.address,
                         syminfo_callback,
                         error_callback,
                         &frame

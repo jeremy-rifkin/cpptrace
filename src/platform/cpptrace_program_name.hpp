@@ -3,7 +3,7 @@
 
 #include <string>
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <windows.h>
 
 namespace cpptrace {
@@ -20,7 +20,7 @@ namespace cpptrace {
     }
 }
 
-#elif __APPLE__
+#elif defined(__APPLE__)
 
 #include <cstdint>
 #include <mach-o/dyld.h>
@@ -42,7 +42,7 @@ namespace cpptrace {
     }
 }
 
-#elif __linux__
+#elif defined(__linux__)
 #include <linux/limits.h>
 #include <sys/types.h>
 #include <unistd.h>
