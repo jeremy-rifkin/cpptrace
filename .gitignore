@@ -1,4 +1,5 @@
 .vscode
 a.out
-build*
-repro*
+build*/
+repro*/
+__pycache__

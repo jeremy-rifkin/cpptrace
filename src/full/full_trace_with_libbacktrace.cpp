@@ -54,7 +54,7 @@ namespace cpptrace {
             static backtrace_state* state = nullptr;
             static bool called = false;
             if(!called) {
-                state = backtrace_create_state(program_name(), true, error_callback, nullptr);
+                state = backtrace_create_state(nullptr, true, error_callback, nullptr);
                 called = true;
             }
             return state;
