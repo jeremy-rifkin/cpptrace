@@ -21,7 +21,7 @@ jobs:
     - name: build
       run: |
            python3 ci/build-in-all-configs.py
-  build-windows:
+  build-windows-msvc:
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -29,4 +29,13 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1.10.0
     - name: build
       run: |
-           python3 ci/build-in-all-configs.py
+           python3 ci/build-in-all-configs.py --msvc-only
+  build-windows-clang:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.10.0
+    - name: build
+      run: |
+           python3 ci/build-in-all-configs.py --clang-only

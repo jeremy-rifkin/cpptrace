@@ -1,21 +1,17 @@
-import sys
-import subprocess
+import argparse
 import os
-import shutil
-import re
 import platform
+import shutil
+import subprocess
+import sys
 
 from util import *
 
 sys.stdout.reconfigure(encoding='utf-8') # for windows gh runner
 
-env = os.environ.copy()
-
 def run_command(*args: List[str]):
     print("[🔵 Running Command \"{}\"]".format(" ".join(args)))
-    global env
-    print(env)
-    p = subprocess.Popen(args, env=env)
+    p = subprocess.Popen(args)
     p.wait()
     print("\033[0m") # makefile in parallel sometimes messes up colors
     if p.returncode != 0:
@@ -72,6 +68,11 @@ def build_full_or_auto(matrix):
     os.chdir("..")
 
 def main():
+    parser = argparse.ArgumentParser(
+        prog="Build in all configs",
+        description="Try building the library in all possible configurations for the current host"
+    )
+
     if platform.system() == "Linux":
         matrix = {
             "compiler": ["g++-10", "clang++-14"],
@@ -133,8 +134,24 @@ def main():
         exclude = []
         run_matrix(matrix, exclude, build_full_or_auto)
     if platform.system() == "Windows":
+        parser.add_argument(
+            "--clang-only",
+            action="store_true"
+        )
+        parser.add_argument(
+            "--msvc-only",
+            action="store_true"
+        )
+        args = parser.parse_args()
+
+        compilers = ["cl", "clang++"]
+        if args.clang_only:
+            compilers = ["clang++"]
+        if args.msvc_only:
+            compilers = ["cl"]
+
         matrix = {
-            "compiler": ["cl", "clang++"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": [11, 20],
             "unwind": [
@@ -158,7 +175,7 @@ def main():
         ]
         run_matrix(matrix, exclude, build)
         matrix = {
-            "compiler": ["cl", "clang++"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": [11, 20],
             "config": [""]
