@@ -1,8 +1,8 @@
 #ifdef CPPTRACE_UNWIND_WITH_NOTHING
 
-#include <cpptrace/cpptrace.hpp>
 #include "cpptrace_unwind.hpp"
 
+#include <cstddef>
 #include <vector>
 
 namespace cpptrace {

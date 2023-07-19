@@ -1,10 +1,11 @@
 #ifdef CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE
 
 #include <cpptrace/cpptrace.hpp>
-#include "cpptrace_full_trace.hpp"
 #include "../platform/cpptrace_program_name.hpp"
 #include "../platform/cpptrace_common.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 #ifdef CPPTRACE_BACKTRACE_PATH
@@ -16,7 +17,9 @@
 namespace cpptrace {
     namespace detail {
         struct trace_data {
+            // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
             std::vector<stacktrace_frame>& frames;
+            // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
             size_t& skip;
         };
 
@@ -47,6 +50,7 @@ namespace cpptrace {
 
         backtrace_state* get_backtrace_state() {
             // backtrace_create_state must be called only one time per program
+            // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
             static backtrace_state* state = nullptr;
             static bool called = false;
             if(!called) {

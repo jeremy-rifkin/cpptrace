@@ -1,6 +1,7 @@
 #include <cpptrace/cpptrace.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <iostream>
