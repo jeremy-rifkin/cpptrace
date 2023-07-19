@@ -23,18 +23,6 @@ def run_command(*args: List[str]):
     else:
         print("[🟢 Command \"{}\" succeeded]".format(" ".join(args)))
 
-def load_msvc_environment():
-    global env
-    run_command("powershell.exe", os.path.join(os.path.dirname(__file__), "./dump_msvc_env.ps1"))
-    with open(f"{env['TEMP']}/vcvars.txt", "r") as f:
-        for line in f:
-            m = re.match(r"^(.*)=(.*)$", line)
-            #if m.group(1) not in env or env[m.group(1)] != m.group(2):
-            #    print(f"setting {m.group(1)} = {m.group(2)}")
-            env[m.group(1)] = m.group(2)
-
-    run_command("msbuild", "--help")
-
 def build(matrix):
     print(matrix)
 
@@ -145,7 +133,6 @@ def main():
         exclude = []
         run_matrix(matrix, exclude, build_full_or_auto)
     if platform.system() == "Windows":
-        load_msvc_environment()
         matrix = {
             "compiler": ["cl", "clang++"],
             "target": ["Debug"],
