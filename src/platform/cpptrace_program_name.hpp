@@ -3,7 +3,7 @@
 
 #include <string>
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <windows.h>
 
 namespace cpptrace {
@@ -20,7 +20,7 @@ namespace cpptrace {
     }
 }
 
-#elif __APPLE__
+#elif defined(__APPLE__)
 
 #include <cstdint>
 #include <mach-o/dyld.h>
@@ -42,8 +42,9 @@ namespace cpptrace {
     }
 }
 
-#elif __linux__
+#elif defined(__linux__)
 #include <linux/limits.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 namespace cpptrace {
@@ -55,11 +56,11 @@ namespace cpptrace {
             if(!did_init) {
                 did_init = true;
                 char buffer[PATH_MAX + 1];
-                ssize_t s = readlink("/proc/self/exe", buffer, PATH_MAX);
-                if(s == -1) {
+                const ssize_t size = readlink("/proc/self/exe", buffer, PATH_MAX);
+                if(size == -1) {
                     return nullptr;
                 }
-                buffer[s] = 0;
+                buffer[size] = 0;
                 name = buffer;
                 valid = true;
             }

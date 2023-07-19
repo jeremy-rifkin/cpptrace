@@ -6,7 +6,7 @@ endif()
 
 project(
   cpptrace
-  VERSION 1.0.0
+  VERSION 0.0.1
   LANGUAGES CXX
 )
 
@@ -28,6 +28,7 @@ target_include_directories(
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/cpptrace>
 )
 
+# TODO
 target_compile_features(
   cpptrace
   PUBLIC
@@ -44,7 +45,8 @@ set_target_properties(
 target_compile_options(
   cpptrace
   PRIVATE
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wshadow>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wshadow -Wundef>
+  $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wnonnull-compare>
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
 

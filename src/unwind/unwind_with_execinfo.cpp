@@ -1,10 +1,10 @@
 #ifdef CPPTRACE_UNWIND_WITH_EXECINFO
 
-#include <cpptrace/cpptrace.hpp>
 #include "cpptrace_unwind.hpp"
 #include "../platform/cpptrace_common.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 
 #include <execinfo.h>
@@ -14,9 +14,9 @@ namespace cpptrace {
         CPPTRACE_FORCE_NO_INLINE
         std::vector<void*> capture_frames(size_t skip) {
             std::vector<void*> frames(hard_max_frames + skip, nullptr);
-            int n_frames = backtrace(frames.data(), hard_max_frames + skip);
+            const int n_frames = backtrace(frames.data(), int(hard_max_frames + skip));
             frames.resize(n_frames);
-            frames.erase(frames.begin(), frames.begin() + std::min(skip + 1, frames.size()));
+            frames.erase(frames.begin(), frames.begin() + ptrdiff_t(std::min(skip + 1, frames.size())));
             frames.shrink_to_fit();
             return frames;
         }

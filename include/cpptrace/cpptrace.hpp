@@ -1,7 +1,6 @@
 #ifndef CPPTRACE_HPP
 #define CPPTRACE_HPP
 
-#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>

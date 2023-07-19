@@ -1,10 +1,10 @@
 #ifndef CPPTRACE_UNWIND_HPP
 #define CPPTRACE_UNWIND_HPP
 
-#include <cpptrace/cpptrace.hpp>
 #include "../platform/cpptrace_common.hpp"
 
 #include <cstddef>
+#include <vector>
 
 namespace cpptrace {
     namespace detail {

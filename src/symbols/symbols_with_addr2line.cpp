@@ -4,13 +4,17 @@
 #include "cpptrace_symbols.hpp"
 #include "../platform/cpptrace_common.hpp"
 
-#include <stdio.h>
-#include <signal.h>
-#include <vector>
+#include <cstdint>
+#include <cstdio>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <functional>
+#include <vector>
 
 #include <unistd.h>
 #include <dlfcn.h>
+// NOLINTNEXTLINE(misc-include-cleaner)
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -28,7 +32,7 @@ namespace cpptrace {
             // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
             std::vector<dlframe> frames;
             frames.reserve(addrs.size());
-            for(const auto addr : addrs) {
+            for(const void* addr : addrs) {
                 Dl_info info;
                 dlframe frame;
                 frame.raw_address = reinterpret_cast<uintptr_t>(addr);
@@ -47,16 +51,18 @@ namespace cpptrace {
         bool has_addr2line() {
             // Detects if addr2line exists by trying to invoke addr2line --help
             constexpr int magic = 42;
-            pid_t pid = fork();
+            // NOLINTNEXTLINE(misc-include-cleaner)
+            const pid_t pid = fork();
             if(pid == -1) { return false; }
             if(pid == 0) { // child
                 close(STDOUT_FILENO);
                 // TODO: path
                 execlp("addr2line", "addr2line", "--help", nullptr);
-                exit(magic);
+                _exit(magic);
             }
             int status;
             waitpid(pid, &status, 0);
+            // NOLINTNEXTLINE(misc-include-cleaner)
             return WEXITSTATUS(status) == 0;
         }
 
@@ -71,12 +77,13 @@ namespace cpptrace {
         };
         static_assert(sizeof(pipe_t) == 2 * sizeof(int), "Unexpected struct packing");
 
-        static std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
+        std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
             pipe_t output_pipe;
             pipe_t input_pipe;
             internal_verify(pipe(output_pipe.data) == 0);
             internal_verify(pipe(input_pipe.data) == 0);
-            pid_t pid = fork();
+            // NOLINTNEXTLINE(misc-include-cleaner)
+            const pid_t pid = fork();
             if(pid == -1) { return ""; } // error? TODO: Diagnostic
             if(pid == 0) { // child
                 dup2(output_pipe.write_end, STDOUT_FILENO);
@@ -107,24 +114,68 @@ namespace cpptrace {
         }
 
         struct symbolizer::impl {
+            using target_vec = std::vector<std::pair<std::string, std::reference_wrapper<stacktrace_frame>>>;
+
+            // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+            std::unordered_map<std::string, target_vec> get_addr2line_targets(
+                const std::vector<dlframe>& dlframes,
+                std::vector<stacktrace_frame>& trace
+            ) {
+                std::unordered_map<std::string, target_vec> entries;
+                for(std::size_t i = 0; i < dlframes.size(); i++) {
+                    const auto& entry = dlframes[i];
+                    entries[entry.obj_path].emplace_back(
+                        to_hex(entry.raw_address - entry.obj_base),
+                        trace[i]
+                    );
+                    // Set what is known for now, and resolutions from addr2line should overwrite
+                    trace[i].filename = entry.obj_path;
+                    trace[i].symbol = entry.symbol;
+                }
+                return entries;
+            }
+
+            // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+            void update_trace(const std::string& line, size_t entry_index, const target_vec& entries_vec) {
+                // Result will be of the form <identifier> " at " path:line
+                // The path may be ?? if addr2line cannot resolve, line may be ?
+                // Edge cases:
+                // ?? ??:0
+                const std::size_t at_location = line.find(" at ");
+                std::size_t symbol_end;
+                std::size_t filename_start;
+                if(at_location != std::string::npos) {
+                    symbol_end = at_location;
+                    filename_start = at_location + 4;
+                } else {
+                    internal_verify(line.find("?? ") == 0, "Unexpected edge case while processing addr2line output");
+                    symbol_end = 2;
+                    filename_start = 3;
+                }
+                auto symbol = line.substr(0, symbol_end);
+                auto colon = line.rfind(':');
+                internal_verify(colon != std::string::npos);
+                internal_verify(colon > filename_start);
+                auto filename = line.substr(filename_start, colon - filename_start);
+                auto line_number = line.substr(colon + 1);
+                if(line_number != "?") {
+                    entries_vec[entry_index].second.get().line = std::stoi(line_number);
+                }
+                if(filename != "??") {
+                    entries_vec[entry_index].second.get().filename = filename;
+                }
+                if(!symbol.empty()) {
+                    entries_vec[entry_index].second.get().symbol = symbol;
+                }
+            }
+
+            // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
             std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
+                // TODO: Refactor better
                 std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
                 if(has_addr2line()) {
-                    std::vector<dlframe> dlframes = backtrace_frames(frames);
-                    std::unordered_map<
-                        std::string,
-                        std::vector<std::pair<std::string, std::reference_wrapper<stacktrace_frame>>>
-                    > entries;
-                    for(size_t i = 0; i < dlframes.size(); i++) {
-                        const auto& entry = dlframes[i];
-                        entries[entry.obj_path].push_back({
-                            to_hex(entry.raw_address - entry.obj_base),
-                            trace[i]
-                        });
-                        // Set what is known for now, and resolutions from addr2line should overwrite
-                        trace[i].filename = entry.obj_path;
-                        trace[i].symbol = entry.symbol;
-                    }
+                    const std::vector<dlframe> dlframes = backtrace_frames(frames);
+                    const auto entries = get_addr2line_targets(dlframes, trace);
                     for(const auto& entry : entries) {
                         const auto& object_name = entry.first;
                         const auto& entries_vec = entry.second;
@@ -136,37 +187,7 @@ namespace cpptrace {
                         auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
                         internal_verify(output.size() == entries_vec.size());
                         for(size_t i = 0; i < output.size(); i++) {
-                            // Result will be of the form <identifier> " at " path:line
-                            // The path may be ?? if addr2line cannot resolve, line may be ?
-                            // Edge cases:
-                            // ?? ??:0
-                            const auto& line = output[i];
-                            std::size_t at_location = line.find(" at ");
-                            std::size_t symbol_end;
-                            std::size_t filename_start;
-                            if(at_location != std::string::npos) {
-                                symbol_end = at_location;
-                                filename_start = at_location + 4;
-                            } else {
-                                internal_verify(line.find("?? ") == 0, "Unexpected edge case while processing addr2line output");
-                                symbol_end = 2;
-                                filename_start = 3;
-                            }
-                            auto symbol = line.substr(0, symbol_end);
-                            auto colon = line.rfind(":");
-                            internal_verify(colon != std::string::npos);
-                            internal_verify(colon > filename_start);
-                            auto filename = line.substr(filename_start, colon - filename_start);
-                            auto line_number = line.substr(colon + 1);
-                            if(line_number != "?") {
-                                entries_vec[i].second.get().line = std::stoi(line_number);
-                            }
-                            if(filename != "??") {
-                                entries_vec[i].second.get().filename = filename;
-                            }
-                            if(symbol != "") {
-                                entries_vec[i].second.get().symbol = symbol;
-                            }
+                            update_trace(output[i], i, entries_vec);
                         }
                     }
                 }
@@ -174,6 +195,7 @@ namespace cpptrace {
             }
         };
 
+        // NOLINTNEXTLINE(bugprone-unhandled-exception-at-new)
         symbolizer::symbolizer() : pimpl{new impl} {}
         symbolizer::~symbolizer() = default;
 

@@ -1,0 +1,6 @@
+---
+Checks: '-*,clang-diagnostic-*,clang-analyzer-*,bugprone-*,cert-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,performance-*,portability-*,readability-*,-cppcoreguidelines-macro-usage,-modernize-use-trailing-return-type,-misc-non-private-member-variables-in-classes,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-avoid-c-arrays,-modernize-avoid-c-arrays,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-readability-else-after-return,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cert-dcl50-cpp,-cppcoreguidelines-init-variables,-readability-implicit-bool-conversion,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-owning-memory,-cppcoreguidelines-pro-type-member-init,-readability-isolate-declaration,-cppcoreguidelines-avoid-magic-numbers,-readability-magic-numbers,-cppcoreguidelines-pro-type-union-access,-cppcoreguidelines-pro-type-cstyle-cast,-readability-named-parameter,-cppcoreguidelines-avoid-goto,-readability-uppercase-literal-suffix,-performance-avoid-endl,-bugprone-easily-swappable-parameters'
+WarningsAsErrors: '*'
+HeaderFilterRegex: ''
+AnalyzeTemporaryDtors: false
+FormatStyle: none

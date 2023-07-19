@@ -4,6 +4,7 @@
 #include "cpptrace_symbols.hpp"
 #include "../platform/cpptrace_program_name.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -42,6 +43,7 @@ namespace cpptrace {
 
         backtrace_state* get_backtrace_state() {
             // backtrace_create_state must be called only one time per program
+            // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
             static backtrace_state* state = nullptr;
             static bool called = false;
             if(!called) {
@@ -53,7 +55,8 @@ namespace cpptrace {
 
         // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
         struct symbolizer::impl {
-            stacktrace_frame resolve_frame(void* addr) {
+            // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+            stacktrace_frame resolve_frame(const void* addr) {
                 stacktrace_frame frame;
                 frame.col = 0;
                 backtrace_pcinfo(
@@ -77,6 +80,7 @@ namespace cpptrace {
             }
         };
 
+        // NOLINTNEXTLINE(bugprone-unhandled-exception-at-new)
         symbolizer::symbolizer() : pimpl{new impl} {}
         symbolizer::~symbolizer() = default;
 
@@ -87,7 +91,7 @@ namespace cpptrace {
         std::vector<stacktrace_frame> symbolizer::resolve_frames(const std::vector<void*>& frames) {
             std::vector<stacktrace_frame> trace;
             trace.reserve(frames.size());
-            for(const auto frame : frames) {
+            for(const void* frame : frames) {
                 trace.push_back(pimpl->resolve_frame(frame));
             }
             return trace;

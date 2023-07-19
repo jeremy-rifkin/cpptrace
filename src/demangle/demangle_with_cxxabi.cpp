@@ -1,6 +1,5 @@
 #ifdef CPPTRACE_DEMANGLE_WITH_CXXABI
 
-#include <cpptrace/cpptrace.hpp>
 #include "cpptrace_demangle.hpp"
 
 #include <cxxabi.h>
@@ -14,9 +13,10 @@ namespace cpptrace {
             int status;
             char* demangled = abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status);
             if(demangled) {
-                std::string s = demangled;
+                std::string str = demangled;
+                // NOLINTNEXTLINE(cppcoreguidelines-no-malloc)
                 free(demangled);
-                return s;
+                return str;
             } else {
                 return name;
             }

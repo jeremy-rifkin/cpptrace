@@ -13,16 +13,21 @@
 #define CPPTRACE_MAYBE_UNUSED __attribute__((unused))
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string>
-#include <vector>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <ios>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 // Lightweight std::source_location.
 struct source_location {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const char* const file;
     //const char* const function; // disabled for now due to static constexpr restrictions
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const int line;
     constexpr source_location(
         //const char* _function /*= __builtin_FUNCTION()*/,
@@ -44,14 +49,20 @@ static void primitive_assert_impl(
         const char* action = verify ? "verification" : "assertion";
         const char* name   = verify ? "verify"       : "assert";
         if(message == nullptr) {
-            fprintf(stderr, "Cpptrace %s failed at %s:%d: %s\n",
-                action, location.file, location.line, signature);
+            (void) fprintf(
+                stderr,
+                "Cpptrace %s failed at %s:%d: %s\n",
+                action, location.file, location.line, signature
+            );
         } else {
-            fprintf(stderr, "Cpptrace %s failed at %s:%d: %s: %s\n",
-                action, location.file, location.line, signature, message);
+            (void) fprintf(
+                stderr,
+                "Cpptrace %s failed at %s:%d: %s: %s\n",
+                action, location.file, location.line, signature, message
+            );
         }
-        fprintf(stderr, "    primitive_%s(%s);\n", name, expression);
-        abort();
+        (void) fprintf(stderr, "    primitive_%s(%s);\n", name, expression);
+        std::abort();
     }
 }
 
@@ -70,15 +81,15 @@ void nothing() {}
 #endif
 
 CPPTRACE_MAYBE_UNUSED
-static std::vector<std::string> split(const std::string& s, const std::string& delims) {
+static std::vector<std::string> split(const std::string& str, const std::string& delims) {
     std::vector<std::string> vec;
     size_t old_pos = 0;
     size_t pos = 0;
-    while((pos = s.find_first_of(delims, old_pos)) != std::string::npos) {
-        vec.emplace_back(s.substr(old_pos, pos - old_pos));
+    while((pos = str.find_first_of(delims, old_pos)) != std::string::npos) {
+        vec.emplace_back(str.substr(old_pos, pos - old_pos));
         old_pos = pos + 1;
     }
-    vec.emplace_back(std::string(s.substr(old_pos)));
+    vec.emplace_back(str.substr(old_pos));
     return vec;
 }
 
@@ -98,22 +109,22 @@ static std::string join(const C& container, const std::string& delim) {
     return str;
 }
 
-constexpr const char* const ws = " \t\n\r\f\v";
+constexpr const char* const whitespace = " \t\n\r\f\v";
 
 CPPTRACE_MAYBE_UNUSED
-static std::string trim(const std::string& s) {
-    if(s == "") {
+static std::string trim(const std::string& str) {
+    if(str.empty()) {
         return "";
     }
-    size_t l = s.find_first_not_of(ws);
-    size_t r = s.find_last_not_of(ws) + 1;
-    return s.substr(l, r - l);
+    const size_t left = str.find_first_not_of(whitespace);
+    const size_t right = str.find_last_not_of(whitespace) + 1;
+    return str.substr(left, right - left);
 }
 
 CPPTRACE_MAYBE_UNUSED
 static std::string to_hex(uintptr_t addr) {
     std::stringstream sstream;
-    sstream<<std::hex<<uintptr_t(addr);
+    sstream<<std::hex<<addr;
     return std::move(sstream).str();
 }
 
