@@ -7,6 +7,9 @@
 
 namespace cpptrace {
     namespace detail {
+        symbolizer::symbolizer() = default;
+        symbolizer::~symbolizer() = default;
+
         // stacktrace_frame symbolizer::resolve_frame(void*) {
         //     return {
         //         0,
