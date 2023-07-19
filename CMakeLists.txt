@@ -72,8 +72,6 @@ option(CPPTRACE_BUILD_SPEEDTEST "" OFF)
 option(CPPTRACE_BUILD_SPEEDTEST_DWARF4 "" OFF)
 option(CPPTRACE_BUILD_SPEEDTEST_DWARF5 "" OFF)
 
-option(CPPTRACE_RUN_CLANG_TIDY "" OFF)
-
 set(CPPTRACE_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
 set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 100.")
 
@@ -421,15 +419,4 @@ if(CPPTRACE_BUILD_SPEEDTEST)
         COMMAND_EXPAND_LISTS
     )
   endif()
-endif()
-
-if(CPPTRACE_RUN_CLANG_TIDY)
-  find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
-  set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" -extra-arg=-std=c++11)
-  set_target_properties(cpptrace PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
-  target_compile_options(
-    cpptrace
-    PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/analyze>
-  )
 endif()
