@@ -197,6 +197,7 @@ namespace cpptrace {
 
         // NOLINTNEXTLINE(bugprone-unhandled-exception-at-new)
         symbolizer::symbolizer() : pimpl{new impl} {}
+        symbolizer::~symbolizer() = default;
 
         //stacktrace_frame symbolizer::resolve_frame(void* addr) {
         //    return pimpl->resolve_frame(addr);
