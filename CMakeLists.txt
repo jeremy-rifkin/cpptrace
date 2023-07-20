@@ -153,7 +153,7 @@ if(
 )
   # Attempt to auto-config
   if(UNIX)
-    if(HAD_UNWIND)
+    if(HAS_UNWIND)
       set(CPPTRACE_UNWIND_WITH_UNWIND On)
       message(STATUS "Cpptrace auto config: Using libgcc unwind for unwinding")
     elseif(HAS_EXECINFO)
@@ -161,7 +161,7 @@ if(
       message(STATUS "Cpptrace auto config: Using execinfo.h for unwinding")
     else()
       set(CPPTRACE_UNWIND_WITH_NOTHING On)
-      message(FATAL_ERROR "Cpptrace auto config: <execinfo.h> doesn't seem to be supported, stack tracing will not work. To compile anyway set CPPTRACE_UNWIND_WITH_NOTHING.")
+      message(FATAL_ERROR "Cpptrace auto config: No unwinding back-end seems to be supported, stack tracing will not work. To compile anyway set CPPTRACE_UNWIND_WITH_NOTHING.")
     endif()
   elseif(WIN32)
     set(CPPTRACE_UNWIND_WITH_WINAPI On)
