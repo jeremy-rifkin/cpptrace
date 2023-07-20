@@ -203,6 +203,7 @@ def main():
             "std": ["11", "20"],
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_EXECINFO",
+                "CPPTRACE_UNWIND_WITH_UNWIND",
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
             "symbols": [
@@ -233,6 +234,7 @@ def main():
             "std": ["11", "20"],
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_EXECINFO",
+                "CPPTRACE_UNWIND_WITH_UNWIND",
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
             "symbols": [

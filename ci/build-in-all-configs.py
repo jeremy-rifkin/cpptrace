@@ -122,6 +122,7 @@ def main():
             "target": ["Debug"],
             "std": ["11", "20"],
             "unwind": [
+                "CPPTRACE_UNWIND_WITH_UNWIND",
                 "CPPTRACE_UNWIND_WITH_EXECINFO",
                 "CPPTRACE_UNWIND_WITH_NOTHING",
             ],
@@ -152,6 +153,7 @@ def main():
             "target": ["Debug"],
             "std": ["11", "20"],
             "unwind": [
+                "CPPTRACE_UNWIND_WITH_UNWIND",
                 "CPPTRACE_UNWIND_WITH_EXECINFO",
                 "CPPTRACE_UNWIND_WITH_NOTHING",
             ],
