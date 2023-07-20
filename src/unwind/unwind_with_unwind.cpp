@@ -22,18 +22,18 @@ namespace cpptrace {
             unwind_state& state = *static_cast<unwind_state*>(arg);
             if(state.skip) {
                 state.skip--;
-                //if(_Unwind_GetIP(context) != uintptr_t(0)) {
-                //    return _URC_NO_REASON;
-                //} else {
-                //    return _URC_END_OF_STACK;
-                //}
+                if(_Unwind_GetIP(context) == uintptr_t(0)) {
+                    return _URC_END_OF_STACK;
+                } else {
+                    return _URC_NO_REASON;
+                }
             }
 
             assert(state.count < state.vec.size());
             //void* ip = reinterpret_cast<void*>(_Unwind_GetIP(context));
             int is_before_instruction = 0;
             uintptr_t ip = _Unwind_GetIPInfo(context, &is_before_instruction);
-            if(!is_before_instruction && ip != 0) {
+            if(!is_before_instruction && ip != uintptr_t(0)) {
                 ip--;
             }
             if (ip == uintptr_t(0) || state.count == state.vec.size()) {
