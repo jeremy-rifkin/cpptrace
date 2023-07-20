@@ -59,6 +59,7 @@ option(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE "" OFF)
 option(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP "" OFF)
 option(CPPTRACE_GET_SYMBOLS_WITH_NOTHING "" OFF)
 
+option(CPPTRACE_UNWIND_WITH_UNWIND "" OFF)
 option(CPPTRACE_UNWIND_WITH_EXECINFO "" OFF)
 option(CPPTRACE_UNWIND_WITH_WINAPI "" OFF)
 option(CPPTRACE_UNWIND_WITH_NOTHING "" OFF)
@@ -100,6 +101,7 @@ function(check_support var source includes libraries definitions)
   set(${var} ${${var}} PARENT_SCOPE)
 endfunction()
 
+check_support(HAS_UNWIND has_unwind.cpp "" "" "")
 check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
 check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${CPPTRACE_BACKTRACE_PATH_DEFINITION}")
 check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
@@ -121,6 +123,7 @@ if(
     CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
     CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
     CPPTRACE_GET_SYMBOLS_WITH_NOTHING OR
+    CPPTRACE_UNWIND_WITH_UNWIND OR
     CPPTRACE_UNWIND_WITH_EXECINFO OR
     CPPTRACE_UNWIND_WITH_WINAPI OR
     CPPTRACE_UNWIND_WITH_NOTHING
@@ -142,6 +145,7 @@ if(
   NOT (
     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
     CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
+    CPPTRACE_UNWIND_WITH_UNWIND OR
     CPPTRACE_UNWIND_WITH_EXECINFO OR
     CPPTRACE_UNWIND_WITH_WINAPI OR
     CPPTRACE_UNWIND_WITH_NOTHING
@@ -149,7 +153,10 @@ if(
 )
   # Attempt to auto-config
   if(UNIX)
-    if(HAS_EXECINFO)
+    if(HAD_UNWIND)
+      set(CPPTRACE_UNWIND_WITH_UNWIND On)
+      message(STATUS "Cpptrace auto config: Using libgcc unwind for unwinding")
+    elseif(HAS_EXECINFO)
       set(CPPTRACE_UNWIND_WITH_EXECINFO On)
       message(STATUS "Cpptrace auto config: Using execinfo.h for unwinding")
     else()
@@ -266,6 +273,13 @@ if(CPPTRACE_GET_SYMBOLS_WITH_NOTHING)
 endif()
 
 # Unwinding
+if(CPPTRACE_UNWIND_WITH_UNWIND)
+  if(NOT HAS_UNWIND)
+    message(WARNING "Cpptrace: CPPTRACE_UNWIND_WITH_UNWIND specified but libgcc unwind doesn't seem to be available.")
+  endif()
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_UNWIND)
+endif()
+
 if(CPPTRACE_UNWIND_WITH_EXECINFO)
   if(NOT HAS_EXECINFO)
     message(WARNING "Cpptrace: CPPTRACE_UNWIND_WITH_EXECINFO specified but execinfo.h doesn't seem to be available.")
