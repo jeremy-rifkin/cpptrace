@@ -9,15 +9,25 @@ from util import *
 
 sys.stdout.reconfigure(encoding='utf-8') # for windows gh runner
 
+failed = False
+
 def run_command(*args: List[str]):
     print("[🔵 Running Command \"{}\"]".format(" ".join(args)))
-    p = subprocess.Popen(args)
-    p.wait()
-    print("\033[0m") # makefile in parallel sometimes messes up colors
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    print("\033[0m", end="") # makefile in parallel sometimes messes up colors
     if p.returncode != 0:
-        print("[🔴 Command \"{}\" failed]".format(" ".join(args)))
+        print("[🔴 Command `{}` failed]".format(" ".join(args)))
+        print("stdout:")
+        print(stdout.decode("utf-8"), end="")
+        print("stderr:")
+        print(stderr.decode("utf-8"), end="")
+        global failed
+        failed = True
+        return False
     else:
-        print("[🟢 Command \"{}\" succeeded]".format(" ".join(args)))
+        print("[🟢 Command `{}` succeeded]".format(" ".join(args)))
+        return True
 
 def build(matrix):
     print(matrix)
@@ -28,44 +38,77 @@ def build(matrix):
     os.mkdir("build")
     os.chdir("build")
 
-    run_command(
-        "cmake",
-        "..",
-        f"-DCMAKE_BUILD_TYPE={matrix['target']}",
-        f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
-        f"-DCMAKE_CXX_STANDARD={matrix['std']}",
-        f"-D{matrix['unwind']}=On",
-        f"-D{matrix['symbols']}=On",
-        f"-D{matrix['demangle']}=On",
-        "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h"
-    )
-
-    if not (platform.system() == "Windows"):
-        run_command("make", "-j")
+    if platform.system() != "Windows":
+        succeeded = run_command(
+            "cmake",
+            "..",
+            f"-DCMAKE_BUILD_TYPE={matrix['target']}",
+            f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-D{matrix['unwind']}=On",
+            f"-D{matrix['symbols']}=On",
+            f"-D{matrix['demangle']}=On",
+            "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h"
+        )
+        if succeeded:
+            run_command("make", "-j")
     else:
-        run_command("msbuild", "cpptrace.sln")
+        succeeded = run_command(
+            "cmake",
+            "..",
+            f"-DCMAKE_BUILD_TYPE={matrix['target']}",
+            f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-D{matrix['unwind']}=On",
+            f"-D{matrix['symbols']}=On",
+            f"-D{matrix['demangle']}=On"
+        )
+        if succeeded:
+            run_command("msbuild", "cpptrace.sln")
 
     os.chdir("..")
+    print()
 
 def build_full_or_auto(matrix):
     print(matrix)
 
-    run_command(
-        "cmake",
-        "..",
-        f"-DCMAKE_BUILD_TYPE={matrix['target']}",
-        f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
-        f"-DCMAKE_CXX_STANDARD={matrix['std']}",
-        f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
-        f"{matrix['config']}"
-    )
+    if os.path.exists("build"):
+        shutil.rmtree("build")
 
-    if not (platform.system() == "Windows"):
-        run_command("make", "-j")
+    os.mkdir("build")
+    os.chdir("build")
+
+    if platform.system() != "Windows":
+        args = [
+            "cmake",
+            "..",
+            f"-DCMAKE_BUILD_TYPE={matrix['target']}",
+            f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
+        ]
+        if matrix["config"] != "":
+            args.append(f"{matrix['config']}")
+        succeeded = run_command(*args)
+        if succeeded:
+            run_command("make", "-j")
     else:
-        run_command("msbuild", "cpptrace.sln")
+        args = [
+            "cmake",
+            "..",
+            f"-DCMAKE_BUILD_TYPE={matrix['target']}",
+            f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_CXX_STANDARD={matrix['std']}"
+        ]
+        if matrix["config"] != "":
+            args.append(f"{matrix['config']}")
+        print(args)
+        succeeded = run_command(*args)
+        if succeeded:
+            run_command("msbuild", "cpptrace.sln")
 
     os.chdir("..")
+    print()
 
 def main():
     parser = argparse.ArgumentParser(
@@ -186,5 +229,10 @@ def main():
             }
         ]
         run_matrix(matrix, exclude, build_full_or_auto)
+
+    global failed
+    if failed:
+        print("🔴 Some checks failed")
+        sys.exit(1)
 
 main()
