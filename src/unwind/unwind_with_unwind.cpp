@@ -30,7 +30,6 @@ namespace cpptrace {
             }
 
             assert(state.count < state.vec.size());
-            //void* ip = reinterpret_cast<void*>(_Unwind_GetIP(context));
             int is_before_instruction = 0;
             uintptr_t ip = _Unwind_GetIPInfo(context, &is_before_instruction);
             if(!is_before_instruction && ip != uintptr_t(0)) {
