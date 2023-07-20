@@ -112,11 +112,12 @@ also manually set which back-end you want used.
 
 **Unwinding**
 
-| Library    | CMake config                    | Platforms      | Info                                                               |
-| ---------- | ------------------------------- | -------------- | ------------------------------------------------------------------ |
-| execinfo.h | `CPPTRACE_UNWIND_WITH_EXECINFO` | linux, macos   | Frames are captured with `execinfo.h`'s `backtrace`, part of libc. |
-| winapi     | `CPPTRACE_UNWIND_WITH_WINAPI`   | windows, mingw | Frames are captured with `CaptureStackBackTrace`.                  |
-| N/A        | `CPPTRACE_UNWIND_WITH_NOTHING`  | all            | Unwinding is not done, stack traces will be empty.                 |
+| Library       | CMake config                    | Platforms      | Info                                                                                                                                                      |
+| ------------- | ------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| libgcc unwind | `CPPTRACE_UNWIND_WITH_UNWIND`   | linux, macos   | Frames are captured with libgcc's `_Unwind_Backtrace`, which currently produces the most accurate stack traces on gcc/clang. Libgcc is linked by default. |
+| execinfo.h    | `CPPTRACE_UNWIND_WITH_EXECINFO` | linux, macos   | Frames are captured with `execinfo.h`'s `backtrace`, part of libc.                                                                                        |
+| winapi        | `CPPTRACE_UNWIND_WITH_WINAPI`   | windows, mingw | Frames are captured with `CaptureStackBackTrace`.                                                                                                         |
+| N/A           | `CPPTRACE_UNWIND_WITH_NOTHING`  | all            | Unwinding is not done, stack traces will be empty.                                                                                                        |
 
 These back-ends require a fixed buffer has to be created to read addresses into while unwinding. By default the buffer
 can hold addresses for 100 frames (beyond the `skip` frames). This is configurable with `CPPTRACE_HARD_MAX_FRAMES`.
