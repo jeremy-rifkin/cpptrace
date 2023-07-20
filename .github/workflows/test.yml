@@ -7,227 +7,37 @@ on:
 # TODO: Test statically linked
 
 jobs:
-  test-linux:
+  build-linux:
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [g++-10, clang++-14]
-        target: [Debug]
-        std: [11, 20]
-        unwind: [
-          CPPTRACE_UNWIND_WITH_EXECINFO,
-          #CPPTRACE_UNWIND_WITH_NOTHING,
-        ]
-        symbols: [
-          CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE,
-          CPPTRACE_GET_SYMBOLS_WITH_LIBDL,
-          CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE,
-          #CPPTRACE_GET_SYMBOLS_WITH_NOTHING,
-        ]
-        demangle: [
-          CPPTRACE_DEMANGLE_WITH_CXXABI,
-          #CPPTRACE_DEMANGLE_WITH_NOTHING,
-        ]
     steps:
     - uses: actions/checkout@v2
     - name: dependencies
       run: sudo apt install gcc-10 g++-10 libgcc-10-dev
     - name: build
       run: |
-           mkdir -p build
-           cd build
-           cmake .. \
-            -DCMAKE_BUILD_TYPE=${{matrix.target}} \
-            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
-            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
-            -D${{matrix.unwind}}=On \
-            -D${{matrix.symbols}}=On \
-            -D${{matrix.demangle}}=On \
-            -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h \
-            -DCPPTRACE_BUILD_TEST=On \
-            $(if [ "${{matrix.symbols}}" = "CPPTRACE_GET_SYMBOLS_WITH_LIBDL" ]; then echo "-DCPPTRACE_BUILD_TEST_RDYNAMIC=On"; else echo ""; fi) \
-            -DBUILD_SHARED_LIBS=On
-           make -j
-    - name: test
-      working-directory: build
-      run: |
-           ./test | python3 ../test/test.py "${{matrix.compiler}}" "${{matrix.unwind}}" "${{matrix.symbols}}" "${{matrix.demangle}}"
-  test-macos:
+           python3 ci/test-all-configs.py
+  build-macos:
     runs-on: macos-13
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [g++-13, clang++]
-        target: [Debug]
-        std: [11, 20]
-        unwind: [
-          CPPTRACE_UNWIND_WITH_EXECINFO,
-          #CPPTRACE_UNWIND_WITH_NOTHING,
-        ]
-        symbols: [
-          #CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE,
-          CPPTRACE_GET_SYMBOLS_WITH_LIBDL,
-          #CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE,
-          #CPPTRACE_GET_SYMBOLS_WITH_NOTHING,
-        ]
-        demangle: [
-          CPPTRACE_DEMANGLE_WITH_CXXABI,
-          #CPPTRACE_DEMANGLE_WITH_NOTHING,
-        ]
     steps:
     - uses: actions/checkout@v2
     - name: build
       run: |
-           mkdir -p build
-           cd build
-           cmake .. \
-            -DCMAKE_BUILD_TYPE=${{matrix.target}} \
-            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
-            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
-            -D${{matrix.unwind}}=On \
-            -D${{matrix.symbols}}=On \
-            -D${{matrix.demangle}}=On \
-            -DCPPTRACE_BUILD_TEST=On \
-            $(if [ "${{matrix.symbols}}" = "CPPTRACE_GET_SYMBOLS_WITH_LIBDL" ]; then echo "-DCPPTRACE_BUILD_TEST_RDYNAMIC=On"; else echo ""; fi) \
-            -DBUILD_SHARED_LIBS=On
-           make -j
-    - name: test
-      working-directory: build
-      run: |
-           ./test | python3 ../test/test.py "${{matrix.compiler}}" "${{matrix.unwind}}" "${{matrix.symbols}}" "${{matrix.demangle}}"
-  test-windows:
+           python3 ci/test-all-configs.py
+  build-windows-msvc:
     runs-on: windows-2019
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [cl, clang++]
-        target: [Debug]
-        std: [11, 20]
-        unwind: [
-          CPPTRACE_UNWIND_WITH_WINAPI,
-          # CPPTRACE_UNWIND_WITH_NOTHING,
-        ]
-        symbols: [
-          CPPTRACE_GET_SYMBOLS_WITH_DBGHELP,
-          # CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE, # TODO
-          # CPPTRACE_GET_SYMBOLS_WITH_NOTHING,
-        ]
-        demangle: [
-          # CPPTRACE_DEMANGLE_WITH_CXXABI,
-          CPPTRACE_DEMANGLE_WITH_NOTHING,
-        ]
-        exclude:
-          - demangle: CPPTRACE_DEMANGLE_WITH_CXXABI
-            compiler: cl
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
     - name: build
       run: |
-           mkdir -p build
-           cd build
-           cmake .. `
-            -DCMAKE_BUILD_TYPE=Debug `
-            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
-            -DCMAKE_CXX_STANDARD=${{matrix.std}} `
-            -D${{matrix.unwind}}=On `
-            -D${{matrix.symbols}}=On `
-            -D${{matrix.demangle}}=On `
-            -DCPPTRACE_BUILD_TEST=On `
-            -DBUILD_SHARED_LIBS=On
-           msbuild .\cpptrace.sln
-    - name: test
-      working-directory: build
-      run: |
-           .\${{matrix.target}}\test.exe | python3 ..\test\test.py "${{matrix.compiler}}" "${{matrix.unwind}}" "${{matrix.symbols}}" "${{matrix.demangle}}"
-
-  test-linux-full-or-auto:
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [g++-10, clang++-14]
-        target: [Debug]
-        std: [11, 20]
-        config: ["-DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On", ""]
-    steps:
-    - uses: actions/checkout@v2
-    - name: dependencies
-      run: sudo apt install gcc-10 g++-10 libgcc-10-dev
-    - name: build
-      run: |
-           mkdir -p build
-           cd build
-           cmake .. \
-            -DCMAKE_BUILD_TYPE=${{matrix.target}} \
-            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
-            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
-            -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h \
-            ${{matrix.config}} \
-            -DCPPTRACE_BUILD_TEST=On \
-            -DBUILD_SHARED_LIBS=On
-           make -j
-    - name: test
-      working-directory: build
-      run: |
-           ./test | python3 ../test/test.py "${{matrix.compiler}}"
-  test-macos-full-or-auto:
-    runs-on: macos-13
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [g++-13, clang++]
-        target: [Debug]
-        std: [11, 20]
-        config: [""]
-    steps:
-    - uses: actions/checkout@v2
-    - name: build
-      run: |
-           mkdir -p build
-           cd build
-           cmake .. \
-            -DCMAKE_BUILD_TYPE=${{matrix.target}} \
-            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
-            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
-            ${{matrix.config}} \
-            -DCPPTRACE_BUILD_TEST=On \
-            -DBUILD_SHARED_LIBS=On
-           make -j
-    - name: test
-      working-directory: build
-      run: |
-           ./test | python3 ../test/test.py "${{matrix.compiler}}"
-  test-windows-full-or-auto:
+           python3 ci/test-all-configs.py --msvc-only
+  build-windows-clang:
     runs-on: windows-2019
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [cl, clang++]
-        target: [Debug]
-        std: [11, 20]
-        config: [""]
-        exclude:
-          - config: -DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On # TODO
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
-    - name: build & test
+    - name: build
       run: |
-           mkdir -p build
-           cd build
-           cmake .. `
-            -DCMAKE_BUILD_TYPE=Debug `
-            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
-            -DCMAKE_CXX_STANDARD=${{matrix.std}} `
-            ${{matrix.config}} `
-            -DCPPTRACE_BUILD_TEST=On `
-            -DBUILD_SHARED_LIBS=On
-           msbuild .\cpptrace.sln
-    - name: test
-      working-directory: build
-      run: |
-           .\${{matrix.target}}\test.exe | python3 ..\test\test.py "${{matrix.compiler}}"
+           python3 ci/test-all-configs.py --clang-only
