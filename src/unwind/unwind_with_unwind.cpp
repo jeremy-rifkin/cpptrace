@@ -47,7 +47,7 @@ namespace cpptrace {
         CPPTRACE_FORCE_NO_INLINE
         std::vector<void*> capture_frames(size_t skip) {
             std::vector<void*> frames(hard_max_frames, nullptr);
-            unwind_state state{skip, 0, frames};
+            unwind_state state{skip + 1, 0, frames};
             _Unwind_Backtrace(unwind_callback, &state);
             frames.resize(state.count);
             frames.shrink_to_fit();
