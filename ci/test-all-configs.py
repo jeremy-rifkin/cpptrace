@@ -12,6 +12,8 @@ sys.stdout.reconfigure(encoding='utf-8') # for windows gh runner
 
 failed = False
 
+expected_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test/expected/")
+
 MAX_LINE_DIFF = 2
 
 def similarity(name: str, target: List[str]) -> int:
@@ -48,9 +50,6 @@ def output_matches(output: str, params: Tuple[str]):
 
     print(f"Searching for expected file best matching {target}")
 
-    print(os.path.realpath(__file__))
-
-    expected_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test/expected/")
     files = [f for f in os.listdir(expected_dir) if os.path.isfile(os.path.join(expected_dir, f))]
     if len(files) == 0:
         print(f"Error: No expected files to use (searching {expected_dir})")
