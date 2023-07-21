@@ -17,13 +17,13 @@ def main():
     threshold = 100 # ms
 
     if expect_slow:
-        if time > 100:
+        if time > threshold:
             print(f"Success (expecting slow): Test program took {time} ms")
         else:
             print(f"Error (expecting slow): Test program took {time} ms")
             sys.exit(1)
     else:
-        if time > 100:
+        if time > threshold:
             print(f"Error: Test program took {time} ms")
             sys.exit(1)
         else:

@@ -78,13 +78,17 @@ def output_matches(output: str, params: Tuple[str]):
     expected = [line.strip().split("||") for line in expected.split("\n")]
     output = [line.strip().split("||") for line in output.split("\n")]
 
+    max_line_diff = MAX_LINE_DIFF
+    if "CPPTRACE_UNWIND_WITH_UNWIND" in params:
+        max_line_diff = 0
+
     errored = False
 
     for i, ((output_file, output_line, output_symbol), (expected_file, expected_line, expected_symbol)) in enumerate(zip(output, expected)):
         if output_file != expected_file:
             print(f"Error: File name mismatch on line {i + 1}, found \"{output_file}\" expected \"{expected_file}\"")
             errored = True
-        if abs(int(output_line) - int(expected_line)) > MAX_LINE_DIFF:
+        if abs(int(output_line) - int(expected_line)) > max_line_diff:
             print(f"Error: File line mismatch on line {i + 1}, found {output_line} expected {expected_line}")
             errored = True
         if output_symbol != expected_symbol:
