@@ -4,6 +4,7 @@ import platform
 import shutil
 import subprocess
 import sys
+from colorama import Fore, Back, Style
 
 from util import *
 
@@ -12,12 +13,12 @@ sys.stdout.reconfigure(encoding='utf-8') # for windows gh runner
 failed = False
 
 def run_command(*args: List[str]):
-    print("[🔵 Running Command \"{}\"]".format(" ".join(args)))
+    print(f"{Fore.CYAN}{Style.BRIGHT}Running Command \"{' '.join(args)}\"{Style.RESET_ALL}")
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
-    print("\033[0m", end="") # makefile in parallel sometimes messes up colors
+    print(Style.RESET_ALL, end="") # makefile in parallel sometimes messes up colors
     if p.returncode != 0:
-        print("[🔴 Command `{}` failed]".format(" ".join(args)))
+        print(f"{Fore.RED}{Style.BRIGHT}Command failed{Style.RESET_ALL}")
         print("stdout:")
         print(stdout.decode("utf-8"), end="")
         print("stderr:")
@@ -26,11 +27,11 @@ def run_command(*args: List[str]):
         failed = True
         return False
     else:
-        print("[🟢 Command `{}` succeeded]".format(" ".join(args)))
+        print(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL}")
         return True
 
 def build(matrix):
-    print(matrix)
+    print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build with config {', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
         shutil.rmtree("build")

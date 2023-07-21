@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from typing import Tuple
+from colorama import Fore, Back, Style
 
 from util import *
 
@@ -95,12 +96,12 @@ def output_matches(output: str, params: Tuple[str]):
     return not errored
 
 def run_command(*args: List[str]):
-    print("[🔵 Running Command \"{}\"]".format(" ".join(args)))
+    print(f"{Fore.CYAN}{Style.BRIGHT}Running Command \"{' '.join(args)}\"{Style.RESET_ALL}")
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
-    print("\033[0m", end="") # makefile in parallel sometimes messes up colors
+    print(Style.RESET_ALL, end="") # makefile in parallel sometimes messes up colors
     if p.returncode != 0:
-        print("[🔴 Command `{}` failed]".format(" ".join(args)))
+        print(f"{Fore.RED}{Style.BRIGHT}Command failed{Style.RESET_ALL}")
         print("stdout:")
         print(stdout.decode("utf-8"), end="")
         print("stderr:")
@@ -109,14 +110,14 @@ def run_command(*args: List[str]):
         failed = True
         return False
     else:
-        print("[🟢 Command `{}` succeeded]".format(" ".join(args)))
+        print(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL}")
         return True
 
 def run_test(test_binary, params: Tuple[str]):
-    print("[🔵 Running test]")
+    print(f"{Fore.CYAN}{Style.BRIGHT}Running test{Style.RESET_ALL}")
     test = subprocess.Popen([test_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     test_stdout, test_stderr = test.communicate()
-    print("\033[0m", end="") # makefile in parallel sometimes messes up colors
+    print(Style.RESET_ALL, end="") # makefile in parallel sometimes messes up colors
 
     if test.returncode != 0:
         print("[🔴 Test command failed]")
@@ -129,9 +130,9 @@ def run_test(test_binary, params: Tuple[str]):
             print("stderr:")
             print(test_stderr.decode("utf-8"), end="")
         if output_matches(test_stdout.decode("utf-8"), params):
-            print("[🟢 Test succeeded]")
+            print(f"{Fore.GREEN}{Style.BRIGHT}Test succeeded{Style.RESET_ALL}")
         else:
-            print("[🔴 Test failed]")
+            print(f"{Fore.RED}{Style.BRIGHT}Test failed{Style.RESET_ALL}")
             global failed
             failed = True
 
@@ -171,33 +172,6 @@ def build(matrix):
         if succeeded:
             return run_command("msbuild", "cpptrace.sln")
 
-def test(matrix):
-    if platform.system() != "Windows":
-        run_test(
-            "./test",
-            (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
-        )
-    else:
-        run_test(
-            f".\\{matrix['target']}\\test.exe",
-            (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
-        )
-
-def build_and_test(matrix):
-    print(matrix)
-
-    if os.path.exists("build"):
-        shutil.rmtree("build")
-
-    os.mkdir("build")
-    os.chdir("build")
-
-    if build(matrix):
-        test(matrix)
-
-    os.chdir("..")
-    print()
-
 def build_full_or_auto(matrix):
     if platform.system() != "Windows":
         args = [
@@ -232,6 +206,18 @@ def build_full_or_auto(matrix):
         if succeeded:
             return run_command("msbuild", "cpptrace.sln")
 
+def test(matrix):
+    if platform.system() != "Windows":
+        run_test(
+            "./test",
+            (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
+        )
+    else:
+        run_test(
+            f".\\{matrix['target']}\\test.exe",
+            (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
+        )
+
 def test_full_or_auto(matrix):
     if platform.system() != "Windows":
         run_test(
@@ -244,8 +230,23 @@ def test_full_or_auto(matrix):
             (matrix["compiler"],)
         )
 
+def build_and_test(matrix):
+    print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build and test with config {', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
+
+    if os.path.exists("build"):
+        shutil.rmtree("build")
+
+    os.mkdir("build")
+    os.chdir("build")
+
+    if build(matrix):
+        test(matrix)
+
+    os.chdir("..")
+    print()
+
 def build_and_test_full_or_auto(matrix):
-    print(matrix)
+    print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build and test with config {'<auto>' if matrix['config'] == '' else ', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
         shutil.rmtree("build")
