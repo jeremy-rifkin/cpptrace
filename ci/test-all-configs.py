@@ -48,19 +48,21 @@ def output_matches(output: str, params: Tuple[str]):
 
     print(f"Searching for expected file best matching {target}")
 
+    print(os.path.realpath(__file__))
+
     expected_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test/expected/")
     files = [f for f in os.listdir(expected_dir) if os.path.isfile(os.path.join(expected_dir, f))]
     if len(files) == 0:
-        print(f"Error: No expected files to use (searching {expected_dir})", file=sys.stderr)
+        print(f"Error: No expected files to use (searching {expected_dir})")
         sys.exit(1)
     files = list(map(lambda f: (f, similarity(f, target)), files))
     m = max(files, key=lambda entry: entry[1])[1]
     if m <= 0:
-        print(f"Error: Could not find match for {target} in {files}", file=sys.stderr)
+        print(f"Error: Could not find match for {target} in {files}")
         sys.exit(1)
     files = [entry[0] for entry in files if entry[1] == m]
     if len(files) > 1:
-        print(f"Error: Ambiguous expected file to use ({files})", file=sys.stderr)
+        print(f"Error: Ambiguous expected file to use ({files})")
         sys.exit(1)
 
     file = files[0]
@@ -70,23 +72,23 @@ def output_matches(output: str, params: Tuple[str]):
         expected = f.read()
 
     if output.strip() == "":
-        print(f"Error: No output from test", file=sys.stderr)
+        print(f"Error: No output from test")
         sys.exit(1)
 
-    expected = [line.split("||") for line in expected.split("\n")]
-    output = [line.split("||") for line in output.split("\n")]
+    expected = [line.strip().split("||") for line in expected.split("\n")]
+    output = [line.strip().split("||") for line in output.split("\n")]
 
     errored = False
 
     for i, ((output_file, output_line, output_symbol), (expected_file, expected_line, expected_symbol)) in enumerate(zip(output, expected)):
         if output_file != expected_file:
-            print(f"Error: File name mismatch on line {i + 1}, found \"{output_file}\" expected \"{expected_file}\"", file=sys.stderr)
+            print(f"Error: File name mismatch on line {i + 1}, found \"{output_file}\" expected \"{expected_file}\"")
             errored = True
         if abs(int(output_line) - int(expected_line)) > MAX_LINE_DIFF:
-            print(f"Error: File line mismatch on line {i + 1}, found {output_line} expected {expected_line}", file=sys.stderr)
+            print(f"Error: File line mismatch on line {i + 1}, found {output_line} expected {expected_line}")
             errored = True
         if output_symbol != expected_symbol:
-            print(f"Error: File symbol mismatch on line {i + 1}, found \"{output_symbol}\" expected \"{expected_symbol}\"", file=sys.stderr)
+            print(f"Error: File symbol mismatch on line {i + 1}, found \"{output_symbol}\" expected \"{expected_symbol}\"")
             errored = True
         if expected_symbol == "main" or expected_symbol == "main()":
             break
