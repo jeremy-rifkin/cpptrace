@@ -91,11 +91,7 @@ def output_matches(output: str, params: Tuple[str]):
         if expected_symbol == "main" or expected_symbol == "main()":
             break
 
-    if errored:
-        print("Test failed")
-        sys.exit(1)
-    else:
-        print("Test passed")
+    return not errored
 
 def run_command(*args: List[str]):
     print("[🔵 Running Command \"{}\"]".format(" ".join(args)))
@@ -134,7 +130,9 @@ def run_test(test_binary, params: Tuple[str]):
         if output_matches(test_stdout.decode("utf-8"), params):
             print("[🟢 Test succeeded]")
         else:
-            print("[🔴 Test succeeded]")
+            print("[🔴 Test failed]")
+            global failed
+            failed = True
 
 def build(matrix):
     if platform.system() != "Windows":
