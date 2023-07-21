@@ -161,7 +161,7 @@ def build(matrix):
         if succeeded:
             return run_command("make", "-j")
     else:
-        succeeded = run_command(
+        args = [
             "cmake",
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
@@ -172,9 +172,15 @@ def build(matrix):
             f"-D{matrix['demangle']}=On",
             "-DCPPTRACE_BUILD_TEST=On",
             "-DBUILD_SHARED_LIBS=On"
-        )
+        ]
+        if matrix["compiler"] == "g++":
+            args.append("-GUnix Makefiles")
+        succeeded = run_command(*args)
         if succeeded:
-            return run_command("msbuild", "cpptrace.sln")
+            if matrix["compiler"] == "g++":
+                run_command("make", "-j")
+            else:
+                run_command("msbuild", "cpptrace.sln")
 
 def build_full_or_auto(matrix):
     if platform.system() != "Windows":
@@ -205,10 +211,14 @@ def build_full_or_auto(matrix):
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
-        print(args)
+        if matrix["compiler"] == "g++":
+            args.append("-GUnix Makefiles")
         succeeded = run_command(*args)
         if succeeded:
-            return run_command("msbuild", "cpptrace.sln")
+            if matrix["compiler"] == "g++":
+                run_command("make", "-j")
+            else:
+                run_command("msbuild", "cpptrace.sln")
 
 def test(matrix):
     if platform.system() != "Windows":
@@ -217,10 +227,16 @@ def test(matrix):
             (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
         )
     else:
-        run_test(
-            f".\\{matrix['target']}\\test.exe",
-            (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
-        )
+        if matrix["compiler"] == "g++":
+            run_test(
+                f".\\test.exe",
+                (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
+            )
+        else:
+            run_test(
+                f".\\{matrix['target']}\\test.exe",
+                (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
+            )
 
 def test_full_or_auto(matrix):
     if platform.system() != "Windows":
@@ -229,10 +245,16 @@ def test_full_or_auto(matrix):
             (matrix["compiler"],)
         )
     else:
-        run_test(
-            f".\\{matrix['target']}\\test.exe",
-            (matrix["compiler"],)
-        )
+        if matrix["compiler"] == "g++":
+            run_test(
+                f".\\test.exe",
+                (matrix["compiler"],)
+            )
+        else:
+            run_test(
+                f".\\{matrix['target']}\\test.exe",
+                (matrix["compiler"],)
+            )
 
 def build_and_test(matrix):
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build and test with config {', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
@@ -341,13 +363,19 @@ def main():
             "--msvc-only",
             action="store_true"
         )
+        parser.add_argument(
+            "--mingw-only",
+            action="store_true"
+        )
         args = parser.parse_args()
 
-        compilers = ["cl", "clang++"]
+        compilers = ["cl", "clang++", "g++"]
         if args.clang_only:
             compilers = ["clang++"]
         if args.msvc_only:
             compilers = ["cl"]
+        if args.mingw_only:
+            compilers = ["g++"]
 
         matrix = {
             "compiler": compilers,
@@ -355,10 +383,12 @@ def main():
             "std": ["11", "20"],
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_WINAPI",
+                "CPPTRACE_UNWIND_WITH_UNWIND",
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
             "symbols": [
                 "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+                "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 #"CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
             "demangle": [
@@ -370,6 +400,26 @@ def main():
             {
                 "demangle": "CPPTRACE_DEMANGLE_WITH_CXXABI",
                 "compiler": "cl"
+            },
+            {
+                "unwind": "CPPTRACE_UNWIND_WITH_UNWIND",
+                "compiler": "cl"
+            },
+            {
+                "unwind": "CPPTRACE_UNWIND_WITH_UNWIND",
+                "compiler": "clang++"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+                "compiler": "cl"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+                "compiler": "clang++"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+                "compiler": "g++"
             }
         ]
         run_matrix(matrix, exclude, build_and_test)
@@ -382,6 +432,9 @@ def main():
         exclude = [
             {
                 "config": "-DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On"
+            },
+            {
+                "compiler": "g++"
             }
         ]
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
