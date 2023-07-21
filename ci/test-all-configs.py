@@ -4,6 +4,7 @@ import platform
 import shutil
 import subprocess
 import sys
+from typing import Tuple
 
 from util import *
 
@@ -23,7 +24,7 @@ def similarity(name: str, target: List[str]) -> int:
             return -1
     return c
 
-def output_matches(output: str, params: List[str]):
+def output_matches(output: str, params: Tuple[str]):
     target = []
 
     if params[0].startswith("gcc") or params[0].startswith("g++"):
@@ -114,7 +115,7 @@ def run_command(*args: List[str]):
         print("[🟢 Command `{}` succeeded]".format(" ".join(args)))
         return True
 
-def run_test(test_binary, *params: List[str]):
+def run_test(test_binary, params: Tuple[str]):
     print("[🔵 Running test]")
     test = subprocess.Popen([test_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     test_stdout, test_stderr = test.communicate()
@@ -175,22 +176,12 @@ def test(matrix):
     if platform.system() != "Windows":
         run_test(
             "./test",
-            "python3",
-            "../test/test.py",
-            matrix["compiler"],
-            matrix["unwind"],
-            matrix["symbols"],
-            matrix["demangle"]
+            (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
         )
     else:
         run_test(
             f".\\{matrix['target']}\\test.exe",
-            "python3",
-            "../test/test.py",
-            matrix["compiler"],
-            matrix["unwind"],
-            matrix["symbols"],
-            matrix["demangle"]
+            (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
         )
 
 def build_and_test(matrix):
@@ -246,16 +237,12 @@ def test_full_or_auto(matrix):
     if platform.system() != "Windows":
         run_test(
             "./test",
-            "python3",
-            "../test/test.py",
-            matrix["compiler"]
+            (matrix["compiler"],)
         )
     else:
         run_test(
             f".\\{matrix['target']}\\test.exe",
-            "python3",
-            "../test/test.py",
-            matrix["compiler"]
+            (matrix["compiler"],)
         )
 
 def build_and_test_full_or_auto(matrix):
