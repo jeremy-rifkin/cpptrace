@@ -12,11 +12,15 @@
 #include <functional>
 #include <vector>
 
-#include <unistd.h>
-#include <dlfcn.h>
-// NOLINTNEXTLINE(misc-include-cleaner)
-#include <sys/types.h>
-#include <sys/wait.h>
+#if IS_LINUX || IS_APPLE
+ #include <unistd.h>
+ #include <dlfcn.h>
+ // NOLINTNEXTLINE(misc-include-cleaner)
+ #include <sys/types.h>
+ #include <sys/wait.h>
+#elif IS_WINDOWS
+ #include <windows.h>
+#endif
 
 namespace cpptrace {
     namespace detail {
@@ -27,6 +31,7 @@ namespace cpptrace {
             uintptr_t raw_address = 0;
         };
 
+        #if IS_LINUX || IS_APPLE
         // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
         std::vector<dlframe> backtrace_frames(const std::vector<void*>& addrs) {
             // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
@@ -41,7 +46,7 @@ namespace cpptrace {
                     // but we don't really need dli_saddr
                     frame.obj_path = info.dli_fname;
                     frame.obj_base = reinterpret_cast<uintptr_t>(info.dli_fbase);
-                    frame.symbol = info.dli_sname ?: "?";
+                    frame.symbol = info.dli_sname ?: "";
                 }
                 frames.push_back(frame);
             }
@@ -112,7 +117,61 @@ namespace cpptrace {
             waitpid(pid, nullptr, 0);
             return output;
         }
+        #elif IS_WINDOWS
+        // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
+        std::vector<dlframe> backtrace_frames(const std::vector<void*>& addrs) {
+            // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
+            std::vector<dlframe> frames;
+            frames.reserve(addrs.size());
+            for(const void* addr : addrs) {
+                dlframe frame;
+                frame.raw_address = reinterpret_cast<uintptr_t>(addr);
+                HMODULE handle;
+                if(GetModuleHandleExA(
+                    GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                    static_cast<const char*>(addr),
+                    &handle
+                )) {
+                    fflush(stderr);
+                    char path[MAX_PATH];
+                    if(GetModuleFileNameA(handle, path, sizeof(path))) {
+                        ///fprintf(stderr, "path: %s base: %p\n", path, handle);
+                        frame.obj_path = path;
+                        frame.obj_base = reinterpret_cast<uintptr_t>(handle);
+                        frame.symbol = "";
+                    } else {
+                        fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
+                    }
+                } else {
+                    fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
+                }
+                frames.push_back(frame);
+            }
+            return frames;
+        }
 
+        bool has_addr2line() {
+            // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
+            FILE* p = popen("addr2line --version", "r");
+            return pclose(p) == 0;
+        }
+
+        std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
+            // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
+            ///fprintf(stderr, ("addr2line -e " + executable + " -fCp " + addresses + "\n").c_str());
+            FILE* p = popen(("addr2line -e " + executable + " -fCp " + addresses).c_str(), "r");
+            std::string output;
+            constexpr int buffer_size = 4096;
+            char buffer[buffer_size];
+            size_t count = 0;
+            while((count = fread(buffer, 1, buffer_size, p)) > 0) {
+                output.insert(output.end(), buffer, buffer + count);
+            }
+            pclose(p);
+            ///fprintf(stderr, "%s\n", output.c_str());
+            return output;
+        }
+        #endif
         struct symbolizer::impl {
             using target_vec = std::vector<std::pair<std::string, std::reference_wrapper<stacktrace_frame>>>;
 
@@ -124,8 +183,10 @@ namespace cpptrace {
                 std::unordered_map<std::string, target_vec> entries;
                 for(std::size_t i = 0; i < dlframes.size(); i++) {
                     const auto& entry = dlframes[i];
+                    auto base = 0x140000000;
+                    ///fprintf(stderr, "%s %s\n", to_hex(entry.raw_address).c_str(), to_hex(entry.raw_address - entry.obj_base + base).c_str());
                     entries[entry.obj_path].emplace_back(
-                        to_hex(entry.raw_address - entry.obj_base),
+                        to_hex(entry.raw_address - entry.obj_base + base),
                         trace[i]
                     );
                     // Set what is known for now, and resolutions from addr2line should overwrite
@@ -182,7 +243,11 @@ namespace cpptrace {
                         std::string address_input;
                         for(const auto& pair : entries_vec) {
                             address_input += pair.first;
-                            address_input += '\n';
+                            #if !IS_WINDOWS
+                             address_input += '\n';
+                            #else
+                             address_input += ' ';
+                            #endif
                         }
                         auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
                         internal_verify(output.size() == entries_vec.size());

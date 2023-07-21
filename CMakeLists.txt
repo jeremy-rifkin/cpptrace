@@ -260,7 +260,9 @@ endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
-  target_link_libraries(cpptrace PRIVATE dl)
+  if(UNIX)
+    target_link_libraries(cpptrace PRIVATE dl)
+  endif()
 endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
