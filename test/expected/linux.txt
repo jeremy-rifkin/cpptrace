@@ -19,7 +19,7 @@ test/test.cpp||47||void foo<int, int, int, int, int, int>(int, int, int, int, in
 test/test.cpp||47||void foo<int, int, int, int, int, int, int>(int, int, int, int, int, int, int, int)
 test/test.cpp||47||void foo<int, int, int, int, int, int, int, int>(int, int, int, int, int, int, int, int, int)
 test/test.cpp||47||void foo<int, int, int, int, int, int, int, int, int>(int, int, int, int, int, int, int, int, int, int)
-test/test.cpp||54||function_two(int, float)
+test/test.cpp||53||function_two(int, float)
 test/test.cpp||59||function_one(int)
 test/test.cpp||65||main
 ../csu/libc-start.c||308||__libc_start_main
