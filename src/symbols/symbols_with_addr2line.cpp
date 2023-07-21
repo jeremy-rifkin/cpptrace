@@ -117,6 +117,11 @@ namespace cpptrace {
             waitpid(pid, nullptr, 0);
             return output;
         }
+
+        uintptr_t get_module_image_base(const dlframe &entry) {
+            (void)entry;
+            return 0;
+        }
         #elif IS_WINDOWS
         // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
         std::vector<dlframe> backtrace_frames(const std::vector<void*>& addrs) {
@@ -171,7 +176,14 @@ namespace cpptrace {
             ///fprintf(stderr, "%s\n", output.c_str());
             return output;
         }
+
+        // TODO: Refactor into backtrace_frames...
+        uintptr_t get_module_image_base(const dlframe &entry) {
+            (void)entry;
+            return 0x140000000;
+        }
         #endif
+
         struct symbolizer::impl {
             using target_vec = std::vector<std::pair<std::string, std::reference_wrapper<stacktrace_frame>>>;
 
@@ -183,10 +195,9 @@ namespace cpptrace {
                 std::unordered_map<std::string, target_vec> entries;
                 for(std::size_t i = 0; i < dlframes.size(); i++) {
                     const auto& entry = dlframes[i];
-                    auto base = 0x140000000;
                     ///fprintf(stderr, "%s %s\n", to_hex(entry.raw_address).c_str(), to_hex(entry.raw_address - entry.obj_base + base).c_str());
                     entries[entry.obj_path].emplace_back(
-                        to_hex(entry.raw_address - entry.obj_base + base),
+                        to_hex(entry.raw_address - entry.obj_base + get_module_image_base(entry)),
                         trace[i]
                     );
                     // Set what is known for now, and resolutions from addr2line should overwrite
