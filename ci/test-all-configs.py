@@ -11,6 +11,91 @@ sys.stdout.reconfigure(encoding='utf-8') # for windows gh runner
 
 failed = False
 
+MAX_LINE_DIFF = 2
+
+def similarity(name: str, target: List[str]) -> int:
+    parts = name.split(".txt")[0].split(".")
+    c = 0
+    for part in parts:
+        if part in target:
+            c += 1
+        else:
+            return -1
+    return c
+
+def output_matches(output: str, params: List[str]):
+    target = []
+
+    if params[0].startswith("gcc") or params[0].startswith("g++"):
+        target.append("gcc")
+    elif params[0].startswith("clang"):
+        target.append("clang")
+    elif params[0].startswith("cl"):
+        target.append("msvc")
+
+    if platform.system() == "Windows":
+        target.append("windows")
+    elif platform.system() == "Darwin":
+        target.append("macos")
+    else:
+        target.append("linux")
+
+    other_configs = params[1:]
+    for config in other_configs:
+        assert "WITH_" in config
+        target.append(config.split("WITH_")[1].lower())
+
+    print(f"Searching for expected file best matching {target}")
+
+    expected_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "expected/")
+    files = [f for f in os.listdir(expected_dir) if os.path.isfile(os.path.join(expected_dir, f))]
+    if len(files) == 0:
+        print(f"Error: No expected files to use (searching {expected_dir})", file=sys.stderr)
+        sys.exit(1)
+    files = list(map(lambda f: (f, similarity(f, target)), files))
+    m = max(files, key=lambda entry: entry[1])[1]
+    if m <= 0:
+        print(f"Error: Could not find match for {target} in {files}", file=sys.stderr)
+        sys.exit(1)
+    files = [entry[0] for entry in files if entry[1] == m]
+    if len(files) > 1:
+        print(f"Error: Ambiguous expected file to use ({files})", file=sys.stderr)
+        sys.exit(1)
+
+    file = files[0]
+    print(f"Reading from {file}")
+
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "expected/", file), "r") as f:
+        expected = f.read()
+
+    if output.strip() == "":
+        print(f"Error: No output from test", file=sys.stderr)
+        sys.exit(1)
+
+    expected = [line.split("||") for line in expected.split("\n")]
+    output = [line.split("||") for line in output.split("\n")]
+
+    errored = False
+
+    for i, ((output_file, output_line, output_symbol), (expected_file, expected_line, expected_symbol)) in enumerate(zip(output, expected)):
+        if output_file != expected_file:
+            print(f"Error: File name mismatch on line {i + 1}, found \"{output_file}\" expected \"{expected_file}\"", file=sys.stderr)
+            errored = True
+        if abs(int(output_line) - int(expected_line)) > MAX_LINE_DIFF:
+            print(f"Error: File line mismatch on line {i + 1}, found {output_line} expected {expected_line}", file=sys.stderr)
+            errored = True
+        if output_symbol != expected_symbol:
+            print(f"Error: File symbol mismatch on line {i + 1}, found \"{output_symbol}\" expected \"{expected_symbol}\"", file=sys.stderr)
+            errored = True
+        if expected_symbol == "main" or expected_symbol == "main()":
+            break
+
+    if errored:
+        print("Test failed")
+        sys.exit(1)
+    else:
+        print("Test passed")
+
 def run_command(*args: List[str]):
     print("[🔵 Running Command \"{}\"]".format(" ".join(args)))
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -29,28 +114,26 @@ def run_command(*args: List[str]):
         print("[🟢 Command `{}` succeeded]".format(" ".join(args)))
         return True
 
-def run_test(test_binary, *driver_args: List[str]):
-    print("[🔵 Running Command \"{} | {}\"]".format(test_binary, " ".join(driver_args)))
+def run_test(test_binary, *params: List[str]):
+    print("[🔵 Running test]")
     test = subprocess.Popen([test_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    driver = subprocess.Popen(driver_args, stdin=test.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    test.wait()
-    test_stderr = test.stderr.read()
-    driver_stdout, driver_stderr = driver.communicate()
+    test_stdout, test_stderr = test.communicate()
     print("\033[0m", end="") # makefile in parallel sometimes messes up colors
-    if test.returncode != 0 or driver.returncode != 0:
-        print("[🔴 Command `{} |{}` failed]".format(test_binary, " ".join(driver_args)))
-        print("test stderr:")
+
+    if test.returncode != 0:
+        print("[🔴 Test command failed]")
+        print("stderr:")
         print(test_stderr.decode("utf-8"), end="")
         print("stdout:")
-        print(driver_stdout.decode("utf-8"), end="")
-        print("stderr:")
-        print(driver_stderr.decode("utf-8"), end="")
-        global failed
-        failed = True
-        return False
+        print(test_stdout.decode("utf-8"), end="")
     else:
-        print("[🟢 Command `{} | {}` succeeded]".format(test_binary, " ".join(driver_args)))
-        return True
+        if len(test_stderr) != 0:
+            print("stderr:")
+            print(test_stderr.decode("utf-8"), end="")
+        if output_matches(test_stdout.decode("utf-8"), params):
+            print("[🟢 Test succeeded]")
+        else:
+            print("[🔴 Test succeeded]")
 
 def build(matrix):
     if platform.system() != "Windows":
