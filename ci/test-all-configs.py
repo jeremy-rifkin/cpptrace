@@ -47,7 +47,7 @@ def output_matches(output: str, params: List[str]):
 
     print(f"Searching for expected file best matching {target}")
 
-    expected_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "expected/")
+    expected_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test/expected/")
     files = [f for f in os.listdir(expected_dir) if os.path.isfile(os.path.join(expected_dir, f))]
     if len(files) == 0:
         print(f"Error: No expected files to use (searching {expected_dir})", file=sys.stderr)
@@ -65,7 +65,7 @@ def output_matches(output: str, params: List[str]):
     file = files[0]
     print(f"Reading from {file}")
 
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "expected/", file), "r") as f:
+    with open(os.path.join(expected_dir, file), "r") as f:
         expected = f.read()
 
     if output.strip() == "":
