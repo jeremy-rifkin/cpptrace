@@ -31,7 +31,7 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1.10.0
     - name: build
       run: |
-           python3 ci/test-all-configs.py --msvc-only
+           python ci/test-all-configs.py --msvc-only
   build-windows-clang:
     runs-on: windows-2019
     steps:
@@ -40,4 +40,4 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1.10.0
     - name: build
       run: |
-           python3 ci/test-all-configs.py --clang-only
+           python ci/test-all-configs.py --clang-only
