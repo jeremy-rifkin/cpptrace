@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <vector>
 
 #ifdef CPPTRACE_BACKTRACE_PATH
@@ -44,8 +45,8 @@ namespace cpptrace {
             frame.symbol = symbol ? symbol : "";
         }
 
-        void error_callback(void*, const char*, int) {
-            // nothing for now
+        void error_callback(void*, const char* msg, int errnum) {
+            fprintf(stderr, "Libbacktrace error: %s, code %d\n", msg, errnum);
         }
 
         backtrace_state* get_backtrace_state() {

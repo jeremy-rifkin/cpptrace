@@ -7,14 +7,12 @@
 <br/>
 [![Community Discord Link](https://img.shields.io/badge/Chat%20on%20(the%20very%20small)-Community%20Discord-blue?labelColor=2C3239&color=7289DA&style=flat&logo=discord&logoColor=959DA5)](https://discord.gg/7kv5AuCndG)
 
-🚧 WIP 🏗️
-
-Cpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, Unix, macOS and Windows. The goal:
-Make stack traces simple for once.
-
-Support for cygwin/mingw will be added soon.
+Cpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, macOS, and windows including
+mingw and cygwin environments. The goal: Make stack traces simple for once.
 
 Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
+
+🚧 WIP: This library is in beta. 🏗️
 
 ## Table of contents
 
@@ -23,10 +21,10 @@ Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc i
   - [How to use](#how-to-use)
     - [CMake FetchContent](#cmake-fetchcontent)
     - [System-wide installation](#system-wide-installation)
-    - [Conan](#conan)
-    - [Vcpkg](#vcpkg)
   - [Docs](#docs)
   - [Back-ends](#back-ends)
+  - [Library configurations](#library-configurations)
+  - [Testing Methodology](#testing-methodology)
   - [License](#license)
 
 ## How to use
@@ -44,6 +42,8 @@ FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target PRIVATE cpptrace)
 ```
 
+It's as easy as that. Cpptrace will automatically configure itself for your system.
+
 ### System-wide installation
 
 ```sh
@@ -51,7 +51,7 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 # optional: git checkout <HASH or TAG>
 mkdir cpptrace/build
 cd cpptrace/build
-cmake .. -DCMAKE_BUILD_TYPE=debug -DBUILD_SHARED_LIBS=On
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On
 make
 sudo make install
 ```
@@ -64,7 +64,7 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 # optional: git checkout <HASH or TAG>
 mkdir cpptrace/build
 cd cpptrace/build
-cmake .. -DCMAKE_BUILD_TYPE=debug -DBUILD_SHARED_LIBS=On
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On
 msbuild cpptrace.sln
 msbuild INSTALL.vcxproj
 ```
@@ -73,6 +73,7 @@ Note: You'll need to run as an administrator in a developer powershell, or use v
 studio to get the correct environment variables set.
 </details>
 
+<!--
 ### Conan
 
 TODO
@@ -80,6 +81,7 @@ TODO
 ### Vcpkg
 
 TODO
+-->
 
 ## Docs
 
@@ -108,7 +110,7 @@ namespace cpptrace {
 Back-end libraries are required for unwinding the stack and resolving symbol information (name and source location) in
 order to generate a stacktrace.
 
-The CMake script attempts to automatically choose a good back-end based on what is available on your system. You can
+The CMake script attempts to automatically choose good back-ends based on what is available on your system. You can
 also manually set which back-end you want used.
 
 **Unwinding**
@@ -116,7 +118,7 @@ also manually set which back-end you want used.
 | Library       | CMake config                    | Platforms           | Info                                                                                                                                                                                                     |
 | ------------- | ------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | libgcc unwind | `CPPTRACE_UNWIND_WITH_UNWIND`   | linux, macos, mingw | Frames are captured with libgcc's `_Unwind_Backtrace`, which currently produces the most accurate stack traces on gcc/clang/mingw. Libgcc is often linked by default, and llvm has something equivalent. |
-| execinfo.h    | `CPPTRACE_UNWIND_WITH_EXECINFO` | linux, macos        | Frames are captured with `execinfo.h`'s `backtrace`, part of libc on linux/unix systems.                                                                                                                                       |
+| execinfo.h    | `CPPTRACE_UNWIND_WITH_EXECINFO` | linux, macos        | Frames are captured with `execinfo.h`'s `backtrace`, part of libc on linux/unix systems.                                                                                                                 |
 | winapi        | `CPPTRACE_UNWIND_WITH_WINAPI`   | windows, mingw      | Frames are captured with `CaptureStackBackTrace`.                                                                                                                                                        |
 | N/A           | `CPPTRACE_UNWIND_WITH_NOTHING`  | all                 | Unwinding is not done, stack traces will be empty.                                                                                                                                                       |
 
@@ -125,13 +127,13 @@ can hold addresses for 100 frames (beyond the `skip` frames). This is configurab
 
 **Symbol resolution**
 
-| Library      | CMake config                             | Platforms             | Info                                                                                                                                                                                                                                                                                                                                           |
-| ------------ | ---------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | linux, macos*, mingw* | Libbacktrace is already installed on most systems, or available through the compiler directly. If it is installed but backtrace.h is not already in the include path (this can happen when using clang when backtrace lives in gcc's include folder), `CPPTRACE_BACKTRACE_PATH` can be used to specify where the library should be looked for. |
-| libdl        | `CPPTRACE_GET_SYMBOLS_WITH_LIBDL`        | linux, macos          | Libdl uses dynamic export information. Compiling with `-rdynamic` is needed for symbol information to be retrievable.                                                                                                                                                                                                                          |
-| addr2line    | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE`    | linux, mingw          | Symbols are resolved by invoking `addr2line` via `fork()` (on linux/unix, and `popen` under mingw).                                                                                                                                                                                                                                                  |
-| dbghelp      | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`      | windows               | Dbghelp.h allows access to symbols via debug info.                                                                                                                                                                                                                                                                                             |
-| N/A          | `CPPTRACE_GET_SYMBOLS_WITH_NOTHING`      | all                   | No attempt is made to resolve symbols.                                                                                                                                                                                                                                                                                                         |
+| Library      | CMake config                             | Platforms             | Info                                                                                                                                                                                         |
+| ------------ | ---------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | linux, macos*, mingw* | Libbacktrace is already installed on most systems or available through the compiler directly. For clang you must specify the absolute path to `backtrace.h` using `CPPTRACE_BACKTRACE_PATH`. |
+| addr2line    | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE`    | linux, mingw          | Symbols are resolved by invoking `addr2line` via `fork()` (on linux/unix, and `popen` under mingw).                                                                                          |
+| dbghelp      | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`      | windows               | Dbghelp.h allows access to symbols via debug info.                                                                                                                                           |
+| libdl        | `CPPTRACE_GET_SYMBOLS_WITH_LIBDL`        | linux, macos          | Libdl uses dynamic export information. Compiling with `-rdynamic` is needed for symbol information to be retrievable. Line numbers won't be retrievable.                                     |
+| N/A          | `CPPTRACE_GET_SYMBOLS_WITH_NOTHING`      | all                   | No attempt is made to resolve symbols.                                                                                                                                                       |
 
 *: Requires installation
 
@@ -159,6 +161,48 @@ possible. `CPPTRACE_HARD_MAX_FRAMES` is ignored.
 
 There are plenty more libraries that can be used for unwinding, parsing debug information, and demangling. In the future
 more back-ends can be added. Ideally this library can "just work" on systems, without additional installation work.
+
+## Library configurations
+
+Summary of all library configuration options:
+
+Back-ends:
+- `CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`
+- `CPPTRACE_FULL_TRACE_WITH_STACKTRACE`
+- `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE`
+- `CPPTRACE_GET_SYMBOLS_WITH_LIBDL`
+- `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE`
+- `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`
+- `CPPTRACE_GET_SYMBOLS_WITH_NOTHING`
+- `CPPTRACE_UNWIND_WITH_UNWIND`
+- `CPPTRACE_UNWIND_WITH_EXECINFO`
+- `CPPTRACE_UNWIND_WITH_WINAPI`
+- `CPPTRACE_UNWIND_WITH_NOTHING`
+- `CPPTRACE_DEMANGLE_WITH_CXXABI`
+- `CPPTRACE_DEMANGLE_WITH_NOTHING`
+
+General:
+- `CPPTRACE_BACKTRACE_PATH`: Path to libbacktrace backtrace.h, needed when compiling with clang
+- `CPPTRACE_HARD_MAX_FRAMES`: Some back-ends write to a fixed-size buffer. This is the size of that buffer. Default is
+  `100`.
+
+Testing:
+- `CPPTRACE_BUILD_TEST`
+- `CPPTRACE_BUILD_TEST_RDYNAMIC`
+- `CPPTRACE_BUILD_SPEEDTEST`
+- `CPPTRACE_BUILD_SPEEDTEST_DWARF4`
+- `CPPTRACE_BUILD_SPEEDTEST_DWARF5`
+
+## Testing Methodology
+
+Cpptrace currently uses integration and functional testing, building and running under every combination of back-end
+options. The implementation is based on [github actions matrices][1] and driven by python scripts located in the
+[`ci/`](ci/) folder. Testing used to be done by github actions matrices directly, however, launching hundreds of two
+second jobs was extremely inefficient. Test outputs are compared against expected outputs located in
+[`test/expected/`](test/expected/). Stack trace addresses may point to the address after an instruction depending on the
+unwinding back-end, and the python script will check for an exact or near-match accordingly.
+
+[1]: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
 
 ## License
 

@@ -5,6 +5,7 @@
 #include "../platform/cpptrace_program_name.hpp"
 
 #include <cstdint>
+#include <cstdio>
 #include <memory>
 #include <vector>
 
@@ -36,9 +37,8 @@ namespace cpptrace {
             frame.symbol = symbol ? symbol : "";
         }
 
-        void error_callback(void* data, const char* msg, int errnum) {
-            // nothing at the moment
-            ///fprintf(stderr, "Backtrace error %s %d %p\n", msg, errnum, data); // TODO: Eliminate
+        void error_callback(void*, const char* msg, int errnum) {
+            fprintf(stderr, "Libbacktrace error: %s, code %d\n", msg, errnum);
         }
 
         backtrace_state* get_backtrace_state() {
