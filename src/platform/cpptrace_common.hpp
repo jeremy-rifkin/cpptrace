@@ -19,6 +19,7 @@
 #include <ios>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -160,6 +161,61 @@ static std::string to_hex(uintptr_t addr) {
     std::stringstream sstream;
     sstream<<std::hex<<addr;
     return std::move(sstream).str();
+}
+
+CPPTRACE_MAYBE_UNUSED
+static bool is_little_endian() {
+    uint16_t num = 0x1;
+    uint8_t* ptr = (uint8_t*)&num;
+    return ptr[0] == 1;
+}
+
+// Modified from
+// https://stackoverflow.com/questions/105252/how-do-i-convert-between-big-endian-and-little-endian-values-in-c
+template<typename T, size_t N>
+struct byte_swapper;
+
+template<typename T>
+struct byte_swapper<T, 1> {
+    T operator()(T val) {
+        return val;
+    }
+};
+
+template<typename T>
+struct byte_swapper<T, 2> {
+    T operator()(T val) {
+        return ((((val) >> 8) & 0xff) | (((val) & 0xff) << 8));
+    }
+};
+
+template<typename T>
+struct byte_swapper<T, 4> {
+    T operator()(T val) {
+        return ((((val) & 0xff000000) >> 24) |
+                (((val) & 0x00ff0000) >>  8) |
+                (((val) & 0x0000ff00) <<  8) |
+                (((val) & 0x000000ff) << 24));
+    }
+};
+
+template<typename T>
+struct byte_swapper<T, 8> {
+    T operator()(T val) {
+        return ((((val) & 0xff00000000000000ull) >> 56) |
+                (((val) & 0x00ff000000000000ull) >> 40) |
+                (((val) & 0x0000ff0000000000ull) >> 24) |
+                (((val) & 0x000000ff00000000ull) >> 8 ) |
+                (((val) & 0x00000000ff000000ull) << 8 ) |
+                (((val) & 0x0000000000ff0000ull) << 24) |
+                (((val) & 0x000000000000ff00ull) << 40) |
+                (((val) & 0x00000000000000ffull) << 56));
+    }
+};
+
+template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+T byteswap(T value) {
+    return byte_swapper<T, sizeof(T)>{}(value);
 }
 
 #ifdef _MSC_VER
