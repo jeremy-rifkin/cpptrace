@@ -166,7 +166,7 @@ static std::string to_hex(uintptr_t addr) {
 CPPTRACE_MAYBE_UNUSED
 static bool is_little_endian() {
     uint16_t num = 0x1;
-    uint8_t* ptr = (uint8_t*)&num;
+    auto* ptr = (uint8_t*)&num;
     return ptr[0] == 1;
 }
 
