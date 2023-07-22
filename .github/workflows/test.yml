@@ -7,7 +7,7 @@ on:
 # TODO: Test statically linked
 
 jobs:
-  build-linux:
+  test-linux:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
@@ -17,7 +17,7 @@ jobs:
       run: |
            pip3 install colorama
            python3 ci/test-all-configs.py
-  build-macos:
+  test-macos:
     runs-on: macos-13
     steps:
     - uses: actions/checkout@v2
@@ -25,7 +25,7 @@ jobs:
       run: |
            pip3 install colorama
            python3 ci/test-all-configs.py
-  build-windows-msvc:
+  test-windows-msvc:
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -35,7 +35,7 @@ jobs:
       run: |
            pip3 install colorama
            python3 ci/test-all-configs.py --msvc-only
-  build-windows-clang:
+  test-windows-clang:
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -45,7 +45,7 @@ jobs:
       run: |
            pip3 install colorama
            python3 ci/test-all-configs.py --clang-only
-  build-windows-mingw:
+  test-windows-mingw:
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2

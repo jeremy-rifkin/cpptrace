@@ -55,7 +55,7 @@ namespace cpptrace {
 
         // SymGetTypeInfo utility
         template<typename T, IMAGEHLP_SYMBOL_TYPE_INFO SymType, bool FAILABLE = false>
-        auto get_info(ULONG type_index, HANDLE proc, ULONG64 modbase) {
+        T get_info(ULONG type_index, HANDLE proc, ULONG64 modbase) {
             T info;
             if(!SymGetTypeInfo(proc, modbase, type_index, static_cast<::IMAGEHLP_SYMBOL_TYPE_INFO>(SymType), &info)) {
                 if(FAILABLE) {
@@ -71,7 +71,7 @@ namespace cpptrace {
         }
 
         template<IMAGEHLP_SYMBOL_TYPE_INFO SymType, bool FAILABLE = false>
-        auto get_info_wchar(ULONG type_index, HANDLE proc, ULONG64 modbase) {
+        std::string get_info_wchar(ULONG type_index, HANDLE proc, ULONG64 modbase) {
             WCHAR* info;
             if(!SymGetTypeInfo(proc, modbase, type_index, static_cast<::IMAGEHLP_SYMBOL_TYPE_INFO>(SymType), &info)) {
                 throw std::logic_error(

@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  test-linux:
+  performancetest-linux:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -43,7 +43,7 @@ jobs:
       run: |
            ./speedtest | python3 ../ci/speedtest.py ${{matrix.config}}
   # TODO: For some reason this is slow on github's runner
-  #test-windows:
+  #performancetest-windows:
   #  runs-on: windows-2019
   #  strategy:
   #    fail-fast: false
