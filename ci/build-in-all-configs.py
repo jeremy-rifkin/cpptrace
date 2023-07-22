@@ -267,9 +267,6 @@ def main():
         exclude = [
             {
                 "config": "-DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On"
-            },
-            {
-                "compiler": "g++"
             }
         ]
         run_matrix(matrix, exclude, build_full_or_auto)
