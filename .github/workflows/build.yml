@@ -43,3 +43,13 @@ jobs:
       run: |
            pip3 install colorama
            python3 ci/build-in-all-configs.py --clang-only
+  build-windows-mingw:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.10.0
+    - name: build
+      run: |
+           pip3 install colorama
+           python3 ci/build-in-all-configs.py --mingw-only

@@ -12,11 +12,15 @@
 #include <functional>
 #include <vector>
 
-#include <unistd.h>
-#include <dlfcn.h>
-// NOLINTNEXTLINE(misc-include-cleaner)
-#include <sys/types.h>
-#include <sys/wait.h>
+#if IS_LINUX || IS_APPLE
+ #include <unistd.h>
+ #include <dlfcn.h>
+ // NOLINTNEXTLINE(misc-include-cleaner)
+ #include <sys/types.h>
+ #include <sys/wait.h>
+#elif IS_WINDOWS
+ #include <windows.h>
+#endif
 
 namespace cpptrace {
     namespace detail {
@@ -27,6 +31,7 @@ namespace cpptrace {
             uintptr_t raw_address = 0;
         };
 
+        #if IS_LINUX || IS_APPLE
         // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
         std::vector<dlframe> backtrace_frames(const std::vector<void*>& addrs) {
             // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
@@ -41,7 +46,7 @@ namespace cpptrace {
                     // but we don't really need dli_saddr
                     frame.obj_path = info.dli_fname;
                     frame.obj_base = reinterpret_cast<uintptr_t>(info.dli_fbase);
-                    frame.symbol = info.dli_sname ?: "?";
+                    frame.symbol = info.dli_sname ?: "";
                 }
                 frames.push_back(frame);
             }
@@ -113,6 +118,118 @@ namespace cpptrace {
             return output;
         }
 
+        uintptr_t get_module_image_base(const dlframe &entry) {
+            (void)entry;
+            return 0;
+        }
+        #elif IS_WINDOWS
+        // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
+        std::vector<dlframe> backtrace_frames(const std::vector<void*>& addrs) {
+            // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
+            std::vector<dlframe> frames;
+            frames.reserve(addrs.size());
+            for(const void* addr : addrs) {
+                dlframe frame;
+                frame.raw_address = reinterpret_cast<uintptr_t>(addr);
+                HMODULE handle;
+                if(GetModuleHandleExA(
+                    GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                    static_cast<const char*>(addr),
+                    &handle
+                )) {
+                    fflush(stderr);
+                    char path[MAX_PATH];
+                    if(GetModuleFileNameA(handle, path, sizeof(path))) {
+                        ///fprintf(stderr, "path: %s base: %p\n", path, handle);
+                        frame.obj_path = path;
+                        frame.obj_base = reinterpret_cast<uintptr_t>(handle);
+                        frame.symbol = "";
+                    } else {
+                        fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
+                    }
+                } else {
+                    fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
+                }
+                frames.push_back(frame);
+            }
+            return frames;
+        }
+
+        bool has_addr2line() {
+            // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
+            FILE* p = popen("addr2line --version", "r");
+            return pclose(p) == 0;
+        }
+
+        std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
+            // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
+            ///fprintf(stderr, ("addr2line -e " + executable + " -fCp " + addresses + "\n").c_str());
+            FILE* p = popen(("addr2line -e " + executable + " -fCp " + addresses).c_str(), "r");
+            std::string output;
+            constexpr int buffer_size = 4096;
+            char buffer[buffer_size];
+            size_t count = 0;
+            while((count = fread(buffer, 1, buffer_size, p)) > 0) {
+                output.insert(output.end(), buffer, buffer + count);
+            }
+            pclose(p);
+            ///fprintf(stderr, "%s\n", output.c_str());
+            return output;
+        }
+
+        // TODO: Refactor into backtrace_frames...
+        // TODO: Memoize
+        uintptr_t get_module_image_base(const dlframe &entry) {
+            // PE header values are little endian
+            bool do_swap = !is_little_endian();
+            FILE* file = fopen(entry.obj_path.c_str(), "rb");
+            char magic[2];
+            internal_verify(fread(magic, 1, 2, file) == 2); // file + 0x0
+            internal_verify(memcmp(magic, "MZ", 2) == 0);
+            DWORD e_lfanew;
+            internal_verify(fseek(file, 0x3c, SEEK_SET) == 0);
+            internal_verify(fread(&e_lfanew, sizeof(DWORD), 1, file) == 1); // file + 0x3c
+            if(do_swap) e_lfanew = byteswap(e_lfanew);
+            long nt_header_offset = e_lfanew;
+            char signature[4];
+            internal_verify(fseek(file, nt_header_offset, SEEK_SET) == 0);
+            internal_verify(fread(signature, 1, 4, file) == 4); // NT header + 0x0
+            internal_verify(memcmp(signature, "PE\0\0", 4) == 0);
+            //WORD machine;
+            //internal_verify(fseek(file, nt_header_offset + 4, SEEK_SET) == 0); // file header + 0x0
+            //internal_verify(fread(&machine, sizeof(WORD), 1, file) == 1);
+            WORD size_of_optional_header;
+            internal_verify(fseek(file, nt_header_offset + 4 + 0x10, SEEK_SET) == 0); // file header + 0x10
+            internal_verify(fread(&size_of_optional_header, sizeof(DWORD), 1, file) == 1);
+            if(do_swap) size_of_optional_header = byteswap(size_of_optional_header);
+            internal_verify(size_of_optional_header != 0);
+            WORD optional_header_magic;
+            internal_verify(fseek(file, nt_header_offset + 0x18, SEEK_SET) == 0); // optional header + 0x0
+            internal_verify(fread(&optional_header_magic, sizeof(DWORD), 1, file) == 1);
+            if(do_swap) optional_header_magic = byteswap(optional_header_magic);
+            internal_verify(optional_header_magic == IMAGE_NT_OPTIONAL_HDR_MAGIC);
+            uintptr_t image_base;
+            if(optional_header_magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
+                // 32 bit
+                DWORD base;
+                internal_verify(fseek(file, nt_header_offset + 0x18 + 0x1c, SEEK_SET) == 0); // optional header + 0x1c
+                internal_verify(fread(&base, sizeof(DWORD), 1, file) == 1);
+                if(do_swap) base = byteswap(base);
+                image_base = base;
+            } else {
+                // 64 bit
+                // I get an "error: 'QWORD' was not declared in this scope" for some reason when using QWORD
+                unsigned __int64 base;
+                internal_verify(fseek(file, nt_header_offset + 0x18 + 0x18, SEEK_SET) == 0); // optional header + 0x18
+                internal_verify(fread(&base, sizeof(unsigned __int64), 1, file) == 1);
+                if(do_swap) base = byteswap(base);
+                image_base = base;
+            }
+            fclose(file);
+            return image_base;
+        }
+        #endif
+
         struct symbolizer::impl {
             using target_vec = std::vector<std::pair<std::string, std::reference_wrapper<stacktrace_frame>>>;
 
@@ -124,8 +241,9 @@ namespace cpptrace {
                 std::unordered_map<std::string, target_vec> entries;
                 for(std::size_t i = 0; i < dlframes.size(); i++) {
                     const auto& entry = dlframes[i];
+                    ///fprintf(stderr, "%s %s\n", to_hex(entry.raw_address).c_str(), to_hex(entry.raw_address - entry.obj_base + base).c_str());
                     entries[entry.obj_path].emplace_back(
-                        to_hex(entry.raw_address - entry.obj_base),
+                        to_hex(entry.raw_address - entry.obj_base + get_module_image_base(entry)),
                         trace[i]
                     );
                     // Set what is known for now, and resolutions from addr2line should overwrite
@@ -182,7 +300,11 @@ namespace cpptrace {
                         std::string address_input;
                         for(const auto& pair : entries_vec) {
                             address_input += pair.first;
-                            address_input += '\n';
+                            #if !IS_WINDOWS
+                             address_input += '\n';
+                            #else
+                             address_input += ' ';
+                            #endif
                         }
                         auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
                         internal_verify(output.size() == entries_vec.size());
