@@ -19,7 +19,7 @@ jobs:
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.event.workflow_run.head_sha}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.head_ref}}${{github.event.pull_request.base.sha}}
            make
            ./main
   test-linux-findpackage:
@@ -49,7 +49,7 @@ jobs:
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.event.workflow_run.head_sha}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.head_ref}}${{github.event.pull_request.base.sha}}
            make
            ./main
   test-macos-findpackage:
@@ -79,7 +79,7 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.event.workflow_run.head_sha}} -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.head_ref}}${{github.event.pull_request.base.sha}} -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
            make
            .\main.exe
   test-windows-fetchcontent:
@@ -94,7 +94,7 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.event.workflow_run.head_sha}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.head_ref}}${{github.event.pull_request.base.sha}}
            msbuild demo_project.sln
            .\Debug\main.exe
   #test-windows-msvc:
