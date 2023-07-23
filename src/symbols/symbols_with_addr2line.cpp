@@ -64,6 +64,7 @@ namespace cpptrace {
             if(pid == -1) { return false; }
             if(pid == 0) { // child
                 close(STDOUT_FILENO);
+                close(STDERR_FILENO); // atos --help writes to stderr
                 // TODO: path
                 #if !IS_APPLE
                  execlp("addr2line", "addr2line", "--help", nullptr);
