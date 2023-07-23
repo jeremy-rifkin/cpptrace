@@ -103,33 +103,3 @@ jobs:
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag"
            msbuild demo_project.sln
            .\Debug\main.exe
-  #test-windows-msvc:
-  #  runs-on: windows-2019
-  #  steps:
-  #  - uses: actions/checkout@v2
-  #  - name: Enable Developer Command Prompt
-  #    uses: ilammy/msvc-dev-cmd@v1.10.0
-  #  - name: build
-  #    run: |
-  #         pip3 install colorama
-  #         python3 ci/test-all-configs.py --msvc-only
-  #test-windows-clang:
-  #  runs-on: windows-2019
-  #  steps:
-  #  - uses: actions/checkout@v2
-  #  - name: Enable Developer Command Prompt
-  #    uses: ilammy/msvc-dev-cmd@v1.10.0
-  #  - name: build
-  #    run: |
-  #         pip3 install colorama
-  #         python3 ci/test-all-configs.py --clang-only
-  #test-windows-mingw:
-  #  runs-on: windows-2019
-  #  steps:
-  #  - uses: actions/checkout@v2
-  #  - name: Enable Developer Command Prompt
-  #    uses: ilammy/msvc-dev-cmd@v1.10.0
-  #  - name: build
-  #    run: |
-  #         pip3 install colorama
-  #         python3 ci/test-all-configs.py --mingw-only
