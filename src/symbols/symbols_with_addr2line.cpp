@@ -262,14 +262,18 @@ namespace cpptrace {
                 std::unordered_map<std::string, target_vec> entries;
                 for(std::size_t i = 0; i < dlframes.size(); i++) {
                     const auto& entry = dlframes[i];
-                    ///fprintf(stderr, "%s %s\n", to_hex(entry.raw_address).c_str(), to_hex(entry.raw_address - entry.obj_base + base).c_str());
-                    entries[entry.obj_path].emplace_back(
-                        to_hex(entry.raw_address - entry.obj_base + get_module_image_base(entry)),
-                        trace[i]
-                    );
-                    // Set what is known for now, and resolutions from addr2line should overwrite
-                    trace[i].filename = entry.obj_path;
-                    trace[i].symbol = entry.symbol;
+                    // If libdl fails to find the shared object for a frame, the path will be empty. I've observed this
+                    // on macos when looking up the shared object containing `start`.
+                    if(!entry.obj_path.empty()) {
+                        ///fprintf(stderr, "%s %s\n", to_hex(entry.raw_address).c_str(), to_hex(entry.raw_address - entry.obj_base + base).c_str());
+                        entries[entry.obj_path].emplace_back(
+                            to_hex(entry.raw_address - entry.obj_base + get_module_image_base(entry)),
+                            trace[i]
+                        );
+                        // Set what is known for now, and resolutions from addr2line should overwrite
+                        trace[i].filename = entry.obj_path;
+                        trace[i].symbol = entry.symbol;
+                    }
                 }
                 return entries;
             }
