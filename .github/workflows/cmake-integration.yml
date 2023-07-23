@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
-    #- name: dependencies
-    #  run: sudo apt install gcc-10 g++-10 libgcc-10-dev
     - name: test
       run: |
            # the action starts running before the tag becomes available on github, so wait briefly
@@ -29,8 +27,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
-    #- name: dependencies
-    #  run: sudo apt install gcc-10 g++-10 libgcc-10-dev
     - name: build
       run: |
            mkdir build
@@ -44,22 +40,71 @@ jobs:
            cmake .. -DCMAKE_BUILD_TYPE=Debug
            make
            ./main
-  #test-macos-fetchcontent:
-  #  runs-on: macos-13
-  #  steps:
-  #  - uses: actions/checkout@v2
-  #  - name: build
-  #    run: |
-  #         pip3 install colorama
-  #         python3 ci/test-all-configs.py
-  #test-macos-findpackage:
-  #  runs-on: macos-13
-  #  steps:
-  #  - uses: actions/checkout@v2
-  #  - name: build
-  #    run: |
-  #         pip3 install colorama
-  #         python3 ci/test-all-configs.py
+  test-macos-fetchcontent:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: test
+      run: |
+           # the action starts running before the tag becomes available on github, so wait briefly
+           sleep 10
+           tag=$(git rev-parse HEAD)
+           cd ..
+           cp -rv cpptrace/test/fetchcontent-integration .
+           mkdir fetchcontent-integration/build
+           cd fetchcontent-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag
+           make
+           ./main
+  test-macos-findpackage:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: |
+           mkdir build
+           cd build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=On
+           sudo make -j install
+           cd ../..
+           cp -rv cpptrace/test/findpackage-integration .
+           mkdir findpackage-integration/build
+           cd findpackage-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           make
+           ./main
+  test-mingw-fetchcontent:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: test
+      run: |
+           # the action starts running before the tag becomes available on github, so wait briefly
+           sleep 10
+           $tag=$(git rev-parse HEAD)
+           cd ..
+           cp -rv cpptrace/test/fetchcontent-integration .
+           mkdir fetchcontent-integration/build
+           cd fetchcontent-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
+           make
+           .\main.exe
+  test-windows-fetchcontent:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: test
+      run: |
+           # the action starts running before the tag becomes available on github, so wait briefly
+           sleep 10
+           $tag=$(git rev-parse HEAD)
+           cd ..
+           cp -rv cpptrace/test/fetchcontent-integration .
+           mkdir fetchcontent-integration/build
+           cd fetchcontent-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag
+           msbuild main.sln
+           .\Debug\main.exe
   #test-windows-msvc:
   #  runs-on: windows-2019
   #  steps:
