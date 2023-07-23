@@ -79,12 +79,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: test
       run: |
-           tag=$(git rev-parse --abbrev-ref HEAD)
+           $tag=$(git rev-parse --abbrev-ref HEAD)
            cd ..
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
            make
            .\main.exe
   test-windows-fetchcontent:
