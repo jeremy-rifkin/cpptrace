@@ -15,12 +15,12 @@ jobs:
     #  run: sudo apt install gcc-10 g++-10 libgcc-10-dev
     - name: test
       run: |
-           pwd
+           tag=$(git rev-parse HEAD)
            cd ..
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag
            make
            ./main
   test-linux-findpackage:
@@ -31,7 +31,6 @@ jobs:
     #  run: sudo apt install gcc-10 g++-10 libgcc-10-dev
     - name: build
       run: |
-           pwd
            mkdir build
            cd build
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=On
