@@ -137,10 +137,11 @@ namespace cpptrace {
         #else
         uintptr_t get_module_image_base(const dlframe &entry) {
             // We have to parse the Mach-O to find the offset of the text section.....
-            // I don't know how addresses are handled if there is more than one text section load command. I'm assuming
-            // for now that there is only one.
-            get_text_vmaddr(entry.obj_path.c_str());
-            return 0;
+            // I don't know how addresses are handled if there is more than one __TEXT load command. I'm assuming for
+            // now that there is only one, and I'm using only the first section entry within that load command.
+            const auto addr = get_text_vmaddr(entry.obj_path.c_str());
+            std::cerr<<"-------------- "<<std::hex<<addr<<std::endl;
+            return addr;
         }
         #endif
         #elif IS_WINDOWS
