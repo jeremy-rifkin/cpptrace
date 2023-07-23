@@ -81,6 +81,10 @@ def output_matches(output: str, params: Tuple[str]):
     max_line_diff = MAX_LINE_DIFF
     if "CPPTRACE_UNWIND_WITH_UNWIND" in params:
         max_line_diff = 0
+    if "CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE" in params:
+        max_line_diff = 0
+    if "CPPTRACE_FULL_TRACE_WITH_STACKTRACE" in params:
+        max_line_diff = 0
 
     errored = False
 
