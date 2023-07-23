@@ -74,7 +74,7 @@ jobs:
            make
            ./main
   test-mingw-fetchcontent:
-    runs-on: macos-13
+    runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
     - name: test
@@ -90,7 +90,7 @@ jobs:
            make
            .\main.exe
   test-windows-fetchcontent:
-    runs-on: macos-13
+    runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
     - name: test
