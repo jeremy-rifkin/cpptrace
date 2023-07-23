@@ -62,7 +62,11 @@ namespace cpptrace {
             if(pid == 0) { // child
                 close(STDOUT_FILENO);
                 // TODO: path
-                execlp("addr2line", "addr2line", "--help", nullptr);
+                #if !IS_APPLE
+                 execlp("addr2line", "addr2line", "--help", nullptr);
+                #else
+                 execlp("atos", "atos", "--help", nullptr);
+                #endif
                 _exit(magic);
             }
             int status;
@@ -99,7 +103,11 @@ namespace cpptrace {
                 close(input_pipe.write_end);
                 close(STDERR_FILENO); // TODO: Might be worth conditionally enabling or piping
                 // TODO: Prevent against path injection?
-                execlp("addr2line", "addr2line", "-e", executable.c_str(), "-f", "-C", "-p", nullptr);
+                #if !IS_APPLE
+                 execlp("addr2line", "addr2line", "-e", executable.c_str(), "-f", "-C", "-p", nullptr);
+                #else
+                 execlp("atos", "atos", "-o", executable.c_str(), nullptr);
+                #endif
                 _exit(1); // TODO: Diagnostic?
             }
             internal_verify(write(input_pipe.write_end, addresses.data(), addresses.size()) != -1);
@@ -255,7 +263,8 @@ namespace cpptrace {
 
             // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
             void update_trace(const std::string& line, size_t entry_index, const target_vec& entries_vec) {
-                // Result will be of the form <identifier> " at " path:line
+                #if !IS_APPLE
+                // Result will be of the form "<symbol> at path:line"
                 // The path may be ?? if addr2line cannot resolve, line may be ?
                 // Edge cases:
                 // ?? ??:0
@@ -285,6 +294,51 @@ namespace cpptrace {
                 if(!symbol.empty()) {
                     entries_vec[entry_index].second.get().symbol = symbol;
                 }
+                #else
+                // Result will be of the form "<symbol> (in <object name>) (file:line)"
+                // The symbol may just be the given address if atos can't resolve it
+                // Examples:
+                // trace() (in demo) (demo.cpp:8)
+                // 0x100003b70 (in demo)
+                // 0xffffffffffffffff
+                // foo (in bar) + 14
+                // I'm making some assumptions here. Support may need to be improved later. This is tricky output to
+                // parse.
+                const std::size_t in_location = line.find(" (in ");
+                if(in_location == std::string::npos) {
+                    // presumably the 0xffffffffffffffff case, but maybe verify
+                    internal_verify(
+                        line.find(' ') != std::string::npos,
+                        "Unexpected edge case while processing addr2line/atos output"
+                    );
+                    return;
+                }
+                const std::size_t symbol_end = in_location;
+                entries_vec[entry_index].second.get().symbol = line.substr(0, in_location);
+                const std::size_t obj_end = line.find(")", in_location);
+                internal_verify(
+                    obj_end != std::string::npos,
+                    "Unexpected edge case while processing addr2line/atos output"
+                );
+                const std::size_t filename_start = line.find(") (", obj_end);
+                if(filename_start == std::string::npos) {
+                    // presumably something like 0x100003b70 (in demo) or foo (in bar) + 14
+                    return;
+                }
+                const std::size_t filename_end = line.find(":", filename_start);
+                internal_verify(
+                    filename_end != std::string::npos,
+                    "Unexpected edge case while processing addr2line/atos output"
+                );
+                entries_vec[entry_index].second.get().filename = line.substr(filename_start, filename_end);
+                const std::size_t line_start = filename_end + 1;
+                const std::size_t line_end = line.find(")", filename_end);
+                internal_verify(
+                    line_end == line.size() - 1,
+                    "Unexpected edge case while processing addr2line/atos output"
+                );
+                entries_vec[entry_index].second.get().line = line.substr(line_start, line_end);
+                #endif
             }
 
             // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
