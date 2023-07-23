@@ -1,7 +1,7 @@
-#ifndef CPPTRACE_UNWIND_HPP
-#define CPPTRACE_UNWIND_HPP
+#ifndef UNWIND_HPP
+#define UNWIND_HPP
 
-#include "../platform/cpptrace_common.hpp"
+#include "../platform/common.hpp"
 
 #include <cstddef>
 #include <vector>

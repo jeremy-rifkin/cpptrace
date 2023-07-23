@@ -1,7 +1,7 @@
 #ifdef CPPTRACE_UNWIND_WITH_UNWIND
 
-#include "cpptrace_unwind.hpp"
-#include "../platform/cpptrace_common.hpp"
+#include "unwind.hpp"
+#include "../platform/common.hpp"
 
 #include <algorithm>
 #include <cassert>

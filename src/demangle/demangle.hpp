@@ -1,5 +1,5 @@
-#ifndef CPPTRACE_DEMANGLE_HPP
-#define CPPTRACE_DEMANGLE_HPP
+#ifndef DEMANGLE_HPP
+#define DEMANGLE_HPP
 
 #include <string>
 

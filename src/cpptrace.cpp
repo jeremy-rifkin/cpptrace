@@ -9,10 +9,10 @@
 
 #if !(defined(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE) || defined(CPPTRACE_FULL_TRACE_WITH_STACKTRACE))
 
-#include "symbols/cpptrace_symbols.hpp"
-#include "unwind/cpptrace_unwind.hpp"
-#include "demangle/cpptrace_demangle.hpp"
-#include "platform/cpptrace_common.hpp"
+#include "symbols/symbols.hpp"
+#include "unwind/unwind.hpp"
+#include "demangle/demangle.hpp"
+#include "platform/common.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
@@ -31,8 +31,8 @@ namespace cpptrace {
 
 // full trace
 
-#include "full/cpptrace_full_trace.hpp"
-#include "demangle/cpptrace_demangle.hpp"
+#include "full/full_trace.hpp"
+#include "demangle/demangle.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE

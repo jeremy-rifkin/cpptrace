@@ -1,6 +1,6 @@
 #ifdef CPPTRACE_DEMANGLE_WITH_CXXABI
 
-#include "cpptrace_demangle.hpp"
+#include "demangle.hpp"
 
 #include <cxxabi.h>
 

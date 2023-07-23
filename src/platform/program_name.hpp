@@ -1,5 +1,5 @@
-#ifndef CPPTRACE_PROGRAM_NAME_HPP
-#define CPPTRACE_PROGRAM_NAME_HPP
+#ifndef PROGRAM_NAME_HPP
+#define PROGRAM_NAME_HPP
 
 #include <string>
 
@@ -9,6 +9,7 @@
 namespace cpptrace {
     namespace detail {
         inline std::string program_name() {
+            // TODO: Cache this better
             char buffer[MAX_PATH + 1];
             int res = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
             if(res) {
@@ -29,6 +30,7 @@ namespace cpptrace {
 namespace cpptrace {
     namespace detail {
         inline const char* program_name() {
+            // TODO: Cache this better
             static std::string name;
             if (!name.empty()) {
                 std::uint32_t bufferSize = PATH_MAX + 1;

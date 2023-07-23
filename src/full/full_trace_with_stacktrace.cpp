@@ -1,8 +1,8 @@
 #ifdef CPPTRACE_FULL_TRACE_WITH_STACKTRACE
 
 #include <cpptrace/cpptrace.hpp>
-#include "cpptrace_full_trace.hpp"
-#include "../platform/cpptrace_common.hpp"
+#include "full_trace.hpp"
+#include "../platform/common.hpp"
 
 #include <vector>
 #include <stacktrace>

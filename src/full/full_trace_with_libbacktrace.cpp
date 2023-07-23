@@ -1,8 +1,8 @@
 #ifdef CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE
 
 #include <cpptrace/cpptrace.hpp>
-#include "../platform/cpptrace_program_name.hpp"
-#include "../platform/cpptrace_common.hpp"
+#include "../platform/program_name.hpp"
+#include "../platform/common.hpp"
 
 #include <cstddef>
 #include <cstdint>

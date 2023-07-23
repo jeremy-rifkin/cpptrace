@@ -1,5 +1,5 @@
-#ifndef CPPTRACE_COMMON_HPP
-#define CPPTRACE_COMMON_HPP
+#ifndef COMMON_HPP
+#define COMMON_HPP
 
 #ifdef _MSC_VER
 #define CPPTRACE_FORCE_NO_INLINE __declspec(noinline)

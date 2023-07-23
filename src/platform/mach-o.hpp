@@ -1,5 +1,5 @@
-#ifndef CPPTRACE_MACHO_HPP
-#define CPPTRACE_MACHO_HPP
+#ifndef MACHO_HPP
+#define MACHO_HPP
 
 #if IS_APPLE
 #include <cstdio>

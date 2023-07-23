@@ -1,8 +1,8 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
 
 #include <cpptrace/cpptrace.hpp>
-#include "cpptrace_symbols.hpp"
-#include "../platform/cpptrace_program_name.hpp"
+#include "symbols.hpp"
+#include "../platform/program_name.hpp"
 
 #include <memory>
 #include <regex>

@@ -1,8 +1,8 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
 
 #include <cpptrace/cpptrace.hpp>
-#include "cpptrace_symbols.hpp"
-#include "../platform/cpptrace_common.hpp"
+#include "symbols.hpp"
+#include "../platform/common.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -19,7 +19,7 @@
  #include <sys/types.h>
  #include <sys/wait.h>
  #if IS_APPLE
-  #include "../platform/cpptrace_macho.hpp"
+  #include "../platform/mach-o.hpp"
  #endif
 #elif IS_WINDOWS
  #include <windows.h>
