@@ -329,7 +329,7 @@ namespace cpptrace {
                     obj_end != std::string::npos,
                     "Unexpected edge case while processing addr2line/atos output"
                 );
-                const std::size_t filename_start = line.find(") (", obj_end) + 3;
+                const std::size_t filename_start = line.find(") (", obj_end);
                 if(filename_start == std::string::npos) {
                     // presumably something like 0x100003b70 (in demo) or foo (in bar) + 14
                     return;
@@ -339,7 +339,7 @@ namespace cpptrace {
                     filename_end != std::string::npos,
                     "Unexpected edge case while processing addr2line/atos output"
                 );
-                entries_vec[entry_index].second.get().filename = line.substr(filename_start, filename_end - filename_start);
+                entries_vec[entry_index].second.get().filename = line.substr(filename_start + 3, filename_end - filename_start - 3);
                 const std::size_t line_start = filename_end + 1;
                 const std::size_t line_end = line.find(")", filename_end);
                 internal_verify(
