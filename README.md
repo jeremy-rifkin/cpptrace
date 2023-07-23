@@ -45,6 +45,8 @@ target_link_libraries(your_target PRIVATE cpptrace)
 
 It's as easy as that. Cpptrace will automatically configure itself for your system.
 
+Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug`.
+
 ![Screenshot](res/screenshot.png)
 
 ## Other Installation Mechanisms
@@ -57,12 +59,33 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On
-make
+make -j
 sudo make install
 ```
 
+Using through cmake:
+```cmake
+include(CMakeFindDependencyMacro)
+find_dependency(cpptrace REQUIRED)
+target_link_libraries(<your target> cpptrace)
+```
+Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug`.
+
+Or compile with `-lcpptrace`:
+
+```sh
+g++ main.cpp -o main -g -Wall -lcpptrace
+./main
+```
+
+If you get an error along the lines of
+```
+error while loading shared libraries: libcpptrace.so: cannot open shared object file: No such file or directory
+```
+You may have to run `sudo /sbin/ldconfig` so the system finds libcpptrace.so (I had to do this on Ubuntu).
+
 <details>
-    <summary>Or on windows</summary>
+    <summary>System-wide install on windows</summary>
 
 ```ps1
 git clone https://github.com/jeremy-rifkin/cpptrace.git
@@ -77,6 +100,31 @@ msbuild INSTALL.vcxproj
 Note: You'll need to run as an administrator in a developer powershell, or use vcvarsall.bat distributed with visual
 studio to get the correct environment variables set.
 </details>
+
+### Local User Installation
+
+To install just for the local user (or any custom prefix):
+
+```sh
+git clone https://github.com/jeremy-rifkin/cpptrace.git
+# optional: git checkout <HASH or TAG>
+mkdir cpptrace/build
+cd cpptrace/build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On -DCMAKE_INSTALL_PREFIX=$HOME/wherever
+make -j
+sudo make install
+```
+
+Using through cmake:
+```cmake
+find_package(cpptrace REQUIRED PATHS $ENV{HOME}/wherever)
+target_link_libraries(<your target> cpptrace::cpptrace)
+```
+
+Using manually:
+```
+g++ main.cpp -o main -g -Wall -I$HOME/wherever/include -L$HOME/wherever/lib -lcpptrace
+```
 
 ### Package Managers
 

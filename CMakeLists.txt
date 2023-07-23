@@ -25,7 +25,7 @@ target_include_directories(
   cpptrace
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/cpptrace>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/>
 )
 
 # TODO
@@ -102,16 +102,18 @@ function(check_support var source includes libraries definitions)
   set(${var} ${${var}} PARENT_SCOPE)
 endfunction()
 
-check_support(HAS_UNWIND has_unwind.cpp "" "" "")
-check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
-check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${CPPTRACE_BACKTRACE_PATH_DEFINITION}")
-check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
-if(NOT MSVC)
-  set(STACKTRACE_LINK_LIB "stdc++_libbacktrace")
-else()
-  set(STACKTRACE_LINK_LIB "")
+if(NOT MSVC) # No need to bother checking in msvc, but do check in minngw
+ check_support(HAS_UNWIND has_unwind.cpp "" "" "")
+ check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
+ check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${CPPTRACE_BACKTRACE_PATH_DEFINITION}")
+ check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
+ if(NOT MSVC)
+   set(STACKTRACE_LINK_LIB "stdc++_libbacktrace")
+ else()
+   set(STACKTRACE_LINK_LIB "")
+ endif()
+ check_support(HAS_STACKTRACE has_stacktrace.cpp "" "${STACKTRACE_LINK_LIB}" "")
 endif()
-check_support(HAS_STACKTRACE has_stacktrace.cpp "" "${STACKTRACE_LINK_LIB}" "")
 
 # =============================================== Autoconfig full dump ===============================================
 # If nothing is specified, attempt to use libbacktrace's full dump
