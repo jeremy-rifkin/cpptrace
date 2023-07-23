@@ -15,6 +15,8 @@ jobs:
     #  run: sudo apt install gcc-10 g++-10 libgcc-10-dev
     - name: test
       run: |
+           # the action starts running before the tag becomes available on github, so wait briefly
+           sleep 10
            tag=$(git rev-parse HEAD)
            cd ..
            cp -rv cpptrace/test/fetchcontent-integration .
