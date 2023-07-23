@@ -139,9 +139,7 @@ namespace cpptrace {
             // We have to parse the Mach-O to find the offset of the text section.....
             // I don't know how addresses are handled if there is more than one __TEXT load command. I'm assuming for
             // now that there is only one, and I'm using only the first section entry within that load command.
-            const auto addr = get_text_vmaddr(entry.obj_path.c_str());
-            std::cerr<<"-------------- "<<std::hex<<addr<<std::endl;
-            return addr;
+            return get_text_vmaddr(entry.obj_path.c_str());
         }
         #endif
         #elif IS_WINDOWS
