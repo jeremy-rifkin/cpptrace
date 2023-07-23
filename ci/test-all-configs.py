@@ -100,6 +100,7 @@ def output_matches(output: str, params: Tuple[str]):
     return not errored
 
 def run_command(*args: List[str]):
+    global failed
     print(f"{Fore.CYAN}{Style.BRIGHT}Running Command \"{' '.join(args)}\"{Style.RESET_ALL}")
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
@@ -110,7 +111,6 @@ def run_command(*args: List[str]):
         print(stdout.decode("utf-8"), end="")
         print("stderr:")
         print(stderr.decode("utf-8"), end="")
-        global failed
         failed = True
         return False
     else:
@@ -118,6 +118,7 @@ def run_command(*args: List[str]):
         return True
 
 def run_test(test_binary, params: Tuple[str]):
+    global failed
     print(f"{Fore.CYAN}{Style.BRIGHT}Running test{Style.RESET_ALL}")
     test = subprocess.Popen([test_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     test_stdout, test_stderr = test.communicate()
@@ -129,6 +130,7 @@ def run_test(test_binary, params: Tuple[str]):
         print(test_stderr.decode("utf-8"), end="")
         print("stdout:")
         print(test_stdout.decode("utf-8"), end="")
+        failed = True
     else:
         if len(test_stderr) != 0:
             print("stderr:")
@@ -137,7 +139,6 @@ def run_test(test_binary, params: Tuple[str]):
             print(f"{Fore.GREEN}{Style.BRIGHT}Test succeeded{Style.RESET_ALL}")
         else:
             print(f"{Fore.RED}{Style.BRIGHT}Test failed{Style.RESET_ALL}")
-            global failed
             failed = True
 
 def build(matrix):
