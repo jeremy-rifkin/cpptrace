@@ -32,7 +32,7 @@ static bool should_swap_bytes(uint32_t magic) {
 
 #if defined(__aarch64__)
  #define CURRENT_CPU CPU_TYPE_ARM64
-#elif defined(__arm__)
+#elif defined(__arm__) && defined(__thumb__)
  #define CURRENT_CPU CPU_TYPE_ARM
 #elif defined(__amd64__)
  #define CURRENT_CPU CPU_TYPE_X86_64
