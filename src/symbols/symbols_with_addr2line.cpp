@@ -18,6 +18,9 @@
  // NOLINTNEXTLINE(misc-include-cleaner)
  #include <sys/types.h>
  #include <sys/wait.h>
+ #if IS_APPLE
+  #include "../platform/cpptrace_macho.hpp"
+ #endif
 #elif IS_WINDOWS
  #include <windows.h>
 #endif
@@ -126,10 +129,20 @@ namespace cpptrace {
             return output;
         }
 
+        #if !IS_APPLE
         uintptr_t get_module_image_base(const dlframe &entry) {
             (void)entry;
             return 0;
         }
+        #else
+        uintptr_t get_module_image_base(const dlframe &entry) {
+            // We have to parse the Mach-O to find the offset of the text section.....
+            // I don't know how addresses are handled if there is more than one text section load command. I'm assuming
+            // for now that there is only one.
+            get_text_vmaddr(entry.obj_path.c_str());
+            return 0;
+        }
+        #endif
         #elif IS_WINDOWS
         // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
         std::vector<dlframe> backtrace_frames(const std::vector<void*>& addrs) {
@@ -306,15 +319,11 @@ namespace cpptrace {
                 // parse.
                 const std::size_t in_location = line.find(" (in ");
                 if(in_location == std::string::npos) {
-                    // presumably the 0xffffffffffffffff case, but maybe verify
-                    internal_verify(
-                        line.find(' ') != std::string::npos,
-                        "Unexpected edge case while processing addr2line/atos output"
-                    );
+                    // presumably the 0xffffffffffffffff case
                     return;
                 }
                 const std::size_t symbol_end = in_location;
-                entries_vec[entry_index].second.get().symbol = line.substr(0, in_location);
+                entries_vec[entry_index].second.get().symbol = line.substr(0, symbol_end);
                 const std::size_t obj_end = line.find(")", in_location);
                 internal_verify(
                     obj_end != std::string::npos,
@@ -337,7 +346,7 @@ namespace cpptrace {
                     line_end == line.size() - 1,
                     "Unexpected edge case while processing addr2line/atos output"
                 );
-                entries_vec[entry_index].second.get().line = line.substr(line_start, line_end);
+                entries_vec[entry_index].second.get().line = std::stoi(line.substr(line_start, line_end));
                 #endif
             }
 
