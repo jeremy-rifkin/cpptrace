@@ -159,7 +159,6 @@ namespace cpptrace {
                     static_cast<const char*>(addr),
                     &handle
                 )) {
-                    fflush(stderr); // TODO: remove
                     char path[MAX_PATH];
                     // TODO: Memoize
                     if(GetModuleFileNameA(handle, path, sizeof(path))) {
