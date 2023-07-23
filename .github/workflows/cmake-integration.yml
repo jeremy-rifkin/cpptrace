@@ -93,7 +93,7 @@ jobs:
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.sha}}
-           msbuild main.sln
+           msbuild demo_project.sln
            .\Debug\main.exe
   #test-windows-msvc:
   #  runs-on: windows-2019
