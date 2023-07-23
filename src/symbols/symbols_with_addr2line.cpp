@@ -44,7 +44,7 @@ namespace cpptrace {
                 Dl_info info;
                 dlframe frame;
                 frame.raw_address = reinterpret_cast<uintptr_t>(addr);
-                if(dladdr(addr, &info)) {
+                if(dladdr(addr, &info)) { // thread safe
                     // dli_sname and dli_saddr are only present with -rdynamic, sname will be included
                     // but we don't really need dli_saddr
                     frame.obj_path = info.dli_fname;
@@ -153,13 +153,15 @@ namespace cpptrace {
                 dlframe frame;
                 frame.raw_address = reinterpret_cast<uintptr_t>(addr);
                 HMODULE handle;
+                // Multithread safe as long as another thread doesn't come along and free the module
                 if(GetModuleHandleExA(
                     GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
                     static_cast<const char*>(addr),
                     &handle
                 )) {
-                    fflush(stderr);
+                    fflush(stderr); // TODO: remove
                     char path[MAX_PATH];
+                    // TODO: Memoize
                     if(GetModuleFileNameA(handle, path, sizeof(path))) {
                         ///fprintf(stderr, "path: %s base: %p\n", path, handle);
                         frame.obj_path = path;
@@ -177,6 +179,7 @@ namespace cpptrace {
         }
 
         bool has_addr2line() {
+            // TODO: Memoize
             // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
             FILE* p = popen("addr2line --version", "r");
             return pclose(p) == 0;

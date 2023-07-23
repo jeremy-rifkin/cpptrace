@@ -15,7 +15,7 @@ namespace cpptrace {
             // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
             stacktrace_frame resolve_frame(const void* addr) {
                 Dl_info info;
-                if(dladdr(addr, &info)) {
+                if(dladdr(addr, &info)) { // thread-safe
                     return {
                         reinterpret_cast<uintptr_t>(addr),
                         0,

@@ -299,6 +299,8 @@ namespace cpptrace {
             return true;
         }
 
+        std::mutex dbghelp_lock;
+
         // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
         struct symbolizer::impl {
             bool good = true;
@@ -320,6 +322,7 @@ namespace cpptrace {
             }
 
             stacktrace_frame resolve_frame(void* addr) {
+                const std::lock_guard<std::mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
                 alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
                 SYMBOL_INFO* symbol = (SYMBOL_INFO*)buffer;
                 symbol->SizeOfStruct = sizeof(SYMBOL_INFO);

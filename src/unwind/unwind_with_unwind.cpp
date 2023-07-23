@@ -38,6 +38,7 @@ namespace cpptrace {
             if (ip == uintptr_t(0) || state.count == state.vec.size()) {
                 return _URC_END_OF_STACK;
             } else {
+                // TODO: push_back?...
                 state.vec[state.count++] = (void*)ip;
                 return _URC_NO_REASON;
             }
@@ -47,7 +48,7 @@ namespace cpptrace {
         std::vector<void*> capture_frames(size_t skip) {
             std::vector<void*> frames(hard_max_frames, nullptr);
             unwind_state state{skip + 1, 0, frames};
-            _Unwind_Backtrace(unwind_callback, &state);
+            _Unwind_Backtrace(unwind_callback, &state); // presumably thread-safe
             frames.resize(state.count);
             frames.shrink_to_fit();
             return frames;

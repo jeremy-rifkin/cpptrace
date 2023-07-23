@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <mutex>
 #include <vector>
 
 #ifdef CPPTRACE_BACKTRACE_PATH
@@ -52,7 +53,10 @@ namespace cpptrace {
             fprintf(stderr, "Libbacktrace error: %s, code %d\n", msg, errnum);
         }
 
+        std::mutex state_mutex;
+
         backtrace_state* get_backtrace_state() {
+            const std::lock_guard<std::mutex> lock(state_mutex);
             // backtrace_create_state must be called only one time per program
             // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
             static backtrace_state* state = nullptr;

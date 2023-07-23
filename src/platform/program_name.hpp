@@ -1,7 +1,17 @@
 #ifndef PROGRAM_NAME_HPP
 #define PROGRAM_NAME_HPP
 
+#include <mutex>
 #include <string>
+
+namespace cpptrace {
+    namespace detail {
+        inline std::mutex& get_program_name_mutex() { // stupid workaround for an inline variable
+            static std::mutex mutex;
+            return mutex;
+        }
+    }
+}
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -9,14 +19,20 @@
 namespace cpptrace {
     namespace detail {
         inline std::string program_name() {
-            // TODO: Cache this better
-            char buffer[MAX_PATH + 1];
-            int res = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
-            if(res) {
-                return buffer;
-            } else {
-                return "";
+            const std::lock_guard<std::mutex> lock(get_program_name_mutex());
+            static std::string name;
+            static bool did_init = false;
+            static bool valid = false;
+            if(!did_init) {
+                did_init = true;
+                char buffer[MAX_PATH + 1];
+                int res = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+                if(res) {
+                    name = buffer;
+                    valid = true;
+                }
             }
+            return valid && !name.empty() ? name.c_str() : nullptr;
         }
     }
 }
@@ -30,16 +46,20 @@ namespace cpptrace {
 namespace cpptrace {
     namespace detail {
         inline const char* program_name() {
-            // TODO: Cache this better
+            const std::lock_guard<std::mutex> lock(get_program_name_mutex());
             static std::string name;
-            if (!name.empty()) {
+            static bool did_init = false;
+            static bool valid = false;
+            if(!did_init) {
+                did_init = true;
                 std::uint32_t bufferSize = PATH_MAX + 1;
                 char buffer[bufferSize];
-                if (_NSGetExecutablePath(buffer, &bufferSize) != 0)
-                    return nullptr;
-                name.assign(buffer, bufferSize);
+                if(_NSGetExecutablePath(buffer, &bufferSize) == 0) {
+                    name.assign(buffer, bufferSize);
+                    valid = true;
+                }
             }
-            return name.c_str();
+            return valid && !name.empty() ? name.c_str() : nullptr;
         }
     }
 }
@@ -53,6 +73,7 @@ namespace cpptrace {
 namespace cpptrace {
     namespace detail {
         inline const char* program_name() {
+            const std::lock_guard<std::mutex> lock(get_program_name_mutex());
             static std::string name;
             static bool did_init = false;
             static bool valid = false;
@@ -67,7 +88,7 @@ namespace cpptrace {
                 name = buffer;
                 valid = true;
             }
-            return valid ? name.c_str() : nullptr;
+            return valid && !name.empty() ? name.c_str() : nullptr;
         }
     }
 }
