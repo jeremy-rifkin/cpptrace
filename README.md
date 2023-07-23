@@ -41,7 +41,7 @@ FetchContent_Declare(
   GIT_TAG        <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
-target_link_libraries(your_target PRIVATE cpptrace)
+target_link_libraries(your_target cpptrace)
 ```
 
 It's as easy as that. Cpptrace will automatically configure itself for your system.
@@ -66,9 +66,8 @@ sudo make install
 
 Using through cmake:
 ```cmake
-include(CMakeFindDependencyMacro)
-find_dependency(cpptrace REQUIRED)
-target_link_libraries(<your target> cpptrace)
+find_package(cpptrace REQUIRED)
+target_link_libraries(<your target> cpptrace::cpptrace)
 ```
 Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug`.
 
