@@ -1,4 +1,4 @@
-name: test
+name: cmake-integration
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
            mkdir build
            cd build
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=On
-           make -j install
+           sudo make -j install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
