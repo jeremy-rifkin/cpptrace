@@ -1,0 +1,105 @@
+name: cmake-integration
+
+on:
+  push:
+  pull_request:
+
+# Awful hackery: github.event.workflow_run.head_sha is defined on push, github.event.pull_request.base.sha is defined on
+# pull
+
+
+jobs:
+  test-linux-fetchcontent:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: test
+      run: |
+           tag=$(git rev-parse --abbrev-ref HEAD)
+           cd ..
+           cp -rv cpptrace/test/fetchcontent-integration .
+           mkdir fetchcontent-integration/build
+           cd fetchcontent-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag
+           make
+           ./main
+  test-linux-findpackage:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: |
+           tag=$(git rev-parse --abbrev-ref HEAD)
+           mkdir build
+           cd build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=On
+           sudo make -j install
+           cd ../..
+           cp -rv cpptrace/test/findpackage-integration .
+           mkdir findpackage-integration/build
+           cd findpackage-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           make
+           ./main
+  test-macos-fetchcontent:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: test
+      run: |
+           tag=$(git rev-parse --abbrev-ref HEAD)
+           cd ..
+           cp -rv cpptrace/test/fetchcontent-integration .
+           mkdir fetchcontent-integration/build
+           cd fetchcontent-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag
+           make
+           ./main
+  test-macos-findpackage:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: |
+           tag=$(git rev-parse --abbrev-ref HEAD)
+           mkdir build
+           cd build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=On
+           sudo make -j install
+           cd ../..
+           cp -rv cpptrace/test/findpackage-integration .
+           mkdir findpackage-integration/build
+           cd findpackage-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           make
+           ./main
+  test-mingw-fetchcontent:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: test
+      run: |
+           $tag=$(git rev-parse --abbrev-ref HEAD)
+           cd ..
+           cp -Recurse cpptrace/test/fetchcontent-integration .
+           mkdir fetchcontent-integration/build
+           cd fetchcontent-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
+           make
+           .\main.exe
+  test-windows-fetchcontent:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.10.0
+    - name: test
+      run: |
+           $tag=$(git rev-parse --abbrev-ref HEAD)
+           cd ..
+           cp -Recurse cpptrace/test/fetchcontent-integration .
+           mkdir fetchcontent-integration/build
+           cd fetchcontent-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag"
+           msbuild demo_project.sln
+           .\Debug\main.exe
