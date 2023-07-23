@@ -4,22 +4,14 @@
 #include <mutex>
 #include <string>
 
-namespace cpptrace {
-    namespace detail {
-        inline std::mutex& get_program_name_mutex() { // stupid workaround for an inline variable
-            static std::mutex mutex;
-            return mutex;
-        }
-    }
-}
-
 #if defined(_WIN32)
 #include <windows.h>
 
 namespace cpptrace {
     namespace detail {
         inline std::string program_name() {
-            const std::lock_guard<std::mutex> lock(get_program_name_mutex());
+            static std::mutex mutex;
+            const std::lock_guard<std::mutex> lock(mutex);
             static std::string name;
             static bool did_init = false;
             static bool valid = false;
@@ -46,7 +38,8 @@ namespace cpptrace {
 namespace cpptrace {
     namespace detail {
         inline const char* program_name() {
-            const std::lock_guard<std::mutex> lock(get_program_name_mutex());
+            static std::mutex mutex;
+            const std::lock_guard<std::mutex> lock(mutex);
             static std::string name;
             static bool did_init = false;
             static bool valid = false;
@@ -73,7 +66,8 @@ namespace cpptrace {
 namespace cpptrace {
     namespace detail {
         inline const char* program_name() {
-            const std::lock_guard<std::mutex> lock(get_program_name_mutex());
+            static std::mutex mutex;
+            const std::lock_guard<std::mutex> lock(mutex);
             static std::string name;
             static bool did_init = false;
             static bool valid = false;

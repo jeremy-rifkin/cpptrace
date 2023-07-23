@@ -6,10 +6,11 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <functional>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <functional>
 #include <vector>
 
 #if IS_LINUX || IS_APPLE
@@ -57,26 +58,34 @@ namespace cpptrace {
         }
 
         bool has_addr2line() {
-            // Detects if addr2line exists by trying to invoke addr2line --help
-            constexpr int magic = 42;
-            // NOLINTNEXTLINE(misc-include-cleaner)
-            const pid_t pid = fork();
-            if(pid == -1) { return false; }
-            if(pid == 0) { // child
-                close(STDOUT_FILENO);
-                close(STDERR_FILENO); // atos --help writes to stderr
-                // TODO: path
-                #if !IS_APPLE
-                 execlp("addr2line", "addr2line", "--help", nullptr);
-                #else
-                 execlp("atos", "atos", "--help", nullptr);
-                #endif
-                _exit(magic);
+            static std::mutex mutex;
+            static bool has_addr2line = false;
+            static bool checked = false;
+            std::lock_guard<std::mutex> lock(mutex);
+            if(!checked) {
+                checked = true;
+                // Detects if addr2line exists by trying to invoke addr2line --help
+                constexpr int magic = 42;
+                // NOLINTNEXTLINE(misc-include-cleaner)
+                const pid_t pid = fork();
+                if(pid == -1) { return false; }
+                if(pid == 0) { // child
+                    close(STDOUT_FILENO);
+                    close(STDERR_FILENO); // atos --help writes to stderr
+                    // TODO: path
+                    #if !IS_APPLE
+                    execlp("addr2line", "addr2line", "--help", nullptr);
+                    #else
+                    execlp("atos", "atos", "--help", nullptr);
+                    #endif
+                    _exit(magic);
+                }
+                int status;
+                waitpid(pid, &status, 0);
+                // NOLINTNEXTLINE(misc-include-cleaner)
+                has_addr2line = WEXITSTATUS(status) == 0;
             }
-            int status;
-            waitpid(pid, &status, 0);
-            // NOLINTNEXTLINE(misc-include-cleaner)
-            return WEXITSTATUS(status) == 0;
+            return has_addr2line;
         }
 
         struct pipe_t {
@@ -140,10 +149,42 @@ namespace cpptrace {
             // We have to parse the Mach-O to find the offset of the text section.....
             // I don't know how addresses are handled if there is more than one __TEXT load command. I'm assuming for
             // now that there is only one, and I'm using only the first section entry within that load command.
-            return get_text_vmaddr(entry.obj_path.c_str());
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+            static std::unordered_map<std::string, uintptr_t> cache;
+            auto it = cache.find(entry.obj_path);
+            if(it == cache.end()) {
+                // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
+                // have two threads try to do the same computation
+                auto base = get_text_vmaddr(entry.obj_path.c_str());
+                cache.insert(it, {entry.obj_path, base});
+                return base;
+            } else {
+                return it->second;
+            }
         }
         #endif
         #elif IS_WINDOWS
+        std::string get_module_name(HMODULE handle) {
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+            static std::unordered_map<HMODULE, std::string> cache;
+            auto it = cache.find(handle);
+            if(it == cache.end()) {
+                char path[MAX_PATH];
+                if(GetModuleFileNameA(handle, path, sizeof(path))) {
+                    ///fprintf(stderr, "path: %s base: %p\n", path, handle);
+                    cache.insert(it, {handle, path});
+                    return path;
+                } else {
+                    fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
+                    cache.insert(it, {handle, ""});
+                    return "";
+                }
+            } else {
+                return it->second;
+            }
+        }
         // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
         std::vector<dlframe> backtrace_frames(const std::vector<void*>& addrs) {
             // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
@@ -159,16 +200,8 @@ namespace cpptrace {
                     static_cast<const char*>(addr),
                     &handle
                 )) {
-                    char path[MAX_PATH];
-                    // TODO: Memoize
-                    if(GetModuleFileNameA(handle, path, sizeof(path))) {
-                        ///fprintf(stderr, "path: %s base: %p\n", path, handle);
-                        frame.obj_path = path;
-                        frame.obj_base = reinterpret_cast<uintptr_t>(handle);
-                        frame.symbol = "";
-                    } else {
-                        fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
-                    }
+                    frame.obj_base = reinterpret_cast<uintptr_t>(handle);
+                    frame.obj_path = get_module_name(handle);
                 } else {
                     fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
                 }
@@ -178,10 +211,19 @@ namespace cpptrace {
         }
 
         bool has_addr2line() {
-            // TODO: Memoize
-            // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
-            FILE* p = popen("addr2line --version", "r");
-            return pclose(p) == 0;
+            static std::mutex mutex;
+            static bool has_addr2line = false;
+            static bool checked = false;
+            std::lock_guard<std::mutex> lock(mutex);
+            if(!checked) {
+                // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
+                checked = true;
+                FILE* p = popen("addr2line --version", "r");
+                if(p) {
+                    has_addr2line = pclose(p) == 0;
+                }
+            }
+            return has_addr2line;
         }
 
         std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
@@ -200,12 +242,10 @@ namespace cpptrace {
             return output;
         }
 
-        // TODO: Refactor into backtrace_frames...
-        // TODO: Memoize
-        uintptr_t get_module_image_base(const dlframe &entry) {
+        uintptr_t pe_get_module_image_base(const std::string& obj_path) {
             // PE header values are little endian
             bool do_swap = !is_little_endian();
-            FILE* file = fopen(entry.obj_path.c_str(), "rb");
+            FILE* file = fopen(obj_path.c_str(), "rb");
             char magic[2];
             internal_verify(fread(magic, 1, 2, file) == 2); // file + 0x0
             internal_verify(memcmp(magic, "MZ", 2) == 0);
@@ -250,6 +290,22 @@ namespace cpptrace {
             }
             fclose(file);
             return image_base;
+        }
+
+        uintptr_t get_module_image_base(const dlframe &entry) {
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+            static std::unordered_map<std::string, uintptr_t> cache;
+            auto it = cache.find(entry.obj_path);
+            if(it == cache.end()) {
+                // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
+                // have two threads try to do the same computation
+                auto base = pe_get_module_image_base(entry.obj_path);
+                cache.insert(it, {entry.obj_path, base});
+                return base;
+            } else {
+                return it->second;
+            }
         }
         #endif
 
