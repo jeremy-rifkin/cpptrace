@@ -1,0 +1,91 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+# TODO: Test statically linked
+
+jobs:
+  test-linux-fetchcontent:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    #- name: dependencies
+    #  run: sudo apt install gcc-10 g++-10 libgcc-10-dev
+    - name: test
+      run: |
+           pwd
+           cd ..
+           cp -rv cpptrace/test/fetchcontent-integration .
+           mkdir fetchcontent-integration/build
+           cd fetchcontent-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           make
+           ./main
+  test-linux-findpackage:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    #- name: dependencies
+    #  run: sudo apt install gcc-10 g++-10 libgcc-10-dev
+    - name: build
+      run: |
+           pwd
+           mkdir build
+           cd build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=On
+           make -j install
+           cd ../..
+           cp -rv cpptrace/test/findpackage-integration .
+           mkdir findpackage-integration/build
+           cd findpackage-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           make
+           ./main
+  #test-macos-fetchcontent:
+  #  runs-on: macos-13
+  #  steps:
+  #  - uses: actions/checkout@v2
+  #  - name: build
+  #    run: |
+  #         pip3 install colorama
+  #         python3 ci/test-all-configs.py
+  #test-macos-findpackage:
+  #  runs-on: macos-13
+  #  steps:
+  #  - uses: actions/checkout@v2
+  #  - name: build
+  #    run: |
+  #         pip3 install colorama
+  #         python3 ci/test-all-configs.py
+  #test-windows-msvc:
+  #  runs-on: windows-2019
+  #  steps:
+  #  - uses: actions/checkout@v2
+  #  - name: Enable Developer Command Prompt
+  #    uses: ilammy/msvc-dev-cmd@v1.10.0
+  #  - name: build
+  #    run: |
+  #         pip3 install colorama
+  #         python3 ci/test-all-configs.py --msvc-only
+  #test-windows-clang:
+  #  runs-on: windows-2019
+  #  steps:
+  #  - uses: actions/checkout@v2
+  #  - name: Enable Developer Command Prompt
+  #    uses: ilammy/msvc-dev-cmd@v1.10.0
+  #  - name: build
+  #    run: |
+  #         pip3 install colorama
+  #         python3 ci/test-all-configs.py --clang-only
+  #test-windows-mingw:
+  #  runs-on: windows-2019
+  #  steps:
+  #  - uses: actions/checkout@v2
+  #  - name: Enable Developer Command Prompt
+  #    uses: ilammy/msvc-dev-cmd@v1.10.0
+  #  - name: build
+  #    run: |
+  #         pip3 install colorama
+  #         python3 ci/test-all-configs.py --mingw-only
