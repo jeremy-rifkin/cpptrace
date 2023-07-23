@@ -14,8 +14,6 @@ Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc i
 
 🚧 WIP: This library is in beta. 🏗️
 
-![Screenshot](res/screenshot.png)
-
 ## Table of Contents
 
 - [Cpptrace](#cpptrace)
@@ -46,6 +44,8 @@ target_link_libraries(your_target PRIVATE cpptrace)
 ```
 
 It's as easy as that. Cpptrace will automatically configure itself for your system.
+
+![Screenshot](res/screenshot.png)
 
 ## Other Installation Mechanisms
 
