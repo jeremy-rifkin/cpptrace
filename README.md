@@ -16,22 +16,23 @@ Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc i
 
 ![Screenshot](res/screenshot.png)
 
-## Table of contents
+## Table of Contents
 
 - [Cpptrace](#cpptrace)
-  - [Table of contents](#table-of-contents)
-  - [How to use](#how-to-use)
-    - [CMake FetchContent](#cmake-fetchcontent)
-    - [System-wide installation](#system-wide-installation)
-  - [Docs](#docs)
+  - [Table of Contents](#table-of-contents)
+  - [Quick Setup](#quick-setup)
+  - [Other Installation Mechanisms](#other-installation-mechanisms)
+    - [System-Wide Installation](#system-wide-installation)
+    - [Package Managers](#package-managers)
+  - [API](#api)
   - [Back-ends](#back-ends)
-  - [Library configurations](#library-configurations)
+    - [Summary of Library Configurations](#summary-of-library-configurations)
   - [Testing Methodology](#testing-methodology)
   - [License](#license)
 
-## How to use
+## Quick Setup
 
-### CMake FetchContent
+With CMake FetchContent:
 
 ```cmake
 include(FetchContent)
@@ -46,7 +47,9 @@ target_link_libraries(your_target PRIVATE cpptrace)
 
 It's as easy as that. Cpptrace will automatically configure itself for your system.
 
-### System-wide installation
+## Other Installation Mechanisms
+
+### System-Wide Installation
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
@@ -75,17 +78,11 @@ Note: You'll need to run as an administrator in a developer powershell, or use v
 studio to get the correct environment variables set.
 </details>
 
-<!--
-### Conan
+### Package Managers
 
 TODO
 
-### Vcpkg
-
-TODO
--->
-
-## Docs
+## API
 
 `cpptrace::print_trace()` can be used to print a stacktrace at the current call site, `cpptrace::generate_trace()` can
 be used to get raw frame information for custom use.
@@ -164,7 +161,7 @@ possible. `CPPTRACE_HARD_MAX_FRAMES` is ignored.
 There are plenty more libraries that can be used for unwinding, parsing debug information, and demangling. In the future
 more back-ends can be added. Ideally this library can "just work" on systems, without additional installation work.
 
-## Library configurations
+### Summary of Library Configurations
 
 Summary of all library configuration options:
 
