@@ -6,21 +6,14 @@
 #include <cstring>
 #include <type_traits>
 
+#include "common.hpp"
+
 #include <mach-o/loader.h>
 #include <mach-o/swap.h>
 #include <mach-o/fat.h>
 
 // Based on https://github.com/AlexDenisov/segment_dumper/blob/master/main.c
 // and https://lowlevelbits.org/parsing-mach-o-files/
-
-template<typename T>
-T load_bytes(FILE* obj_file, off_t offset) {
-    static_assert(std::is_pod<T>::value, "Expected POD type");
-    T object;
-    fseek(obj_file, offset, SEEK_SET);
-    fread(&object, sizeof(T), 1, obj_file);
-    return object;
-}
 
 static bool is_magic_64(uint32_t magic) {
     return magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
@@ -42,7 +35,7 @@ static bool should_swap_bytes(uint32_t magic) {
  #error "Unknown CPU architecture"
 #endif
 
-static uintptr_t get_text_vmaddr_from_segments(FILE* obj_file, off_t offset, bool should_swap, uint32_t ncmds) {
+static uintptr_t macho_get_text_vmaddr_from_segments(FILE* obj_file, off_t offset, bool should_swap, uint32_t ncmds) {
     off_t actual_offset = offset;
     for(uint32_t i = 0; i < ncmds; i++) {
         load_command cmd = load_bytes<load_command>(obj_file, actual_offset);
@@ -77,7 +70,7 @@ static uintptr_t get_text_vmaddr_from_segments(FILE* obj_file, off_t offset, boo
     return 0;
 }
 
-static uintptr_t get_text_vmaddr_mach(FILE* obj_file, off_t offset, bool is_64, bool should_swap) {
+static uintptr_t macho_get_text_vmaddr_mach(FILE* obj_file, off_t offset, bool is_64, bool should_swap) {
     uint32_t ncmds;
     off_t load_commands_offset = offset;
     if(is_64) {
@@ -107,10 +100,10 @@ static uintptr_t get_text_vmaddr_mach(FILE* obj_file, off_t offset, bool is_64, 
         ncmds = header.ncmds;
         load_commands_offset += header_size;
     }
-    return get_text_vmaddr_from_segments(obj_file, load_commands_offset, should_swap, ncmds);
+    return macho_get_text_vmaddr_from_segments(obj_file, load_commands_offset, should_swap, ncmds);
 }
 
-static uintptr_t get_text_vmaddr_fat(FILE* obj_file, bool should_swap) {
+static uintptr_t macho_get_text_vmaddr_fat(FILE* obj_file, bool should_swap) {
     size_t header_size = sizeof(fat_header);
     size_t arch_size = sizeof(fat_arch);
     fat_header header = load_bytes<fat_header>(obj_file, 0);
@@ -127,7 +120,7 @@ static uintptr_t get_text_vmaddr_fat(FILE* obj_file, bool should_swap) {
         off_t mach_header_offset = (off_t)arch.offset;
         arch_offset += arch_size;
         uint32_t magic = load_bytes<uint32_t>(obj_file, mach_header_offset);
-        text_vmaddr = get_text_vmaddr_mach(
+        text_vmaddr = macho_get_text_vmaddr_mach(
             obj_file,
             mach_header_offset,
             is_magic_64(magic),
@@ -141,16 +134,16 @@ static uintptr_t get_text_vmaddr_fat(FILE* obj_file, bool should_swap) {
     return text_vmaddr;
 }
 
-static uintptr_t get_text_vmaddr(const char* path) {
+static uintptr_t macho_get_text_vmaddr(const char* path) {
     FILE* obj_file = fopen(path, "rb");
     uint32_t magic = load_bytes<uint32_t>(obj_file, 0);
     bool is_64 = is_magic_64(magic);
     bool should_swap = should_swap_bytes(magic);
     uintptr_t addr;
     if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
-        addr = get_text_vmaddr_fat(obj_file, should_swap);
+        addr = macho_get_text_vmaddr_fat(obj_file, should_swap);
     } else {
-        addr = get_text_vmaddr_mach(obj_file, 0, is_64, should_swap);
+        addr = macho_get_text_vmaddr_mach(obj_file, 0, is_64, should_swap);
     }
     fclose(obj_file);
     return addr;

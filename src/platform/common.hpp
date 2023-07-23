@@ -250,6 +250,14 @@ static_assert(n_digits(10) == 2, "n_digits utility producing the wrong result");
 static_assert(n_digits(11) == 2, "n_digits utility producing the wrong result");
 static_assert(n_digits(1024) == 4, "n_digits utility producing the wrong result");
 
+template<typename T, typename std::enable_if<std::is_pod<T>::value, int>::type = 0>
+T load_bytes(FILE* obj_file, off_t offset) {
+    T object;
+    internal_verify(fseek(obj_file, offset, SEEK_SET) == 0, "fseek error");
+    internal_verify(fread(&object, sizeof(T), 1, obj_file) == 1, "fread error");
+    return object;
+}
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
