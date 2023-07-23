@@ -15,11 +15,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: test
       run: |
+           tag=$(git rev-parse --abbrev-ref HEAD)
            cd ..
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.ref}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag
            make
            ./main
   test-linux-findpackage:
@@ -28,6 +29,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: build
       run: |
+           tag=$(git rev-parse --abbrev-ref HEAD)
            mkdir build
            cd build
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=On
@@ -45,11 +47,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: test
       run: |
+           tag=$(git rev-parse --abbrev-ref HEAD)
            cd ..
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.ref}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag
            make
            ./main
   test-macos-findpackage:
@@ -58,6 +61,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: build
       run: |
+           tag=$(git rev-parse --abbrev-ref HEAD)
            mkdir build
            cd build
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=On
@@ -75,11 +79,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: test
       run: |
+           tag=$(git rev-parse --abbrev-ref HEAD)
            cd ..
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.ref}} -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
            make
            .\main.exe
   test-windows-fetchcontent:
@@ -90,11 +95,12 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1.10.0
     - name: test
       run: |
+           $tag=$(git rev-parse --abbrev-ref HEAD)
            cd ..
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=${{github.ref}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag"
            msbuild demo_project.sln
            .\Debug\main.exe
   #test-windows-msvc:
