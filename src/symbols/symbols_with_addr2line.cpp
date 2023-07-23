@@ -291,6 +291,9 @@ namespace cpptrace {
             std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
                 // TODO: Refactor better
                 std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
+                for(size_t i = 0; i < frames.size(); i++) {
+                    trace[i].address = reinterpret_cast<uintptr_t>(frames[i]);
+                }
                 if(has_addr2line()) {
                     const std::vector<dlframe> dlframes = backtrace_frames(frames);
                     const auto entries = get_addr2line_targets(dlframes, trace);

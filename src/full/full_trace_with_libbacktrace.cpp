@@ -28,6 +28,9 @@ namespace cpptrace {
             trace_data& data = *reinterpret_cast<trace_data*>(data_pointer);
             if(data.skip > 0) {
                 data.skip--;
+            } else if(address == uintptr_t(-1)) {
+                // sentinel for libbacktrace, stop tracing
+                return 1;
             } else {
                 data.frames.push_back({
                     address,

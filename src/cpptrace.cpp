@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <iomanip>
 #include <iostream>
 
 #if !(defined(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE) || defined(CPPTRACE_FULL_TRACE_WITH_STACKTRACE))
@@ -46,23 +47,55 @@ namespace cpptrace {
 
 #endif
 
+#define ESC     "\033["
+#define RESET   ESC "0m"
+#define RED     ESC "31m"
+#define GREEN   ESC "32m"
+#define YELLOW  ESC "33m"
+#define BLUE    ESC "34m"
+#define MAGENTA ESC "35m"
+#define CYAN    ESC "36m"
+
 namespace cpptrace {
     void print_trace(std::uint32_t skip) {
+        enable_virtual_terminal_processing_if_needed();
         std::cerr<<"Stack trace (most recent call first):"<<std::endl;
         std::size_t counter = 0;
         const auto trace = generate_trace(skip + 1);
-        // +1 to skip one frame
-        for(auto it = trace.begin() + 1; it != trace.end(); it++) {
-            const auto& frame = *it;
+        if(trace.empty()) {
+            std::cerr<<"<empty trace>"<<std::endl;
+            return;
+        }
+        const auto frame_number_width = n_digits(static_cast<int>(trace.size()) - 1);
+        for(const auto& frame : trace) {
             std::cerr
+                << '#'
+                << std::setw(static_cast<int>(frame_number_width))
+                << std::left
                 << counter++
                 << " "
-                << frame.filename
-                << ":"
-                << frame.line
-                << (frame.col > 0 ? ":" + std::to_string(frame.col) : "")
-                << " "
+                << std::hex
+                << BLUE
+                << "0x"
+                << std::setw(2 * sizeof(uintptr_t))
+                << std::setfill('0')
+                << frame.address
+                << std::dec
+                << std::setfill(' ')
+                << RESET
+                << " in "
+                << YELLOW
                 << frame.symbol
+                << RESET
+                << " at "
+                << GREEN
+                << frame.filename
+                << RESET
+                << ":"
+                << BLUE
+                << frame.line
+                << RESET
+                << (frame.col > 0 ? ":" BLUE + std::to_string(frame.col) + RESET : "")
                 << std::endl;
         }
     }

@@ -14,6 +14,8 @@ Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc i
 
 🚧 WIP: This library is in beta. 🏗️
 
+![Screenshot](res/screenshot.png)
+
 ## Table of contents
 
 - [Cpptrace](#cpptrace)
@@ -187,9 +189,10 @@ General:
   `100`.
 
 Testing:
-- `CPPTRACE_BUILD_TEST`
-- `CPPTRACE_BUILD_TEST_RDYNAMIC`
-- `CPPTRACE_BUILD_SPEEDTEST`
+- `CPPTRACE_BUILD_TEST` Build a small test program
+- `CPPTRACE_BUILD_DEMO` Build a small demo program
+- `CPPTRACE_BUILD_TEST_RDYNAMIC` Use `-rdynamic` when compiling the test program
+- `CPPTRACE_BUILD_SPEEDTEST` Build a small speed test program
 - `CPPTRACE_BUILD_SPEEDTEST_DWARF4`
 - `CPPTRACE_BUILD_SPEEDTEST_DWARF5`
 

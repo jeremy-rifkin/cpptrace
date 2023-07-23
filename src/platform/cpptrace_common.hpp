@@ -57,6 +57,10 @@
  #error "Unsupported compiler"
 #endif
 
+#if IS_WINDOWS
+ #include <windows.h>
+#endif
+
 // Lightweight std::source_location.
 struct source_location {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -217,6 +221,34 @@ template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::t
 T byteswap(T value) {
     return byte_swapper<T, sizeof(T)>{}(value);
 }
+
+CPPTRACE_MAYBE_UNUSED
+inline void enable_virtual_terminal_processing_if_needed() {
+    // enable colors / ansi processing if necessary
+    #if IS_WINDOWS
+     // https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#example-of-enabling-virtual-terminal-processing
+     #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+      constexpr DWORD ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x4;
+     #endif
+     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+     DWORD dwMode = 0;
+     if(hOut == INVALID_HANDLE_VALUE) return;
+     if(!GetConsoleMode(hOut, &dwMode)) return;
+     if(dwMode != (dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+     if(!SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)) return;
+    #endif
+}
+
+CPPTRACE_MAYBE_UNUSED
+// NOLINTNEXTLINE(misc-no-recursion)
+inline constexpr unsigned n_digits(unsigned value) {
+    return value < 10 ? 1 : 1 + n_digits(value / 10);
+}
+static_assert(n_digits(1) == 1, "n_digits utility producing the wrong result");
+static_assert(n_digits(9) == 1, "n_digits utility producing the wrong result");
+static_assert(n_digits(10) == 2, "n_digits utility producing the wrong result");
+static_assert(n_digits(11) == 2, "n_digits utility producing the wrong result");
+static_assert(n_digits(1024) == 4, "n_digits utility producing the wrong result");
 
 #ifdef _MSC_VER
 #pragma warning(pop)

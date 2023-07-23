@@ -68,6 +68,7 @@ option(CPPTRACE_DEMANGLE_WITH_CXXABI "" OFF)
 option(CPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
 
 option(CPPTRACE_BUILD_TEST "" OFF)
+option(CPPTRACE_BUILD_DEMO "" OFF)
 option(CPPTRACE_BUILD_TEST_RDYNAMIC "" OFF)
 
 option(CPPTRACE_BUILD_SPEEDTEST "" OFF)
@@ -405,6 +406,19 @@ if(CPPTRACE_BUILD_TEST)
   endif()
   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
     set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
+  endif()
+endif()
+
+if(CPPTRACE_BUILD_DEMO)
+  add_executable(demo test/demo.cpp)
+  target_link_libraries(demo PRIVATE cpptrace)
+  # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
+  check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
+  if(HAS_DWARF4)
+    target_compile_options(demo PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+  endif()
+  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
+    set_property(TARGET demo PROPERTY ENABLE_EXPORTS ON)
   endif()
 endif()
 
