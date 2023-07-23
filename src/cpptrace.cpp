@@ -73,6 +73,7 @@ namespace cpptrace {
                 << std::setw(static_cast<int>(frame_number_width))
                 << std::left
                 << counter++
+                << std::right
                 << " "
                 << std::hex
                 << BLUE
