@@ -185,6 +185,10 @@ can hold addresses for 100 frames (beyond the `skip` frames). This is configurab
 
 *: Requires installation
 
+Note for addr2line: By default cmake will resolve an absolute path to addr2line to bake into the library. This path can
+be configured with `CPPTRACE_ADDR2LINE_PATH`, or `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH` can be used to have the library
+search the system path for `addr2line` at runtime. This is not the default to prevent against path injection attacks.
+
 **Demangling**
 
 Lastly, depending on other back-ends used a demangler back-end may be needed. A demangler back-end is not needed when
@@ -215,24 +219,29 @@ more back-ends can be added. Ideally this library can "just work" on systems, wi
 Summary of all library configuration options:
 
 Back-ends:
-- `CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`
-- `CPPTRACE_FULL_TRACE_WITH_STACKTRACE`
-- `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE`
-- `CPPTRACE_GET_SYMBOLS_WITH_LIBDL`
-- `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE`
-- `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`
-- `CPPTRACE_GET_SYMBOLS_WITH_NOTHING`
-- `CPPTRACE_UNWIND_WITH_UNWIND`
-- `CPPTRACE_UNWIND_WITH_EXECINFO`
-- `CPPTRACE_UNWIND_WITH_WINAPI`
-- `CPPTRACE_UNWIND_WITH_NOTHING`
-- `CPPTRACE_DEMANGLE_WITH_CXXABI`
-- `CPPTRACE_DEMANGLE_WITH_NOTHING`
+- `CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On/Off`
+- `CPPTRACE_FULL_TRACE_WITH_STACKTRACE=On/Off`
+- `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE=On/Off`
+- `CPPTRACE_GET_SYMBOLS_WITH_LIBDL=On/Off`
+- `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE=On/Off`
+- `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP=On/Off`
+- `CPPTRACE_GET_SYMBOLS_WITH_NOTHING=On/Off`
+- `CPPTRACE_UNWIND_WITH_UNWIND=On/Off`
+- `CPPTRACE_UNWIND_WITH_EXECINFO=On/Off`
+- `CPPTRACE_UNWIND_WITH_WINAPI=On/Off`
+- `CPPTRACE_UNWIND_WITH_NOTHING=On/Off`
+- `CPPTRACE_DEMANGLE_WITH_CXXABI=On/Off`
+- `CPPTRACE_DEMANGLE_WITH_NOTHING=On/Off`
 
-General:
-- `CPPTRACE_BACKTRACE_PATH`: Path to libbacktrace backtrace.h, needed when compiling with clang
-- `CPPTRACE_HARD_MAX_FRAMES`: Some back-ends write to a fixed-size buffer. This is the size of that buffer. Default is
-  `100`.
+Back-end configuration:
+- `CPPTRACE_BACKTRACE_PATH=<string>`: Path to libbacktrace backtrace.h, needed when compiling with clang
+- `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
+  Default is `100`.
+- `CPPTRACE_ADDR2LINE_PATH=<string>`: Specify the absolute path to the addr2line binary for cpptrace to invoke. By
+  default the config script will search for a binary and use that absolute path (this is to prevent against path
+  injection).
+- `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH=On/Off`: Specifies whether cpptrace should let the system search the PATH
+  environment variable directories for the binary.
 
 Testing:
 - `CPPTRACE_BUILD_TEST` Build a small test program
