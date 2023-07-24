@@ -146,8 +146,8 @@ if(
   )
 )
   # Attempt to auto-config
-  if(NOT MSVC)
-    if(HAS_STACKTRACE) # Our trace is better than msvc's <stacktrace>
+  if(NOT MSVC) # Our trace is better than msvc's <stacktrace>
+    if(HAS_STACKTRACE)
       set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
       message(STATUS "Cpptrace auto config: Using C++23 <stacktrace> for the full trace")
     elseif(HAS_BACKTRACE AND NOT WIN32) # Mingw libbacktrace doesn't seem to be working
@@ -181,7 +181,7 @@ if(
       set(CPPTRACE_UNWIND_WITH_NOTHING On)
       message(FATAL_ERROR "Cpptrace auto config: No unwinding back-end seems to be supported, stack tracing will not work. To compile anyway set CPPTRACE_UNWIND_WITH_NOTHING.")
     endif()
-  elseif(MINGW) # mingw
+  elseif(MINGW)
     if(HAS_UNWIND)
       set(CPPTRACE_UNWIND_WITH_UNWIND On)
       message(STATUS "Cpptrace auto config: Using libgcc unwind for unwinding")
