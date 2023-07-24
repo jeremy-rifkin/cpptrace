@@ -26,8 +26,6 @@
  #include "../platform/pe.hpp"
 #endif
 
-#include <iostream>
-
 namespace cpptrace {
     namespace detail {
         struct dlframe {
