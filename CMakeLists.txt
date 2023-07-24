@@ -104,7 +104,7 @@ function(check_support var source includes libraries definitions)
   set(${var} ${${var}} PARENT_SCOPE)
 endfunction()
 
-if(NOT WIN32 OR MINGW) # No need to bother checking in msvc, but do check in minngw
+if(MINGW OR NOT WIN32) # No need to bother checking in msvc, but do check in minngw
  check_support(HAS_UNWIND has_unwind.cpp "" "" "")
  check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
  check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${CPPTRACE_BACKTRACE_PATH_DEFINITION}")
@@ -146,7 +146,7 @@ if(
   )
 )
   # Attempt to auto-config
-  if(NOT MSVC) # Our trace is better than msvc's <stacktrace>
+  if(MINGW OR NOT WIN32) # Our trace is better than msvc's <stacktrace>
     if(HAS_STACKTRACE)
       set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
       message(STATUS "Cpptrace auto config: Using C++23 <stacktrace> for the full trace")
