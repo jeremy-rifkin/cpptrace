@@ -26,6 +26,8 @@
  #include "../platform/pe.hpp"
 #endif
 
+#include <iostream>
+
 namespace cpptrace {
     namespace detail {
         struct dlframe {
@@ -72,11 +74,17 @@ namespace cpptrace {
                 if(pid == 0) { // child
                     close(STDOUT_FILENO);
                     close(STDERR_FILENO); // atos --help writes to stderr
-                    // TODO: path
-                    #if !IS_APPLE
-                    execlp("addr2line", "addr2line", "--help", nullptr);
+                    #ifdef CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
+                     #if !IS_APPLE
+                      execlp("addr2line", "addr2line", "--help", nullptr);
+                     #else
+                      execlp("atos", "atos", "--help", nullptr);
+                     #endif
                     #else
-                    execlp("atos", "atos", "--help", nullptr);
+                     #ifndef CPPTRACE_ADDR2LINE_PATH
+                      #error "CPPTRACE_ADDR2LINE_PATH must be defined if CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH is not"
+                     #endif
+                     execl(CPPTRACE_ADDR2LINE_PATH, CPPTRACE_ADDR2LINE_PATH, "--help", nullptr);
                     #endif
                     _exit(magic);
                 }
@@ -115,11 +123,30 @@ namespace cpptrace {
                 close(input_pipe.read_end);
                 close(input_pipe.write_end);
                 close(STDERR_FILENO); // TODO: Might be worth conditionally enabling or piping
-                // TODO: Prevent against path injection?
-                #if !IS_APPLE
-                 execlp("addr2line", "addr2line", "-e", executable.c_str(), "-f", "-C", "-p", nullptr);
+                #ifdef CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
+                 #if !IS_APPLE
+                  execlp("addr2line", "addr2line", "-e", executable.c_str(), "-f", "-C", "-p", nullptr);
+                 #else
+                  execlp("atos", "atos", "-o", executable.c_str(), nullptr);
+                 #endif
                 #else
-                 execlp("atos", "atos", "-o", executable.c_str(), nullptr);
+                 #ifndef CPPTRACE_ADDR2LINE_PATH
+                  #error "CPPTRACE_ADDR2LINE_PATH must be defined if CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH is not"
+                 #endif
+                 #if !IS_APPLE
+                  execl(
+                    CPPTRACE_ADDR2LINE_PATH,
+                    CPPTRACE_ADDR2LINE_PATH,
+                    "-e",
+                    executable.c_str(),
+                    "-f",
+                    "-C",
+                    "-p",
+                    nullptr
+                  );
+                 #else
+                  execl(CPPTRACE_ADDR2LINE_PATH, CPPTRACE_ADDR2LINE_PATH, "-o", executable.c_str(), nullptr);
+                 #endif
                 #endif
                 _exit(1); // TODO: Diagnostic?
             }
@@ -218,7 +245,14 @@ namespace cpptrace {
             if(!checked) {
                 // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
                 checked = true;
-                FILE* p = popen("addr2line --version", "r");
+                #ifdef CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
+                 FILE* p = popen("addr2line --version", "r");
+                #else
+                 #ifndef CPPTRACE_ADDR2LINE_PATH
+                  #error "CPPTRACE_ADDR2LINE_PATH must be defined if CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH is not"
+                 #endif
+                 FILE* p = popen(CPPTRACE_ADDR2LINE_PATH " --version", "r");
+                #endif
                 if(p) {
                     has_addr2line = pclose(p) == 0;
                 }
@@ -229,7 +263,17 @@ namespace cpptrace {
         std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
             // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
             ///fprintf(stderr, ("addr2line -e " + executable + " -fCp " + addresses + "\n").c_str());
-            FILE* p = popen(("addr2line -e " + executable + " -fCp " + addresses).c_str(), "r");
+            #ifdef CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
+             FILE* p = popen(("addr2line -e " + executable + " -fCp " + addresses).c_str(), "r");
+            #else
+             #ifndef CPPTRACE_ADDR2LINE_PATH
+              #error "CPPTRACE_ADDR2LINE_PATH must be defined if CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH is not"
+             #endif
+             FILE* p = popen(
+                (CPPTRACE_ADDR2LINE_PATH " -e " + executable + " -fCp " + addresses).c_str(),
+                "r"
+             );
+            #endif
             std::string output;
             constexpr int buffer_size = 4096;
             char buffer[buffer_size];
