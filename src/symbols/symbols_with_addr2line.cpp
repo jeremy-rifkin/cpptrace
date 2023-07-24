@@ -335,6 +335,7 @@ namespace cpptrace {
                 // The path may be ?? if addr2line cannot resolve, line may be ?
                 // Edge cases:
                 // ?? ??:0
+                // symbol :?
                 const std::size_t at_location = line.find(" at ");
                 std::size_t symbol_end;
                 std::size_t filename_start;
@@ -349,13 +350,13 @@ namespace cpptrace {
                 auto symbol = line.substr(0, symbol_end);
                 auto colon = line.rfind(':');
                 internal_verify(colon != std::string::npos);
-                internal_verify(colon > filename_start);
+                internal_verify(colon >= filename_start); // :? to deal with "symbol :?" edge case
                 auto filename = line.substr(filename_start, colon - filename_start);
                 auto line_number = line.substr(colon + 1);
                 if(line_number != "?") {
                     entries_vec[entry_index].second.get().line = std::stoi(line_number);
                 }
-                if(filename != "??") {
+                if(!filename.empty() && filename != "??") {
                     entries_vec[entry_index].second.get().filename = filename;
                 }
                 if(!symbol.empty()) {
