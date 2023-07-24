@@ -104,10 +104,11 @@ function(check_support var source includes libraries definitions)
   set(${var} ${${var}} PARENT_SCOPE)
 endfunction()
 
-if(NOT MSVC) # No need to bother checking in msvc, but do check in minngw
+if(NOT WIN32 OR MINGW) # No need to bother checking in msvc, but do check in minngw
  check_support(HAS_UNWIND has_unwind.cpp "" "" "")
  check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
  check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${CPPTRACE_BACKTRACE_PATH_DEFINITION}")
+ check_support(HAS_DL has_dl.cpp "" "dl" "")
  check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
  if(NOT MSVC)
    set(STACKTRACE_LINK_LIB "stdc++_libbacktrace")
@@ -115,6 +116,16 @@ if(NOT MSVC) # No need to bother checking in msvc, but do check in minngw
    set(STACKTRACE_LINK_LIB "")
  endif()
  check_support(HAS_STACKTRACE has_stacktrace.cpp "" "${STACKTRACE_LINK_LIB}" "")
+ if(APPLE)
+    find_program(ADDR2LINE_PATH atos PATHS ENV PATH)
+  else()
+    find_program(ADDR2LINE_PATH addr2line PATHS ENV PATH)
+  endif()
+  if("${ADDR2LINE_PATH}" STREQUAL "ADDR2LINE_PATH-NOTFOUND")
+    set(HAS_ADDR2LINE FALSE)
+  else()
+    set(HAS_ADDR2LINE TRUE)
+  endif()
 endif()
 
 # =============================================== Autoconfig full dump ===============================================
@@ -135,12 +146,14 @@ if(
   )
 )
   # Attempt to auto-config
-  if(HAS_STACKTRACE AND NOT WIN32) # Our trace is better than msvc's <stacktrace>
-    set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
-    message(STATUS "Cpptrace auto config: Using C++23 <stacktrace> for the full trace")
-  elseif(HAS_BACKTRACE AND NOT WIN32) # Mingw libbacktrace doesn't seem to be working
-    set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
-    message(STATUS "Cpptrace auto config: Using libbacktrace for the full trace")
+  if(NOT MSVC)
+    if(HAS_STACKTRACE) # Our trace is better than msvc's <stacktrace>
+      set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
+      message(STATUS "Cpptrace auto config: Using C++23 <stacktrace> for the full trace")
+    elseif(HAS_BACKTRACE AND NOT WIN32) # Mingw libbacktrace doesn't seem to be working
+      set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
+      message(STATUS "Cpptrace auto config: Using libbacktrace for the full trace")
+    endif()
   endif()
 endif()
 
@@ -168,7 +181,7 @@ if(
       set(CPPTRACE_UNWIND_WITH_NOTHING On)
       message(FATAL_ERROR "Cpptrace auto config: No unwinding back-end seems to be supported, stack tracing will not work. To compile anyway set CPPTRACE_UNWIND_WITH_NOTHING.")
     endif()
-  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU") # mingw
+  elseif(MINGW) # mingw
     if(HAS_UNWIND)
       set(CPPTRACE_UNWIND_WITH_UNWIND On)
       message(STATUS "Cpptrace auto config: Using libgcc unwind for unwinding")
@@ -201,18 +214,19 @@ if(
   )
 )
   # Attempt to auto-config
-  if(APPLE)
-    set(CPPTRACE_GET_SYMBOLS_WITH_LIBDL ON)
-  elseif(UNIX)
-    if(HAS_BACKTRACE)
+  if(UNIX OR MINGW)
+    if(HAS_BACKTRACE AND NOT MINGW) # not working on mingw at the moment
       set(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE On)
       message(STATUS "Cpptrace auto config: Using libbacktrace for symbols")
+    elseif(HAS_ADDR2LINE)
+      set(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE On)
+      message(STATUS "Cpptrace auto config: Using addr2line for symbols")
+    elseif(HAS_DL)
+      set(CPPTRACE_GET_SYMBOLS_WITH_LIBDL On)
+      message(STATUS "Cpptrace auto config: Using libdl for symbols")
     else()
       message(FATAL_ERROR "Cpptrace auto config: No symbol back-end could be automatically configured. To compile anyway set CPPTRACE_GET_SYMBOLS_WITH_NOTHING.")
     endif()
-  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU") # mingw
-    set(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE On)
-    message(STATUS "Cpptrace auto config: Using addr2line for symbols")
   elseif(WIN32)
     set(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP On)
     message(STATUS "Cpptrace auto config: Using dbghelp for symbols")
