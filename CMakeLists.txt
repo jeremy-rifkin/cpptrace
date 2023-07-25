@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8...3.23)
+cmake_minimum_required(VERSION 3.4...3.27)
 
 if(${CMAKE_VERSION} VERSION_LESS 3.12)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
@@ -255,11 +255,7 @@ target_include_directories(
 )
 
 # TODO
-target_compile_features(
-  cpptrace
-  PUBLIC
-  cxx_std_11
-)
+target_compile_features(cpptrace PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
 
 set_target_properties(
   cpptrace
