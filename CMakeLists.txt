@@ -222,7 +222,23 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-file(GLOB_RECURSE sources src/*.cpp)
+set(
+  sources
+  src/cpptrace.cpp
+  src/demangle/demangle_with_cxxabi.cpp
+  src/demangle/demangle_with_nothing.cpp
+  src/full/full_trace_with_libbacktrace.cpp
+  src/full/full_trace_with_stacktrace.cpp
+  src/symbols/symbols_with_addr2line.cpp
+  src/symbols/symbols_with_dbghelp.cpp
+  src/symbols/symbols_with_dl.cpp
+  src/symbols/symbols_with_libbacktrace.cpp
+  src/symbols/symbols_with_nothing.cpp
+  src/unwind/unwind_with_execinfo.cpp
+  src/unwind/unwind_with_nothing.cpp
+  src/unwind/unwind_with_unwind.cpp
+  src/unwind/unwind_with_winapi.cpp
+)
 
 # TODO: This feels like a hack.
 if(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
