@@ -1,15 +1,15 @@
 #ifndef PE_HPP
 #define PE_HPP
 
+#include "common.hpp"
+
+#if IS_WINDOWS
 #include <array>
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <string>
 
-#include "common.hpp"
-
-#if IS_WINDOWS
 #include <windows.h>
 
 template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>

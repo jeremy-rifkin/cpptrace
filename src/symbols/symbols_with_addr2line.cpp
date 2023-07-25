@@ -21,6 +21,8 @@
  #include <sys/wait.h>
  #if IS_APPLE
   #include "../platform/mach-o.hpp"
+ #else
+  #include "../platform/elf.hpp"
  #endif
 #elif IS_WINDOWS
  #include "../platform/pe.hpp"
@@ -166,8 +168,7 @@ namespace cpptrace {
 
         #if !IS_APPLE
         uintptr_t get_module_image_base(const dlframe &entry) {
-            (void)entry;
-            return 0;
+            return elf_get_module_image_base(entry.obj_path);
         }
         #else
         uintptr_t get_module_image_base(const dlframe &entry) {
