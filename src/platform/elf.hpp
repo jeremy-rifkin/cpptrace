@@ -34,13 +34,13 @@ static uintptr_t elf_get_module_image_base_from_program_table(
         if(is_64) {
             Elf64_Phdr program_header = load_bytes<Elf64_Phdr>(file, e_phoff + e_phentsize * i);
             if(elf_byteswap_if_needed(program_header.p_type, is_little_endian) == PT_PHDR) {
-                return elf_byteswap_if_needed(program_header.v_addr, is_little_endian)
+                return elf_byteswap_if_needed(program_header.p_vaddr, is_little_endian)
                         - elf_byteswap_if_needed(program_header.p_offset, is_little_endian);
             }
         } else {
             Elf32_Phdr program_header = load_bytes<Elf32_Phdr>(file, e_phoff + e_phentsize * i);
             if(elf_byteswap_if_needed(program_header.p_type, is_little_endian) == PT_PHDR) {
-                return elf_byteswap_if_needed(program_header.v_addr, is_little_endian)
+                return elf_byteswap_if_needed(program_header.p_vaddr, is_little_endian)
                         - elf_byteswap_if_needed(program_header.p_offset, is_little_endian);
             }
         }
@@ -52,7 +52,7 @@ static uintptr_t elf_get_module_image_base(const std::string& obj_path) {
     FILE* file = fopen(obj_path.c_str(), "rb");
     // Initial checks/metadata
     auto magic = load_bytes<std::array<char, 4>>(file, 0);
-    internal_verify(magic == std::array<char, 4>{0x7F, 'E', 'L', 'F'});
+    internal_verify(magic == (std::array<char, 4>{0x7F, 'E', 'L', 'F'}));
     bool is_64 = load_bytes<uint8_t>(file, 4) == 2;
     bool is_little_endian = load_bytes<uint8_t>(file, 5) == 1;
     internal_verify(load_bytes<uint8_t>(file, 6) == 1, "Unexpected ELF version");
@@ -81,5 +81,7 @@ static uintptr_t elf_get_module_image_base(const std::string& obj_path) {
         );
     }
 }
+
+#endif
 
 #endif
