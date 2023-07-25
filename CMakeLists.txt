@@ -255,11 +255,7 @@ target_include_directories(
 )
 
 # TODO
-target_compile_features(
-  cpptrace
-  PUBLIC
-  cxx_std_11
-)
+target_compile_features(cpptrace PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
 
 set_target_properties(
   cpptrace
