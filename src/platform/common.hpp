@@ -250,6 +250,7 @@ static_assert(n_digits(10) == 2, "n_digits utility producing the wrong result");
 static_assert(n_digits(11) == 2, "n_digits utility producing the wrong result");
 static_assert(n_digits(1024) == 4, "n_digits utility producing the wrong result");
 
+// TODO: Re-evaluate use of off_t
 template<typename T, typename std::enable_if<std::is_pod<T>::value, int>::type = 0>
 T load_bytes(FILE* obj_file, off_t offset) {
     T object;

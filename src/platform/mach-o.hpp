@@ -1,12 +1,12 @@
 #ifndef MACHO_HPP
 #define MACHO_HPP
 
+#include "common.hpp"
+
 #if IS_APPLE
 #include <cstdio>
 #include <cstring>
 #include <type_traits>
-
-#include "common.hpp"
 
 #include <mach-o/loader.h>
 #include <mach-o/swap.h>
