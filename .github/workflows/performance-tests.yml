@@ -40,7 +40,7 @@ jobs:
     - name: test
       working-directory: build
       run: |
-           ./speedtest | python3 ../ci/speedtest.py ${{matrix.config}}
+           ./speedtest | python3 ../ci/speedtest.py ${{matrix.compiler}} ${{matrix.config}}
   # TODO: For some reason this is slow on github's runner
   #performancetest-windows:
   #  runs-on: windows-2019
