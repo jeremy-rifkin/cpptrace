@@ -20,6 +20,9 @@ T elf_byteswap_if_needed(T value, bool elf_is_little) {
     }
 }
 
+// TODO: Address code duplication here. Do we actually have to care about 32-bit if the library is compiled as 64-bit?
+// I think probably not...
+
 // TODO: Re-evaluate use of off_t
 // I think we can rely on PT_PHDR https://stackoverflow.com/q/61568612/15675011...
 static uintptr_t elf_get_module_image_base_from_program_table(
