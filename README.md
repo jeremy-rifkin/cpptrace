@@ -62,7 +62,7 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 # optional: git checkout <HASH or TAG>
 mkdir cpptrace/build
 cd cpptrace/build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On
+cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j
 sudo make install
 ```
@@ -95,7 +95,7 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 # optional: git checkout <HASH or TAG>
 mkdir cpptrace/build
 cd cpptrace/build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On
+cmake .. -DCMAKE_BUILD_TYPE=Release
 msbuild cpptrace.sln
 msbuild INSTALL.vcxproj
 ```
@@ -113,7 +113,7 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 # optional: git checkout <HASH or TAG>
 mkdir cpptrace/build
 cd cpptrace/build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On -DCMAKE_INSTALL_PREFIX=$HOME/wherever
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/wherever
 make -j
 sudo make install
 ```

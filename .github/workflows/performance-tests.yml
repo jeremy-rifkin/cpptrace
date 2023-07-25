@@ -35,8 +35,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=${{matrix.std}} \
             ${{matrix.config}} \
             -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/include/backtrace.h \
-            -DCPPTRACE_BUILD_SPEEDTEST=On \
-            -DBUILD_SHARED_LIBS=On
+            -DCPPTRACE_BUILD_SPEEDTEST=On
            make -j
     - name: test
       working-directory: build
@@ -67,8 +66,7 @@ jobs:
   #          -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
   #          -DCMAKE_CXX_STANDARD=${{matrix.std}} `
   #          ${{matrix.config}} `
-  #          -DCPPTRACE_BUILD_SPEEDTEST=On `
-  #          -DBUILD_SHARED_LIBS=On
+  #          -DCPPTRACE_BUILD_SPEEDTEST=On
   #         msbuild .\cpptrace.sln
   #  - name: test
   #    working-directory: build

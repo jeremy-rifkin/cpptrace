@@ -19,7 +19,7 @@ include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
 
 file(GLOB_RECURSE sources src/*.cpp)
-add_library(cpptrace ${sources} include/cpptrace/cpptrace.hpp)
+add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
 
 target_include_directories(
   cpptrace
