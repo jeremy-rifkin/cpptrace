@@ -49,7 +49,8 @@ target_link_libraries(your_target cpptrace)
 
 It's as easy as that. Cpptrace will automatically configure itself for your system.
 
-Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug`.
+Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
+information.
 
 ![Screenshot](res/screenshot.png)
 
@@ -62,7 +63,7 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 # optional: git checkout <HASH or TAG>
 mkdir cpptrace/build
 cd cpptrace/build
-cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On
 make -j
 sudo make install
 ```
@@ -72,7 +73,8 @@ Using through cmake:
 find_package(cpptrace REQUIRED)
 target_link_libraries(<your target> cpptrace::cpptrace)
 ```
-Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug`.
+Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
+information.
 
 Or compile with `-lcpptrace`:
 
@@ -85,7 +87,9 @@ If you get an error along the lines of
 ```
 error while loading shared libraries: libcpptrace.so: cannot open shared object file: No such file or directory
 ```
-You may have to run `sudo /sbin/ldconfig` so the system finds libcpptrace.so (I had to do this on Ubuntu).
+You may have to run `sudo /sbin/ldconfig` to create any necessary links and update caches so the system can find
+libcpptrace.so (I had to do this on Ubuntu). Only when installing system-wide. Usually your package manger does this for
+you when installing new libraries.
 
 <details>
     <summary>System-wide install on windows</summary>
@@ -113,7 +117,7 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 # optional: git checkout <HASH or TAG>
 mkdir cpptrace/build
 cd cpptrace/build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/wherever
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On -DCMAKE_INSTALL_PREFIX=$HOME/wherever
 make -j
 sudo make install
 ```
