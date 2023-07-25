@@ -216,6 +216,50 @@ else()
   #message(STATUS "Manual demangling back-end specified")
 endif()
 
+# =============================================== Now define the library ===============================================
+
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+file(GLOB_RECURSE sources src/*.cpp)
+
+# TODO: This feels like a hack.
+if(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
+  add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
+else()
+  add_library(cpptrace ${sources} include/cpptrace/cpptrace.hpp)
+endif()
+
+target_include_directories(
+  cpptrace
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/>
+)
+
+# TODO
+target_compile_features(
+  cpptrace
+  PUBLIC
+  cxx_std_11
+)
+
+set_target_properties(
+  cpptrace
+  PROPERTIES
+  CXX_STANDARD_REQUIRED TRUE
+  CXX_EXTENSIONS OFF
+)
+
+target_compile_options(
+  cpptrace
+  PRIVATE
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wshadow -Wundef>
+  $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wnonnull-compare>
+  $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
+)
+
 # =============================================== Apply options to build ===============================================
 
 function(check_backtrace_error)
@@ -332,55 +376,6 @@ if(NOT "${CPPTRACE_HARD_MAX_FRAMES}" STREQUAL "")
 endif()
 
 # ======================================================================================================================
-
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-file(GLOB_RECURSE sources src/*.cpp)
-
-# TODO: This feels like a hack.
-if(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
-  add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
-else()
-  add_library(cpptrace ${sources} include/cpptrace/cpptrace.hpp)
-endif()
-
-target_include_directories(
-  cpptrace
-  PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/>
-)
-
-# TODO
-target_compile_features(
-  cpptrace
-  PUBLIC
-  cxx_std_11
-)
-
-set_target_properties(
-  cpptrace
-  PROPERTIES
-  CXX_STANDARD_REQUIRED TRUE
-  CXX_EXTENSIONS OFF
-)
-
-target_compile_options(
-  cpptrace
-  PRIVATE
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wshadow -Wundef>
-  $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wnonnull-compare>
-  $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
-)
-
-#target_link_libraries(
-#  cpptrace
-#  PRIVATE
-#  #$<$<CXX_COMPILER_ID:MSVC>:dbghelp>
-#  #${CMAKE_DL_LIBS}
-#)
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
   message(FATAL_ERROR "Setting CMAKE_BUILD_TYPE is required")
