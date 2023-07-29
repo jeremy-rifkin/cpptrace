@@ -4,10 +4,6 @@ on:
   push:
   pull_request:
 
-# Awful hackery: github.event.workflow_run.head_sha is defined on push, github.event.pull_request.base.sha is defined on
-# pull
-
-
 jobs:
   test-linux-fetchcontent:
     runs-on: ubuntu-22.04
