@@ -41,6 +41,21 @@ jobs:
            cmake .. -DCMAKE_BUILD_TYPE=Debug
            make
            ./main
+  test-linux-add_subdirectory:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: |
+           cd ..
+           cp -rv cpptrace/test/add_subdirectory-integration .
+           cp -rv cpptrace add_subdirectory-integration
+           mkdir add_subdirectory-integration/build
+           cd add_subdirectory-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           make
+           ./main
+
   test-macos-fetchcontent:
     runs-on: macos-13
     steps:
@@ -73,6 +88,21 @@ jobs:
            cmake .. -DCMAKE_BUILD_TYPE=Debug
            make
            ./main
+  test-macos-add_subdirectory:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: test
+      run: |
+           cd ..
+           cp -rv cpptrace/test/add_subdirectory-integration .
+           cp -rv cpptrace add_subdirectory-integration
+           mkdir add_subdirectory-integration/build
+           cd add_subdirectory-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           make
+           ./main
+
   test-mingw-fetchcontent:
     runs-on: windows-2019
     steps:
@@ -85,6 +115,20 @@ jobs:
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
+           make
+           .\main.exe
+  test-mingw-add_subdirectory:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: test
+      run: |
+           cd ..
+           cp -Recurse cpptrace/test/add_subdirectory-integration .
+           cp -Recurse cpptrace add_subdirectory-integration
+           mkdir add_subdirectory-integration/build
+           cd add_subdirectory-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
            make
            .\main.exe
   test-windows-fetchcontent:
@@ -101,5 +145,21 @@ jobs:
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag"
+           msbuild demo_project.sln
+           .\Debug\main.exe
+  test-windows-add_subdirectory:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.10.0
+    - name: test
+      run: |
+           cd ..
+           cp -Recurse cpptrace/test/add_subdirectory-integration .
+           cp -Recurse cpptrace add_subdirectory-integration
+           mkdir add_subdirectory-integration/build
+           cd add_subdirectory-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug
            msbuild demo_project.sln
            .\Debug\main.exe
