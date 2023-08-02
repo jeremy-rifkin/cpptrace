@@ -30,7 +30,7 @@ struct dlframe {
 
 #if IS_LINUX || IS_APPLE
 #if !IS_APPLE
-uintptr_t get_module_image_base(const std::string& obj_path) {
+static uintptr_t get_module_image_base(const std::string& obj_path) {
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
     static std::unordered_map<std::string, uintptr_t> cache;
@@ -46,7 +46,7 @@ uintptr_t get_module_image_base(const std::string& obj_path) {
     }
 }
 #else
-uintptr_t get_module_image_base(const std::string& obj_path) {
+static uintptr_t get_module_image_base(const std::string& obj_path) {
     // We have to parse the Mach-O to find the offset of the text section.....
     // I don't know how addresses are handled if there is more than one __TEXT load command. I'm assuming for
     // now that there is only one, and I'm using only the first section entry within that load command.
@@ -66,7 +66,7 @@ uintptr_t get_module_image_base(const std::string& obj_path) {
 }
 #endif
 // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-std::vector<dlframe> get_frames_object_info(const std::vector<void*>& addrs) {
+static std::vector<dlframe> get_frames_object_info(const std::vector<void*>& addrs) {
     // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
     std::vector<dlframe> frames;
     frames.reserve(addrs.size());
@@ -88,7 +88,7 @@ std::vector<dlframe> get_frames_object_info(const std::vector<void*>& addrs) {
     return frames;
 }
 #else
-std::string get_module_name(HMODULE handle) {
+static std::string get_module_name(HMODULE handle) {
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
     static std::unordered_map<HMODULE, std::string> cache;
@@ -108,7 +108,7 @@ std::string get_module_name(HMODULE handle) {
         return it->second;
     }
 }
-uintptr_t get_module_image_base(const std::string& obj_path) {
+static uintptr_t get_module_image_base(const std::string& obj_path) {
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
     static std::unordered_map<std::string, uintptr_t> cache;
@@ -124,7 +124,7 @@ uintptr_t get_module_image_base(const std::string& obj_path) {
     }
 }
 // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-std::vector<dlframe> get_frames_object_info(const std::vector<void*>& addrs) {
+static std::vector<dlframe> get_frames_object_info(const std::vector<void*>& addrs) {
     // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
     std::vector<dlframe> frames;
     frames.reserve(addrs.size());
