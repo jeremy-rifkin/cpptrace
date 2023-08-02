@@ -15,7 +15,7 @@
 #include "platform/common.hpp"
 
 namespace cpptrace {
-    CPPTRACE_FORCE_NO_INLINE
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     std::vector<stacktrace_frame> generate_trace(std::uint32_t skip) {
         std::vector<void*> frames = detail::capture_frames(skip + 1);
         detail::symbolizer symbolizer;
@@ -35,7 +35,7 @@ namespace cpptrace {
 #include "demangle/demangle.hpp"
 
 namespace cpptrace {
-    CPPTRACE_FORCE_NO_INLINE
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     std::vector<stacktrace_frame> generate_trace(std::uint32_t skip) {
         auto trace = detail::generate_trace(skip + 1);
         for(auto& entry : trace) {
@@ -57,6 +57,7 @@ namespace cpptrace {
 #define CYAN    ESC "36m"
 
 namespace cpptrace {
+    CPPTRACE_API
     void print_trace(std::uint32_t skip) {
         enable_virtual_terminal_processing_if_needed();
         std::cerr<<"Stack trace (most recent call first):"<<std::endl;
