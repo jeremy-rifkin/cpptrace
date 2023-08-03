@@ -6,8 +6,10 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <memory>
 #include <mutex>
+#include <type_traits>
 #include <vector>
 
 #include <libdwarf.h>
@@ -252,95 +254,177 @@ namespace cpptrace {
             return false;
         }
 
-        void walk_die(Dwarf_Debug dbg, Dwarf_Die die, Dwarf_Addr pc, Dwarf_Half dwversion, bool walk_siblings, stacktrace_frame& frame) {
-            int ret;
-            Dwarf_Half tag = 0;
-            dwarf_tag(die, &tag, nullptr);
-            if(dump_dwarf) {
-                char* name;
-                ret = dwarf_diename(die, &name, nullptr);
-                if(ret == DW_DLV_NO_ENTRY) {
-                    name = nullptr;
-                }
-                const char* tag_name;
-                dwarf_get_TAG_name(tag, &tag_name);
-                fprintf(
-                    stderr,
-                    "-------------> %d %s %s\n",
-                    dwversion,
-                    tag_name,
-                    name ? name : ""
-                );
-                dwarf_dealloc(dbg, name, DW_DLA_STRING);
-            }
+        static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
+        static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
 
-            if(!pc_in_die(dbg, die, dwversion, pc)) {
-                if(dump_dwarf) {
-                    fprintf(stderr, "pc not in die\n");
+        struct die_object {
+            Dwarf_Debug dbg = nullptr;
+            Dwarf_Die die = nullptr;
+            die_object(Dwarf_Debug dbg, Dwarf_Die die) : dbg(dbg), die(die) {}
+            ~die_object() {
+                if(die) {
+                    dwarf_dealloc(dbg, die, DW_DLA_DIE);
                 }
-            } else {
-                if(dump_dwarf) {
-                    fprintf(stderr, "pc in die <-----------------------------------\n");
-                }
-                if(tag == DW_TAG_subprogram) {
-                    Dwarf_Attribute attr;
-                    ret = dwarf_attr(die, DW_AT_linkage_name, &attr, nullptr);
-                    if(ret != DW_DLV_OK) {
-                        ret = dwarf_attr(die, DW_AT_MIPS_linkage_name, &attr, nullptr);
-                    }
-                    if(ret == DW_DLV_OK) {
-                        char* linkage_name;
-                        if(dwarf_formstring(attr, &linkage_name, nullptr) == DW_DLV_OK) {
-                            frame.symbol = linkage_name;
-                            if(dump_dwarf) {
-                                fprintf(stderr, "name: %s\n", linkage_name);
-                            }
-                            dwarf_dealloc(dbg, linkage_name, DW_DLA_STRING);
-                        }
-                        dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
-                    }
-                }
-                Dwarf_Die child = 0;
-                ret = dwarf_child(
+            }
+            die_object(const die_object&) = delete;
+            die_object& operator=(const die_object&) = delete;
+            die_object(die_object&& other) : dbg(other.dbg), die(other.die) {
+                other.die = nullptr;
+            }
+            die_object& operator=(die_object&& other) {
+                dbg = other.dbg;
+                die = other.die;
+                other.die = nullptr;
+                return *this;
+            }
+            die_object get_child() const {
+                Dwarf_Die child = nullptr;
+                int ret = dwarf_child(
                     die,
                     &child,
                     nullptr
                 );
                 if(ret == DW_DLV_OK) {
-                    walk_die(dbg, child, pc, dwversion, true, frame);
+                    return die_object(dbg, child);
+                } else if(ret == DW_DLV_NO_ENTRY) {
+                    return die_object(dbg, 0);
                 } else {
-                    if(dump_dwarf) {
-                        fprintf(stderr, "(no child)\n");
-                    }
+                    fprintf(stderr, "Error\n");
+                    exit(1);
                 }
             }
-
-            if(walk_siblings) {
-                while(true) {
-                    ret = dwarf_siblingof_b(dbg, die, true, &die, nullptr);
-                    if(ret == DW_DLV_NO_ENTRY) {
-                        if(dump_dwarf) {
-                            fprintf(stderr, "End walk_die\n");
-                        }
-                        return;
-                    }
-                    if(ret != DW_DLV_OK) {
-                        fprintf(stderr, "Error\n");
-                        return;
-                    }
-                    walk_die(dbg, die, pc, dwversion, false, frame);
+            die_object get_sibling() const {
+                Dwarf_Die sibling = 0;
+                int ret = dwarf_siblingof_b(dbg, die, true, &sibling, nullptr);
+                if(ret == DW_DLV_OK) {
+                    return die_object(dbg, sibling);
+                } else if(ret == DW_DLV_NO_ENTRY) {
+                    return die_object(dbg, 0);
+                } else {
+                    fprintf(stderr, "Error\n");
+                    exit(1);
                 }
+            }
+            operator bool() const {
+                return die != nullptr;
+            }
+            Dwarf_Die get() const {
+                return die;
+            }
+        };
+
+        void walk_die_list(
+            Dwarf_Debug dbg,
+            const die_object& die,
+            std::function<void(Dwarf_Debug, const die_object&)> fn
+        ) {
+            fn(dbg, die);
+            die_object current = die.get_sibling();
+            while(true) {
+                if(!current) {
+                    if(dump_dwarf) {
+                        fprintf(stderr, "End walk_die_list\n");
+                    }
+                    return;
+                }
+                fn(dbg, current);
+                current = current.get_sibling();
             }
         }
 
-        void retrieve_line_info(Dwarf_Debug dbg, Dwarf_Die die, Dwarf_Addr pc, Dwarf_Half dwversion, stacktrace_frame& frame) {
+        void traverse_die_trie(
+            Dwarf_Debug dbg,
+            const die_object& die,
+            std::function<void(Dwarf_Debug, const die_object&)> fn
+        ) {
+            walk_die_list(
+                dbg,
+                die,
+                [&fn](Dwarf_Debug dbg, const die_object& die) {
+                    auto child = die.get_child();
+                    if(child) {
+                        traverse_die_trie(dbg, child, fn);
+                    }
+                    fn(dbg, die);
+                }
+            );
+        }
+
+        void retrieve_symbol(Dwarf_Debug dbg, const die_object& die, Dwarf_Addr pc, Dwarf_Half dwversion, stacktrace_frame& frame) {
+            walk_die_list(
+                dbg,
+                die,
+                [pc, dwversion, &frame](Dwarf_Debug dbg, const die_object& die) {
+                    int ret;
+                    if(dump_dwarf) {
+                        Dwarf_Half tag = 0;
+                        dwarf_tag(die.get(), &tag, nullptr);
+                        char* name;
+                        ret = dwarf_diename(die.get(), &name, nullptr);
+                        if(ret == DW_DLV_NO_ENTRY) {
+                            name = nullptr;
+                        }
+                        const char* tag_name;
+                        dwarf_get_TAG_name(tag, &tag_name);
+                        fprintf(
+                            stderr,
+                            "-------------> %d %s %s\n",
+                            dwversion,
+                            tag_name,
+                            name ? name : ""
+                        );
+                        dwarf_dealloc(dbg, name, DW_DLA_STRING);
+                    }
+
+                    if(!pc_in_die(dbg, die.get(), dwversion, pc)) {
+                        if(dump_dwarf) {
+                            fprintf(stderr, "pc not in die\n");
+                        }
+                    } else {
+                        if(dump_dwarf) {
+                            fprintf(stderr, "pc in die <-----------------------------------\n");
+                        }
+                        Dwarf_Half tag = 0;
+                        dwarf_tag(die.get(), &tag, nullptr);
+                        if(tag == DW_TAG_subprogram) {
+                            Dwarf_Attribute attr;
+                            ret = dwarf_attr(die.get(), DW_AT_linkage_name, &attr, nullptr);
+                            if(ret != DW_DLV_OK) {
+                                ret = dwarf_attr(die.get(), DW_AT_MIPS_linkage_name, &attr, nullptr);
+                            }
+                            if(ret == DW_DLV_OK) {
+                                char* linkage_name;
+                                if(dwarf_formstring(attr, &linkage_name, nullptr) == DW_DLV_OK) {
+                                    frame.symbol = linkage_name;
+                                    if(dump_dwarf) {
+                                        fprintf(stderr, "name: %s\n", linkage_name);
+                                    }
+                                    dwarf_dealloc(dbg, linkage_name, DW_DLA_STRING);
+                                }
+                                dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+                            }
+                        }
+                        auto child = die.get_child();
+                        if(child) {
+                            retrieve_symbol(dbg, child, pc, dwversion, frame);
+                        } else {
+                            if(dump_dwarf) {
+                                fprintf(stderr, "(no child)\n");
+                            }
+                        }
+                    }
+                }
+            );
+        }
+
+        void retrieve_line_info(Dwarf_Debug dbg, const die_object& die, Dwarf_Addr pc, Dwarf_Half dwversion, stacktrace_frame& frame) {
             Dwarf_Unsigned version;
             Dwarf_Small table_count;
             Dwarf_Line_Context ctxt;
             Dwarf_Bool is_found = false;
             (void)dwversion;
             int ret = dwarf_srclines_b(
-                die,
+                die.get(),
                 &version,
                 &table_count,
                 &ctxt,
@@ -398,35 +482,44 @@ namespace cpptrace {
         }
 
         void walk_compilation_units(Dwarf_Debug dbg, Dwarf_Addr pc, stacktrace_frame& frame) {
-            // 0 passed to the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d to fetch the cu
-            // die
-            Dwarf_Die cu_die = 0;
-            while(true) {
-                Dwarf_Die new_die = 0;
-                int ret = dwarf_siblingof_b(dbg, cu_die, true, &new_die, nullptr);
-                dwarf_dealloc(dbg, cu_die, DW_DLA_DIE);
-                cu_die = new_die;
-                if(ret == DW_DLV_NO_ENTRY) {
-                    if(dump_dwarf) {
-                        fprintf(stderr, "End walk_compilation_units\n");
-                    }
-                    return;
+            // 0 passed as the dieto the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d to
+            // fetch the cu die
+            die_object cu_die(dbg, nullptr);
+            cu_die = cu_die.get_sibling();
+            if(!cu_die) {
+                if(dump_dwarf) {
+                    fprintf(stderr, "End walk_compilation_units\n");
                 }
-                if(ret != DW_DLV_OK) {
-                    fprintf(stderr, "Error\n");
-                    return;
-                }
-                Dwarf_Half offset_size = 0;
-                Dwarf_Half dwversion = 0;
-                dwarf_get_version_of_die(cu_die, &dwversion, &offset_size);
-                walk_die(dbg, cu_die, pc, dwversion, false, frame);
-                if(pc_in_die(dbg, cu_die, dwversion, pc)) {
-                    retrieve_line_info(dbg, cu_die, pc, dwversion, frame);
-                }
+                return;
             }
+            walk_die_list(
+                dbg,
+                cu_die,
+                [&frame, pc] (Dwarf_Debug dbg, const die_object& cu_die) {
+                    Dwarf_Half offset_size = 0;
+                    Dwarf_Half dwversion = 0;
+                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    /*auto child = cu_die.get_child();
+                    if(child) {
+                        traverse_die_trie(
+                            dbg,
+                            child,
+                            [&frame, pc, dwversion] (Dwarf_Debug dbg, const die_object& cu_die) {
+
+                            }
+                        );
+                    }*/
+                    //walk_die(dbg, cu_die, pc, dwversion, false, frame);
+                    if(pc_in_die(dbg, cu_die.get(), dwversion, pc)) {
+                        retrieve_line_info(dbg, cu_die, pc, dwversion, frame);
+                        retrieve_symbol(dbg, cu_die, pc, dwversion, frame);
+                    }
+                }
+            );
         }
 
         void walk_dbg(Dwarf_Debug dbg, Dwarf_Addr pc, stacktrace_frame& frame) {
+            // libdwarf keeps track of where it is in the file, dwarf_next_cu_header_d is statefull
             Dwarf_Unsigned next_cu_header;
             Dwarf_Half header_cu_type;
             while(true) {
