@@ -199,10 +199,25 @@ endif()
 # else()
 #   #message(STATUS "MANUAL CONFIG SPECIFIED")
 # endif()
-if(UNIX OR MINGW)
-  set(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF On)
-else()
-  set(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP On)
+
+if(
+  NOT (
+    CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
+    CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
+    CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
+    CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
+    CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
+    CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
+    CPPTRACE_GET_SYMBOLS_WITH_NOTHING
+  )
+)
+  if(UNIX OR MINGW)
+    message(STATUS "Cpptrace auto config: Using libdwarf for symbols")
+    set(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF On)
+  else()
+    message(STATUS "Cpptrace auto config: Using dbghelp for symbols")
+    set(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP On)
+  endif()
 endif()
 
 # =============================================== Autoconfig demangling ===============================================

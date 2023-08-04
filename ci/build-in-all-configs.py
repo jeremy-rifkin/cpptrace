@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from colorama import Fore, Back, Style
+from pathlib import Path
 
 from util import *
 
@@ -30,14 +31,14 @@ def run_command(*args: List[str]):
         print(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL}")
         return True
 
+def touch_sources():
+    for root, dirs, files in os.walk("../src"):
+        for filename in files:
+            Path(os.path.join(root, filename)).touch()
+
 def build(matrix):
+    touch_sources()
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build with config {', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
-
-    if os.path.exists("build"):
-        shutil.rmtree("build")
-
-    os.mkdir("build")
-    os.chdir("build")
 
     if platform.system() != "Windows":
         succeeded = run_command(
@@ -52,7 +53,7 @@ def build(matrix):
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h"
         )
         if succeeded:
-            run_command("make", "-j")
+            run_command("make", "-j", "VERBOSE=1")
     else:
         args = [
             "cmake",
@@ -69,21 +70,15 @@ def build(matrix):
         succeeded = run_command(*args)
         if succeeded:
             if matrix["compiler"] == "g++":
-                run_command("make", "-j")
+                run_command("make", "-j", "VERBOSE=1")
             else:
                 run_command("msbuild", "cpptrace.sln")
 
-    os.chdir("..")
     print()
 
 def build_full_or_auto(matrix):
+    touch_sources()
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build with config {'<auto>' if matrix['config'] == '' else ', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
-
-    if os.path.exists("build"):
-        shutil.rmtree("build")
-
-    os.mkdir("build")
-    os.chdir("build")
 
     if platform.system() != "Windows":
         args = [
@@ -118,7 +113,6 @@ def build_full_or_auto(matrix):
             else:
                 run_command("msbuild", "cpptrace.sln")
 
-    os.chdir("..")
     print()
 
 def main():
@@ -126,6 +120,12 @@ def main():
         prog="Build in all configs",
         description="Try building the library in all possible configurations for the current host"
     )
+
+    if os.path.exists("build"):
+        shutil.rmtree("build")
+
+    os.mkdir("build")
+    os.chdir("build")
 
     if platform.system() == "Linux":
         matrix = {
@@ -270,6 +270,8 @@ def main():
             }
         ]
         run_matrix(matrix, exclude, build_full_or_auto)
+
+    os.chdir("..")
 
     global failed
     if failed:

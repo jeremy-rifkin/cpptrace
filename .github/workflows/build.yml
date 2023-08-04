@@ -14,7 +14,7 @@ jobs:
     - name: build
       run: |
            pip3 install colorama
-           #python3 ci/build-in-all-configs.py
+           python3 ci/build-in-all-configs.py
   build-macos:
     runs-on: macos-13
     steps:
@@ -22,7 +22,7 @@ jobs:
     - name: build
       run: |
            pip3 install colorama
-           #python3 ci/build-in-all-configs.py
+           python3 ci/build-in-all-configs.py
   build-windows-msvc:
     runs-on: windows-2019
     steps:
@@ -32,7 +32,7 @@ jobs:
     - name: build
       run: |
            pip3 install colorama
-           #python3 ci/build-in-all-configs.py --msvc-only
+           python3 ci/build-in-all-configs.py --msvc-only
   build-windows-clang:
     runs-on: windows-2019
     steps:
@@ -42,7 +42,7 @@ jobs:
     - name: build
       run: |
            pip3 install colorama
-           #python3 ci/build-in-all-configs.py --clang-only
+           python3 ci/build-in-all-configs.py --clang-only
   build-windows-mingw:
     runs-on: windows-2019
     steps:
@@ -52,4 +52,4 @@ jobs:
     - name: build
       run: |
            pip3 install colorama
-           #python3 ci/build-in-all-configs.py --mingw-only
+           python3 ci/build-in-all-configs.py --mingw-only
