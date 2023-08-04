@@ -4,6 +4,7 @@
 #include "symbols.hpp"
 #include "../platform/program_name.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <functional>
@@ -311,6 +312,21 @@ namespace cpptrace {
             Dwarf_Die get() const {
                 return die;
             }
+            std::string get_name() const {
+                char* name;
+                int ret = dwarf_diename(die, &name, nullptr);
+                std::string str;
+                if(ret != DW_DLV_NO_ENTRY) {
+                    str = name;
+                    dwarf_dealloc(dbg, name, DW_DLA_STRING);
+                }
+                return name;
+            }
+            Dwarf_Half get_tag() const {
+                Dwarf_Half tag = 0;
+                dwarf_tag(die, &tag, nullptr);
+                return tag;
+            }
         };
 
         void walk_die_list(
@@ -332,7 +348,7 @@ namespace cpptrace {
             }
         }
 
-        void traverse_die_trie(
+        void walk_die_list_recursive(
             Dwarf_Debug dbg,
             const die_object& die,
             std::function<void(Dwarf_Debug, const die_object&)> fn
@@ -343,37 +359,179 @@ namespace cpptrace {
                 [&fn](Dwarf_Debug dbg, const die_object& die) {
                     auto child = die.get_child();
                     if(child) {
-                        traverse_die_trie(dbg, child, fn);
+                        walk_die_list_recursive(dbg, child, fn);
                     }
                     fn(dbg, die);
                 }
             );
         }
 
+        die_object get_type_die(Dwarf_Debug dbg, const die_object& die) {
+            Dwarf_Off type_offset;
+            Dwarf_Bool is_info;
+            int ret = dwarf_dietype_offset(die.get(), &type_offset, &is_info, nullptr);
+            if(ret == DW_DLV_OK) {
+                Dwarf_Die type_die;
+                ret = dwarf_offdie_b(
+                    dbg,
+                    type_offset,
+                    is_info,
+                    &type_die,
+                    nullptr
+                );
+                if(ret == DW_DLV_OK) {
+                    return die_object(dbg, type_die);
+                } else {
+                    fprintf(stderr, "Error\n");
+                    exit(1);
+                }
+            } else {
+                fprintf(stderr, "no type offset??\n");
+            }
+            return die_object(dbg, nullptr);
+        }
+
+        bool has_type(Dwarf_Debug dbg, const die_object& die) {
+            Dwarf_Attribute attr;
+            int ret = dwarf_attr(die.get(), DW_AT_type, &attr, nullptr);
+            if(ret == DW_DLV_NO_ENTRY) {
+                return false;
+            } else if(ret == DW_DLV_OK) {
+                dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+                return true;
+            } else {
+                fprintf(stderr, "Error\n");
+                exit(1);
+            }
+        }
+
+        struct type_result {
+            std::string base;
+            std::string extent;
+
+            std::string get_type() {
+                return base + extent;
+            }
+        };
+
+        // TODO: ::*, namespace lookup, arrays, volatile, restrict, better pointer handling
+        type_result resolve_type(Dwarf_Debug dbg, const die_object& die, std::string quantifiers = "") {
+            switch(auto tag = die.get_tag()) {
+                case DW_TAG_base_type:
+                case DW_TAG_class_type:
+                    return {(quantifiers.empty() ? "" : quantifiers + " ") + die.get_name(), ""};
+                case DW_TAG_typedef:
+                    return resolve_type(dbg, get_type_die(dbg, die));
+                case DW_TAG_pointer_type:
+                    {
+                        auto type = resolve_type(dbg, get_type_die(dbg, die));
+                        if(type.extent.empty()) {
+                            return {type.base + "*", ""};
+                        } else {
+                            auto q = quantifiers.empty() ? "" : " " + quantifiers;
+                            return {type.base + "(*" + q + ")" + type.extent, ""};
+                        }
+                    }
+                case DW_TAG_reference_type:
+                    {
+                        auto type = resolve_type(dbg, get_type_die(dbg, die));
+                        if(type.extent.empty()) {
+                            return {type.base + "&", ""};
+                        } else {
+                            auto q = quantifiers.empty() ? "" : " " + quantifiers;
+                            return {type.base + "(&" + q + ")" + type.extent, ""};
+                        }
+                    }
+                case DW_TAG_rvalue_reference_type:
+                    {
+                        auto type = resolve_type(dbg, get_type_die(dbg, die));
+                        if(type.extent.empty()) {
+                            return {type.base + "&&", ""};
+                        } else {
+                            auto q = quantifiers.empty() ? "" : " " + quantifiers;
+                            return {type.base + "(&&" + q + ")" + type.extent, ""};
+                        }
+                    }
+                case DW_TAG_subroutine_type:
+                    {
+                        // If there's no DW_AT_type then it's a void()
+                        if(!has_type(dbg, die)) {
+                            return {"void", "()"};
+                        }
+                        auto return_type = resolve_type(dbg, get_type_die(dbg, die));
+                        std::vector<std::string> params;
+                        walk_die_list(dbg, die.get_child(), [&params] (Dwarf_Debug dbg, const die_object& die) {
+                            params.push_back(resolve_type(dbg, die).get_type());
+                        });
+                        return {return_type.base, join(params, ", ") + return_type.extent};
+                    }
+                case DW_TAG_const_type:
+                    return resolve_type(dbg, get_type_die(dbg, die), "const");
+                default:
+                    {
+                        const char* tag_name = nullptr;
+                        dwarf_get_TAG_name(die.get_tag(), &tag_name);
+                        fprintf(stderr, "unknown tag %s\n", tag_name);
+                        exit(1);
+                    }
+            }
+            return {"<unknown>", "<unknown>"};
+        }
+
+        void retrieve_symbol_for_subprogram(Dwarf_Debug dbg, const die_object& die, Dwarf_Addr pc, Dwarf_Half dwversion, stacktrace_frame& frame) {
+            /*Dwarf_Attribute attr;
+            int ret = dwarf_attr(die.get(), DW_AT_linkage_name, &attr, nullptr);
+            if(ret != DW_DLV_OK) {
+                ret = dwarf_attr(die.get(), DW_AT_MIPS_linkage_name, &attr, nullptr);
+            }
+            if(ret == DW_DLV_OK) {
+                char* linkage_name;
+                if(dwarf_formstring(attr, &linkage_name, nullptr) == DW_DLV_OK) {
+                    frame.symbol = linkage_name;
+                    if(dump_dwarf) {
+                        fprintf(stderr, "name: %s\n", linkage_name);
+                    }
+                    dwarf_dealloc(dbg, linkage_name, DW_DLA_STRING);
+                }
+                dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+            }*/
+            assert(die.get_tag() == DW_TAG_subprogram);
+            std::string name = die.get_name();
+            std::vector<std::string> params;
+            auto child = die.get_child();
+            if(child) {
+                walk_die_list_recursive(
+                    dbg,
+                    child,
+                    [pc, dwversion, &frame, &params] (Dwarf_Debug dbg, const die_object& die) {
+                        if(die.get_tag() == DW_TAG_formal_parameter) {
+                            // TODO: Ignore DW_AT_artificial
+                            params.push_back(resolve_type(dbg, get_type_die(dbg, die)).get_type());
+                        }
+                    }
+                );
+            } else {
+                fprintf(stderr, "no child %s\n", name.c_str());
+            }
+            frame.symbol = name + "(" + join(params, ", ") + ")";
+        }
+
         void retrieve_symbol(Dwarf_Debug dbg, const die_object& die, Dwarf_Addr pc, Dwarf_Half dwversion, stacktrace_frame& frame) {
             walk_die_list(
                 dbg,
                 die,
-                [pc, dwversion, &frame](Dwarf_Debug dbg, const die_object& die) {
+                [pc, dwversion, &frame] (Dwarf_Debug dbg, const die_object& die) {
                     int ret;
                     if(dump_dwarf) {
-                        Dwarf_Half tag = 0;
-                        dwarf_tag(die.get(), &tag, nullptr);
-                        char* name;
-                        ret = dwarf_diename(die.get(), &name, nullptr);
-                        if(ret == DW_DLV_NO_ENTRY) {
-                            name = nullptr;
-                        }
                         const char* tag_name;
-                        dwarf_get_TAG_name(tag, &tag_name);
+                        dwarf_get_TAG_name(die.get_tag(), &tag_name);
                         fprintf(
                             stderr,
                             "-------------> %d %s %s\n",
                             dwversion,
                             tag_name,
-                            name ? name : ""
+                            die.get_name().c_str()
                         );
-                        dwarf_dealloc(dbg, name, DW_DLA_STRING);
                     }
 
                     if(!pc_in_die(dbg, die.get(), dwversion, pc)) {
@@ -384,25 +542,8 @@ namespace cpptrace {
                         if(dump_dwarf) {
                             fprintf(stderr, "pc in die <-----------------------------------\n");
                         }
-                        Dwarf_Half tag = 0;
-                        dwarf_tag(die.get(), &tag, nullptr);
-                        if(tag == DW_TAG_subprogram) {
-                            Dwarf_Attribute attr;
-                            ret = dwarf_attr(die.get(), DW_AT_linkage_name, &attr, nullptr);
-                            if(ret != DW_DLV_OK) {
-                                ret = dwarf_attr(die.get(), DW_AT_MIPS_linkage_name, &attr, nullptr);
-                            }
-                            if(ret == DW_DLV_OK) {
-                                char* linkage_name;
-                                if(dwarf_formstring(attr, &linkage_name, nullptr) == DW_DLV_OK) {
-                                    frame.symbol = linkage_name;
-                                    if(dump_dwarf) {
-                                        fprintf(stderr, "name: %s\n", linkage_name);
-                                    }
-                                    dwarf_dealloc(dbg, linkage_name, DW_DLA_STRING);
-                                }
-                                dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
-                            }
+                        if(die.get_tag() == DW_TAG_subprogram) {
+                            retrieve_symbol_for_subprogram(dbg, die, pc, dwversion, frame);
                         }
                         auto child = die.get_child();
                         if(child) {
@@ -501,7 +642,7 @@ namespace cpptrace {
                     dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
                     /*auto child = cu_die.get_child();
                     if(child) {
-                        traverse_die_trie(
+                        walk_die_list_recursive(
                             dbg,
                             child,
                             [&frame, pc, dwversion] (Dwarf_Debug dbg, const die_object& cu_die) {
@@ -572,6 +713,7 @@ namespace cpptrace {
             } else {
                 walk_dbg(dbg, pc, frame);
             }
+            dwarf_finish(dbg);
         }
 
         struct symbolizer::impl {
