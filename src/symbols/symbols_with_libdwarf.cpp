@@ -414,59 +414,191 @@ namespace cpptrace {
             }
         };
 
-        // TODO: ::*, namespace lookup, arrays, volatile, restrict, better pointer handling
-        type_result resolve_type(Dwarf_Debug dbg, const die_object& die, std::string quantifiers = "") {
+        // TODO: ::*, namespace lookup, arrays
+        // DW_TAG_namespace
+        const char* tag_to_keyword(Dwarf_Half tag) {
+            switch(tag) {
+                case DW_TAG_atomic_type:
+                    return "_Atomic";
+                case DW_TAG_const_type:
+                    return "const";
+                case DW_TAG_volatile_type:
+                    return "volatile";
+                case DW_TAG_restrict_type:
+                    return "restrict";
+                default:
+                    {
+                        const char* tag_name = nullptr;
+                        dwarf_get_TAG_name(tag, &tag_name);
+                        fprintf(stderr, "tag_to_keyword unknown tag %s\n", tag_name);
+                        exit(1);
+                    }
+            }
+        }
+        const char* tag_to_ptr_ref(Dwarf_Half tag) {
+            switch(tag) {
+                case DW_TAG_pointer_type:
+                    return "*";
+                case DW_TAG_ptr_to_member_type:
+                    return "::*"; // TODO
+                case DW_TAG_reference_type:
+                    return "&";
+                case DW_TAG_rvalue_reference_type:
+                    return "&&";
+                default:
+                    {
+                        const char* tag_name = nullptr;
+                        dwarf_get_TAG_name(tag, &tag_name);
+                        fprintf(stderr, "tag_to_ptr_ref unknown tag %s\n", tag_name);
+                        exit(1);
+                    }
+            }
+        }
+
+        std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build = "");
+
+        std::string get_array_extents(Dwarf_Debug dbg, const die_object& die) {
+            assert(die.get_tag() == DW_TAG_array_type);
+            std::string extents = "";
+            walk_die_list(dbg, die.get_child(), [&extents](Dwarf_Debug dbg, const die_object& subrange) {
+                if(subrange.get_tag() == DW_TAG_subrange_type) {
+                    Dwarf_Attribute attr = 0;
+                    int res = 0;
+                    res = dwarf_attr(subrange.get(), DW_AT_upper_bound, &attr, nullptr);
+                    if(res != DW_DLV_OK) {
+                        fprintf(stderr, "Error\n");
+                        return;
+                    }
+                    Dwarf_Half form;
+                    res = dwarf_whatform(attr, &form, nullptr);
+                    if(res != DW_DLV_OK) {
+                        fprintf(stderr, "Error\n");
+                        return;
+                    }
+                    //fprintf(stderr, "form: %d\n", form);
+                    Dwarf_Unsigned val;
+                    res = dwarf_formudata(attr, &val, nullptr);
+                    if(res != DW_DLV_OK) {
+                        fprintf(stderr, "Error\n");
+                        return;
+                    }
+                    extents += "[" + std::to_string(val + 1) + "]";
+                    dwarf_dealloc_attribute(attr);
+                } else {
+                    const char* tag_name = nullptr;
+                    dwarf_get_TAG_name(subrange.get_tag(), &tag_name);
+                    fprintf(stderr, "unknown tag %s\n", tag_name);
+                }
+            });
+            return extents;
+        }
+
+        std::string get_parameters(Dwarf_Debug dbg, const die_object& die) {
+            assert(die.get_tag() == DW_TAG_subroutine_type);
+            std::vector<std::string> params;
+            walk_die_list(dbg, die.get_child(), [&params](Dwarf_Debug dbg, const die_object& die) {
+                if(die.get_tag() == DW_TAG_formal_parameter) {
+                    // TODO: Ignore DW_AT_artificial
+                    params.push_back(resolve_type(dbg, get_type_die(dbg, die)));
+                }
+            });
+            return "(" + join(params, ", ") + ")";
+        }
+
+        std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build) {
             switch(auto tag = die.get_tag()) {
                 case DW_TAG_base_type:
                 case DW_TAG_class_type:
-                    return {(quantifiers.empty() ? "" : quantifiers + " ") + die.get_name(), ""};
+                case DW_TAG_structure_type:
+                case DW_TAG_union_type:
+                case DW_TAG_enumeration_type:
+                    return die.get_name() + build;
                 case DW_TAG_typedef:
                     return resolve_type(dbg, get_type_die(dbg, die));
+                //case DW_TAG_subroutine_type:
+                //    {
+                //        // If there's no DW_AT_type then it's a void
+                //        std::vector<std::string> params;
+                //        // TODO: Code duplication with retrieve_symbol_for_subprogram?
+                //        walk_die_list(dbg, die.get_child(), [&params] (Dwarf_Debug dbg, const die_object& die) {
+                //            if(die.get_tag() == DW_TAG_formal_parameter) {
+                //                // TODO: Ignore DW_AT_artificial
+                //                params.push_back(resolve_type(dbg, get_type_die(dbg, die)));
+                //            }
+                //        });
+                //        if(!has_type(dbg, die)) {
+                //            return "void" + (build.empty() ? "" : "(" + build + ")") + "(" + join(params, ", ") + ")";
+                //        } else {
+                //            // resolving return type, building on build
+                //            return resolve_type(
+                //                dbg, get_type_die(dbg, die),
+                //                (build.empty() ? "" : "(" + build + ")")
+                //                    + "("
+                //                    + join(params, ", ")
+                //                    + ")"
+                //            );
+                //        }
+                //    }
+                //case DW_TAG_array_type:
+                //    return resolve_type(dbg, get_type_die(dbg, die), (build.empty() ? "" : "(" + build + ")") + "[" + "x" + "]");
                 case DW_TAG_pointer_type:
-                    {
-                        auto type = resolve_type(dbg, get_type_die(dbg, die));
-                        if(type.extent.empty()) {
-                            return {type.base + "*", ""};
-                        } else {
-                            auto q = quantifiers.empty() ? "" : " " + quantifiers;
-                            return {type.base + "(*" + q + ")" + type.extent, ""};
-                        }
-                    }
                 case DW_TAG_reference_type:
-                    {
-                        auto type = resolve_type(dbg, get_type_die(dbg, die));
-                        if(type.extent.empty()) {
-                            return {type.base + "&", ""};
-                        } else {
-                            auto q = quantifiers.empty() ? "" : " " + quantifiers;
-                            return {type.base + "(&" + q + ")" + type.extent, ""};
-                        }
-                    }
                 case DW_TAG_rvalue_reference_type:
+                case DW_TAG_ptr_to_member_type:
                     {
-                        auto type = resolve_type(dbg, get_type_die(dbg, die));
-                        if(type.extent.empty()) {
-                            return {type.base + "&&", ""};
-                        } else {
-                            auto q = quantifiers.empty() ? "" : " " + quantifiers;
-                            return {type.base + "(&&" + q + ")" + type.extent, ""};
+                        const auto child = get_type_die(dbg, die); // AST child, rather than dwarf child
+                        const auto child_tag = child.get_tag();
+                        switch(child_tag) {
+                            case DW_TAG_subroutine_type:
+                                if(!has_type(dbg, child)) {
+                                    return "void(" + std::string(tag_to_ptr_ref(tag)) + build + ")" + get_parameters(dbg, child);
+                                } else {
+                                    return resolve_type(
+                                        dbg,
+                                        get_type_die(dbg, child),
+                                        "(" + std::string(tag_to_ptr_ref(tag)) + build + ")" + get_parameters(dbg, child)
+                                    );
+                                }
+                            case DW_TAG_array_type:
+                                return resolve_type(
+                                    dbg,
+                                    get_type_die(dbg, child),
+                                    "(" + std::string(tag_to_ptr_ref(tag)) + build + ")" + get_array_extents(dbg, child)
+                                );
+                            default:
+                                if(build.empty()) {
+                                    return resolve_type(dbg, get_type_die(dbg, die), tag_to_ptr_ref(tag));
+                                } else {
+                                    return resolve_type(
+                                        dbg,
+                                        get_type_die(dbg, die),
+                                        std::string(tag_to_ptr_ref(tag)) + " " + build
+                                    );
+                                }
                         }
-                    }
-                case DW_TAG_subroutine_type:
-                    {
-                        // If there's no DW_AT_type then it's a void()
-                        if(!has_type(dbg, die)) {
-                            return {"void", "()"};
-                        }
-                        auto return_type = resolve_type(dbg, get_type_die(dbg, die));
-                        std::vector<std::string> params;
-                        walk_die_list(dbg, die.get_child(), [&params] (Dwarf_Debug dbg, const die_object& die) {
-                            params.push_back(resolve_type(dbg, die).get_type());
-                        });
-                        return {return_type.base, join(params, ", ") + return_type.extent};
                     }
                 case DW_TAG_const_type:
-                    return resolve_type(dbg, get_type_die(dbg, die), "const");
+                case DW_TAG_atomic_type:
+                case DW_TAG_volatile_type:
+                case DW_TAG_restrict_type:
+                    {
+                        const auto child = get_type_die(dbg, die); // AST child, rather than dwarf child
+                        const auto child_tag = child.get_tag();
+                        switch(child_tag) {
+                            case DW_TAG_base_type:
+                            case DW_TAG_class_type:
+                            case DW_TAG_typedef:
+                                return std::string(tag_to_keyword(tag))
+                                        + " "
+                                        + resolve_type(dbg, get_type_die(dbg, die), build);
+                            default:
+                                return resolve_type(
+                                    dbg,
+                                    get_type_die(dbg, die),
+                                    std::string(tag_to_keyword(tag)) + " " + build
+                                );
+                        }
+                    }
                 default:
                     {
                         const char* tag_name = nullptr;
@@ -506,7 +638,7 @@ namespace cpptrace {
                     [pc, dwversion, &frame, &params] (Dwarf_Debug dbg, const die_object& die) {
                         if(die.get_tag() == DW_TAG_formal_parameter) {
                             // TODO: Ignore DW_AT_artificial
-                            params.push_back(resolve_type(dbg, get_type_die(dbg, die)).get_type());
+                            params.push_back(resolve_type(dbg, get_type_die(dbg, die)));
                         }
                     }
                 );
