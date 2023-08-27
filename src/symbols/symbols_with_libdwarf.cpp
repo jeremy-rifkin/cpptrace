@@ -610,24 +610,32 @@ namespace cpptrace {
             return {"<unknown>", "<unknown>"};
         }
 
+        bool is_mangled_name(const std::string& name) {
+            return name.find("_Z") || name.find("?h@@");
+        }
+
         void retrieve_symbol_for_subprogram(Dwarf_Debug dbg, const die_object& die, Dwarf_Addr pc, Dwarf_Half dwversion, stacktrace_frame& frame) {
-            /*Dwarf_Attribute attr;
+            assert(die.get_tag() == DW_TAG_subprogram);
+            Dwarf_Attribute attr;
             int ret = dwarf_attr(die.get(), DW_AT_linkage_name, &attr, nullptr);
             if(ret != DW_DLV_OK) {
                 ret = dwarf_attr(die.get(), DW_AT_MIPS_linkage_name, &attr, nullptr);
             }
             if(ret == DW_DLV_OK) {
-                char* linkage_name;
-                if(dwarf_formstring(attr, &linkage_name, nullptr) == DW_DLV_OK) {
-                    frame.symbol = linkage_name;
+                char* raw_linkage_name;
+                std::string linkage_name;
+                if(dwarf_formstring(attr, &raw_linkage_name, nullptr) == DW_DLV_OK) {
+                    linkage_name = raw_linkage_name;
                     if(dump_dwarf) {
-                        fprintf(stderr, "name: %s\n", linkage_name);
+                        fprintf(stderr, "name: %s\n", raw_linkage_name);
                     }
-                    dwarf_dealloc(dbg, linkage_name, DW_DLA_STRING);
+                    dwarf_dealloc(dbg, raw_linkage_name, DW_DLA_STRING);
                 }
                 dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
-            }*/
-            assert(die.get_tag() == DW_TAG_subprogram);
+                if(!linkage_name.empty()) {
+                    frame.symbol = linkage_name;
+                }
+            }
             std::string name = die.get_name();
             std::vector<std::string> params;
             auto child = die.get_child();
