@@ -263,13 +263,13 @@ namespace cpptrace {
             // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
             ///fprintf(stderr, ("addr2line -e " + executable + " -fCp " + addresses + "\n").c_str());
             #ifdef CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
-             FILE* p = popen(("addr2line -e " + executable + " -fCp " + addresses).c_str(), "r");
+             FILE* p = popen(("addr2line -e \"" + executable + "\" -fCp " + addresses).c_str(), "r");
             #else
              #ifndef CPPTRACE_ADDR2LINE_PATH
               #error "CPPTRACE_ADDR2LINE_PATH must be defined if CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH is not"
              #endif
              FILE* p = popen(
-                (CPPTRACE_ADDR2LINE_PATH " -e " + executable + " -fCp " + addresses).c_str(),
+                (CPPTRACE_ADDR2LINE_PATH " -e \"" + executable + "\" -fCp " + addresses).c_str(),
                 "r"
              );
             #endif
