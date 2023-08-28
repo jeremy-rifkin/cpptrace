@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <ios>
 #include <sstream>
 #include <string>
@@ -258,6 +259,12 @@ T load_bytes(FILE* obj_file, off_t offset) {
     internal_verify(fread(&object, sizeof(T), 1, obj_file) == 1, "fread error");
     return object;
 }
+
+class file_error : std::exception {
+    virtual const char* what() const noexcept {
+        return "Unable to read file";
+    }
+};
 
 #ifdef _MSC_VER
 #pragma warning(pop)

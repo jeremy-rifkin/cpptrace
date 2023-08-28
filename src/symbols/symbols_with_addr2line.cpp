@@ -317,10 +317,16 @@ namespace cpptrace {
                     // on macos when looking up the shared object containing `start`.
                     if(!entry.obj_path.empty()) {
                         ///fprintf(stderr, "%s %s\n", to_hex(entry.raw_address).c_str(), to_hex(entry.raw_address - entry.obj_base + base).c_str());
-                        entries[entry.obj_path].emplace_back(
-                            to_hex(entry.raw_address - entry.obj_base + get_module_image_base(entry)),
-                            trace[i]
-                        );
+                        try {
+                            entries[entry.obj_path].emplace_back(
+                                to_hex(entry.raw_address - entry.obj_base + get_module_image_base(entry)),
+                                trace[i]
+                            );
+                        } catch(file_error) {
+                            //
+                        } catch(...) {
+                            throw;
+                        }
                         // Set what is known for now, and resolutions from addr2line should overwrite
                         trace[i].filename = entry.obj_path;
                         trace[i].symbol = entry.symbol;

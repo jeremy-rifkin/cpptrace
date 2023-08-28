@@ -24,6 +24,9 @@ T pe_byteswap_if_needed(T value) {
 
 static uintptr_t pe_get_module_image_base(const std::string& obj_path) {
     FILE* file = fopen(obj_path.c_str(), "rb");
+    if(file == nullptr) {
+        throw file_error();
+    }
     auto magic = load_bytes<std::array<char, 2>>(file, 0);
     internal_verify(memcmp(magic.data(), "MZ", 2) == 0);
     DWORD e_lfanew = pe_byteswap_if_needed(load_bytes<DWORD>(file, 0x3c)); // dos header + 0x3c
