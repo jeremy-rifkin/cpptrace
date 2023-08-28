@@ -261,7 +261,7 @@ T load_bytes(FILE* obj_file, off_t offset) {
 }
 
 class file_error : std::exception {
-    virtual const char* what() const noexcept override {
+    const char* what() const noexcept override {
         return "Unable to read file";
     }
 };
