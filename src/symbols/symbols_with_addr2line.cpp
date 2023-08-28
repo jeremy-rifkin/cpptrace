@@ -322,7 +322,7 @@ namespace cpptrace {
                                 to_hex(entry.raw_address - entry.obj_base + get_module_image_base(entry)),
                                 trace[i]
                             );
-                        } catch(file_error) {
+                        } catch(file_error&) {
                             //
                         } catch(...) {
                             throw;
