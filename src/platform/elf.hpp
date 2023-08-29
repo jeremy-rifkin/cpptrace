@@ -53,6 +53,9 @@ static uintptr_t elf_get_module_image_base_from_program_table(
 
 static uintptr_t elf_get_module_image_base(const std::string& obj_path) {
     FILE* file = fopen(obj_path.c_str(), "rb");
+    if(file == nullptr) {
+        throw file_error();
+    }
     // Initial checks/metadata
     auto magic = load_bytes<std::array<char, 4>>(file, 0);
     internal_verify(magic == (std::array<char, 4>{0x7F, 'E', 'L', 'F'}));

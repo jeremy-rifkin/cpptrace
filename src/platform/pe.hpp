@@ -25,7 +25,8 @@ T pe_byteswap_if_needed(T value) {
 static uintptr_t pe_get_module_image_base(const std::string& obj_path) {
     FILE* file;
     errno_t ret = fopen_s(&file, obj_path.c_str(), "rb");
-    if(ret != 0) {
+    if(ret != 0 || file == nullptr) {
+        throw file_error();
         return 0;
     }
     auto magic = load_bytes<std::array<char, 2>>(file, 0);

@@ -136,6 +136,9 @@ static uintptr_t macho_get_text_vmaddr_fat(FILE* obj_file, bool should_swap) {
 
 static uintptr_t macho_get_text_vmaddr(const char* path) {
     FILE* obj_file = fopen(path, "rb");
+    if(obj_file == nullptr) {
+        throw file_error();
+    }
     uint32_t magic = load_bytes<uint32_t>(obj_file, 0);
     bool is_64 = is_magic_64(magic);
     bool should_swap = should_swap_bytes(magic);
