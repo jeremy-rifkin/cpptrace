@@ -41,9 +41,9 @@ def build(matrix):
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build with config {', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
-        shutil.rmtree("build")
+        shutil.rmtree("build", ignore_errors=True)
 
-    os.mkdir("build")
+    os.makedirs("build", exist_ok=True)
     os.chdir("build")
 
     if platform.system() != "Windows":
@@ -89,9 +89,9 @@ def build_full_or_auto(matrix):
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build with config {'<auto>' if matrix['config'] == '' else ', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
-        shutil.rmtree("build")
+        shutil.rmtree("build", ignore_errors=True)
 
-    os.mkdir("build")
+    os.makedirs("build", exist_ok=True)
     os.chdir("build")
 
     if platform.system() != "Windows":
@@ -263,6 +263,14 @@ def main():
             },
             {
                 "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+                "compiler": "clang++"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+                "compiler": "cl"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 "compiler": "clang++"
             },
             {

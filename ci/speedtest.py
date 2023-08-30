@@ -15,7 +15,7 @@ def main():
     clang = any(["clang" in arg for arg in sys.argv[1:]])
     # Somehow -gdwarf-4 clang is fast after a completely unrelated PR? Weird. Something to do with static linking...?
     # https://github.com/jeremy-rifkin/cpptrace/pull/22
-    expect_slow = dwarf4 and not clang
+    expect_slow = False
 
     threshold = 100 # ms
 
