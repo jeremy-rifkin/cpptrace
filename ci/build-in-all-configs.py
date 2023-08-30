@@ -31,14 +31,20 @@ def run_command(*args: List[str]):
         print(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL}")
         return True
 
-def touch_sources():
-    for root, dirs, files in os.walk("../src"):
-        for filename in files:
-            Path(os.path.join(root, filename)).touch()
+#def touch_sources():
+#    for root, dirs, files in os.walk("../src"):
+#        for filename in files:
+#            Path(os.path.join(root, filename)).touch()
 
 def build(matrix):
-    touch_sources()
+    #touch_sources()
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build with config {', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
+
+    if os.path.exists("build"):
+        shutil.rmtree("build")
+
+    os.mkdir("build")
+    os.chdir("build")
 
     if platform.system() != "Windows":
         succeeded = run_command(
@@ -50,7 +56,8 @@ def build(matrix):
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
-            "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h"
+            "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
+            "-DCPPTRACE_USE_SYSTEM_LIBDWARF=On"
         )
         if succeeded:
             run_command("make", "-j", "VERBOSE=1")
@@ -63,7 +70,8 @@ def build(matrix):
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
-            f"-D{matrix['demangle']}=On"
+            f"-D{matrix['demangle']}=On",
+            "-DCPPTRACE_USE_SYSTEM_LIBDWARF=On"
         ]
         if matrix["compiler"] == "g++":
             args.append("-GUnix Makefiles")
@@ -74,11 +82,18 @@ def build(matrix):
             else:
                 run_command("msbuild", "cpptrace.sln")
 
+    os.chdir("..")
     print()
 
 def build_full_or_auto(matrix):
-    touch_sources()
+    #touch_sources()
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build with config {'<auto>' if matrix['config'] == '' else ', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
+
+    if os.path.exists("build"):
+        shutil.rmtree("build")
+
+    os.mkdir("build")
+    os.chdir("build")
 
     if platform.system() != "Windows":
         args = [
@@ -88,6 +103,7 @@ def build_full_or_auto(matrix):
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
+            "-DCPPTRACE_USE_SYSTEM_LIBDWARF=On"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
@@ -100,7 +116,8 @@ def build_full_or_auto(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
-            f"-DCMAKE_CXX_STANDARD={matrix['std']}"
+            f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            "-DCPPTRACE_USE_SYSTEM_LIBDWARF=On"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
@@ -113,6 +130,7 @@ def build_full_or_auto(matrix):
             else:
                 run_command("msbuild", "cpptrace.sln")
 
+    os.chdir("..")
     print()
 
 def main():
@@ -120,12 +138,6 @@ def main():
         prog="Build in all configs",
         description="Try building the library in all possible configurations for the current host"
     )
-
-    if os.path.exists("build"):
-        shutil.rmtree("build")
-
-    os.mkdir("build")
-    os.chdir("build")
 
     if platform.system() == "Linux":
         matrix = {
@@ -270,8 +282,6 @@ def main():
             }
         ]
         run_matrix(matrix, exclude, build_full_or_auto)
-
-    os.chdir("..")
 
     global failed
     if failed:

@@ -11,6 +11,16 @@ jobs:
     - uses: actions/checkout@v2
     - name: dependencies
       run: sudo apt install gcc-10 g++-10 libgcc-10-dev
+    - name: dependencies
+      run: |
+           git clone https://github.com/jeremy-rifkin/libdwarf-code.git
+           cd libdwarf-code
+           git checkout f27d3c6fc417b6dc42f98e3ddf1bc2cf6489098e
+           mkdir build && cd build
+           cmake .. -DBUILD_SHARED_LIBS=On -DLIBDWARF_BUILD_SHARED=On
+           make -j
+           sudo make install VERBOSE=1
+           sudo find /usr -name "libdwarf.h"
     - name: build
       run: |
            pip3 install colorama
@@ -19,6 +29,15 @@ jobs:
     runs-on: macos-13
     steps:
     - uses: actions/checkout@v2
+    - name: dependencies
+      run: |
+           git clone https://github.com/jeremy-rifkin/libdwarf-code.git
+           cd libdwarf-code
+           git checkout f27d3c6fc417b6dc42f98e3ddf1bc2cf6489098e
+           mkdir build && cd build
+           cmake .. -DBUILD_SHARED_LIBS=On -DLIBDWARF_BUILD_SHARED=On
+           make -j
+           sudo make install
     - name: build
       run: |
            pip3 install colorama

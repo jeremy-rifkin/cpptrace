@@ -14,9 +14,6 @@ include(GNUInstallDirs)
 include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
 
-add_compile_options(-fsanitize=address)
-add_link_options(-fsanitize=address)
-
 if(CMAKE_GENERATOR STREQUAL "Ninja")
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     add_compile_options(-fdiagnostics-color=always)
@@ -55,6 +52,14 @@ option(CPPTRACE_BUILD_TEST_RDYNAMIC "" OFF)
 option(CPPTRACE_BUILD_SPEEDTEST "" OFF)
 option(CPPTRACE_BUILD_SPEEDTEST_DWARF4 "" OFF)
 option(CPPTRACE_BUILD_SPEEDTEST_DWARF5 "" OFF)
+
+option(CPPTRACE_USE_SYSTEM_LIBDWARF "" OFF)
+option(CPPTRACE_SANITIZER_BUILD "" OFF)
+
+if(CPPTRACE_SANITIZER_BUILD)
+  add_compile_options(-fsanitize=address)
+  add_link_options(-fsanitize=address)
+endif()
 
 if(NOT "${CPPTRACE_BACKTRACE_PATH}" STREQUAL "")
   # quotes used over <> because of a macro substitution issue where
@@ -366,14 +371,21 @@ endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
-  include(FetchContent)
-  FetchContent_Declare(
-    libdwarf
-    GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-    GIT_TAG f18d3dc9646bc40b12272136944331aba18123a7
-  )
-  FetchContent_MakeAvailable(libdwarf)
-  target_link_libraries(cpptrace PRIVATE libdwarf)
+  if(CPPTRACE_USE_SYSTEM_LIBDWARF)
+    #find_package(libdwarf REQUIRED)
+    # TODO: Temp hack
+    target_link_libraries(cpptrace PRIVATE libdwarf)
+    target_include_directories(cpptrace PRIVATE /usr/local/include/libdwarf)
+  else()
+    include(FetchContent)
+    FetchContent_Declare(
+      libdwarf
+      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+      GIT_TAG f27d3c6fc417b6dc42f98e3ddf1bc2cf6489098e
+    )
+    FetchContent_MakeAvailable(libdwarf)
+    target_link_libraries(cpptrace PRIVATE libdwarf)
+  endif()
   if(UNIX)
     target_link_libraries(cpptrace PRIVATE dl)
   endif()
