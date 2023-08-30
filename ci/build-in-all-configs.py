@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from colorama import Fore, Back, Style
+from pathlib import Path
 
 from util import *
 
@@ -30,13 +31,19 @@ def run_command(*args: List[str]):
         print(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL}")
         return True
 
+#def touch_sources():
+#    for root, dirs, files in os.walk("../src"):
+#        for filename in files:
+#            Path(os.path.join(root, filename)).touch()
+
 def build(matrix):
+    #touch_sources()
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build with config {', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
-        shutil.rmtree("build")
+        shutil.rmtree("build", ignore_errors=True)
 
-    os.mkdir("build")
+    os.makedirs("build", exist_ok=True)
     os.chdir("build")
 
     if platform.system() != "Windows":
@@ -49,10 +56,11 @@ def build(matrix):
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
-            "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h"
+            "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
+            "-DCPPTRACE_USE_SYSTEM_LIBDWARF=On"
         )
         if succeeded:
-            run_command("make", "-j")
+            run_command("make", "-j", "VERBOSE=1")
     else:
         args = [
             "cmake",
@@ -62,14 +70,14 @@ def build(matrix):
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
-            f"-D{matrix['demangle']}=On"
+            f"-D{matrix['demangle']}=On",
         ]
         if matrix["compiler"] == "g++":
             args.append("-GUnix Makefiles")
         succeeded = run_command(*args)
         if succeeded:
             if matrix["compiler"] == "g++":
-                run_command("make", "-j")
+                run_command("make", "-j", "VERBOSE=1")
             else:
                 run_command("msbuild", "cpptrace.sln")
 
@@ -77,12 +85,13 @@ def build(matrix):
     print()
 
 def build_full_or_auto(matrix):
+    #touch_sources()
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build with config {'<auto>' if matrix['config'] == '' else ', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
-        shutil.rmtree("build")
+        shutil.rmtree("build", ignore_errors=True)
 
-    os.mkdir("build")
+    os.makedirs("build", exist_ok=True)
     os.chdir("build")
 
     if platform.system() != "Windows":
@@ -93,6 +102,7 @@ def build_full_or_auto(matrix):
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
+            "-DCPPTRACE_USE_SYSTEM_LIBDWARF=On"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
@@ -140,6 +150,7 @@ def main():
             "symbols": [
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF"
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
@@ -171,6 +182,7 @@ def main():
             "symbols": [
                 #"CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
@@ -223,6 +235,7 @@ def main():
             ],
             "symbols": [
                 "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
@@ -250,6 +263,14 @@ def main():
             },
             {
                 "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+                "compiler": "clang++"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+                "compiler": "cl"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 "compiler": "clang++"
             },
             {

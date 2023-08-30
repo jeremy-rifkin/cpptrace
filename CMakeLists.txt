@@ -7,17 +7,26 @@ endif()
 project(
   cpptrace
   VERSION 0.1.0
-  LANGUAGES CXX
+  LANGUAGES C CXX
 )
 
 include(GNUInstallDirs)
 include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
 
+if(CMAKE_GENERATOR STREQUAL "Ninja")
+  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    add_compile_options(-fdiagnostics-color=always)
+  elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    add_compile_options(-fcolor-diagnostics)
+  endif()
+endif()
+
 option(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE "" OFF)
 option(CPPTRACE_FULL_TRACE_WITH_STACKTRACE "" OFF)
 
 option(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE "" OFF)
+option(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF "" OFF)
 option(CPPTRACE_GET_SYMBOLS_WITH_LIBDL "" OFF)
 option(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE "" OFF)
 option(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP "" OFF)
@@ -43,6 +52,14 @@ option(CPPTRACE_BUILD_TEST_RDYNAMIC "" OFF)
 option(CPPTRACE_BUILD_SPEEDTEST "" OFF)
 option(CPPTRACE_BUILD_SPEEDTEST_DWARF4 "" OFF)
 option(CPPTRACE_BUILD_SPEEDTEST_DWARF5 "" OFF)
+
+option(CPPTRACE_USE_SYSTEM_LIBDWARF "" OFF)
+option(CPPTRACE_SANITIZER_BUILD "" OFF)
+
+if(CPPTRACE_SANITIZER_BUILD)
+  add_compile_options(-fsanitize=address)
+  add_link_options(-fsanitize=address)
+endif()
 
 if(NOT "${CPPTRACE_BACKTRACE_PATH}" STREQUAL "")
   # quotes used over <> because of a macro substitution issue where
@@ -93,33 +110,33 @@ if(MINGW OR NOT WIN32) # No need to bother checking in msvc, but do check in min
 endif()
 
 # =============================================== Autoconfig full dump ===============================================
-# If nothing is specified, attempt to use libbacktrace's full dump
-if(
-  NOT (
-    CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
-    CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
-    CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
-    CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
-    CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
-    CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
-    CPPTRACE_GET_SYMBOLS_WITH_NOTHING OR
-    CPPTRACE_UNWIND_WITH_UNWIND OR
-    CPPTRACE_UNWIND_WITH_EXECINFO OR
-    CPPTRACE_UNWIND_WITH_WINAPI OR
-    CPPTRACE_UNWIND_WITH_NOTHING
-  )
-)
-  # Attempt to auto-config
-  if(MINGW OR NOT WIN32) # Our trace is better than msvc's <stacktrace>
-    if(HAS_STACKTRACE)
-      set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
-      message(STATUS "Cpptrace auto config: Using C++23 <stacktrace> for the full trace")
-    elseif(HAS_BACKTRACE AND NOT WIN32) # Mingw libbacktrace doesn't seem to be working
-      set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
-      message(STATUS "Cpptrace auto config: Using libbacktrace for the full trace")
-    endif()
-  endif()
-endif()
+# # If nothing is specified, attempt to use libbacktrace's full dump
+# if(
+#   NOT (
+#     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
+#     CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
+#     CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
+#     CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
+#     CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
+#     CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
+#     CPPTRACE_GET_SYMBOLS_WITH_NOTHING OR
+#     CPPTRACE_UNWIND_WITH_UNWIND OR
+#     CPPTRACE_UNWIND_WITH_EXECINFO OR
+#     CPPTRACE_UNWIND_WITH_WINAPI OR
+#     CPPTRACE_UNWIND_WITH_NOTHING
+#   )
+# )
+#   # Attempt to auto-config
+#   if(MINGW OR NOT WIN32) # Our trace is better than msvc's <stacktrace>
+#     if(HAS_STACKTRACE)
+#       set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
+#       message(STATUS "Cpptrace auto config: Using C++23 <stacktrace> for the full trace")
+#     elseif(HAS_BACKTRACE AND NOT WIN32) # Mingw libbacktrace doesn't seem to be working
+#       set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
+#       message(STATUS "Cpptrace auto config: Using libbacktrace for the full trace")
+#     endif()
+#   endif()
+# endif()
 
 # =============================================== Autoconfig unwinding ===============================================
 # Unwind back-ends (If not doing CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
@@ -165,7 +182,40 @@ else()
 endif()
 
 # =============================================== Autoconfig symbols ===============================================
-# Symbol back-ends (If not doing CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
+# # Symbol back-ends (If not doing CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
+# if(
+#   NOT (
+#     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
+#     CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
+#     CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
+#     CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
+#     CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
+#     CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
+#     CPPTRACE_GET_SYMBOLS_WITH_NOTHING
+#   )
+# )
+#   # Attempt to auto-config
+#   if(UNIX OR MINGW)
+#     if(HAS_BACKTRACE AND NOT MINGW) # not working on mingw at the moment
+#       set(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE On)
+#       message(STATUS "Cpptrace auto config: Using libbacktrace for symbols")
+#     elseif(HAS_ADDR2LINE)
+#       set(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE On)
+#       message(STATUS "Cpptrace auto config: Using addr2line for symbols")
+#     elseif(HAS_DL)
+#       set(CPPTRACE_GET_SYMBOLS_WITH_LIBDL On)
+#       message(STATUS "Cpptrace auto config: Using libdl for symbols")
+#     else()
+#       message(FATAL_ERROR "Cpptrace auto config: No symbol back-end could be automatically configured. To compile anyway set CPPTRACE_GET_SYMBOLS_WITH_NOTHING.")
+#     endif()
+#   elseif(WIN32)
+#     set(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP On)
+#     message(STATUS "Cpptrace auto config: Using dbghelp for symbols")
+#   endif()
+# else()
+#   #message(STATUS "MANUAL CONFIG SPECIFIED")
+# endif()
+
 if(
   NOT (
     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
@@ -177,26 +227,13 @@ if(
     CPPTRACE_GET_SYMBOLS_WITH_NOTHING
   )
 )
-  # Attempt to auto-config
   if(UNIX OR MINGW)
-    if(HAS_BACKTRACE AND NOT MINGW) # not working on mingw at the moment
-      set(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE On)
-      message(STATUS "Cpptrace auto config: Using libbacktrace for symbols")
-    elseif(HAS_ADDR2LINE)
-      set(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE On)
-      message(STATUS "Cpptrace auto config: Using addr2line for symbols")
-    elseif(HAS_DL)
-      set(CPPTRACE_GET_SYMBOLS_WITH_LIBDL On)
-      message(STATUS "Cpptrace auto config: Using libdl for symbols")
-    else()
-      message(FATAL_ERROR "Cpptrace auto config: No symbol back-end could be automatically configured. To compile anyway set CPPTRACE_GET_SYMBOLS_WITH_NOTHING.")
-    endif()
-  elseif(WIN32)
-    set(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP On)
+    message(STATUS "Cpptrace auto config: Using libdwarf for symbols")
+    set(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF On)
+  else()
     message(STATUS "Cpptrace auto config: Using dbghelp for symbols")
+    set(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP On)
   endif()
-else()
-  #message(STATUS "MANUAL CONFIG SPECIFIED")
 endif()
 
 # =============================================== Autoconfig demangling ===============================================
@@ -233,6 +270,7 @@ set(
   src/symbols/symbols_with_dbghelp.cpp
   src/symbols/symbols_with_dl.cpp
   src/symbols/symbols_with_libbacktrace.cpp
+  src/symbols/symbols_with_libdwarf.cpp
   src/symbols/symbols_with_nothing.cpp
   src/unwind/unwind_with_execinfo.cpp
   src/unwind/unwind_with_nothing.cpp
@@ -240,12 +278,7 @@ set(
   src/unwind/unwind_with_winapi.cpp
 )
 
-# TODO: This feels like a hack.
-if(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
-  add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
-else()
-  add_library(cpptrace ${sources} include/cpptrace/cpptrace.hpp)
-endif()
+add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
 
 target_include_directories(
   cpptrace
@@ -267,7 +300,8 @@ set_target_properties(
 target_compile_options(
   cpptrace
   PRIVATE
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wshadow -Wundef>
+  #  -Wshadow
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
   $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wnonnull-compare>
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
@@ -335,6 +369,29 @@ if(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
   endif()
 endif()
 
+if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+  if(CPPTRACE_USE_SYSTEM_LIBDWARF)
+    find_package(libdwarf REQUIRED)
+    target_link_libraries(cpptrace PRIVATE libdwarf::libdwarf)
+    # TODO: Temp hack
+    #target_include_directories(cpptrace PRIVATE "${CMAKE_INSTALL_INCLUDEDIR}/libdwarf")
+    target_include_directories(cpptrace PRIVATE "/usr/local/include/libdwarf/")
+  else()
+    include(FetchContent)
+    FetchContent_Declare(
+      libdwarf
+      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+      GIT_TAG b07d7201fd38a7dd8e6914ec4da120ef60dde262
+    )
+    FetchContent_MakeAvailable(libdwarf)
+    target_link_libraries(cpptrace PRIVATE libdwarf)
+  endif()
+  if(UNIX)
+    target_link_libraries(cpptrace PRIVATE dl)
+  endif()
+endif()
+
 if(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
   target_link_libraries(cpptrace PRIVATE dbghelp)
@@ -388,10 +445,6 @@ if(NOT "${CPPTRACE_HARD_MAX_FRAMES}" STREQUAL "")
 endif()
 
 # ======================================================================================================================
-
-if(CMAKE_BUILD_TYPE STREQUAL "")
-  message(FATAL_ERROR "Setting CMAKE_BUILD_TYPE is required")
-endif()
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(CMakePackageConfigHelpers)

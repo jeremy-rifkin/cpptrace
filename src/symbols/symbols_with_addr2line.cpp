@@ -15,50 +15,16 @@
 
 #if IS_LINUX || IS_APPLE
  #include <unistd.h>
- #include <dlfcn.h>
  // NOLINTNEXTLINE(misc-include-cleaner)
  #include <sys/types.h>
  #include <sys/wait.h>
- #if IS_APPLE
-  #include "../platform/mach-o.hpp"
- #else
-  #include "../platform/elf.hpp"
- #endif
-#elif IS_WINDOWS
- #include "../platform/pe.hpp"
 #endif
+
+#include "../platform/object.hpp"
 
 namespace cpptrace {
     namespace detail {
-        struct dlframe {
-            std::string obj_path;
-            std::string symbol;
-            uintptr_t obj_base = 0;
-            uintptr_t raw_address = 0;
-        };
-
         #if IS_LINUX || IS_APPLE
-        // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-        std::vector<dlframe> backtrace_frames(const std::vector<void*>& addrs) {
-            // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
-            std::vector<dlframe> frames;
-            frames.reserve(addrs.size());
-            for(const void* addr : addrs) {
-                Dl_info info;
-                dlframe frame;
-                frame.raw_address = reinterpret_cast<uintptr_t>(addr);
-                if(dladdr(addr, &info)) { // thread safe
-                    // dli_sname and dli_saddr are only present with -rdynamic, sname will be included
-                    // but we don't really need dli_saddr
-                    frame.obj_path = info.dli_fname;
-                    frame.obj_base = reinterpret_cast<uintptr_t>(info.dli_fbase);
-                    frame.symbol = info.dli_sname ?: "";
-                }
-                frames.push_back(frame);
-            }
-            return frames;
-        }
-
         bool has_addr2line() {
             static std::mutex mutex;
             static bool has_addr2line = false;
@@ -165,77 +131,7 @@ namespace cpptrace {
             waitpid(pid, nullptr, 0);
             return output;
         }
-
-        #if !IS_APPLE
-        uintptr_t get_module_image_base(const dlframe &entry) {
-            return elf_get_module_image_base(entry.obj_path);
-        }
-        #else
-        uintptr_t get_module_image_base(const dlframe &entry) {
-            // We have to parse the Mach-O to find the offset of the text section.....
-            // I don't know how addresses are handled if there is more than one __TEXT load command. I'm assuming for
-            // now that there is only one, and I'm using only the first section entry within that load command.
-            static std::mutex mutex;
-            std::lock_guard<std::mutex> lock(mutex);
-            static std::unordered_map<std::string, uintptr_t> cache;
-            auto it = cache.find(entry.obj_path);
-            if(it == cache.end()) {
-                // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
-                // have two threads try to do the same computation
-                auto base = macho_get_text_vmaddr(entry.obj_path.c_str());
-                cache.insert(it, {entry.obj_path, base});
-                return base;
-            } else {
-                return it->second;
-            }
-        }
-        #endif
         #elif IS_WINDOWS
-        std::string get_module_name(HMODULE handle) {
-            static std::mutex mutex;
-            std::lock_guard<std::mutex> lock(mutex);
-            static std::unordered_map<HMODULE, std::string> cache;
-            auto it = cache.find(handle);
-            if(it == cache.end()) {
-                char path[MAX_PATH];
-                if(GetModuleFileNameA(handle, path, sizeof(path))) {
-                    ///fprintf(stderr, "path: %s base: %p\n", path, handle);
-                    cache.insert(it, {handle, path});
-                    return path;
-                } else {
-                    fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
-                    cache.insert(it, {handle, ""});
-                    return "";
-                }
-            } else {
-                return it->second;
-            }
-        }
-        // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-        std::vector<dlframe> backtrace_frames(const std::vector<void*>& addrs) {
-            // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
-            std::vector<dlframe> frames;
-            frames.reserve(addrs.size());
-            for(const void* addr : addrs) {
-                dlframe frame;
-                frame.raw_address = reinterpret_cast<uintptr_t>(addr);
-                HMODULE handle;
-                // Multithread safe as long as another thread doesn't come along and free the module
-                if(GetModuleHandleExA(
-                    GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-                    static_cast<const char*>(addr),
-                    &handle
-                )) {
-                    frame.obj_base = reinterpret_cast<uintptr_t>(handle);
-                    frame.obj_path = get_module_name(handle);
-                } else {
-                    fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
-                }
-                frames.push_back(frame);
-            }
-            return frames;
-        }
-
         bool has_addr2line() {
             static std::mutex mutex;
             static bool has_addr2line = false;
@@ -284,22 +180,6 @@ namespace cpptrace {
             ///fprintf(stderr, "%s\n", output.c_str());
             return output;
         }
-
-        uintptr_t get_module_image_base(const dlframe &entry) {
-            static std::mutex mutex;
-            std::lock_guard<std::mutex> lock(mutex);
-            static std::unordered_map<std::string, uintptr_t> cache;
-            auto it = cache.find(entry.obj_path);
-            if(it == cache.end()) {
-                // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
-                // have two threads try to do the same computation
-                auto base = pe_get_module_image_base(entry.obj_path);
-                cache.insert(it, {entry.obj_path, base});
-                return base;
-            } else {
-                return it->second;
-            }
-        }
         #endif
 
         struct symbolizer::impl {
@@ -319,7 +199,7 @@ namespace cpptrace {
                         ///fprintf(stderr, "%s %s\n", to_hex(entry.raw_address).c_str(), to_hex(entry.raw_address - entry.obj_base + base).c_str());
                         try {
                             entries[entry.obj_path].emplace_back(
-                                to_hex(entry.raw_address - entry.obj_base + get_module_image_base(entry)),
+                                to_hex(entry.obj_address),
                                 trace[i]
                             );
                         } catch(file_error&) {
@@ -420,7 +300,7 @@ namespace cpptrace {
                     trace[i].address = reinterpret_cast<uintptr_t>(frames[i]);
                 }
                 if(has_addr2line()) {
-                    const std::vector<dlframe> dlframes = backtrace_frames(frames);
+                    const std::vector<dlframe> dlframes = get_frames_object_info(frames);
                     const auto entries = get_addr2line_targets(dlframes, trace);
                     for(const auto& entry : entries) {
                         const auto& object_name = entry.first;
