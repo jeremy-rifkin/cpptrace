@@ -372,16 +372,17 @@ endif()
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   if(CPPTRACE_USE_SYSTEM_LIBDWARF)
-    #find_package(libdwarf REQUIRED)
+    find_package(libdwarf REQUIRED)
+    target_link_libraries(cpptrace PRIVATE libdwarf::libdwarf)
     # TODO: Temp hack
-    target_link_libraries(cpptrace PRIVATE libdwarf)
-    target_include_directories(cpptrace PRIVATE /usr/local/include/libdwarf)
+    #target_include_directories(cpptrace PRIVATE "${CMAKE_INSTALL_INCLUDEDIR}/libdwarf")
+    target_include_directories(cpptrace PRIVATE "/usr/local/include/libdwarf/")
   else()
     include(FetchContent)
     FetchContent_Declare(
       libdwarf
       GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-      GIT_TAG f27d3c6fc417b6dc42f98e3ddf1bc2cf6489098e
+      GIT_TAG b07d7201fd38a7dd8e6914ec4da120ef60dde262
     )
     FetchContent_MakeAvailable(libdwarf)
     target_link_libraries(cpptrace PRIVATE libdwarf)

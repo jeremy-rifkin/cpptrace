@@ -71,7 +71,6 @@ def build(matrix):
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
-            "-DCPPTRACE_USE_SYSTEM_LIBDWARF=On"
         ]
         if matrix["compiler"] == "g++":
             args.append("-GUnix Makefiles")
@@ -116,8 +115,7 @@ def build_full_or_auto(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
-            f"-DCMAKE_CXX_STANDARD={matrix['std']}",
-            "-DCPPTRACE_USE_SYSTEM_LIBDWARF=On"
+            f"-DCMAKE_CXX_STANDARD={matrix['std']}"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
@@ -152,6 +150,7 @@ def main():
             "symbols": [
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF"
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
@@ -183,6 +182,7 @@ def main():
             "symbols": [
                 #"CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
@@ -235,6 +235,7 @@ def main():
             ],
             "symbols": [
                 "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
