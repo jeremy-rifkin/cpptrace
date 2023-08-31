@@ -856,35 +856,24 @@ namespace cpptrace {
             dwarf_finish(dbg);
         }
 
-        struct symbolizer::impl {
-            // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-            stacktrace_frame resolve_frame(const dlframe& frame_info) {
-                stacktrace_frame frame{};
-                frame.filename = frame_info.obj_path;
-                frame.symbol = frame_info.symbol;
-                frame.address = frame_info.raw_address;
-                lookup_pc2(
-                    frame_info.obj_path.c_str(),
-                    frame_info.obj_address,
-                    frame
-                );
-                return frame;
-            }
-        };
+        stacktrace_frame resolve_frame(const dlframe& frame_info) {
+            stacktrace_frame frame{};
+            frame.filename = frame_info.obj_path;
+            frame.symbol = frame_info.symbol;
+            frame.address = frame_info.raw_address;
+            lookup_pc2(
+                frame_info.obj_path.c_str(),
+                frame_info.obj_address,
+                frame
+            );
+            return frame;
+        }
 
-        // NOLINTNEXTLINE(bugprone-unhandled-exception-at-new)
-        symbolizer::symbolizer() : pimpl{new impl} {}
-        symbolizer::~symbolizer() = default;
-
-        //stacktrace_frame symbolizer::resolve_frame(void* addr) {
-        //    return pimpl->resolve_frame(addr);
-        //}
-
-        std::vector<stacktrace_frame> symbolizer::resolve_frames(const std::vector<void*>& frames) {
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
             std::vector<stacktrace_frame> trace;
             trace.reserve(frames.size());
             for(const auto& frame : get_frames_object_info(frames)) {
-                trace.push_back(pimpl->resolve_frame(frame));
+                trace.push_back(resolve_frame(frame));
             }
             return trace;
         }

@@ -18,8 +18,7 @@ namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     std::vector<stacktrace_frame> generate_trace(std::uint32_t skip) {
         std::vector<void*> frames = detail::capture_frames(skip + 1);
-        detail::symbolizer symbolizer;
-        std::vector<stacktrace_frame> trace = symbolizer.resolve_frames(frames);
+        std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
         for(auto& frame : trace) {
             frame.symbol = detail::demangle(frame.symbol);
         }

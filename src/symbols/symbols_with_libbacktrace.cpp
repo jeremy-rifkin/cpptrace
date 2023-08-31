@@ -57,45 +57,34 @@ namespace cpptrace {
         }
 
         // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
-        struct symbolizer::impl {
-            // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-            stacktrace_frame resolve_frame(const void* addr) {
-                stacktrace_frame frame;
-                frame.col = 0;
-                backtrace_pcinfo(
+        stacktrace_frame resolve_frame(const void* addr) {
+            stacktrace_frame frame;
+            frame.col = 0;
+            backtrace_pcinfo(
+                get_backtrace_state(),
+                reinterpret_cast<uintptr_t>(addr),
+                full_callback,
+                error_callback,
+                &frame
+            );
+            if(frame.symbol.empty()) {
+                // fallback, try to at least recover the symbol name with backtrace_syminfo
+                backtrace_syminfo(
                     get_backtrace_state(),
                     reinterpret_cast<uintptr_t>(addr),
-                    full_callback,
+                    syminfo_callback,
                     error_callback,
                     &frame
                 );
-                if(frame.symbol.empty()) {
-                    // fallback, try to at least recover the symbol name with backtrace_syminfo
-                    backtrace_syminfo(
-                        get_backtrace_state(),
-                        reinterpret_cast<uintptr_t>(addr),
-                        syminfo_callback,
-                        error_callback,
-                        &frame
-                    );
-                }
-                return frame;
             }
-        };
+            return frame;
+        }
 
-        // NOLINTNEXTLINE(bugprone-unhandled-exception-at-new)
-        symbolizer::symbolizer() : pimpl{new impl} {}
-        symbolizer::~symbolizer() = default;
-
-        //stacktrace_frame symbolizer::resolve_frame(void* addr) {
-        //    return pimpl->resolve_frame(addr);
-        //}
-
-        std::vector<stacktrace_frame> symbolizer::resolve_frames(const std::vector<void*>& frames) {
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
             std::vector<stacktrace_frame> trace;
             trace.reserve(frames.size());
             for(const void* frame : frames) {
-                trace.push_back(pimpl->resolve_frame(frame));
+                trace.push_back(resolve_frame(frame));
             }
             return trace;
         }

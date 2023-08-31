@@ -302,109 +302,94 @@ namespace cpptrace {
         std::mutex dbghelp_lock;
 
         // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
-        struct symbolizer::impl {
-            bool good = true;
-            HANDLE proc;
-
-            impl() {
-                // TODO: When does this need to be called? Can it be moved to the symbolizer?
-                SymSetOptions(SYMOPT_ALLOW_ABSOLUTE_SYMBOLS);
-                proc = GetCurrentProcess();
-                if(!SymInitialize(proc, NULL, TRUE)) {
-                    good = false;
-                }
-            }
-
-            ~impl() {
-                if(!SymCleanup(proc)) {
-                    //throw std::logic_error("SymCleanup failed");
-                }
-            }
-
-            stacktrace_frame resolve_frame(void* addr) {
-                const std::lock_guard<std::mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
-                alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
-                SYMBOL_INFO* symbol = (SYMBOL_INFO*)buffer;
-                symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-                symbol->MaxNameLen = MAX_SYM_NAME;
-                union { DWORD64 a; DWORD b; } displacement;
-                IMAGEHLP_LINE64 line;
-                bool got_line = SymGetLineFromAddr64(proc, (DWORD64)addr, &displacement.b, &line);
-                if(SymFromAddr(proc, (DWORD64)addr, &displacement.a, symbol)) {
-                    if(got_line) {
-                        IMAGEHLP_STACK_FRAME frame;
-                        frame.InstructionOffset = symbol->Address;
-                        // https://docs.microsoft.com/en-us/windows/win32/api/dbghelp/nf-dbghelp-symsetcontext
-                        // "If you call SymSetContext to set the context to its current value, the
-                        // function fails but GetLastError returns ERROR_SUCCESS."
-                        // This is the stupidest fucking api I've ever worked with.
-                        if(SymSetContext(proc, &frame, nullptr) == FALSE && GetLastError() != ERROR_SUCCESS) {
-                            fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
-                            return {
-                                reinterpret_cast<uintptr_t>(addr),
-                                static_cast<std::uint_least32_t>(line.LineNumber),
-                                0,
-                                line.FileName,
-                                symbol->Name
-                            };
-                        }
-                        DWORD n_children = get_info<DWORD, IMAGEHLP_SYMBOL_TYPE_INFO::TI_GET_COUNT, true>(
-                            symbol->TypeIndex,
-                            proc,
-                            symbol->ModBase
-                        );
-                        DWORD class_parent_id = get_info<DWORD, IMAGEHLP_SYMBOL_TYPE_INFO::TI_GET_CLASSPARENTID, true>(
-                            symbol->TypeIndex,
-                            proc,
-                            symbol->ModBase
-                        );
-                        function_info fi { proc, symbol->ModBase, 0, int(n_children), class_parent_id != (DWORD)-1, "" };
-                        SymEnumSymbols(proc, 0, nullptr, enumerator_callback, &fi);
-                        std::string signature = symbol->Name + std::string("(") + fi.str + ")";
-                        // There's a phenomina with DIA not inserting commas after template parameters. Fix them here.
-                        static std::regex comma_re(R"(,(?=\S))");
-                        signature = std::regex_replace(signature, comma_re, ", ");
+        stacktrace_frame resolve_frame(HANDLE proc, void* addr) {
+            const std::lock_guard<std::mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
+            alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+            SYMBOL_INFO* symbol = (SYMBOL_INFO*)buffer;
+            symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+            symbol->MaxNameLen = MAX_SYM_NAME;
+            union { DWORD64 a; DWORD b; } displacement;
+            IMAGEHLP_LINE64 line;
+            bool got_line = SymGetLineFromAddr64(proc, (DWORD64)addr, &displacement.b, &line);
+            if(SymFromAddr(proc, (DWORD64)addr, &displacement.a, symbol)) {
+                if(got_line) {
+                    IMAGEHLP_STACK_FRAME frame;
+                    frame.InstructionOffset = symbol->Address;
+                    // https://docs.microsoft.com/en-us/windows/win32/api/dbghelp/nf-dbghelp-symsetcontext
+                    // "If you call SymSetContext to set the context to its current value, the
+                    // function fails but GetLastError returns ERROR_SUCCESS."
+                    // This is the stupidest fucking api I've ever worked with.
+                    if(SymSetContext(proc, &frame, nullptr) == FALSE && GetLastError() != ERROR_SUCCESS) {
+                        fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
                         return {
                             reinterpret_cast<uintptr_t>(addr),
                             static_cast<std::uint_least32_t>(line.LineNumber),
                             0,
                             line.FileName,
-                            signature
-                        };
-                    } else {
-                        return {
-                            reinterpret_cast<uintptr_t>(addr),
-                            0,
-                            0,
-                            "",
                             symbol->Name
                         };
                     }
+                    DWORD n_children = get_info<DWORD, IMAGEHLP_SYMBOL_TYPE_INFO::TI_GET_COUNT, true>(
+                        symbol->TypeIndex,
+                        proc,
+                        symbol->ModBase
+                    );
+                    DWORD class_parent_id = get_info<DWORD, IMAGEHLP_SYMBOL_TYPE_INFO::TI_GET_CLASSPARENTID, true>(
+                        symbol->TypeIndex,
+                        proc,
+                        symbol->ModBase
+                    );
+                    function_info fi { proc, symbol->ModBase, 0, int(n_children), class_parent_id != (DWORD)-1, "" };
+                    SymEnumSymbols(proc, 0, nullptr, enumerator_callback, &fi);
+                    std::string signature = symbol->Name + std::string("(") + fi.str + ")";
+                    // There's a phenomina with DIA not inserting commas after template parameters. Fix them here.
+                    static std::regex comma_re(R"(,(?=\S))");
+                    signature = std::regex_replace(signature, comma_re, ", ");
+                    return {
+                        reinterpret_cast<uintptr_t>(addr),
+                        static_cast<std::uint_least32_t>(line.LineNumber),
+                        0,
+                        line.FileName,
+                        signature
+                    };
                 } else {
                     return {
                         reinterpret_cast<uintptr_t>(addr),
                         0,
                         0,
                         "",
-                        ""
+                        symbol->Name
                     };
                 }
+            } else {
+                return {
+                    reinterpret_cast<uintptr_t>(addr),
+                    0,
+                    0,
+                    "",
+                    ""
+                };
             }
-        };
+        }
 
-        symbolizer::symbolizer() : pimpl{new impl} {}
-        symbolizer::~symbolizer() = default;
-
-        //stacktrace_frame symbolizer::resolve_frame(void* addr) {
-        //    return pimpl->resolve_frame(addr);
-        //}
-
-        std::vector<stacktrace_frame> symbolizer::resolve_frames(const std::vector<void*>& frames) {
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
             std::vector<stacktrace_frame> trace;
             trace.reserve(frames.size());
-            for(const auto frame : frames) {
-                trace.push_back(pimpl->resolve_frame(frame));
+
+            // TODO: When does this need to be called? Can it be moved to the symbolizer?
+            SymSetOptions(SYMOPT_ALLOW_ABSOLUTE_SYMBOLS);
+            HANDLE proc = GetCurrentProcess();
+            if(!SymInitialize(proc, NULL, TRUE)) {
+                //TODO?
+                throw std::logic_error("SymInitialize failed");
             }
+            for(const auto frame : frames) {
+                trace.push_back(resolve_frame(proc, frame));
+            }
+            if(!SymCleanup(proc)) {
+                //throw std::logic_error("SymCleanup failed");
+            }
+
             return trace;
         }
     }
