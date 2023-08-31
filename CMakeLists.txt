@@ -56,6 +56,20 @@ option(CPPTRACE_BUILD_SPEEDTEST_DWARF5 "" OFF)
 option(CPPTRACE_USE_SYSTEM_LIBDWARF "" OFF)
 option(CPPTRACE_SANITIZER_BUILD "" OFF)
 
+mark_as_advanced(
+  CPPTRACE_BACKTRACE_PATH
+  CPPTRACE_ADDR2LINE_PATH
+  CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
+  CPPTRACE_BUILD_TEST
+  CPPTRACE_BUILD_DEMO
+  CPPTRACE_BUILD_TEST_RDYNAMIC
+  CPPTRACE_BUILD_SPEEDTEST
+  CPPTRACE_BUILD_SPEEDTEST_DWARF4
+  CPPTRACE_BUILD_SPEEDTEST_DWARF5
+  CPPTRACE_USE_SYSTEM_LIBDWARF
+  CPPTRACE_SANITIZER_BUILD
+)
+
 if(CPPTRACE_SANITIZER_BUILD)
   add_compile_options(-fsanitize=address)
   add_link_options(-fsanitize=address)
@@ -109,35 +123,6 @@ if(MINGW OR NOT WIN32) # No need to bother checking in msvc, but do check in min
   endif()
 endif()
 
-# =============================================== Autoconfig full dump ===============================================
-# # If nothing is specified, attempt to use libbacktrace's full dump
-# if(
-#   NOT (
-#     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
-#     CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
-#     CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
-#     CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
-#     CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
-#     CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
-#     CPPTRACE_GET_SYMBOLS_WITH_NOTHING OR
-#     CPPTRACE_UNWIND_WITH_UNWIND OR
-#     CPPTRACE_UNWIND_WITH_EXECINFO OR
-#     CPPTRACE_UNWIND_WITH_WINAPI OR
-#     CPPTRACE_UNWIND_WITH_NOTHING
-#   )
-# )
-#   # Attempt to auto-config
-#   if(MINGW OR NOT WIN32) # Our trace is better than msvc's <stacktrace>
-#     if(HAS_STACKTRACE)
-#       set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
-#       message(STATUS "Cpptrace auto config: Using C++23 <stacktrace> for the full trace")
-#     elseif(HAS_BACKTRACE AND NOT WIN32) # Mingw libbacktrace doesn't seem to be working
-#       set(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE On)
-#       message(STATUS "Cpptrace auto config: Using libbacktrace for the full trace")
-#     endif()
-#   endif()
-# endif()
-
 # =============================================== Autoconfig unwinding ===============================================
 # Unwind back-ends (If not doing CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
 if(
@@ -181,41 +166,7 @@ else()
   #message(STATUS "MANUAL CONFIG SPECIFIED")
 endif()
 
-# =============================================== Autoconfig symbols ===============================================
-# # Symbol back-ends (If not doing CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
-# if(
-#   NOT (
-#     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
-#     CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
-#     CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
-#     CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
-#     CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
-#     CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
-#     CPPTRACE_GET_SYMBOLS_WITH_NOTHING
-#   )
-# )
-#   # Attempt to auto-config
-#   if(UNIX OR MINGW)
-#     if(HAS_BACKTRACE AND NOT MINGW) # not working on mingw at the moment
-#       set(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE On)
-#       message(STATUS "Cpptrace auto config: Using libbacktrace for symbols")
-#     elseif(HAS_ADDR2LINE)
-#       set(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE On)
-#       message(STATUS "Cpptrace auto config: Using addr2line for symbols")
-#     elseif(HAS_DL)
-#       set(CPPTRACE_GET_SYMBOLS_WITH_LIBDL On)
-#       message(STATUS "Cpptrace auto config: Using libdl for symbols")
-#     else()
-#       message(FATAL_ERROR "Cpptrace auto config: No symbol back-end could be automatically configured. To compile anyway set CPPTRACE_GET_SYMBOLS_WITH_NOTHING.")
-#     endif()
-#   elseif(WIN32)
-#     set(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP On)
-#     message(STATUS "Cpptrace auto config: Using dbghelp for symbols")
-#   endif()
-# else()
-#   #message(STATUS "MANUAL CONFIG SPECIFIED")
-# endif()
-
+# =============================================== Autoconfig full dump ===============================================
 if(
   NOT (
     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
@@ -223,6 +174,7 @@ if(
     CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
     CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
     CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
+    CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF OR
     CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
     CPPTRACE_GET_SYMBOLS_WITH_NOTHING
   )
