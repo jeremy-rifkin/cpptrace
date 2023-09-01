@@ -13,7 +13,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: dependencies
       run: sudo apt install gcc-10 g++-10 libgcc-10-dev
-    - name: build
+    - name: build and test
       run: |
            pip3 install colorama
            #python3 ci/test-all-configs.py
@@ -21,7 +21,7 @@ jobs:
     runs-on: macos-13
     steps:
     - uses: actions/checkout@v2
-    - name: build
+    - name: build and test
       run: |
            pip3 install colorama
            #python3 ci/test-all-configs.py
@@ -31,7 +31,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
-    - name: build
+    - name: build and test
       run: |
            pip3 install colorama
            #python3 ci/test-all-configs.py --msvc-only
@@ -41,7 +41,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
-    - name: build
+    - name: build and test
       run: |
            pip3 install colorama
            #python3 ci/test-all-configs.py --clang-only
@@ -51,7 +51,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
-    - name: build
+    - name: build and test
       run: |
            pip3 install colorama
            #python3 ci/test-all-configs.py --mingw-only

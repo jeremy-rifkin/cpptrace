@@ -29,7 +29,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: dependencies
       run: sudo apt install gcc-11 g++-11 libgcc-11-dev
-    - name: build
+    - name: build and speedtest
       run: |
            mkdir -p build
            cd build
@@ -61,7 +61,7 @@ jobs:
   #  - uses: actions/checkout@v2
   #  - name: Enable Developer Command Prompt
   #    uses: ilammy/msvc-dev-cmd@v1.10.0
-  #  - name: build
+  #  - name: build and speedtest
   #    run: |
   #         mkdir -p build
   #         cd build

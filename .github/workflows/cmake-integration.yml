@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
-    - name: build
+    - name: test
       run: |
            tag=$(git rev-parse --abbrev-ref HEAD)
            mkdir build
@@ -70,7 +70,7 @@ jobs:
     runs-on: macos-13
     steps:
     - uses: actions/checkout@v2
-    - name: build
+    - name: test
       run: |
            tag=$(git rev-parse --abbrev-ref HEAD)
            mkdir build
