@@ -330,13 +330,7 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     #target_include_directories(cpptrace PRIVATE "${CMAKE_INSTALL_INCLUDEDIR}/libdwarf")
     target_include_directories(cpptrace PRIVATE "/usr/local/include/libdwarf/")
   else()
-    include(FetchContent)
-    FetchContent_Declare(
-      libdwarf
-      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-      GIT_TAG b07d7201fd38a7dd8e6914ec4da120ef60dde262
-    )
-    FetchContent_MakeAvailable(libdwarf)
+    add_subdirectory(bundled/libdwarf)
     target_link_libraries(cpptrace PRIVATE libdwarf)
   endif()
   if(UNIX)
