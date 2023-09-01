@@ -270,4 +270,7 @@ unwinding back-end, and the python script will check for an exact or near-match 
 
 ## License
 
-The library is under the MIT license.
+This library is under the MIT license.
+
+Libdwarf is bundled as part of this library so the code in `bundled/libdwarf` is LGPL. If this library is statically
+linked with libdwarf then the library's binary will itself be LGPL.
