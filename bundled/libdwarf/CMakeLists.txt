@@ -426,23 +426,23 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 include(GNUInstallDirs)
 
-add_library(libdwarf SHARED ${libdwarf_sources} ${libdwarf_headers})
+add_library(dwarf SHARED ${libdwarf_sources} ${libdwarf_headers})
 
-target_compile_definitions(libdwarf PUBLIC LIBDWARF_BUILD)
+target_compile_definitions(dwarf PUBLIC LIBDWARF_BUILD)
 
 target_include_directories(
-  libdwarf
+  dwarf
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-target_link_libraries(libdwarf PUBLIC ${LIBELF_LIBRARIES} ${DW_FZLIB} ${DW_FZSTD})
+target_link_libraries(dwarf PUBLIC ${LIBELF_LIBRARIES} ${DW_FZLIB} ${DW_FZSTD})
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(CMakePackageConfigHelpers)
 
   install(
-    TARGETS libdwarf
+    TARGETS dwarf
     EXPORT libdwarf_targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
