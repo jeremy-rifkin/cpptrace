@@ -6,3 +6,12 @@ add_executable(main main.cpp)
 
 add_subdirectory(cpptrace)
 target_link_libraries(main cpptrace)
+
+if(WIN32)
+  add_custom_command(
+    TARGET main POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:cpptrace>
+    $<TARGET_FILE_DIR:main>
+  )
+endif()
