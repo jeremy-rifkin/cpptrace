@@ -455,7 +455,7 @@ namespace cpptrace {
             }
         }
 
-        std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build = "");
+        /*std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build = "");
 
         std::string get_array_extents(Dwarf_Debug dbg, const die_object& die) {
             assert(die.get_tag() == DW_TAG_array_type);
@@ -608,7 +608,7 @@ namespace cpptrace {
                     }
             }
             return {"<unknown>", "<unknown>"};
-        }
+        }*/
 
         bool is_mangled_name(const std::string& name) {
             return name.find("_Z") || name.find("?h@@");
@@ -636,7 +636,9 @@ namespace cpptrace {
                     frame.symbol = linkage_name;
                 }
             }
-            std::string name = die.get_name();
+            // TODO: Handle namespaces
+            // TODO: Disabled for now
+            /*std::string name = die.get_name();
             std::vector<std::string> params;
             auto child = die.get_child();
             if(child) {
@@ -653,7 +655,7 @@ namespace cpptrace {
             } else {
                 fprintf(stderr, "no child %s\n", name.c_str());
             }
-            frame.symbol = name + "(" + join(params, ", ") + ")";
+            frame.symbol = name + "(" + join(params, ", ") + ")";*/
         }
 
         void retrieve_symbol(Dwarf_Debug dbg, const die_object& die, Dwarf_Addr pc, Dwarf_Half dwversion, stacktrace_frame& frame) {
