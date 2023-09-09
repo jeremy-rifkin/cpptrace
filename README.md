@@ -45,6 +45,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace)
+
+if(WIN32) # Copy the .dll on windows
+  add_custom_command(
+    TARGET your_target POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:cpptrace>
+    $<TARGET_FILE_DIR:your_target>
+  )
+endif()
 ```
 
 It's as easy as that. Cpptrace will automatically configure itself for your system.
