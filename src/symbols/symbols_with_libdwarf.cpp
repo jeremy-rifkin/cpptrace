@@ -635,6 +635,24 @@ namespace cpptrace {
                 if(!linkage_name.empty()) {
                     frame.symbol = linkage_name;
                 }
+            } else {
+                // TODO: temporary
+                ret = dwarf_attr(die.get(), DW_AT_name, &attr, nullptr);
+                if(ret == DW_DLV_OK) {
+                    char* raw_linkage_name;
+                    std::string linkage_name;
+                    if(dwarf_formstring(attr, &raw_linkage_name, nullptr) == DW_DLV_OK) {
+                        linkage_name = raw_linkage_name;
+                        if(dump_dwarf) {
+                            fprintf(stderr, "name: %s\n", raw_linkage_name);
+                        }
+                        dwarf_dealloc(dbg, raw_linkage_name, DW_DLA_STRING);
+                    }
+                    dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+                    if(!linkage_name.empty()) {
+                        frame.symbol = linkage_name;
+                    }
+                }
             }
             // TODO: Handle namespaces
             // TODO: Disabled for now
