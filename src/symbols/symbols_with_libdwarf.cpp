@@ -455,7 +455,7 @@ namespace cpptrace {
             }
         }
 
-        std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build = "");
+        /*std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build = "");
 
         std::string get_array_extents(Dwarf_Debug dbg, const die_object& die) {
             assert(die.get_tag() == DW_TAG_array_type);
@@ -608,7 +608,7 @@ namespace cpptrace {
                     }
             }
             return {"<unknown>", "<unknown>"};
-        }
+        }*/
 
         bool is_mangled_name(const std::string& name) {
             return name.find("_Z") || name.find("?h@@");
@@ -635,8 +635,28 @@ namespace cpptrace {
                 if(!linkage_name.empty()) {
                     frame.symbol = linkage_name;
                 }
+            } else {
+                // TODO: temporary
+                ret = dwarf_attr(die.get(), DW_AT_name, &attr, nullptr);
+                if(ret == DW_DLV_OK) {
+                    char* raw_linkage_name;
+                    std::string linkage_name;
+                    if(dwarf_formstring(attr, &raw_linkage_name, nullptr) == DW_DLV_OK) {
+                        linkage_name = raw_linkage_name;
+                        if(dump_dwarf) {
+                            fprintf(stderr, "name: %s\n", raw_linkage_name);
+                        }
+                        dwarf_dealloc(dbg, raw_linkage_name, DW_DLA_STRING);
+                    }
+                    dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+                    if(!linkage_name.empty()) {
+                        frame.symbol = linkage_name;
+                    }
+                }
             }
-            std::string name = die.get_name();
+            // TODO: Handle namespaces
+            // TODO: Disabled for now
+            /*std::string name = die.get_name();
             std::vector<std::string> params;
             auto child = die.get_child();
             if(child) {
@@ -653,7 +673,7 @@ namespace cpptrace {
             } else {
                 fprintf(stderr, "no child %s\n", name.c_str());
             }
-            frame.symbol = name + "(" + join(params, ", ") + ")";
+            frame.symbol = name + "(" + join(params, ", ") + ")";*/
         }
 
         void retrieve_symbol(Dwarf_Debug dbg, const die_object& die, Dwarf_Addr pc, Dwarf_Half dwversion, stacktrace_frame& frame) {

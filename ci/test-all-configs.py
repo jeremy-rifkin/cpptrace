@@ -307,6 +307,7 @@ def main():
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 #"CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
             "demangle": [
@@ -338,6 +339,7 @@ def main():
                 #"CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 #"CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
             "demangle": [
@@ -390,6 +392,7 @@ def main():
             "symbols": [
                 "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 #"CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
             "demangle": [
@@ -416,6 +419,14 @@ def main():
             },
             {
                 "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+                "compiler": "clang++"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+                "compiler": "cl"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 "compiler": "clang++"
             },
             {
