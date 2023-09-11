@@ -29,20 +29,20 @@ namespace cpptrace {
 
         std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
             std::vector<stacktrace_frame> trace(frames.size());
-            #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
-            apply_trace(trace, libbacktrace::resolve_frames(frames));
+            #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
+            apply_trace(trace, libdl::resolve_frames(frames));
             #endif
             #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
             apply_trace(trace, libdwarf::resolve_frames(frames));
             #endif
-            #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
-            apply_trace(trace, libdl::resolve_frames(frames));
+            #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
+            apply_trace(trace, dbghelp::resolve_frames(frames));
             #endif
             #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
             apply_trace(trace, addr2line::resolve_frames(frames));
             #endif
-            #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
-            apply_trace(trace, dbghelp::resolve_frames(frames));
+            #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
+            apply_trace(trace, libbacktrace::resolve_frames(frames));
             #endif
             #ifdef CPPTRACE_GET_SYMBOLS_WITH_NOTHING
             apply_trace(trace, nothing::resolve_frames(frames));
