@@ -23,6 +23,8 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <memory>
+#include <new>
 
 #define IS_WINDOWS 0
 #define IS_LINUX 0
@@ -269,5 +271,136 @@ class file_error : std::exception {
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+struct nullopt_t {};
+
+static constexpr nullopt_t nullopt;
+
+template<typename T, typename std::enable_if<!std::is_same<typename std::decay<T>::type, void>::value, int>::type = 0>
+class optional {
+    bool holds_value = false;
+
+    union {
+        T uvalue;
+    };
+
+public:
+    optional() {}
+
+    optional(nullopt_t) {}
+
+    ~optional() {
+        reset();
+    }
+
+    optional(const optional& other) : holds_value(other.holds_value) {
+        if(holds_value) {
+            new (static_cast<void*>(std::addressof(uvalue))) T(other.uvalue);
+        }
+    }
+
+    optional(optional&& other) : holds_value(other.holds_value) {
+        if(holds_value) {
+            new (static_cast<void*>(std::addressof(uvalue))) T(std::move(other.uvalue));
+        }
+    }
+
+    optional& operator=(const optional& other) {
+        optional copy(other);
+        swap(*this, copy);
+        return *this;
+    }
+
+    optional& operator=(optional&& other) {
+        reset();
+        if(other.holds_value) {
+            new (static_cast<void*>(std::addressof(uvalue))) T(std::move(other.uvalue));
+            holds_value = true;
+        }
+        return *this;
+    }
+
+    template<class U = T, typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0>
+    optional(U&& value) : holds_value(true) {
+        new (static_cast<void*>(std::addressof(uvalue))) T(std::forward<U>(value));
+    }
+
+    template<typename U = T, typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0>
+    optional& operator=(U&& value) {
+        if(holds_value) {
+            uvalue = std::forward<U>(value);
+        } else {
+            new (static_cast<void*>(std::addressof(uvalue))) T(std::forward<U>(value));
+            holds_value = true;
+        }
+        return *this;
+    }
+
+    void swap(optional& other) {
+        if(holds_value && other.holds_value) {
+            std::swap(uvalue, other.uvalue);
+        } else if(holds_value && !other.holds_value) {
+            new (&other.uvalue) T(std::move(uvalue));
+            uvalue.~T();
+        } else if(!holds_value && other.holds_value) {
+            new (static_cast<void*>(std::addressof(uvalue))) T(std::move(other.uvalue));
+            other.uvalue.~T();
+        }
+        std::swap(holds_value, other.holds_value);
+    }
+
+    bool has_value() const {
+        return holds_value;
+    }
+
+    operator bool() const {
+        return holds_value;
+    }
+
+    void reset() {
+        if(holds_value) {
+            uvalue.~T();
+        }
+        holds_value = false;
+    }
+
+    T& value() & {
+        if(!holds_value) {
+            throw std::runtime_error{"Optional does not contain a value"};
+        }
+        return uvalue;
+    }
+
+    const T& value() const & {
+        if(!holds_value) {
+            throw std::runtime_error{"Optional does not contain a value"};
+        }
+        return uvalue;
+    }
+
+    T&& value() && {
+        if(!holds_value) {
+            throw std::runtime_error{"Optional does not contain a value"};
+        }
+        return std::move(uvalue);
+    }
+
+    const T&& value() const && {
+        if(!holds_value) {
+            throw std::runtime_error{"Optional does not contain a value"};
+        }
+        return std::move(uvalue);
+    }
+
+    template<typename U>
+    T value_or(U&& default_value) const & {
+        return holds_value ? uvalue : static_cast<T>(std::forward<U>(default_value));
+    }
+
+    template<typename U>
+    T value_or(U&& default_value) && {
+        return holds_value ? std::move(uvalue) : static_cast<T>(std::forward<U>(default_value));
+    }
+};
 
 #endif
