@@ -285,9 +285,9 @@ class optional {
     };
 
 public:
-    optional() {}
+    optional() noexcept {}
 
-    optional(nullopt_t) {}
+    optional(nullopt_t) noexcept {}
 
     ~optional() {
         reset();
@@ -299,7 +299,7 @@ public:
         }
     }
 
-    optional(optional&& other) : holds_value(other.holds_value) {
+    optional(optional&& other) noexcept(std::is_nothrow_move_constructible<T>::value) : holds_value(other.holds_value) {
         if(holds_value) {
             new (static_cast<void*>(std::addressof(uvalue))) T(std::move(other.uvalue));
         }
@@ -311,7 +311,9 @@ public:
         return *this;
     }
 
-    optional& operator=(optional&& other) {
+    optional& operator=(optional&& other) noexcept(
+        std::is_nothrow_move_assignable<T>::value && std::is_nothrow_move_constructible<T>::value
+    ) {
         reset();
         if(other.holds_value) {
             new (static_cast<void*>(std::addressof(uvalue))) T(std::move(other.uvalue));
@@ -320,12 +322,18 @@ public:
         return *this;
     }
 
-    template<class U = T, typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0>
+    template<
+        typename U = T,
+        typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0
+    >
     optional(U&& value) : holds_value(true) {
         new (static_cast<void*>(std::addressof(uvalue))) T(std::forward<U>(value));
     }
 
-    template<typename U = T, typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0>
+    template<
+        typename U = T,
+        typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0
+    >
     optional& operator=(U&& value) {
         if(holds_value) {
             uvalue = std::forward<U>(value);
@@ -333,6 +341,11 @@ public:
             new (static_cast<void*>(std::addressof(uvalue))) T(std::forward<U>(value));
             holds_value = true;
         }
+        return *this;
+    }
+
+    optional& operator=(nullopt_t) noexcept {
+        reset();
         return *this;
     }
 
