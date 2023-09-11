@@ -224,6 +224,7 @@ set(
   src/symbols/symbols_with_libbacktrace.cpp
   src/symbols/symbols_with_libdwarf.cpp
   src/symbols/symbols_with_nothing.cpp
+  src/symbols/symbols_core.cpp
   src/unwind/unwind_with_execinfo.cpp
   src/unwind/unwind_with_nothing.cpp
   src/unwind/unwind_with_unwind.cpp
