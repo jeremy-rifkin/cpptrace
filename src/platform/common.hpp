@@ -285,6 +285,8 @@ class optional {
     };
 
 public:
+    // clang-tidy false positive
+    // NOLINTNEXTLINE(modernize-use-equals-default)
     optional() noexcept {}
 
     optional(nullopt_t) noexcept {}
@@ -326,6 +328,8 @@ public:
         typename U = T,
         typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0
     >
+    // clang-tidy false positive
+    // NOLINTNEXTLINE(bugprone-forwarding-reference-overload)
     optional(U&& value) : holds_value(true) {
         new (static_cast<void*>(std::addressof(uvalue))) T(std::forward<U>(value));
     }
