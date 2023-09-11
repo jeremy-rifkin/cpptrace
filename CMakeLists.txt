@@ -166,7 +166,7 @@ else()
   #message(STATUS "MANUAL CONFIG SPECIFIED")
 endif()
 
-# =============================================== Autoconfig full dump ===============================================
+# =============================================== Autoconfig symbols ===============================================
 if(
   NOT (
     CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
@@ -179,9 +179,15 @@ if(
     CPPTRACE_GET_SYMBOLS_WITH_NOTHING
   )
 )
-  if(UNIX OR MINGW)
+  if(UNIX)
     message(STATUS "Cpptrace auto config: Using libdwarf for symbols")
     set(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF On)
+  elseif(MINGW)
+    message(STATUS "Cpptrace auto config: Using libdwarf + dbghelp for symbols")
+    # Use both dbghelp and libdwarf under mingw: Some files may use pdb symbols, e.g. system dlls like KERNEL32.dll and
+    # ntdll.dll at the very least, but also other libraries linked with may have pdb symbols.
+    set(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF On)
+    set(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP On)
   else()
     message(STATUS "Cpptrace auto config: Using dbghelp for symbols")
     set(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP On)
