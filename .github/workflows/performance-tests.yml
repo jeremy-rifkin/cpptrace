@@ -17,7 +17,7 @@ jobs:
           "-DCPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF4=On",
           "-DCPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF5=On"
         ]
-        exclude:
+        #exclude:
           ## TODO: Maybe a bug in dwarf5_ranges. b _dwarf_error_string
           ## DW_DLE_RNGLISTS_ERROR: rnglists table index of 2052 too large for table of 5 entries.
           #- config: "-DCPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF5=On"
