@@ -94,7 +94,7 @@ namespace cpptrace {
                     #if !IS_APPLE
                     execlp("addr2line", "addr2line", "-e", executable.c_str(), "-f", "-C", "-p", nullptr);
                     #else
-                    execlp("atos", "atos", "-o", executable.c_str(), nullptr);
+                    execlp("atos", "atos", "-o", executable.c_str(), "-fullPath", nullptr);
                     #endif
                     #else
                     #ifndef CPPTRACE_ADDR2LINE_PATH
