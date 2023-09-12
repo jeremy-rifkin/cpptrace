@@ -430,6 +430,17 @@ static bool directory_exists(const std::string& path) {
     #endif
 }
 
+CPPTRACE_MAYBE_UNUSED
+static std::string basename(const std::string& path) {
+    // Assumes no trailing /'s
+    auto pos = path.rfind("/");
+    if(pos == std::string::npos) {
+        return path;
+    } else {
+        return path.substr(pos + 1);
+    }
+}
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

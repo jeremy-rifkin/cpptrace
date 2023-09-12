@@ -18,10 +18,6 @@
 #include <libdwarf.h>
 #include <dwarf.h>
 
-#if IS_APPLE
- #include <libgen.h>
-#endif
-
 // some stuff is based on https://github.com/davea42/libdwarf-addr2line/blob/master/addr2line.c, mainly line handling
 // then much expanded for symbols and efficiency
 // dwarf5_ranges and dwarf4_ranges utility functions are taken from there directly, also pc_in_die
@@ -1010,9 +1006,7 @@ namespace cpptrace {
                 //char* dir = dirname(obj_path.data());
                 //std::string dsym =
                 if(directory_exists(obj_path + ".dSYM")) {
-                    std::string obj_path_copy = frame_info.obj_path;
-                    std::string base = basename(const_cast<char*>(obj_path_copy.data()));
-                    obj_path += ".dSYM/Contents/Resources/DWARF/" + base;
+                    obj_path += ".dSYM/Contents/Resources/DWARF/" + basename(frame_info.obj_path);
                 }
                 #endif
                 if(trace_dwarf) {
