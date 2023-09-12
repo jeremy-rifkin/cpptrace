@@ -185,6 +185,7 @@ namespace cpptrace {
         namespace libdwarf {
             // printbugging as we go
             constexpr bool dump_dwarf = false;
+            constexpr bool trace_dwarf = false;
 
             static void err_handler(Dwarf_Error err, Dwarf_Ptr errarg) {
                 printf("libdwarf error reading %s: %lu %s\n", "xx", (unsigned long)dwarf_errno(err), dwarf_errmsg(err));
@@ -262,23 +263,30 @@ namespace cpptrace {
             struct die_object {
                 Dwarf_Debug dbg = nullptr;
                 Dwarf_Die die = nullptr;
+
                 die_object(Dwarf_Debug dbg, Dwarf_Die die) : dbg(dbg), die(die) {}
+
                 ~die_object() {
                     if(die) {
                         dwarf_dealloc(dbg, die, DW_DLA_DIE);
                     }
                 }
+
                 die_object(const die_object&) = delete;
+
                 die_object& operator=(const die_object&) = delete;
+
                 die_object(die_object&& other) : dbg(other.dbg), die(other.die) {
                     other.die = nullptr;
                 }
+
                 die_object& operator=(die_object&& other) {
                     dbg = other.dbg;
                     die = other.die;
                     other.die = nullptr;
                     return *this;
                 }
+
                 die_object get_child() const {
                     Dwarf_Die child = nullptr;
                     int ret = dwarf_child(
@@ -295,6 +303,7 @@ namespace cpptrace {
                         exit(1);
                     }
                 }
+
                 die_object get_sibling() const {
                     Dwarf_Die sibling = 0;
                     int ret = dwarf_siblingof_b(dbg, die, true, &sibling, nullptr);
@@ -307,12 +316,15 @@ namespace cpptrace {
                         exit(1);
                     }
                 }
+
                 operator bool() const {
                     return die != nullptr;
                 }
+
                 Dwarf_Die get() const {
                     return die;
                 }
+
                 std::string get_name() const {
                     char* name;
                     int ret = dwarf_diename(die, &name, nullptr);
@@ -323,10 +335,24 @@ namespace cpptrace {
                     }
                     return name;
                 }
+
                 Dwarf_Half get_tag() const {
                     Dwarf_Half tag = 0;
                     dwarf_tag(die, &tag, nullptr);
                     return tag;
+                }
+
+                const char* get_tag_name() const {
+                    const char* tag_name;
+                    dwarf_get_TAG_name(get_tag(), &tag_name);
+                    return tag_name;
+                }
+
+                Dwarf_Off get_global_offset() const {
+                    Dwarf_Off off;
+                    int ret = dwarf_dieoffset(die, &off, nullptr);
+                    assert(ret == DW_DLV_OK);
+                    return off;
                 }
             };
 
@@ -486,9 +512,7 @@ namespace cpptrace {
                         extents += "[" + std::to_string(val + 1) + "]";
                         dwarf_dealloc_attribute(attr);
                     } else {
-                        const char* tag_name = nullptr;
-                        dwarf_get_TAG_name(subrange.get_tag(), &tag_name);
-                        fprintf(stderr, "unknown tag %s\n", tag_name);
+                        fprintf(stderr, "unknown tag %s\n", subrange.get_tag_name());
                     }
                 });
                 return extents;
@@ -602,9 +626,7 @@ namespace cpptrace {
                         }
                     default:
                         {
-                            const char* tag_name = nullptr;
-                            dwarf_get_TAG_name(die.get_tag(), &tag_name);
-                            fprintf(stderr, "unknown tag %s\n", tag_name);
+                            fprintf(stderr, "unknown tag %s\n", die.get_tag_name());
                             exit(1);
                         }
                 }
@@ -696,13 +718,11 @@ namespace cpptrace {
                     [pc, dwversion, &frame] (Dwarf_Debug dbg, const die_object& die) {
                         int ret;
                         if(dump_dwarf) {
-                            const char* tag_name;
-                            dwarf_get_TAG_name(die.get_tag(), &tag_name);
                             fprintf(
                                 stderr,
                                 "-------------> %d %s %s\n",
                                 dwversion,
-                                tag_name,
+                                die.get_tag_name(),
                                 die.get_name().c_str()
                             );
                         }
@@ -712,6 +732,9 @@ namespace cpptrace {
                                 fprintf(stderr, "pc not in die\n");
                             }
                         } else {
+                            if(trace_dwarf) {
+                                fprintf(stderr, "pc in die %08llx %s\n", die.get_global_offset(), die.get_tag_name());
+                            }
                             if(dump_dwarf) {
                                 fprintf(stderr, "pc in die <-----------------------------------\n");
                             }
@@ -819,6 +842,9 @@ namespace cpptrace {
                         Dwarf_Half offset_size = 0;
                         Dwarf_Half dwversion = 0;
                         dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                        if(trace_dwarf) {
+                            fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
+                        }
                         /*auto child = cu_die.get_child();
                         if(child) {
                             walk_die_list_recursive(
@@ -872,7 +898,7 @@ namespace cpptrace {
                 }
             }
 
-            void lookup_pc2(
+            void lookup_pc(
                 const char* object,
                 Dwarf_Addr pc,
                 stacktrace_frame& frame
@@ -883,8 +909,16 @@ namespace cpptrace {
                 }
                 Dwarf_Debug dbg;
                 Dwarf_Ptr errarg = 0;
-                auto ret = dwarf_init_path(object, nullptr, 0,
-                        DW_GROUPNUMBER_ANY, err_handler, errarg, &dbg, nullptr);
+                auto ret = dwarf_init_path(
+                    object,
+                    nullptr,
+                    0,
+                    DW_GROUPNUMBER_ANY,
+                    err_handler,
+                    errarg,
+                    &dbg,
+                    nullptr
+                );
                 if(ret == DW_DLV_NO_ENTRY) {
                     // fail, no debug info
                 } else if(ret != DW_DLV_OK) {
@@ -900,7 +934,16 @@ namespace cpptrace {
                 frame.filename = frame_info.obj_path;
                 frame.symbol = frame_info.symbol;
                 frame.address = frame_info.raw_address;
-                lookup_pc2(
+                if(trace_dwarf) {
+                    fprintf(
+                        stderr,
+                        "%s %08lx %s\n",
+                        frame_info.obj_path.c_str(),
+                        frame_info.obj_address,
+                        frame_info.symbol.c_str()
+                    );
+                }
+                lookup_pc(
                     frame_info.obj_path.c_str(),
                     frame_info.obj_address,
                     frame
