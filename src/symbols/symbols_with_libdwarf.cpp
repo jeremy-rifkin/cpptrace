@@ -390,6 +390,56 @@ namespace cpptrace {
                     assert(ret == DW_DLV_OK);
                     return off;
                 }
+
+                die_object resolve_reference_attribute(Dwarf_Half dw_attrnum) const {
+                    Dwarf_Attribute attr;
+                    int ret = dwarf_attr(die, dw_attrnum, &attr, nullptr);
+                    Dwarf_Half form = 0;
+                    ret = dwarf_whatform(attr, &form, nullptr);
+                    switch(form) {
+                        case DW_FORM_ref1:
+                        case DW_FORM_ref2:
+                        case DW_FORM_ref4:
+                        case DW_FORM_ref8:
+                        case DW_FORM_ref_udata:
+                            {
+                                Dwarf_Off off = 0;
+                                Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
+                                ret = dwarf_formref(attr, &off, &is_info, nullptr);
+                                assert(ret == DW_DLV_OK);
+                                Dwarf_Off goff = 0;
+                                ret = dwarf_convert_to_global_offset(attr, off, &goff, nullptr);
+                                assert(ret == DW_DLV_OK);
+                                Dwarf_Die targ_die_a = 0;
+                                ret = dwarf_offdie_b(dbg, goff, is_info, &targ_die_a, nullptr);
+                                assert(ret == DW_DLV_OK);
+                                return die_object(dbg, targ_die_a);
+                            }
+                        case DW_FORM_ref_addr:
+                            {
+                                Dwarf_Off off;
+                                ret = dwarf_global_formref(attr, &off, nullptr);
+                                int is_info_a = dwarf_get_die_infotypes_flag(die);
+                                Dwarf_Die targ_die_a = 0;
+                                ret = dwarf_offdie_b(dbg, off, is_info_a, &targ_die_a, nullptr);
+                                assert(ret == DW_DLV_OK);
+                                return die_object(dbg, targ_die_a);
+                            }
+                        case DW_FORM_ref_sig8:
+                            {
+                                Dwarf_Sig8 signature;
+                                ret = dwarf_formsig8(attr, &signature, nullptr);
+                                assert(ret == DW_DLV_OK);
+                                Dwarf_Die  targdie = 0;
+                                Dwarf_Bool targ_is_info = false;
+                                ret = dwarf_find_die_given_sig8(dbg, &signature, &targdie, &targ_is_info, nullptr);
+                                assert(ret == DW_DLV_OK);
+                                return die_object(dbg, targdie);
+                            }
+                        default:
+                            assert(false);
+                    }
+                }
             };
 
             void walk_die_list(
@@ -691,6 +741,12 @@ namespace cpptrace {
                 }
                 if(name) {
                     frame.symbol = std::move(name).unwrap();
+                } else {
+                    if(die.has_attr(DW_AT_specification)) {
+                        die_object spec = die.resolve_reference_attribute(DW_AT_specification);
+                        // TODO: Passing pc here is misleading
+                        return retrieve_symbol_for_subprogram(dbg, spec, pc, dwversion, frame);
+                    }
                 }
                 // TODO: Handle namespaces
                 // TODO: Disabled for now
