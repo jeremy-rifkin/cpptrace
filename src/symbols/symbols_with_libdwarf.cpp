@@ -437,7 +437,8 @@ namespace cpptrace {
                                 return die_object(dbg, targdie);
                             }
                         default:
-                            assert(false);
+                            fprintf(stderr, "unknown form for attribute %d %d\n", dw_attrnum, form);
+                            exit(1);
                     }
                 }
             };
@@ -781,7 +782,6 @@ namespace cpptrace {
                     dbg,
                     die,
                     [pc, dwversion, &frame] (Dwarf_Debug dbg, const die_object& die) {
-                        int ret;
                         if(dump_dwarf) {
                             fprintf(
                                 stderr,
@@ -798,7 +798,12 @@ namespace cpptrace {
                             }
                         } else {
                             if(trace_dwarf) {
-                                fprintf(stderr, "pc in die %08llx %s\n", die.get_global_offset(), die.get_tag_name());
+                                fprintf(
+                                    stderr,
+                                    "pc in die %08llx %s\n",
+                                    (unsigned long long) die.get_global_offset(),
+                                    die.get_tag_name()
+                                );
                             }
                             if(dump_dwarf) {
                                 fprintf(stderr, "pc in die <-----------------------------------\n");
@@ -1013,9 +1018,9 @@ namespace cpptrace {
                 if(trace_dwarf) {
                     fprintf(
                         stderr,
-                        "%s %08lx %s\n",
+                        "%s %08llx %s\n",
                         obj_path.c_str(),
-                        frame_info.obj_address,
+                        (unsigned long long)frame_info.obj_address,
                         frame_info.symbol.c_str()
                     );
                 }
