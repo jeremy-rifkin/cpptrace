@@ -433,7 +433,7 @@ static bool directory_exists(const std::string& path) {
 CPPTRACE_MAYBE_UNUSED
 static std::string basename(const std::string& path) {
     // Assumes no trailing /'s
-    auto pos = path.rfind("/");
+    auto pos = path.rfind('/');
     if(pos == std::string::npos) {
         return path;
     } else {
