@@ -2,7 +2,9 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
+#include "../platform/common.hpp"
 #include "../platform/program_name.hpp"
+#include "../platform/object.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -16,7 +18,9 @@
 #include <libdwarf.h>
 #include <dwarf.h>
 
-#include "../platform/object.hpp"
+#if IS_APPLE
+ #include <libgen.h>
+#endif
 
 // some stuff is based on https://github.com/davea42/libdwarf-addr2line/blob/master/addr2line.c, mainly line handling
 // then much expanded for symbols and efficiency
@@ -939,17 +943,28 @@ namespace cpptrace {
                 frame.filename = frame_info.obj_path;
                 frame.symbol = frame_info.symbol;
                 frame.address = frame_info.raw_address;
+                std::string obj_path = frame_info.obj_path;
+                #if IS_APPLE
+                //std::string obj_path = frame_info.obj_path;
+                //char* dir = dirname(obj_path.data());
+                //std::string dsym =
+                if(directory_exists(obj_path + ".dSYM")) {
+                    std::string obj_path_copy = frame_info.obj_path;
+                    std::string base = basename(const_cast<char*>(obj_path_copy.data()));
+                    obj_path += ".dSYM/Contents/Resources/DWARF/" + base;
+                }
+                #endif
                 if(trace_dwarf) {
                     fprintf(
                         stderr,
                         "%s %08lx %s\n",
-                        frame_info.obj_path.c_str(),
+                        obj_path.c_str(),
                         frame_info.obj_address,
                         frame_info.symbol.c_str()
                     );
                 }
                 lookup_pc(
-                    frame_info.obj_path.c_str(),
+                    obj_path.c_str(),
                     frame_info.obj_address,
                     frame
                 );

@@ -54,6 +54,14 @@ if(WIN32) # Copy the .dll on windows
     $<TARGET_FILE_DIR:your_target>
   )
 endif()
+
+if(APPLE) # Create a .dSYM file on apple. Currently required, but hopefully not for long
+  add_custom_command(
+    TARGET your_target
+    POST_BUILD
+    COMMAND dsymutil $<TARGET_FILE:your_target>
+  )
+endif()
 ```
 
 It's as easy as that. Cpptrace will automatically configure itself for your system.
@@ -153,6 +161,9 @@ be used to get raw frame information for custom use.
 
 **Note:** Debug info (`-g`) is generally required for good trace information. Some back-ends read symbols from dynamic
 export information which may require `-rdynamic` or manually marking symbols for exporting.
+
+**Note:** Currently on Mac .dSYM files are required, which can be generated with `dsymutil yourbinary`. A cmake snippet
+for generating these is included above.
 
 ```cpp
 namespace cpptrace {

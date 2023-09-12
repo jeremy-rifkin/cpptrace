@@ -62,6 +62,8 @@
 
 #if IS_WINDOWS
  #include <windows.h>
+#else
+ #include <sys/stat.h>
 #endif
 
 // Lightweight std::source_location.
@@ -268,10 +270,6 @@ class file_error : std::exception {
     }
 };
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
 struct nullopt_t {};
 
 static constexpr nullopt_t nullopt;
@@ -419,5 +417,21 @@ public:
         return holds_value ? std::move(uvalue) : static_cast<T>(std::forward<U>(default_value));
     }
 };
+
+// shamelessly stolen from stackoverflow
+CPPTRACE_MAYBE_UNUSED
+static bool directory_exists(const std::string& path) {
+    #if IS_WINDOWS
+    DWORD dwAttrib = GetFileAttributesA(path.c_str());
+    return dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
+    #else
+    struct stat sb;
+    return stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode);
+    #endif
+}
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif

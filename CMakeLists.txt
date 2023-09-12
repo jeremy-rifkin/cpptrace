@@ -452,6 +452,7 @@ endif()
 
 if(CPPTRACE_BUILD_TEST)
   add_executable(test test/test.cpp)
+  target_compile_features(test PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
   target_link_libraries(test PRIVATE cpptrace)
   # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
@@ -461,10 +462,18 @@ if(CPPTRACE_BUILD_TEST)
   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
     set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
   endif()
+  if(APPLE) # TODO: Temporary
+    add_custom_command(
+      TARGET test
+      POST_BUILD
+      COMMAND dsymutil $<TARGET_FILE:test>
+    )
+  endif()
 endif()
 
 if(CPPTRACE_BUILD_DEMO)
   add_executable(demo test/demo.cpp)
+  target_compile_features(demo PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
   target_link_libraries(demo PRIVATE cpptrace)
   # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
@@ -473,6 +482,13 @@ if(CPPTRACE_BUILD_DEMO)
   endif()
   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
     set_property(TARGET demo PROPERTY ENABLE_EXPORTS ON)
+  endif()
+  if(APPLE) # TODO: Temporary
+    add_custom_command(
+      TARGET demo
+      POST_BUILD
+      COMMAND dsymutil $<TARGET_FILE:demo>
+    )
   endif()
 endif()
 
@@ -504,6 +520,7 @@ if(CPPTRACE_BUILD_SPEEDTEST)
   FetchContent_MakeAvailable(googletest)
 
   add_executable(speedtest test/speedtest.cpp)
+  target_compile_features(speedtest PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
   target_link_libraries(
     speedtest
     PRIVATE
