@@ -336,6 +336,38 @@ namespace cpptrace {
                     return name;
                 }
 
+                optional<std::string> get_string_attribute(Dwarf_Half dw_attrnum) const {
+                    Dwarf_Attribute attr;
+                    int ret = dwarf_attr(die, dw_attrnum, &attr, nullptr);
+                    if(ret == DW_DLV_OK) {
+                        char* raw_str;
+                        std::string str;
+                        ret = dwarf_formstring(attr, &raw_str, nullptr);
+                        assert(ret == DW_DLV_OK);
+                        str = raw_str;
+                        dwarf_dealloc(dbg, raw_str, DW_DLA_STRING);
+                        dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+                        return str;
+                    } else {
+                        return nullopt;
+                    }
+                }
+
+                bool has_attr(Dwarf_Half dw_attrnum) const {
+                    Dwarf_Attribute attr;
+                    int ret = dwarf_attr(die, dw_attrnum, &attr, nullptr);
+                    if(ret == DW_DLV_NO_ENTRY) {
+                        return false;
+                    } else if(ret == DW_DLV_OK) {
+                        // TODO: Better impl that doesn't require allocation....?
+                        dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+                        return true;
+                    } else {
+                        fprintf(stderr, "Error\n");
+                        exit(1);
+                    }
+                }
+
                 Dwarf_Half get_tag() const {
                     Dwarf_Half tag = 0;
                     dwarf_tag(die, &tag, nullptr);
@@ -645,43 +677,16 @@ namespace cpptrace {
                 stacktrace_frame& frame
             ) {
                 assert(die.get_tag() == DW_TAG_subprogram);
-                Dwarf_Attribute attr;
-                int ret = dwarf_attr(die.get(), DW_AT_linkage_name, &attr, nullptr);
-                if(ret != DW_DLV_OK) {
-                    ret = dwarf_attr(die.get(), DW_AT_MIPS_linkage_name, &attr, nullptr);
+                optional<std::string> name;
+                if(auto linkage_name = die.get_string_attribute(DW_AT_linkage_name)) {
+                    name = std::move(linkage_name);
+                } else if(auto linkage_name = die.get_string_attribute(DW_AT_MIPS_linkage_name)) {
+                    name = std::move(linkage_name);
+                } else if(auto linkage_name = die.get_string_attribute(DW_AT_name)) {
+                    name = std::move(linkage_name);
                 }
-                if(ret == DW_DLV_OK) {
-                    char* raw_linkage_name;
-                    std::string linkage_name;
-                    if(dwarf_formstring(attr, &raw_linkage_name, nullptr) == DW_DLV_OK) {
-                        linkage_name = raw_linkage_name;
-                        if(dump_dwarf) {
-                            fprintf(stderr, "name: %s\n", raw_linkage_name);
-                        }
-                        dwarf_dealloc(dbg, raw_linkage_name, DW_DLA_STRING);
-                    }
-                    dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
-                    if(!linkage_name.empty()) {
-                        frame.symbol = linkage_name;
-                    }
-                } else {
-                    // TODO: temporary
-                    ret = dwarf_attr(die.get(), DW_AT_name, &attr, nullptr);
-                    if(ret == DW_DLV_OK) {
-                        char* raw_linkage_name;
-                        std::string linkage_name;
-                        if(dwarf_formstring(attr, &raw_linkage_name, nullptr) == DW_DLV_OK) {
-                            linkage_name = raw_linkage_name;
-                            if(dump_dwarf) {
-                                fprintf(stderr, "name: %s\n", raw_linkage_name);
-                            }
-                            dwarf_dealloc(dbg, raw_linkage_name, DW_DLA_STRING);
-                        }
-                        dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
-                        if(!linkage_name.empty()) {
-                            frame.symbol = linkage_name;
-                        }
-                    }
+                if(name) {
+                    frame.symbol = std::move(name).unwrap();
                 }
                 // TODO: Handle namespaces
                 // TODO: Disabled for now

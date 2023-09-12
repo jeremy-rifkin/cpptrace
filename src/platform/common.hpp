@@ -381,28 +381,28 @@ public:
         holds_value = false;
     }
 
-    T& value() & {
+    T& unwrap() & {
         if(!holds_value) {
             throw std::runtime_error{"Optional does not contain a value"};
         }
         return uvalue;
     }
 
-    const T& value() const & {
+    const T& unwrap() const & {
         if(!holds_value) {
             throw std::runtime_error{"Optional does not contain a value"};
         }
         return uvalue;
     }
 
-    T&& value() && {
+    T&& unwrap() && {
         if(!holds_value) {
             throw std::runtime_error{"Optional does not contain a value"};
         }
         return std::move(uvalue);
     }
 
-    const T&& value() const && {
+    const T&& unwrap() const && {
         if(!holds_value) {
             throw std::runtime_error{"Optional does not contain a value"};
         }
