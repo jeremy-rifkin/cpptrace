@@ -112,7 +112,13 @@ namespace cpptrace {
                         nullptr
                     );
                     #else
-                    execl(CPPTRACE_ADDR2LINE_PATH, CPPTRACE_ADDR2LINE_PATH, "-o", executable.c_str(), nullptr);
+                    execl(
+                        CPPTRACE_ADDR2LINE_PATH,
+                        CPPTRACE_ADDR2LINE_PATH,
+                        "-o", executable.c_str(),
+                        "-fullPath",
+                        nullptr
+                    );
                     #endif
                     #endif
                     _exit(1); // TODO: Diagnostic?
