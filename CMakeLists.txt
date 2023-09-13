@@ -22,6 +22,8 @@ if(CMAKE_GENERATOR STREQUAL "Ninja")
   endif()
 endif()
 
+option(CPPTRACE_STATIC "" OFF)
+
 option(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE "" OFF)
 option(CPPTRACE_FULL_TRACE_WITH_STACKTRACE "" OFF)
 
@@ -237,7 +239,11 @@ set(
   src/unwind/unwind_with_winapi.cpp
 )
 
-add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
+if(CPPTRACE_STATIC)
+  add_library(cpptrace STATIC ${sources} include/cpptrace/cpptrace.hpp)
+else()
+  add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
+endif()
 
 target_include_directories(
   cpptrace
@@ -402,14 +408,25 @@ endif()
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(CMakePackageConfigHelpers)
 
-  install(
-    TARGETS cpptrace
-    EXPORT cpptrace_targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
+  if(CPPTRACE_STATIC)
+    install(
+      TARGETS cpptrace dwarf
+      EXPORT cpptrace_targets
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+  else()
+    install(
+      TARGETS cpptrace
+      EXPORT cpptrace_targets
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+  endif()
 
   install(
     FILES

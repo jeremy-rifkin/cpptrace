@@ -1,4 +1,4 @@
-# Cpptrace
+# Cpptrace <!-- omit in toc -->
 
 [![build](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml)
 [![test](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/test.yml)
@@ -18,21 +18,58 @@ This library is in beta, if you run into any problems please open an [issue][iss
 
 [issue]: https://github.com/jeremy-rifkin/cpptrace/issues
 
-## Table of Contents
+## Table of Contents <!-- omit in toc -->
 
-- [Cpptrace](#cpptrace)
-  - [Table of Contents](#table-of-contents)
-  - [Quick Setup](#quick-setup)
-  - [Other Installation Mechanisms](#other-installation-mechanisms)
+- [30-Second Overview](#30-second-overview)
+  - [CMake FetchContent Usage](#cmake-fetchcontent-usage)
+- [In-Depth Documentation](#in-depth-documentation)
+  - [Usage](#usage)
+    - [CMake FetchContent](#cmake-fetchcontent)
     - [System-Wide Installation](#system-wide-installation)
+    - [Local User Installation](#local-user-installation)
     - [Package Managers](#package-managers)
+    - [Platform Logistics](#platform-logistics)
+    - [Static Linking](#static-linking)
   - [API](#api)
   - [Back-ends](#back-ends)
     - [Summary of Library Configurations](#summary-of-library-configurations)
   - [Testing Methodology](#testing-methodology)
-  - [License](#license)
+- [License](#license)
 
-## Quick Setup
+# 30-Second Overview
+
+```cpp
+#include <cpptrace/cpptrace.hpp>
+
+void trace() {
+    cpptrace::print_trace();
+}
+
+// ...
+```
+
+![Screenshot](res/screenshot.png)
+
+## CMake FetchContent Usage
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+  cpptrace
+  GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
+  GIT_TAG        v0.1.1 # <HASH or TAG>
+)
+FetchContent_MakeAvailable(cpptrace)
+target_link_libraries(your_target cpptrace)
+```
+
+On windows and macos some extra work is required, see [below](#platform-logistics).
+
+# In-Depth Documentation
+
+## Usage
+
+### CMake FetchContent
 
 With CMake FetchContent:
 
@@ -45,33 +82,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace)
-
-if(WIN32) # Copy the .dll on windows
-  add_custom_command(
-    TARGET your_target POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    $<TARGET_FILE:cpptrace>
-    $<TARGET_FILE_DIR:your_target>
-  )
-endif()
-
-if(APPLE) # Create a .dSYM file on apple. Currently required, but hopefully not for long
-  add_custom_command(
-    TARGET your_target
-    POST_BUILD
-    COMMAND dsymutil $<TARGET_FILE:your_target>
-  )
-endif()
 ```
 
-It's as easy as that. Cpptrace will automatically configure itself for your system.
+It's as easy as that. Cpptrace will automatically configure itself for your system. Note: On windows and macos some
+extra work is required, see [below](#platform-logistics).
 
 Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
 information.
-
-![Screenshot](res/screenshot.png)
-
-## Other Installation Mechanisms
 
 ### System-Wide Installation
 
@@ -153,6 +170,36 @@ g++ main.cpp -o main -g -Wall -I$HOME/wherever/include -L$HOME/wherever/lib -lcp
 ### Package Managers
 
 Coming soon
+
+### Platform Logistics
+
+Windows and macos require a little extra work to get everything in the right place
+
+```cmake
+# Copy the cpptrace.dll on windows to the same directory as the executable for your_target.
+# Not required if static linking.
+if(WIN32)
+  add_custom_command(
+    TARGET your_target POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:cpptrace>
+    $<TARGET_FILE_DIR:your_target>
+  )
+endif()
+
+# Create a .dSYM file on macos. Currently required, but hopefully not for long
+if(APPLE)
+  add_custom_command(
+    TARGET your_target
+    POST_BUILD
+    COMMAND dsymutil $<TARGET_FILE:your_target>
+  )
+endif()
+```
+
+### Static Linking
+
+To static link the library set `CPPTRACE_STATIC=On`.
 
 ## API
 
@@ -260,7 +307,8 @@ Back-ends:
 - `CPPTRACE_DEMANGLE_WITH_NOTHING=On/Off`
 
 Back-end configuration:
-- `CPPTRACE_BACKTRACE_PATH=<string>`: Path to libbacktrace backtrace.h, needed when compiling with clang
+- `CPPTRACE_STATIC=On/Off`: Create the cpptrace library as a static library.
+- `CPPTRACE_BACKTRACE_PATH=<string>`: Path to libbacktrace backtrace.h, needed when compiling with clang/
 - `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
   Default is `100`.
 - `CPPTRACE_ADDR2LINE_PATH=<string>`: Specify the absolute path to the addr2line binary for cpptrace to invoke. By
@@ -288,7 +336,7 @@ unwinding back-end, and the python script will check for an exact or near-match 
 
 [1]: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
 
-## License
+# License
 
 This library is under the MIT license.
 
