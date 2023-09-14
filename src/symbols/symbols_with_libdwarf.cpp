@@ -34,6 +34,20 @@
 #define DW_PR_DUx "llx"
 #define DW_PR_DUu "llu"
 
+Dwarf_Unsigned get_ranges_offset(Dwarf_Attribute attr) {
+    Dwarf_Unsigned off = 0;
+    Dwarf_Half attrform = 0;
+    dwarf_whatform(attr, &attrform, nullptr);
+    if (attrform == DW_FORM_rnglistx) {
+        int fres = dwarf_formudata(attr, &off, nullptr);
+        assert(fres == DW_DLV_OK);
+    } else {
+        int fres = dwarf_global_formref(attr, &off, nullptr);
+        assert(fres == DW_DLV_OK);
+    }
+    return off;
+}
+
 static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highest) {
     Dwarf_Unsigned offset = 0;
     Dwarf_Attribute attr = 0;
@@ -45,7 +59,8 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
     if(res != DW_DLV_OK) {
         return res;
     }
-    if(dwarf_global_formref(attr, &offset, nullptr) == DW_DLV_OK) {
+    offset = get_ranges_offset(attr);
+    if(true) {
         Dwarf_Unsigned rlesetoffset = 0;
         Dwarf_Unsigned rnglists_count = 0;
         Dwarf_Rnglists_Head head = 0;
@@ -54,7 +69,8 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
         /* offset is in .debug_rnglists */
         res = dwarf_rnglists_get_rle_head(
             attr,
-            attrform,offset,
+            attrform,
+            offset,
             &head,
             &rnglists_count,
             &rlesetoffset,
