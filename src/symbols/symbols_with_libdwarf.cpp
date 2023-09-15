@@ -814,7 +814,7 @@ namespace cpptrace {
                             );
                         }
 
-                        if(!pc_in_die(dbg, die.get(), dwversion, pc)) {
+                        if(!(die.get_tag() == DW_TAG_namespace || pc_in_die(dbg, die.get(), dwversion, pc))) {
                             if(dump_dwarf) {
                                 fprintf(stderr, "pc not in die\n");
                             }
@@ -822,7 +822,8 @@ namespace cpptrace {
                             if(trace_dwarf) {
                                 fprintf(
                                     stderr,
-                                    "pc in die %08llx %s\n",
+                                    "%s %08llx %s\n",
+                                    die.get_tag() == DW_TAG_namespace ? "pc maybe in die (namespace)" : "pc in die",
                                     (unsigned long long) die.get_global_offset(),
                                     die.get_tag_name()
                                 );
