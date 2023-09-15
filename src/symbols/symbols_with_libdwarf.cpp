@@ -67,7 +67,6 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
 
         dwarf_whatform(attr, &attrform, nullptr);
         /* offset is in .debug_rnglists */
-        //fprintf(stderr, "dwarf5_ranges offset: %u\n", offset);
         res = dwarf_rnglists_get_rle_head(
             attr,
             attrform,
@@ -78,7 +77,6 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
             nullptr
         );
         assert(res == DW_DLV_OK);
-        //fprintf(stderr, "dwarf5_ranges rnglists_count: %u\n", rnglists_count);
         if(res != DW_DLV_OK) {
             /* ASSERT: is DW_DLV_NO_ENTRY */
             dwarf_dealloc_attribute(attr);
@@ -123,7 +121,6 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
             case DW_RLE_start_end:
             case DW_RLE_startx_length:
             case DW_RLE_start_length:
-                //fprintf(stderr, "%08x %08x\n", cooked1, cooked2);
                 if(cooked1 < *lowest) {
                     *lowest = cooked1;
                 }
@@ -131,9 +128,9 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
                     *highest = cooked2;
                 }
             default:
+                assert(false);
                 /* Something is wrong. */
                 break;
-
             }
         }
         dwarf_dealloc_rnglists_head(head);
@@ -257,23 +254,17 @@ namespace cpptrace {
                         if(highpc_cls == DW_FORM_CLASS_CONSTANT) {
                             cu_highpc += cu_lowpc;
                         }
-                        //fprintf(stderr, "low: %llx  high: %llx  pc: %llx\n", cu_lowpc, cu_highpc, pc);
                         if(pc >= cu_lowpc && pc < cu_highpc) {
                             return true;
                         }
                     }
                 }
-                //if(die_object(dbg, die).get_tag() == DW_TAG_compile_unit) {
-                //    fprintf(stderr, "Searching range list\n");
-                //}
                 if(version >= 5) {
                     ret = dwarf5_ranges(die, &lowest, &highest);
                 } else {
                     ret = dwarf4_ranges(dbg, die, cu_lowpc, &lowest, &highest);
                 }
-                //fprintf(stderr, "low: %llu  high: %llu\n", lowest, highest);
                 if(pc >= lowest && pc < highest) {
-                    //fprintf(stderr, "Found in range list\n");
                     return true;
                 }
                 return false;
@@ -472,15 +463,12 @@ namespace cpptrace {
             ) {
                 fn(dbg, die);
                 die_object current = die.get_sibling();
-                while(true) {
-                    if(!current) {
-                        if(dump_dwarf) {
-                            fprintf(stderr, "End walk_die_list\n");
-                        }
-                        return;
-                    }
+                while(current) {
                     fn(dbg, current);
                     current = current.get_sibling();
+                }
+                if(dump_dwarf) {
+                    fprintf(stderr, "End walk_die_list\n");
                 }
             }
 
@@ -502,7 +490,7 @@ namespace cpptrace {
                 );
             }
 
-            die_object get_type_die(Dwarf_Debug dbg, const die_object& die) {
+            /*die_object get_type_die(Dwarf_Debug dbg, const die_object& die) {
                 Dwarf_Off type_offset;
                 Dwarf_Bool is_info;
                 int ret = dwarf_dietype_offset(die.get(), &type_offset, &is_info, nullptr);
@@ -591,7 +579,7 @@ namespace cpptrace {
                 }
             }
 
-            /*std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build = "");
+            std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build = "");
 
             std::string get_array_extents(Dwarf_Debug dbg, const die_object& die) {
                 assert(die.get_tag() == DW_TAG_array_type);
@@ -771,8 +759,8 @@ namespace cpptrace {
                         return retrieve_symbol_for_subprogram(dbg, spec, pc, dwversion, frame);
                     }
                 }
-                // TODO: Handle namespaces
                 // TODO: Disabled for now
+                // TODO: Handle namespaces
                 /*std::string name = die.get_name();
                 std::vector<std::string> params;
                 auto child = die.get_child();
@@ -828,9 +816,6 @@ namespace cpptrace {
                                     die.get_tag_name()
                                 );
                             }
-                            //if(dump_dwarf) {
-                            //    fprintf(stderr, "pc in die <-----------------------------------\n");
-                            //}
                             if(die.get_tag() == DW_TAG_subprogram) {
                                 retrieve_symbol_for_subprogram(dbg, die, pc, dwversion, frame);
                             }
@@ -938,17 +923,6 @@ namespace cpptrace {
                         if(trace_dwarf) {
                             fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
                         }
-                        /*auto child = cu_die.get_child();
-                        if(child) {
-                            walk_die_list_recursive(
-                                dbg,
-                                child,
-                                [&frame, pc, dwversion] (Dwarf_Debug dbg, const die_object& cu_die) {
-
-                                }
-                            );
-                        }*/
-                        //walk_die(dbg, cu_die, pc, dwversion, false, frame);
                         Dwarf_Unsigned offset = 0;
                         // TODO: I'm unsure if I'm supposed to take DW_AT_rnglists_base into account here
                         // However it looks like it is correct when not taking an offset into account and incorrect
@@ -1052,9 +1026,6 @@ namespace cpptrace {
                 frame.address = frame_info.raw_address;
                 std::string obj_path = frame_info.obj_path;
                 #if IS_APPLE
-                //std::string obj_path = frame_info.obj_path;
-                //char* dir = dirname(obj_path.data());
-                //std::string dsym =
                 if(directory_exists(obj_path + ".dSYM")) {
                     obj_path += ".dSYM/Contents/Resources/DWARF/" + basename(frame_info.obj_path);
                 }
