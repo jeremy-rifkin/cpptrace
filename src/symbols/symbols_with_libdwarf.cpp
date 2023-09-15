@@ -67,6 +67,7 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
 
         dwarf_whatform(attr, &attrform, nullptr);
         /* offset is in .debug_rnglists */
+        //fprintf(stderr, "dwarf5_ranges offset: %u\n", offset);
         res = dwarf_rnglists_get_rle_head(
             attr,
             attrform,
@@ -76,6 +77,8 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
             &rlesetoffset,
             nullptr
         );
+        assert(res == DW_DLV_OK);
+        //fprintf(stderr, "dwarf5_ranges rnglists_count: %u\n", rnglists_count);
         if(res != DW_DLV_OK) {
             /* ASSERT: is DW_DLV_NO_ENTRY */
             dwarf_dealloc_attribute(attr);
@@ -120,6 +123,7 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
             case DW_RLE_start_end:
             case DW_RLE_startx_length:
             case DW_RLE_start_length:
+                //fprintf(stderr, "%08x %08x\n", cooked1, cooked2);
                 if(cooked1 < *lowest) {
                     *lowest = cooked1;
                 }
@@ -234,7 +238,7 @@ namespace cpptrace {
                 }
             }
 
-            static Dwarf_Bool pc_in_die(Dwarf_Debug dbg, Dwarf_Die die,int version, Dwarf_Addr pc) {
+            static Dwarf_Bool pc_in_die(Dwarf_Debug dbg, Dwarf_Die die, int version, Dwarf_Addr pc) {
                 int ret;
                 Dwarf_Addr cu_lowpc = 0xffffffffffffffff;
                 Dwarf_Addr cu_highpc = 0;
@@ -259,15 +263,17 @@ namespace cpptrace {
                         }
                     }
                 }
+                //if(die_object(dbg, die).get_tag() == DW_TAG_compile_unit) {
+                //    fprintf(stderr, "Searching range list\n");
+                //}
                 if(version >= 5) {
-                    ret = dwarf5_ranges(die,
-                        &lowest,&highest);
+                    ret = dwarf5_ranges(die, &lowest, &highest);
                 } else {
-                    ret = dwarf4_ranges(dbg,die,cu_lowpc,
-                        &lowest,&highest);
+                    ret = dwarf4_ranges(dbg, die, cu_lowpc, &lowest, &highest);
                 }
                 //fprintf(stderr, "low: %llu  high: %llu\n", lowest, highest);
                 if(pc >= lowest && pc < highest) {
+                    //fprintf(stderr, "Found in range list\n");
                     return true;
                 }
                 return false;
@@ -342,7 +348,8 @@ namespace cpptrace {
                 }
 
                 std::string get_name() const {
-                    char* name;
+                    char empty[] = "";
+                    char* name = empty;
                     int ret = dwarf_diename(die, &name, nullptr);
                     std::string str;
                     if(ret != DW_DLV_NO_ENTRY) {
@@ -362,7 +369,7 @@ namespace cpptrace {
                         assert(ret == DW_DLV_OK);
                         str = raw_str;
                         dwarf_dealloc(dbg, raw_str, DW_DLA_STRING);
-                        dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+                        dwarf_dealloc_attribute(attr);
                         return str;
                     } else {
                         return nullopt;
@@ -376,7 +383,7 @@ namespace cpptrace {
                         return false;
                     } else if(ret == DW_DLV_OK) {
                         // TODO: Better impl that doesn't require allocation....?
-                        dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+                        dwarf_dealloc_attribute(attr);
                         return true;
                     } else {
                         fprintf(stderr, "Error\n");
@@ -425,6 +432,7 @@ namespace cpptrace {
                                 Dwarf_Die targ_die_a = 0;
                                 ret = dwarf_offdie_b(dbg, goff, is_info, &targ_die_a, nullptr);
                                 assert(ret == DW_DLV_OK);
+                                dwarf_dealloc_attribute(attr);
                                 return die_object(dbg, targ_die_a);
                             }
                         case DW_FORM_ref_addr:
@@ -435,6 +443,7 @@ namespace cpptrace {
                                 Dwarf_Die targ_die_a = 0;
                                 ret = dwarf_offdie_b(dbg, off, is_info_a, &targ_die_a, nullptr);
                                 assert(ret == DW_DLV_OK);
+                                dwarf_dealloc_attribute(attr);
                                 return die_object(dbg, targ_die_a);
                             }
                         case DW_FORM_ref_sig8:
@@ -446,6 +455,7 @@ namespace cpptrace {
                                 Dwarf_Bool targ_is_info = false;
                                 ret = dwarf_find_die_given_sig8(dbg, &signature, &targdie, &targ_is_info, nullptr);
                                 assert(ret == DW_DLV_OK);
+                                dwarf_dealloc_attribute(attr);
                                 return die_object(dbg, targdie);
                             }
                         default:
@@ -523,7 +533,7 @@ namespace cpptrace {
                 if(ret == DW_DLV_NO_ENTRY) {
                     return false;
                 } else if(ret == DW_DLV_OK) {
-                    dwarf_dealloc(dbg, attr, DW_DLA_ATTR);
+                    dwarf_dealloc_attribute(attr);
                     return true;
                 } else {
                     fprintf(stderr, "Error\n");
@@ -797,8 +807,8 @@ namespace cpptrace {
                         if(dump_dwarf) {
                             fprintf(
                                 stderr,
-                                "-------------> %d %s %s\n",
-                                dwversion,
+                                "-------------> %08llx %s %s\n",
+                                (unsigned long long) die.get_global_offset(),
                                 die.get_tag_name(),
                                 die.get_name().c_str()
                             );
@@ -817,9 +827,9 @@ namespace cpptrace {
                                     die.get_tag_name()
                                 );
                             }
-                            if(dump_dwarf) {
-                                fprintf(stderr, "pc in die <-----------------------------------\n");
-                            }
+                            //if(dump_dwarf) {
+                            //    fprintf(stderr, "pc in die <-----------------------------------\n");
+                            //}
                             if(die.get_tag() == DW_TAG_subprogram) {
                                 retrieve_symbol_for_subprogram(dbg, die, pc, dwversion, frame);
                             }
@@ -1028,7 +1038,7 @@ namespace cpptrace {
                 if(trace_dwarf) {
                     fprintf(
                         stderr,
-                        "%s %08llx %s\n",
+                        "Starting resolution for %s %08llx %s\n",
                         obj_path.c_str(),
                         (unsigned long long)frame_info.obj_address,
                         frame_info.symbol.c_str()
