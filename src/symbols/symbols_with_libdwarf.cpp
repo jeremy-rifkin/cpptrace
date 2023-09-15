@@ -948,9 +948,32 @@ namespace cpptrace {
                             );
                         }*/
                         //walk_die(dbg, cu_die, pc, dwversion, false, frame);
-                        if(pc_in_die(dbg, cu_die.get(), dwversion, pc)) {
-                            retrieve_line_info(dbg, cu_die, pc, dwversion, frame);
-                            retrieve_symbol(dbg, cu_die, pc, dwversion, frame);
+                        Dwarf_Unsigned offset = 0;
+                        // TODO: I'm unsure if I'm supposed to take DW_AT_rnglists_base into account here
+                        // However it looks like it is correct when not taking an offset into account and incorrect
+                        // otherwise
+                        //if(dwversion >= 5) {
+                        //    Dwarf_Attribute attr;
+                        //    int ret = dwarf_attr(cu_die.get(), DW_AT_rnglists_base, &attr, nullptr);
+                        //    assert(ret == DW_DLV_OK);
+                        //    Dwarf_Unsigned uval = 0;
+                        //    ret = dwarf_global_formref(attr, &uval, nullptr);
+                        //    offset = uval;
+                        //    dwarf_dealloc_attribute(attr);
+                        //}
+                        //fprintf(stderr, "------------> pc: %llx offset: %llx final: %llx\n", pc, offset, pc - offset);
+                        if(pc_in_die(dbg, cu_die.get(), dwversion, pc - offset)) {
+                            if(trace_dwarf) {
+                                fprintf(
+                                    stderr,
+                                    "pc in die %08llx %s (now searching for %08llx)\n",
+                                    (unsigned long long) cu_die.get_global_offset(),
+                                    cu_die.get_tag_name(),
+                                    pc - offset
+                                );
+                            }
+                            retrieve_line_info(dbg, cu_die, pc, dwversion, frame); // no offset for line info
+                            retrieve_symbol(dbg, cu_die, pc - offset, dwversion, frame);
                         }
                     }
                 );
