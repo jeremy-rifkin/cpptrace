@@ -12,11 +12,11 @@ namespace cpptrace {
         std::string demangle(const std::string& name) {
             int status;
             // presumably thread-safe
-            char* demangled = abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status);
+            char* const demangled = abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status);
             if(demangled) {
-                std::string str = demangled;
+                const std::string str = demangled;
                 // NOLINTNEXTLINE(cppcoreguidelines-no-malloc)
-                free(demangled);
+                std::free(demangled);
                 return str;
             } else {
                 return name;
