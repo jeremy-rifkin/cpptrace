@@ -127,6 +127,7 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
                 if(cooked2 > *highest) {
                     *highest = cooked2;
                 }
+                break;
             default:
                 assert(false);
                 /* Something is wrong. */
