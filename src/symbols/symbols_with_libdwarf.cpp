@@ -456,38 +456,53 @@ namespace cpptrace {
                 }
             };
 
+            // walk die list, callback is called on each die and should return true to
+            // continue traversal
             void walk_die_list(
                 Dwarf_Debug dbg,
                 const die_object& die,
-                std::function<void(Dwarf_Debug, const die_object&)> fn
+                std::function<bool(Dwarf_Debug, const die_object&)> fn
             ) {
-                fn(dbg, die);
-                die_object current = die.get_sibling();
-                while(current) {
-                    fn(dbg, current);
-                    current = current.get_sibling();
+                // TODO: Refactor so there is only one fn call
+                if(fn(dbg, die)) {
+                    die_object current = die.get_sibling();
+                    while(current) {
+                        if(fn(dbg, current)) {
+                            current = current.get_sibling();
+                        } else {
+                            break;
+                        }
+                    }
                 }
                 if(dump_dwarf) {
                     fprintf(stderr, "End walk_die_list\n");
                 }
             }
 
-            void walk_die_list_recursive(
+            // walk die list, recursing into children, callback is called on each die
+            // and should return true to continue traversal
+            // returns true if traversal should continue
+            bool walk_die_list_recursive(
                 Dwarf_Debug dbg,
                 const die_object& die,
-                std::function<void(Dwarf_Debug, const die_object&)> fn
+                std::function<bool(Dwarf_Debug, const die_object&)> fn
             ) {
+                bool continue_traversal = true;
                 walk_die_list(
                     dbg,
                     die,
-                    [&fn](Dwarf_Debug dbg, const die_object& die) {
+                    [&fn, &continue_traversal](Dwarf_Debug dbg, const die_object& die) {
                         auto child = die.get_child();
                         if(child) {
-                            walk_die_list_recursive(dbg, child, fn);
+                            if(!walk_die_list_recursive(dbg, child, fn)) {
+                                continue_traversal = false;
+                                return false;
+                            }
                         }
-                        fn(dbg, die);
+                        return fn(dbg, die);
                     }
                 );
+                return continue_traversal;
             }
 
             /*die_object get_type_die(Dwarf_Debug dbg, const die_object& die) {
@@ -781,17 +796,19 @@ namespace cpptrace {
                 frame.symbol = name + "(" + join(params, ", ") + ")";*/
             }
 
-            void retrieve_symbol(
+            // returns true if this call found the symbol
+            bool retrieve_symbol(
                 Dwarf_Debug dbg,
                 const die_object& die,
                 Dwarf_Addr pc,
                 Dwarf_Half dwversion,
                 stacktrace_frame& frame
             ) {
+                bool found = false;
                 walk_die_list(
                     dbg,
                     die,
-                    [pc, dwversion, &frame] (Dwarf_Debug dbg, const die_object& die) {
+                    [pc, dwversion, &frame, &found] (Dwarf_Debug dbg, const die_object& die) {
                         if(dump_dwarf) {
                             fprintf(
                                 stderr,
@@ -818,18 +835,25 @@ namespace cpptrace {
                             }
                             if(die.get_tag() == DW_TAG_subprogram) {
                                 retrieve_symbol_for_subprogram(dbg, die, pc, dwversion, frame);
+                                found = true;
+                                return false;
                             }
                             auto child = die.get_child();
                             if(child) {
-                                retrieve_symbol(dbg, child, pc, dwversion, frame);
+                                if(retrieve_symbol(dbg, child, pc, dwversion, frame)) {
+                                    found = true;
+                                    return false;
+                                }
                             } else {
                                 if(dump_dwarf) {
                                     fprintf(stderr, "(no child)\n");
                                 }
                             }
                         }
+                        return true;
                     }
                 );
+                return found;
             }
 
             void retrieve_line_info(
@@ -903,8 +927,8 @@ namespace cpptrace {
             }
 
             void walk_compilation_units(Dwarf_Debug dbg, Dwarf_Addr pc, stacktrace_frame& frame) {
-                // 0 passed as the dieto the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d to
-                // fetch the cu die
+                // 0 passed as the die to the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d
+                // to fetch the cu die
                 die_object cu_die(dbg, nullptr);
                 cu_die = cu_die.get_sibling();
                 if(!cu_die) {
@@ -949,7 +973,9 @@ namespace cpptrace {
                             }
                             retrieve_line_info(dbg, cu_die, pc, dwversion, frame); // no offset for line info
                             retrieve_symbol(dbg, cu_die, pc - offset, dwversion, frame);
+                            return false;
                         }
+                        return true;
                     }
                 );
             }
