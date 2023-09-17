@@ -422,6 +422,16 @@ namespace libdwarf {
             }
             return false;
         }
+
+        void print() const {
+            fprintf(
+                stderr,
+                "%08llx %s %s\n",
+                (unsigned long long) get_global_offset(),
+                get_tag_name(),
+                get_name().c_str()
+            );
+        }
     };
 
     bool is_mangled_name(const std::string& name) {
@@ -811,7 +821,32 @@ namespace libdwarf {
                 fprintf(stderr, "%s\n", obj_path.c_str());
                 fprintf(stderr, "%llx\n", pc);
             }
-            walk_dbg(pc, frame);
+            // Check for .debug_aranges for fast lookup
+            Dwarf_Arange *aranges;
+            Dwarf_Signed arange_count;
+            if(dwarf_get_aranges(dbg, &aranges, &arange_count, nullptr) == DW_DLV_OK) {
+                // Try to find pc in aranges
+                Dwarf_Arange arange;
+                if(dwarf_get_arange(aranges, arange_count, pc, &arange, nullptr) == DW_DLV_OK) {
+                    // Address in table, load CU die
+                    Dwarf_Off cu_die_offset;
+                    CPPTRACE_VERIFY(dwarf_get_cu_die_offset(arange, &cu_die_offset, nullptr) == DW_DLV_OK);
+                    Dwarf_Die raw_die;
+                    // Setting is_info = true for now, assuming in .debug_info rather than .debug_types
+                    CPPTRACE_VERIFY(dwarf_offdie_b(dbg, cu_die_offset, true, &raw_die, nullptr) == DW_DLV_OK);
+                    die_object die(dbg, raw_die);
+                    if(trace_dwarf) {
+                        fprintf(stderr, "Found CU in aranges\n");
+                        die.print();
+                    }
+                    retrieve_line_info(die, pc, 5, frame); // no offset for line info
+                    retrieve_symbol(die, pc, 5, frame);
+                    dwarf_dealloc(dbg, arange, DW_DLA_ARANGE);
+                }
+                dwarf_dealloc(dbg, aranges, DW_DLA_LIST);
+            } else {
+                walk_dbg(pc, frame);
+            }
         }
 
         CPPTRACE_FORCE_NO_INLINE
