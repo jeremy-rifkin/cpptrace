@@ -479,10 +479,10 @@ namespace libdwarf {
 
         CPPTRACE_FORCE_NO_INLINE
         ~dwarf_resolver() {
-            dwarf_finish(dbg);
             for(auto& entry : line_contexts) {
                 dwarf_srclines_dealloc_b(entry.second.ctx);
             }
+            dwarf_finish(dbg);
         }
 
         // walk die list, callback is called on each die and should return true to
