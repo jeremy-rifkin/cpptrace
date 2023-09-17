@@ -8,25 +8,25 @@
 #include <windows.h>
 
 namespace cpptrace {
-    namespace detail {
-        inline std::string program_name() {
-            static std::mutex mutex;
-            const std::lock_guard<std::mutex> lock(mutex);
-            static std::string name;
-            static bool did_init = false;
-            static bool valid = false;
-            if(!did_init) {
-                did_init = true;
-                char buffer[MAX_PATH + 1];
-                int res = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
-                if(res) {
-                    name = buffer;
-                    valid = true;
-                }
+namespace detail {
+    inline std::string program_name() {
+        static std::mutex mutex;
+        const std::lock_guard<std::mutex> lock(mutex);
+        static std::string name;
+        static bool did_init = false;
+        static bool valid = false;
+        if(!did_init) {
+            did_init = true;
+            char buffer[MAX_PATH + 1];
+            int res = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+            if(res) {
+                name = buffer;
+                valid = true;
             }
-            return valid && !name.empty() ? name.c_str() : nullptr;
         }
+        return valid && !name.empty() ? name.c_str() : nullptr;
     }
+}
 }
 
 #elif defined(__APPLE__)
@@ -36,25 +36,25 @@ namespace cpptrace {
 #include <sys/syslimits.h>
 
 namespace cpptrace {
-    namespace detail {
-        inline const char* program_name() {
-            static std::mutex mutex;
-            const std::lock_guard<std::mutex> lock(mutex);
-            static std::string name;
-            static bool did_init = false;
-            static bool valid = false;
-            if(!did_init) {
-                did_init = true;
-                std::uint32_t bufferSize = PATH_MAX + 1;
-                char buffer[bufferSize];
-                if(_NSGetExecutablePath(buffer, &bufferSize) == 0) {
-                    name.assign(buffer, bufferSize);
-                    valid = true;
-                }
+namespace detail {
+    inline const char* program_name() {
+        static std::mutex mutex;
+        const std::lock_guard<std::mutex> lock(mutex);
+        static std::string name;
+        static bool did_init = false;
+        static bool valid = false;
+        if(!did_init) {
+            did_init = true;
+            std::uint32_t bufferSize = PATH_MAX + 1;
+            char buffer[bufferSize];
+            if(_NSGetExecutablePath(buffer, &bufferSize) == 0) {
+                name.assign(buffer, bufferSize);
+                valid = true;
             }
-            return valid && !name.empty() ? name.c_str() : nullptr;
         }
+        return valid && !name.empty() ? name.c_str() : nullptr;
     }
+}
 }
 
 #elif defined(__linux__)
@@ -64,27 +64,27 @@ namespace cpptrace {
 #include <unistd.h>
 
 namespace cpptrace {
-    namespace detail {
-        inline const char* program_name() {
-            static std::mutex mutex;
-            const std::lock_guard<std::mutex> lock(mutex);
-            static std::string name;
-            static bool did_init = false;
-            static bool valid = false;
-            if(!did_init) {
-                did_init = true;
-                char buffer[PATH_MAX + 1];
-                const ssize_t size = readlink("/proc/self/exe", buffer, PATH_MAX);
-                if(size == -1) {
-                    return nullptr;
-                }
-                buffer[size] = 0;
-                name = buffer;
-                valid = true;
+namespace detail {
+    inline const char* program_name() {
+        static std::mutex mutex;
+        const std::lock_guard<std::mutex> lock(mutex);
+        static std::string name;
+        static bool did_init = false;
+        static bool valid = false;
+        if(!did_init) {
+            did_init = true;
+            char buffer[PATH_MAX + 1];
+            const ssize_t size = readlink("/proc/self/exe", buffer, PATH_MAX);
+            if(size == -1) {
+                return nullptr;
             }
-            return valid && !name.empty() ? name.c_str() : nullptr;
+            buffer[size] = 0;
+            name = buffer;
+            valid = true;
         }
+        return valid && !name.empty() ? name.c_str() : nullptr;
     }
+}
 }
 
 #endif

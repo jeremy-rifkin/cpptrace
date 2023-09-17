@@ -3,6 +3,7 @@
 #include <cpptrace/cpptrace.hpp>
 #include "unwind.hpp"
 #include "../platform/common.hpp"
+#include "../platform/utils.hpp"
 
 #include <vector>
 

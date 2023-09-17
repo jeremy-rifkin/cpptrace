@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "../platform/object.hpp"
+
 namespace cpptrace {
     namespace detail {
         void apply_trace(

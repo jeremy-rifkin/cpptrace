@@ -13,6 +13,7 @@
 #include "unwind/unwind.hpp"
 #include "demangle/demangle.hpp"
 #include "platform/common.hpp"
+#include "platform/utils.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
@@ -58,7 +59,7 @@ namespace cpptrace {
 namespace cpptrace {
     CPPTRACE_API
     void print_trace(std::uint32_t skip) {
-        enable_virtual_terminal_processing_if_needed();
+        detail::enable_virtual_terminal_processing_if_needed();
         std::cerr<<"Stack trace (most recent call first):"<<std::endl;
         std::size_t counter = 0;
         const auto trace = generate_trace(skip + 1);
@@ -66,7 +67,7 @@ namespace cpptrace {
             std::cerr<<"<empty trace>"<<std::endl;
             return;
         }
-        const auto frame_number_width = n_digits(static_cast<int>(trace.size()) - 1);
+        const auto frame_number_width = detail::n_digits(static_cast<int>(trace.size()) - 1);
         for(const auto& frame : trace) {
             std::cerr
                 << '#'

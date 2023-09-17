@@ -2,6 +2,8 @@
 
 #include "unwind.hpp"
 #include "../platform/common.hpp"
+#include "../platform/error.hpp"
+#include "../platform/utils.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -29,7 +31,10 @@ namespace cpptrace {
                 }
             }
 
-            assert(state.count < state.vec.size());
+            CPPTRACE_VERIFY(
+                state.count < state.vec.size(),
+                "Somehow cpptrace::detail::unwind_callback is overflowing a vector"
+            );
             int is_before_instruction = 0;
             uintptr_t ip = _Unwind_GetIPInfo(context, &is_before_instruction);
             if(!is_before_instruction && ip != uintptr_t(0)) {

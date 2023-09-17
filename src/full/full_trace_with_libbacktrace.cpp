@@ -3,10 +3,10 @@
 #include <cpptrace/cpptrace.hpp>
 #include "../platform/program_name.hpp"
 #include "../platform/common.hpp"
+#include "../platform/utils.hpp"
 
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <mutex>
 #include <vector>
 
@@ -50,7 +50,7 @@ namespace cpptrace {
         }
 
         void error_callback(void*, const char* msg, int errnum) {
-            fprintf(stderr, "Libbacktrace error: %s, code %d\n", msg, errnum);
+            nonfatal_error(stringf("libbacktrace error: %s, code %d", msg, errnum));
         }
 
         backtrace_state* get_backtrace_state() {

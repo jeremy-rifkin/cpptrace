@@ -2,6 +2,7 @@
 
 #include "unwind.hpp"
 #include "../platform/common.hpp"
+#include "../platform/utils.hpp"
 
 #include <algorithm>
 #include <cstddef>

@@ -5,8 +5,9 @@
 #include "../platform/common.hpp"
 #include "../platform/program_name.hpp"
 #include "../platform/object.hpp"
+#include "../platform/error.hpp"
+#include "../platform/utils.hpp"
 
-#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <functional>
@@ -40,10 +41,10 @@ Dwarf_Unsigned get_ranges_offset(Dwarf_Attribute attr) {
     dwarf_whatform(attr, &attrform, nullptr);
     if (attrform == DW_FORM_rnglistx) {
         int fres = dwarf_formudata(attr, &off, nullptr);
-        assert(fres == DW_DLV_OK);
+        CPPTRACE_VERIFY(fres == DW_DLV_OK);
     } else {
         int fres = dwarf_global_formref(attr, &off, nullptr);
-        assert(fres == DW_DLV_OK);
+        CPPTRACE_VERIFY(fres == DW_DLV_OK);
     }
     return off;
 }
@@ -76,7 +77,7 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
             &rlesetoffset,
             nullptr
         );
-        assert(res == DW_DLV_OK);
+        CPPTRACE_VERIFY(res == DW_DLV_OK);
         if(res != DW_DLV_OK) {
             /* ASSERT: is DW_DLV_NO_ENTRY */
             dwarf_dealloc_attribute(attr);
@@ -129,7 +130,7 @@ static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highe
                 }
                 break;
             default:
-                assert(false);
+                CPPTRACE_VERIFY(false);
                 /* Something is wrong. */
                 break;
             }
@@ -358,7 +359,7 @@ namespace cpptrace {
                         char* raw_str;
                         std::string str;
                         ret = dwarf_formstring(attr, &raw_str, nullptr);
-                        assert(ret == DW_DLV_OK);
+                        CPPTRACE_VERIFY(ret == DW_DLV_OK);
                         str = raw_str;
                         dwarf_dealloc(dbg, raw_str, DW_DLA_STRING);
                         dwarf_dealloc_attribute(attr);
@@ -398,7 +399,7 @@ namespace cpptrace {
                 Dwarf_Off get_global_offset() const {
                     Dwarf_Off off;
                     int ret = dwarf_dieoffset(die, &off, nullptr);
-                    assert(ret == DW_DLV_OK);
+                    CPPTRACE_VERIFY(ret == DW_DLV_OK);
                     return off;
                 }
 
@@ -417,13 +418,13 @@ namespace cpptrace {
                                 Dwarf_Off off = 0;
                                 Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
                                 ret = dwarf_formref(attr, &off, &is_info, nullptr);
-                                assert(ret == DW_DLV_OK);
+                                CPPTRACE_VERIFY(ret == DW_DLV_OK);
                                 Dwarf_Off goff = 0;
                                 ret = dwarf_convert_to_global_offset(attr, off, &goff, nullptr);
-                                assert(ret == DW_DLV_OK);
+                                CPPTRACE_VERIFY(ret == DW_DLV_OK);
                                 Dwarf_Die targ_die_a = 0;
                                 ret = dwarf_offdie_b(dbg, goff, is_info, &targ_die_a, nullptr);
-                                assert(ret == DW_DLV_OK);
+                                CPPTRACE_VERIFY(ret == DW_DLV_OK);
                                 dwarf_dealloc_attribute(attr);
                                 return die_object(dbg, targ_die_a);
                             }
@@ -434,7 +435,7 @@ namespace cpptrace {
                                 int is_info_a = dwarf_get_die_infotypes_flag(die);
                                 Dwarf_Die targ_die_a = 0;
                                 ret = dwarf_offdie_b(dbg, off, is_info_a, &targ_die_a, nullptr);
-                                assert(ret == DW_DLV_OK);
+                                CPPTRACE_VERIFY(ret == DW_DLV_OK);
                                 dwarf_dealloc_attribute(attr);
                                 return die_object(dbg, targ_die_a);
                             }
@@ -442,11 +443,11 @@ namespace cpptrace {
                             {
                                 Dwarf_Sig8 signature;
                                 ret = dwarf_formsig8(attr, &signature, nullptr);
-                                assert(ret == DW_DLV_OK);
+                                CPPTRACE_VERIFY(ret == DW_DLV_OK);
                                 Dwarf_Die  targdie = 0;
                                 Dwarf_Bool targ_is_info = false;
                                 ret = dwarf_find_die_given_sig8(dbg, &signature, &targdie, &targ_is_info, nullptr);
-                                assert(ret == DW_DLV_OK);
+                                CPPTRACE_VERIFY(ret == DW_DLV_OK);
                                 dwarf_dealloc_attribute(attr);
                                 return die_object(dbg, targdie);
                             }
@@ -598,7 +599,7 @@ namespace cpptrace {
             std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build = "");
 
             std::string get_array_extents(Dwarf_Debug dbg, const die_object& die) {
-                assert(die.get_tag() == DW_TAG_array_type);
+                CPPTRACE_VERIFY(die.get_tag() == DW_TAG_array_type);
                 std::string extents = "";
                 walk_die_list(dbg, die.get_child(), [&extents](Dwarf_Debug dbg, const die_object& subrange) {
                     if(subrange.get_tag() == DW_TAG_subrange_type) {
@@ -632,7 +633,7 @@ namespace cpptrace {
             }
 
             std::string get_parameters(Dwarf_Debug dbg, const die_object& die) {
-                assert(die.get_tag() == DW_TAG_subroutine_type);
+                CPPTRACE_VERIFY(die.get_tag() == DW_TAG_subroutine_type);
                 std::vector<std::string> params;
                 walk_die_list(dbg, die.get_child(), [&params](Dwarf_Debug dbg, const die_object& die) {
                     if(die.get_tag() == DW_TAG_formal_parameter) {
@@ -757,7 +758,7 @@ namespace cpptrace {
                 Dwarf_Half dwversion,
                 stacktrace_frame& frame
             ) {
-                assert(die.get_tag() == DW_TAG_subprogram);
+                CPPTRACE_VERIFY(die.get_tag() == DW_TAG_subprogram);
                 optional<std::string> name;
                 if(auto linkage_name = die.get_string_attribute(DW_AT_linkage_name)) {
                     name = std::move(linkage_name);
@@ -955,7 +956,7 @@ namespace cpptrace {
                         //if(dwversion >= 5) {
                         //    Dwarf_Attribute attr;
                         //    int ret = dwarf_attr(cu_die.get(), DW_AT_rnglists_base, &attr, nullptr);
-                        //    assert(ret == DW_DLV_OK);
+                        //    CPPTRACE_VERIFY(ret == DW_DLV_OK);
                         //    Dwarf_Unsigned uval = 0;
                         //    ret = dwarf_global_formref(attr, &uval, nullptr);
                         //    offset = uval;
