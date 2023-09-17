@@ -769,11 +769,13 @@ namespace libdwarf {
                 std::sort(vec.begin(), vec.end(), [] (const subprogram_entry& a, const subprogram_entry& b) {
                     return a.low < b.low;
                 });
+                //for(const auto& entry : vec) {
+                //    fprintf(stderr, "vec -> %llx %llx %s\n", entry.low, entry.high, entry.die.get_name().c_str());
+                //}
                 subprograms_cache.emplace(off, std::move(vec));
                 it = subprograms_cache.find(off);
             }
             auto& vec = it->second;
-            //fprintf(stderr, "%llu\n", vec.size());
             auto vec_it = std::lower_bound(
                 vec.begin(),
                 vec.end(),
@@ -783,14 +785,13 @@ namespace libdwarf {
                     return entry.low < pc;
                 }
             );
+            //fprintf(stderr, "retrieve_symbol %llx\n", pc);
             // vec_it is first >= pc
             // we want first <= pc
-            if(vec_it == vec.end()) {
-                return;
-            }
             if(vec_it != vec.begin()) {
                 vec_it--;
             }
+            //vec_it->die.print();
             if(vec_it->die.pc_in_die(dwversion, pc)) {
                 retrieve_symbol_for_subprogram(vec_it->die, pc, dwversion, frame);
             }
