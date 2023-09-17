@@ -558,288 +558,334 @@ namespace libdwarf {
         frame.symbol = name + "(" + join(params, ", ") + ")";*/
     }
 
-    // returns true if this call found the symbol
-    bool retrieve_symbol(
-        Dwarf_Debug dbg,
-        const die_object& die,
-        Dwarf_Addr pc,
-        Dwarf_Half dwversion,
-        stacktrace_frame& frame
-    ) {
-        bool found = false;
-        walk_die_list(
-            dbg,
-            die,
-            [pc, dwversion, &frame, &found] (Dwarf_Debug dbg, const die_object& die) {
-                if(dump_dwarf) {
-                    fprintf(
-                        stderr,
-                        "-------------> %08llx %s %s\n",
-                        (unsigned long long) die.get_global_offset(),
-                        die.get_tag_name(),
-                        die.get_name().c_str()
-                    );
-                }
-
-                if(!(die.get_tag() == DW_TAG_namespace || pc_in_die(dbg, die.get(), dwversion, pc))) {
-                    if(dump_dwarf) {
-                        fprintf(stderr, "pc not in die\n");
-                    }
-                } else {
-                    if(trace_dwarf) {
-                        fprintf(
-                            stderr,
-                            "%s %08llx %s\n",
-                            die.get_tag() == DW_TAG_namespace ? "pc maybe in die (namespace)" : "pc in die",
-                            (unsigned long long) die.get_global_offset(),
-                            die.get_tag_name()
-                        );
-                    }
-                    if(die.get_tag() == DW_TAG_subprogram) {
-                        retrieve_symbol_for_subprogram(dbg, die, pc, dwversion, frame);
-                        found = true;
-                        return false;
-                    }
-                    auto child = die.get_child();
-                    if(child) {
-                        if(retrieve_symbol(dbg, child, pc, dwversion, frame)) {
-                            found = true;
-                            return false;
-                        }
-                    } else {
-                        if(dump_dwarf) {
-                            fprintf(stderr, "(no child)\n");
-                        }
-                    }
-                }
-                return true;
-            }
-        );
-        return found;
-    }
-
-    void retrieve_line_info(
-        Dwarf_Debug dbg,
-        const die_object& die,
-        Dwarf_Addr pc,
-        Dwarf_Half dwversion,
-        stacktrace_frame& frame
-    ) {
+    struct line_context {
         Dwarf_Unsigned version;
         Dwarf_Small table_count;
-        Dwarf_Line_Context ctxt;
-        Dwarf_Bool is_found = false;
-        (void)dwversion;
-        int ret = dwarf_srclines_b(
-            die.get(),
-            &version,
-            &table_count,
-            &ctxt,
-            nullptr
-        );
-        if(ret == DW_DLV_NO_ENTRY) {
-            fprintf(stderr, "dwarf_srclines_b error\n");
-            return;
-        }
-        if(table_count == 1) {
-            Dwarf_Line *linebuf = 0;
-            Dwarf_Signed linecount = 0;
-            Dwarf_Addr prev_lineaddr = 0;
+        Dwarf_Line_Context ctx;
+    };
 
-            dwarf_srclines_from_linecontext(ctxt, &linebuf,
-                &linecount, nullptr);
-            Dwarf_Line prev_line = 0;
-            for(int i = 0; i < linecount; i++) {
-                Dwarf_Line line = linebuf[i];
-                Dwarf_Addr lineaddr = 0;
+    struct dwarf_resolver {
+        std::string obj_path;
+        Dwarf_Debug dbg;
+        std::unordered_map<Dwarf_Off, line_context> line_contexts;
 
-                dwarf_lineaddr(line, &lineaddr, nullptr);
-                if(pc == lineaddr) {
-                    /* Print the last line entry containing current pc. */
-                    Dwarf_Line last_pc_line = line;
-
-                    for(int j = i + 1; j < linecount; j++) {
-                        Dwarf_Line j_line = linebuf[j];
-                        dwarf_lineaddr(j_line, &lineaddr, nullptr);
-
-                        if(pc == lineaddr) {
-                            last_pc_line = j_line;
-                        }
-                    }
-                    is_found = true;
-                    print_line(dbg, last_pc_line, pc, frame);
-                    break;
-                } else if(prev_line && pc > prev_lineaddr &&
-                    pc < lineaddr) {
-                    is_found = true;
-                    print_line(dbg, prev_line, pc, frame);
-                    break;
-                }
-                Dwarf_Bool is_lne;
-                dwarf_lineendsequence(line, &is_lne, nullptr);
-                if(is_lne) {
-                    prev_line = 0;
-                } else {
-                    prev_lineaddr = lineaddr;
-                    prev_line = line;
-                }
+        CPPTRACE_FORCE_NO_INLINE
+        dwarf_resolver(const std::string& object_path) {
+            obj_path = object_path;
+            #if IS_APPLE
+            if(directory_exists(obj_path + ".dSYM")) {
+                obj_path += ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
             }
-        }
-        dwarf_srclines_dealloc_b(ctxt);
-    }
+            #endif
 
-    void walk_compilation_units(Dwarf_Debug dbg, Dwarf_Addr pc, stacktrace_frame& frame) {
-        // 0 passed as the die to the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d
-        // to fetch the cu die
-        die_object cu_die(dbg, nullptr);
-        cu_die = cu_die.get_sibling();
-        if(!cu_die) {
-            if(dump_dwarf) {
-                fprintf(stderr, "End walk_compilation_units\n");
-            }
-            return;
-        }
-        walk_die_list(
-            dbg,
-            cu_die,
-            [&frame, pc] (Dwarf_Debug dbg, const die_object& cu_die) {
-                Dwarf_Half offset_size = 0;
-                Dwarf_Half dwversion = 0;
-                dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
-                if(trace_dwarf) {
-                    fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
-                }
-                Dwarf_Unsigned offset = 0;
-                // TODO: I'm unsure if I'm supposed to take DW_AT_rnglists_base into account here
-                // However it looks like it is correct when not taking an offset into account and incorrect
-                // otherwise
-                //if(dwversion >= 5) {
-                //    Dwarf_Attribute attr;
-                //    int ret = dwarf_attr(cu_die.get(), DW_AT_rnglists_base, &attr, nullptr);
-                //    CPPTRACE_VERIFY(ret == DW_DLV_OK);
-                //    Dwarf_Unsigned uval = 0;
-                //    ret = dwarf_global_formref(attr, &uval, nullptr);
-                //    offset = uval;
-                //    dwarf_dealloc_attribute(attr);
-                //}
-                //fprintf(stderr, "------------> pc: %llx offset: %llx final: %llx\n", pc, offset, pc - offset);
-                if(pc_in_die(dbg, cu_die.get(), dwversion, pc - offset)) {
-                    if(trace_dwarf) {
-                        fprintf(
-                            stderr,
-                            "pc in die %08llx %s (now searching for %08llx)\n",
-                            (unsigned long long) cu_die.get_global_offset(),
-                            cu_die.get_tag_name(),
-                            pc - offset
-                        );
-                    }
-                    retrieve_line_info(dbg, cu_die, pc, dwversion, frame); // no offset for line info
-                    retrieve_symbol(dbg, cu_die, pc - offset, dwversion, frame);
-                    return false;
-                }
-                return true;
-            }
-        );
-    }
-
-    void walk_dbg(Dwarf_Debug dbg, Dwarf_Addr pc, stacktrace_frame& frame) {
-        // libdwarf keeps track of where it is in the file, dwarf_next_cu_header_d is statefull
-        Dwarf_Unsigned next_cu_header;
-        Dwarf_Half header_cu_type;
-        while(true) {
-            int ret = dwarf_next_cu_header_d(
-                dbg,
-                true,
+            Dwarf_Ptr errarg = 0;
+            auto ret = dwarf_init_path(
+                obj_path.c_str(),
                 nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                &next_cu_header,
-                &header_cu_type,
+                0,
+                DW_GROUPNUMBER_ANY,
+                err_handler,
+                errarg,
+                &dbg,
                 nullptr
             );
             if(ret == DW_DLV_NO_ENTRY) {
+                // fail, no debug info
+            } else if(ret != DW_DLV_OK) {
+                fprintf(stderr, "Error\n");
+            } else {
+            }
+        }
+
+        CPPTRACE_FORCE_NO_INLINE
+        ~dwarf_resolver() {
+            dwarf_finish(dbg);
+            for(auto& entry : line_contexts) {
+                dwarf_srclines_dealloc_b(entry.second.ctx);
+            }
+        }
+
+        // returns true if this call found the symbol
+        CPPTRACE_FORCE_NO_INLINE
+        bool retrieve_symbol(
+            Dwarf_Debug dbg,
+            const die_object& die,
+            Dwarf_Addr pc,
+            Dwarf_Half dwversion,
+            stacktrace_frame& frame
+        ) {
+            bool found = false;
+            walk_die_list(
+                dbg,
+                die,
+                [this, pc, dwversion, &frame, &found] (Dwarf_Debug dbg, const die_object& die) {
+                    if(dump_dwarf) {
+                        fprintf(
+                            stderr,
+                            "-------------> %08llx %s %s\n",
+                            (unsigned long long) die.get_global_offset(),
+                            die.get_tag_name(),
+                            die.get_name().c_str()
+                        );
+                    }
+
+                    if(!(die.get_tag() == DW_TAG_namespace || pc_in_die(dbg, die.get(), dwversion, pc))) {
+                        if(dump_dwarf) {
+                            fprintf(stderr, "pc not in die\n");
+                        }
+                    } else {
+                        if(trace_dwarf) {
+                            fprintf(
+                                stderr,
+                                "%s %08llx %s\n",
+                                die.get_tag() == DW_TAG_namespace ? "pc maybe in die (namespace)" : "pc in die",
+                                (unsigned long long) die.get_global_offset(),
+                                die.get_tag_name()
+                            );
+                        }
+                        if(die.get_tag() == DW_TAG_subprogram) {
+                            retrieve_symbol_for_subprogram(dbg, die, pc, dwversion, frame);
+                            found = true;
+                            return false;
+                        }
+                        auto child = die.get_child();
+                        if(child) {
+                            if(retrieve_symbol(dbg, child, pc, dwversion, frame)) {
+                                found = true;
+                                return false;
+                            }
+                        } else {
+                            if(dump_dwarf) {
+                                fprintf(stderr, "(no child)\n");
+                            }
+                        }
+                    }
+                    return true;
+                }
+            );
+            return found;
+        }
+
+        CPPTRACE_FORCE_NO_INLINE
+        void retrieve_line_info(
+            Dwarf_Debug dbg,
+            const die_object& die,
+            Dwarf_Addr pc,
+            Dwarf_Half dwversion,
+            stacktrace_frame& frame
+        ) {
+            Dwarf_Unsigned version;
+            Dwarf_Small table_count;
+            Dwarf_Line_Context ctxt;
+            Dwarf_Bool is_found = false;
+            (void)dwversion;
+            auto off = die.get_global_offset();
+            auto it = line_contexts.find(off);
+            if(it != line_contexts.end()) {
+                auto& entry = it->second;
+                version = entry.version;
+                table_count = entry.table_count;
+                ctxt = entry.ctx;
+            } else {
+                int ret = dwarf_srclines_b(
+                    die.get(),
+                    &version,
+                    &table_count,
+                    &ctxt,
+                    nullptr
+                );
+                line_contexts.insert({off, {version, table_count, ctxt}});
+                if(ret == DW_DLV_NO_ENTRY) {
+                    fprintf(stderr, "dwarf_srclines_b error\n");
+                    return;
+                }
+            }
+
+            if(table_count == 1) {
+                Dwarf_Line *linebuf = 0;
+                Dwarf_Signed linecount = 0;
+                Dwarf_Addr prev_lineaddr = 0;
+
+                dwarf_srclines_from_linecontext(ctxt, &linebuf,
+                    &linecount, nullptr);
+                Dwarf_Line prev_line = 0;
+                for(int i = 0; i < linecount; i++) {
+                    Dwarf_Line line = linebuf[i];
+                    Dwarf_Addr lineaddr = 0;
+
+                    dwarf_lineaddr(line, &lineaddr, nullptr);
+                    if(pc == lineaddr) {
+                        /* Print the last line entry containing current pc. */
+                        Dwarf_Line last_pc_line = line;
+
+                        for(int j = i + 1; j < linecount; j++) {
+                            Dwarf_Line j_line = linebuf[j];
+                            dwarf_lineaddr(j_line, &lineaddr, nullptr);
+
+                            if(pc == lineaddr) {
+                                last_pc_line = j_line;
+                            }
+                        }
+                        is_found = true;
+                        print_line(dbg, last_pc_line, pc, frame);
+                        break;
+                    } else if(prev_line && pc > prev_lineaddr &&
+                        pc < lineaddr) {
+                        is_found = true;
+                        print_line(dbg, prev_line, pc, frame);
+                        break;
+                    }
+                    Dwarf_Bool is_lne;
+                    dwarf_lineendsequence(line, &is_lne, nullptr);
+                    if(is_lne) {
+                        prev_line = 0;
+                    } else {
+                        prev_lineaddr = lineaddr;
+                        prev_line = line;
+                    }
+                }
+            }
+        }
+
+        CPPTRACE_FORCE_NO_INLINE
+        void walk_compilation_units(Dwarf_Debug dbg, Dwarf_Addr pc, stacktrace_frame& frame) {
+            // 0 passed as the die to the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d
+            // to fetch the cu die
+            die_object cu_die(dbg, nullptr);
+            cu_die = cu_die.get_sibling();
+            if(!cu_die) {
                 if(dump_dwarf) {
-                    fprintf(stderr, "End walk_dbg\n");
+                    fprintf(stderr, "End walk_compilation_units\n");
                 }
                 return;
             }
-            if(ret != DW_DLV_OK) {
-                fprintf(stderr, "Error\n");
-                return;
-            }
-            walk_compilation_units(dbg, pc, frame);
-        }
-    }
-
-    void lookup_pc(
-        const char* object,
-        Dwarf_Addr pc,
-        stacktrace_frame& frame
-    ) {
-        if(dump_dwarf) {
-            fprintf(stderr, "%s\n", object);
-            fprintf(stderr, "%llx\n", pc);
-        }
-        Dwarf_Debug dbg;
-        Dwarf_Ptr errarg = 0;
-        auto ret = dwarf_init_path(
-            object,
-            nullptr,
-            0,
-            DW_GROUPNUMBER_ANY,
-            err_handler,
-            errarg,
-            &dbg,
-            nullptr
-        );
-        if(ret == DW_DLV_NO_ENTRY) {
-            // fail, no debug info
-        } else if(ret != DW_DLV_OK) {
-            fprintf(stderr, "Error\n");
-        } else {
-            walk_dbg(dbg, pc, frame);
-        }
-        dwarf_finish(dbg);
-    }
-
-    stacktrace_frame resolve_frame(const dlframe& frame_info) {
-        stacktrace_frame frame{};
-        frame.filename = frame_info.obj_path;
-        frame.symbol = frame_info.symbol;
-        frame.address = frame_info.raw_address;
-        std::string obj_path = frame_info.obj_path;
-        #if IS_APPLE
-        if(directory_exists(obj_path + ".dSYM")) {
-            obj_path += ".dSYM/Contents/Resources/DWARF/" + basename(frame_info.obj_path);
-        }
-        #endif
-        if(trace_dwarf) {
-            fprintf(
-                stderr,
-                "Starting resolution for %s %08llx %s\n",
-                obj_path.c_str(),
-                (unsigned long long)frame_info.obj_address,
-                frame_info.symbol.c_str()
+            walk_die_list(
+                dbg,
+                cu_die,
+                [this, &frame, pc] (Dwarf_Debug dbg, const die_object& cu_die) {
+                    Dwarf_Half offset_size = 0;
+                    Dwarf_Half dwversion = 0;
+                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    if(trace_dwarf) {
+                        fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
+                    }
+                    Dwarf_Unsigned offset = 0;
+                    // TODO: I'm unsure if I'm supposed to take DW_AT_rnglists_base into account here
+                    // However it looks like it is correct when not taking an offset into account and incorrect
+                    // otherwise
+                    //if(dwversion >= 5) {
+                    //    Dwarf_Attribute attr;
+                    //    int ret = dwarf_attr(cu_die.get(), DW_AT_rnglists_base, &attr, nullptr);
+                    //    CPPTRACE_VERIFY(ret == DW_DLV_OK);
+                    //    Dwarf_Unsigned uval = 0;
+                    //    ret = dwarf_global_formref(attr, &uval, nullptr);
+                    //    offset = uval;
+                    //    dwarf_dealloc_attribute(attr);
+                    //}
+                    //fprintf(stderr, "------------> pc: %llx offset: %llx final: %llx\n", pc, offset, pc - offset);
+                    if(pc_in_die(dbg, cu_die.get(), dwversion, pc - offset)) {
+                        if(trace_dwarf) {
+                            fprintf(
+                                stderr,
+                                "pc in die %08llx %s (now searching for %08llx)\n",
+                                (unsigned long long) cu_die.get_global_offset(),
+                                cu_die.get_tag_name(),
+                                pc - offset
+                            );
+                        }
+                        retrieve_line_info(dbg, cu_die, pc, dwversion, frame); // no offset for line info
+                        retrieve_symbol(dbg, cu_die, pc - offset, dwversion, frame);
+                        return false;
+                    }
+                    return true;
+                }
             );
         }
-        lookup_pc(
-            obj_path.c_str(),
-            frame_info.obj_address,
-            frame
-        );
-        return frame;
-    }
 
+        CPPTRACE_FORCE_NO_INLINE
+        void walk_dbg(Dwarf_Debug dbg, Dwarf_Addr pc, stacktrace_frame& frame) {
+            // libdwarf keeps track of where it is in the file, dwarf_next_cu_header_d is statefull
+            Dwarf_Unsigned next_cu_header;
+            Dwarf_Half header_cu_type;
+            while(true) {
+                int ret = dwarf_next_cu_header_d(
+                    dbg,
+                    true,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    &next_cu_header,
+                    &header_cu_type,
+                    nullptr
+                );
+                if(ret == DW_DLV_NO_ENTRY) {
+                    if(dump_dwarf) {
+                        fprintf(stderr, "End walk_dbg\n");
+                    }
+                    return;
+                }
+                if(ret != DW_DLV_OK) {
+                    fprintf(stderr, "Error\n");
+                    return;
+                }
+                walk_compilation_units(dbg, pc, frame);
+            }
+        }
+
+        CPPTRACE_FORCE_NO_INLINE
+        void lookup_pc(
+            const char* object,
+            Dwarf_Addr pc,
+            stacktrace_frame& frame
+        ) {
+            if(dump_dwarf) {
+                fprintf(stderr, "%s\n", object);
+                fprintf(stderr, "%llx\n", pc);
+            }
+            walk_dbg(dbg, pc, frame);
+        }
+
+        CPPTRACE_FORCE_NO_INLINE
+        stacktrace_frame resolve_frame(const dlframe& frame_info) {
+            stacktrace_frame frame{};
+            frame.filename = frame_info.obj_path;
+            frame.symbol = frame_info.symbol;
+            frame.address = frame_info.raw_address;
+            if(trace_dwarf) {
+                fprintf(
+                    stderr,
+                    "Starting resolution for %s %08llx %s\n",
+                    obj_path.c_str(),
+                    (unsigned long long)frame_info.obj_address,
+                    frame_info.symbol.c_str()
+                );
+            }
+            lookup_pc(
+                obj_path.c_str(),
+                frame_info.obj_address,
+                frame
+            );
+            return frame;
+        }
+    };
+
+    CPPTRACE_FORCE_NO_INLINE
     std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
-        std::vector<stacktrace_frame> trace;
-        trace.reserve(frames.size());
-        for(const auto& frame : get_frames_object_info(frames)) {
-            trace.push_back(resolve_frame(frame));
+        std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
+        const auto dlframes = get_frames_object_info(frames);
+        for(const auto& obj_entry : collate_frames(dlframes, trace)) {
+            const auto& obj_name = obj_entry.first;
+            dwarf_resolver resolver(obj_name);
+            for(const auto& entry : obj_entry.second) {
+                const auto& dlframe = entry.first.get();
+                auto& frame = entry.second.get();
+                frame = resolver.resolve_frame(dlframe);
+            }
         }
         return trace;
     }
