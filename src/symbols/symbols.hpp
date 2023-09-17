@@ -6,8 +6,19 @@
 #include <memory>
 #include <vector>
 
+#include "../platform/object.hpp"
+
 namespace cpptrace {
 namespace detail {
+    using collated_vec = std::vector<
+        std::pair<std::reference_wrapper<const dlframe>, std::reference_wrapper<stacktrace_frame>>
+    >;
+
+    std::unordered_map<std::string, collated_vec> collate_frames(
+        const std::vector<dlframe>& frames,
+        std::vector<stacktrace_frame>& trace
+    );
+
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
     namespace libbacktrace {
         std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames);
@@ -38,6 +49,7 @@ namespace detail {
         std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames);
     }
     #endif
+
     std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames);
 }
 }

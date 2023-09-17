@@ -7,6 +7,25 @@
 
 namespace cpptrace {
 namespace detail {
+    std::unordered_map<std::string, collated_vec> collate_frames(
+        const std::vector<dlframe>& frames,
+        std::vector<stacktrace_frame>& trace
+    ) {
+        std::unordered_map<std::string, collated_vec> entries;
+        for(std::size_t i = 0; i < frames.size(); i++) {
+            const auto& entry = frames[i];
+            // If libdl fails to find the shared object for a frame, the path will be empty. I've observed this
+            // on macos when looking up the shared object containing `start`.
+            if(!entry.obj_path.empty()) {
+                entries[entry.obj_path].emplace_back(
+                    entry,
+                    trace[i]
+                );
+            }
+        }
+        return entries;
+    }
+
     void apply_trace(
         std::vector<stacktrace_frame>& result,
         std::vector<stacktrace_frame>&& trace

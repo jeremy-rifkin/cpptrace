@@ -190,45 +190,8 @@ namespace addr2line {
     }
     #endif
 
-    using target_vec = std::vector<std::pair<std::string, std::reference_wrapper<stacktrace_frame>>>;
-
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    std::unordered_map<std::string, target_vec> get_addr2line_targets(
-        const std::vector<dlframe>& dlframes,
-        std::vector<stacktrace_frame>& trace
-    ) {
-        std::unordered_map<std::string, target_vec> entries;
-        for(std::size_t i = 0; i < dlframes.size(); i++) {
-            const auto& entry = dlframes[i];
-            // If libdl fails to find the shared object for a frame, the path will be empty. I've observed this
-            // on macos when looking up the shared object containing `start`.
-            if(!entry.obj_path.empty()) {
-                ///fprintf(
-                ///    stderr,
-                ///    "%s %s\n",
-                ///    to_hex(entry.raw_address).c_str(),
-                ///    to_hex(entry.raw_address - entry.obj_base + base).c_str()
-                ///);
-                try {
-                    entries[entry.obj_path].emplace_back(
-                        to_hex(entry.obj_address),
-                        trace[i]
-                    );
-                } catch(file_error&) {
-                    //
-                } catch(...) {
-                    throw;
-                }
-                // Set what is known for now, and resolutions from addr2line should overwrite
-                trace[i].filename = entry.obj_path;
-                trace[i].symbol = entry.symbol;
-            }
-        }
-        return entries;
-    }
-
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    void update_trace(const std::string& line, size_t entry_index, const target_vec& entries_vec) {
+    void update_trace(const std::string& line, size_t entry_index, const collated_vec& entries_vec) {
         #if !IS_APPLE
         // Result will be of the form "<symbol> at path:line"
         // The path may be ?? if addr2line cannot resolve, line may be ?
@@ -311,12 +274,15 @@ namespace addr2line {
     std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
         // TODO: Refactor better
         std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
-        for(size_t i = 0; i < frames.size(); i++) {
-            trace[i].address = reinterpret_cast<uintptr_t>(frames[i]);
+        const std::vector<dlframe> dlframes = get_frames_object_info(frames);
+        for(size_t i = 0; i < dlframes.size(); i++) {
+            trace[i].address = dlframes[i].raw_address;
+            // Set what is known for now, and resolutions from addr2line should overwrite
+            trace[i].filename = dlframes[i].obj_path;
+            trace[i].symbol = dlframes[i].symbol;
         }
         if(has_addr2line()) {
-            const std::vector<dlframe> dlframes = get_frames_object_info(frames);
-            const auto entries = get_addr2line_targets(dlframes, trace);
+            const auto entries = collate_frames(dlframes, trace);
             for(const auto& entry : entries) {
                 const auto& object_name = entry.first;
                 const auto& entries_vec = entry.second;
@@ -329,7 +295,7 @@ namespace addr2line {
                 }
                 std::string address_input;
                 for(const auto& pair : entries_vec) {
-                    address_input += pair.first;
+                    address_input += to_hex(pair.first.get().obj_address);
                     #if !IS_WINDOWS
                         address_input += '\n';
                     #else
