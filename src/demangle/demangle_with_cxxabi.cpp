@@ -18,7 +18,7 @@ namespace cpptrace {
             // demangled will always be nullptr on non-zero status, and if __cxa_demangle ever fails for any reason
             // we'll just quietly return the mangled name
             if(demangled) {
-                const std::string str = demangled;
+                std::string str = demangled;
                 // NOLINTNEXTLINE(cppcoreguidelines-no-malloc)
                 std::free(demangled);
                 return str;

@@ -69,9 +69,9 @@ namespace detail {
     }
 
     template<typename T>
-    void nothing() {}
+    void nullfn() {}
 
-    #define PHONY_USE(E) (nothing<decltype(E)>())
+    #define PHONY_USE(E) (nullfn<decltype(E)>())
 
     // Check condition in both debug and release. std::runtime_error on failure.
     #define CPPTRACE_VERIFY(c, ...) ( \
