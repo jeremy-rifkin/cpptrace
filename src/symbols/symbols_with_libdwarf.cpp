@@ -537,7 +537,7 @@ namespace libdwarf {
             Dwarf_Half dwversion,
             stacktrace_frame& frame
         ) {
-            CPPTRACE_VERIFY(die.get_tag() == DW_TAG_subprogram);
+            CPPTRACE_ASSERT(die.get_tag() == DW_TAG_subprogram);
             optional<std::string> name;
             if(auto linkage_name = die.get_string_attribute(DW_AT_linkage_name)) {
                 name = std::move(linkage_name);
@@ -551,6 +551,10 @@ namespace libdwarf {
             } else {
                 if(die.has_attr(DW_AT_specification)) {
                     die_object spec = die.resolve_reference_attribute(DW_AT_specification);
+                    // TODO: Passing pc here is misleading
+                    return retrieve_symbol_for_subprogram(spec, pc, dwversion, frame);
+                } else if(die.has_attr(DW_AT_abstract_origin)) {
+                    die_object spec = die.resolve_reference_attribute(DW_AT_abstract_origin);
                     // TODO: Passing pc here is misleading
                     return retrieve_symbol_for_subprogram(spec, pc, dwversion, frame);
                 }
