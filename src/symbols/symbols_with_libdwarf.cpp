@@ -35,170 +35,6 @@
 #define DW_PR_DUx "llx"
 #define DW_PR_DUu "llu"
 
-Dwarf_Unsigned get_ranges_offset(Dwarf_Attribute attr) {
-    Dwarf_Unsigned off = 0;
-    Dwarf_Half attrform = 0;
-    dwarf_whatform(attr, &attrform, nullptr);
-    if (attrform == DW_FORM_rnglistx) {
-        int fres = dwarf_formudata(attr, &off, nullptr);
-        CPPTRACE_VERIFY(fres == DW_DLV_OK);
-    } else {
-        int fres = dwarf_global_formref(attr, &off, nullptr);
-        CPPTRACE_VERIFY(fres == DW_DLV_OK);
-    }
-    return off;
-}
-
-static int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highest) {
-    Dwarf_Unsigned offset = 0;
-    Dwarf_Attribute attr = 0;
-    Dwarf_Half attrform = 0;
-    Dwarf_Unsigned i = 0;
-    int res = 0;
-
-    res = dwarf_attr(cu_die, DW_AT_ranges, &attr, nullptr);
-    if(res != DW_DLV_OK) {
-        return res;
-    }
-    offset = get_ranges_offset(attr);
-    if(true) {
-        Dwarf_Unsigned rlesetoffset = 0;
-        Dwarf_Unsigned rnglists_count = 0;
-        Dwarf_Rnglists_Head head = 0;
-
-        dwarf_whatform(attr, &attrform, nullptr);
-        /* offset is in .debug_rnglists */
-        res = dwarf_rnglists_get_rle_head(
-            attr,
-            attrform,
-            offset,
-            &head,
-            &rnglists_count,
-            &rlesetoffset,
-            nullptr
-        );
-        CPPTRACE_VERIFY(res == DW_DLV_OK);
-        if(res != DW_DLV_OK) {
-            /* ASSERT: is DW_DLV_NO_ENTRY */
-            dwarf_dealloc_attribute(attr);
-            return res;
-        }
-        for( ; i < rnglists_count; ++i) {
-            unsigned entrylen = 0;
-            unsigned rle_val = 0;
-            Dwarf_Unsigned raw1 = 0;
-            Dwarf_Unsigned raw2 = 0;
-            Dwarf_Bool unavail = 0;
-            Dwarf_Unsigned cooked1 = 0;
-            Dwarf_Unsigned cooked2 = 0;
-
-            res = dwarf_get_rnglists_entry_fields_a(
-                head,
-                i,
-                &entrylen,
-                &rle_val,
-                &raw1,
-                &raw2,
-                &unavail,
-                &cooked1,
-                &cooked2,
-                nullptr
-            );
-            if(res != DW_DLV_OK) {
-                /* ASSERT: is DW_DLV_NO_ENTRY */
-                continue;
-            }
-            if(unavail) {
-                continue;
-            }
-            switch(rle_val) {
-            case DW_RLE_end_of_list:
-            case DW_RLE_base_address:
-            case DW_RLE_base_addressx:
-                /* These are accounted for already */
-                break;
-            case DW_RLE_offset_pair:
-            case DW_RLE_startx_endx:
-            case DW_RLE_start_end:
-            case DW_RLE_startx_length:
-            case DW_RLE_start_length:
-                if(cooked1 < *lowest) {
-                    *lowest = cooked1;
-                }
-                if(cooked2 > *highest) {
-                    *highest = cooked2;
-                }
-                break;
-            default:
-                CPPTRACE_VERIFY(false);
-                /* Something is wrong. */
-                break;
-            }
-        }
-        dwarf_dealloc_rnglists_head(head);
-    }
-    dwarf_dealloc_attribute(attr);
-    return DW_DLV_OK;
-}
-
-static int dwarf4_ranges(
-    Dwarf_Debug dbg,
-    Dwarf_Die cu_die,
-    Dwarf_Addr cu_lowpc,
-    Dwarf_Addr *lowest,
-    Dwarf_Addr *highest
-) {
-    Dwarf_Unsigned offset;
-    Dwarf_Attribute attr = 0;
-    int res = 0;
-
-    res = dwarf_attr(cu_die, DW_AT_ranges, &attr, nullptr);
-    if(res != DW_DLV_OK) {
-        return res;
-    }
-    if(dwarf_global_formref(attr, &offset, nullptr) == DW_DLV_OK) {
-        Dwarf_Signed count = 0;
-        Dwarf_Ranges *ranges = 0;
-        Dwarf_Addr baseaddr = 0;
-        if(cu_lowpc != 0xffffffffffffffff) {
-            baseaddr = cu_lowpc;
-        }
-        res = dwarf_get_ranges_b(
-            dbg,
-            offset,
-            cu_die,
-            nullptr,
-            &ranges,
-            &count,
-            nullptr,
-            nullptr
-        );
-        for(int i = 0; i < count; i++) {
-            Dwarf_Ranges *cur = ranges + i;
-
-            if(cur->dwr_type == DW_RANGES_ENTRY) {
-                Dwarf_Addr rng_lowpc, rng_highpc;
-                rng_lowpc = baseaddr + cur->dwr_addr1;
-                rng_highpc = baseaddr + cur->dwr_addr2;
-                if(rng_lowpc < *lowest) {
-                    *lowest = rng_lowpc;
-                }
-                if(rng_highpc > *highest) {
-                    *highest = rng_highpc;
-                }
-            } else if(cur->dwr_type ==
-                DW_RANGES_ADDRESS_SELECTION) {
-                baseaddr = cur->dwr_addr2;
-            } else {  // DW_RANGES_END
-                baseaddr = cu_lowpc;
-            }
-        }
-        dwarf_dealloc_ranges(dbg, ranges, count);
-    }
-    dwarf_dealloc_attribute(attr);
-    return DW_DLV_OK;
-}
-
 namespace cpptrace {
 namespace detail {
 namespace libdwarf {
@@ -213,28 +49,6 @@ namespace libdwarf {
         }
         printf("Giving up");
         exit(1);
-    }
-
-    static void print_line(Dwarf_Debug dbg, Dwarf_Line line, Dwarf_Addr pc, stacktrace_frame& frame) {
-        char what[] = "??";
-        char *         linesrc = what;
-        Dwarf_Unsigned lineno = 0;
-
-        (void)pc;
-
-        if(line) {
-            /*  These never return DW_DLV_NO_ENTRY */
-            dwarf_linesrc(line, &linesrc, nullptr);
-            dwarf_lineno(line, &lineno, nullptr);
-        }
-        if(dump_dwarf) {
-            printf("%s:%" DW_PR_DUu "\n", linesrc, lineno);
-        }
-        frame.line = static_cast<uint_least32_t>(lineno);
-        frame.filename = linesrc;
-        if(line) {
-            dwarf_dealloc(dbg, linesrc, DW_DLA_STRING);
-        }
     }
 
     static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
@@ -421,6 +235,202 @@ namespace libdwarf {
                     exit(1);
             }
         }
+
+        Dwarf_Unsigned get_ranges_offset(Dwarf_Attribute attr) const {
+            Dwarf_Unsigned off = 0;
+            Dwarf_Half attrform = 0;
+            dwarf_whatform(attr, &attrform, nullptr);
+            if (attrform == DW_FORM_rnglistx) {
+                int fres = dwarf_formudata(attr, &off, nullptr);
+                CPPTRACE_VERIFY(fres == DW_DLV_OK);
+            } else {
+                int fres = dwarf_global_formref(attr, &off, nullptr);
+                CPPTRACE_VERIFY(fres == DW_DLV_OK);
+            }
+            return off;
+        }
+
+        // ranges code based on libdwarf-addr2line
+        int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highest) const {
+            Dwarf_Unsigned offset = 0;
+            Dwarf_Attribute attr = 0;
+            Dwarf_Half attrform = 0;
+            Dwarf_Unsigned i = 0;
+            int res = 0;
+
+            res = dwarf_attr(cu_die, DW_AT_ranges, &attr, nullptr);
+            if(res != DW_DLV_OK) {
+                return res;
+            }
+            offset = get_ranges_offset(attr);
+            if(true) {
+                Dwarf_Unsigned rlesetoffset = 0;
+                Dwarf_Unsigned rnglists_count = 0;
+                Dwarf_Rnglists_Head head = 0;
+
+                dwarf_whatform(attr, &attrform, nullptr);
+                /* offset is in .debug_rnglists */
+                res = dwarf_rnglists_get_rle_head(
+                    attr,
+                    attrform,
+                    offset,
+                    &head,
+                    &rnglists_count,
+                    &rlesetoffset,
+                    nullptr
+                );
+                CPPTRACE_VERIFY(res == DW_DLV_OK);
+                if(res != DW_DLV_OK) {
+                    /* ASSERT: is DW_DLV_NO_ENTRY */
+                    dwarf_dealloc_attribute(attr);
+                    return res;
+                }
+                for( ; i < rnglists_count; ++i) {
+                    unsigned entrylen = 0;
+                    unsigned rle_val = 0;
+                    Dwarf_Unsigned raw1 = 0;
+                    Dwarf_Unsigned raw2 = 0;
+                    Dwarf_Bool unavail = 0;
+                    Dwarf_Unsigned cooked1 = 0;
+                    Dwarf_Unsigned cooked2 = 0;
+
+                    res = dwarf_get_rnglists_entry_fields_a(
+                        head,
+                        i,
+                        &entrylen,
+                        &rle_val,
+                        &raw1,
+                        &raw2,
+                        &unavail,
+                        &cooked1,
+                        &cooked2,
+                        nullptr
+                    );
+                    if(res != DW_DLV_OK) {
+                        /* ASSERT: is DW_DLV_NO_ENTRY */
+                        continue;
+                    }
+                    if(unavail) {
+                        continue;
+                    }
+                    switch(rle_val) {
+                    case DW_RLE_end_of_list:
+                    case DW_RLE_base_address:
+                    case DW_RLE_base_addressx:
+                        /* These are accounted for already */
+                        break;
+                    case DW_RLE_offset_pair:
+                    case DW_RLE_startx_endx:
+                    case DW_RLE_start_end:
+                    case DW_RLE_startx_length:
+                    case DW_RLE_start_length:
+                        if(cooked1 < *lowest) {
+                            *lowest = cooked1;
+                        }
+                        if(cooked2 > *highest) {
+                            *highest = cooked2;
+                        }
+                        break;
+                    default:
+                        CPPTRACE_VERIFY(false);
+                        /* Something is wrong. */
+                        break;
+                    }
+                }
+                dwarf_dealloc_rnglists_head(head);
+            }
+            dwarf_dealloc_attribute(attr);
+            return DW_DLV_OK;
+        }
+
+        // ranges code based on libdwarf-addr2line
+        int dwarf4_ranges(Dwarf_Die cu_die, Dwarf_Addr cu_lowpc, Dwarf_Addr *lowest, Dwarf_Addr *highest) const {
+            Dwarf_Unsigned offset;
+            Dwarf_Attribute attr = 0;
+            int res = 0;
+
+            res = dwarf_attr(cu_die, DW_AT_ranges, &attr, nullptr);
+            if(res != DW_DLV_OK) {
+                return res;
+            }
+            if(dwarf_global_formref(attr, &offset, nullptr) == DW_DLV_OK) {
+                Dwarf_Signed count = 0;
+                Dwarf_Ranges *ranges = 0;
+                Dwarf_Addr baseaddr = 0;
+                if(cu_lowpc != 0xffffffffffffffff) {
+                    baseaddr = cu_lowpc;
+                }
+                res = dwarf_get_ranges_b(
+                    dbg,
+                    offset,
+                    cu_die,
+                    nullptr,
+                    &ranges,
+                    &count,
+                    nullptr,
+                    nullptr
+                );
+                for(int i = 0; i < count; i++) {
+                    Dwarf_Ranges *cur = ranges + i;
+
+                    if(cur->dwr_type == DW_RANGES_ENTRY) {
+                        Dwarf_Addr rng_lowpc, rng_highpc;
+                        rng_lowpc = baseaddr + cur->dwr_addr1;
+                        rng_highpc = baseaddr + cur->dwr_addr2;
+                        if(rng_lowpc < *lowest) {
+                            *lowest = rng_lowpc;
+                        }
+                        if(rng_highpc > *highest) {
+                            *highest = rng_highpc;
+                        }
+                    } else if(cur->dwr_type ==
+                        DW_RANGES_ADDRESS_SELECTION) {
+                        baseaddr = cur->dwr_addr2;
+                    } else {  // DW_RANGES_END
+                        baseaddr = cu_lowpc;
+                    }
+                }
+                dwarf_dealloc_ranges(dbg, ranges, count);
+            }
+            dwarf_dealloc_attribute(attr);
+            return DW_DLV_OK;
+        }
+
+        // pc_in_die code based on libdwarf-addr2line
+        Dwarf_Bool pc_in_die(int version, Dwarf_Addr pc) const {
+            int ret;
+            Dwarf_Addr cu_lowpc = 0xffffffffffffffff;
+            Dwarf_Addr cu_highpc = 0;
+            enum Dwarf_Form_Class highpc_cls;
+            Dwarf_Addr lowest = 0xffffffffffffffff;
+            Dwarf_Addr highest = 0;
+
+            ret = dwarf_lowpc(die, &cu_lowpc, nullptr);
+            if(ret == DW_DLV_OK) {
+                if(pc == cu_lowpc) {
+                    return true;
+                }
+                ret = dwarf_highpc_b(die, &cu_highpc,
+                    nullptr, &highpc_cls, nullptr);
+                if(ret == DW_DLV_OK) {
+                    if(highpc_cls == DW_FORM_CLASS_CONSTANT) {
+                        cu_highpc += cu_lowpc;
+                    }
+                    if(pc >= cu_lowpc && pc < cu_highpc) {
+                        return true;
+                    }
+                }
+            }
+            if(version >= 5) {
+                ret = dwarf5_ranges(die, &lowest, &highest);
+            } else {
+                ret = dwarf4_ranges(die, cu_lowpc, &lowest, &highest);
+            }
+            if(pc >= lowest && pc < highest) {
+                return true;
+            }
+            return false;
+        }
     };
 
     bool is_mangled_name(const std::string& name) {
@@ -472,41 +482,6 @@ namespace libdwarf {
             for(auto& entry : line_contexts) {
                 dwarf_srclines_dealloc_b(entry.second.ctx);
             }
-        }
-
-        Dwarf_Bool pc_in_die(Dwarf_Die die, int version, Dwarf_Addr pc) {
-            int ret;
-            Dwarf_Addr cu_lowpc = 0xffffffffffffffff;
-            Dwarf_Addr cu_highpc = 0;
-            enum Dwarf_Form_Class highpc_cls;
-            Dwarf_Addr lowest = 0xffffffffffffffff;
-            Dwarf_Addr highest = 0;
-
-            ret = dwarf_lowpc(die, &cu_lowpc, nullptr);
-            if(ret == DW_DLV_OK) {
-                if(pc == cu_lowpc) {
-                    return true;
-                }
-                ret = dwarf_highpc_b(die, &cu_highpc,
-                    nullptr, &highpc_cls, nullptr);
-                if(ret == DW_DLV_OK) {
-                    if(highpc_cls == DW_FORM_CLASS_CONSTANT) {
-                        cu_highpc += cu_lowpc;
-                    }
-                    if(pc >= cu_lowpc && pc < cu_highpc) {
-                        return true;
-                    }
-                }
-            }
-            if(version >= 5) {
-                ret = dwarf5_ranges(die, &lowest, &highest);
-            } else {
-                ret = dwarf4_ranges(dbg, die, cu_lowpc, &lowest, &highest);
-            }
-            if(pc >= lowest && pc < highest) {
-                return true;
-            }
-            return false;
         }
 
         // walk die list, callback is called on each die and should return true to
@@ -623,7 +598,7 @@ namespace libdwarf {
                         );
                     }
 
-                    if(!(die.get_tag() == DW_TAG_namespace || pc_in_die(die.get(), dwversion, pc))) {
+                    if(!(die.get_tag() == DW_TAG_namespace || die.pc_in_die(dwversion, pc))) {
                         if(dump_dwarf) {
                             fprintf(stderr, "pc not in die\n");
                         }
@@ -660,6 +635,27 @@ namespace libdwarf {
             return found;
         }
 
+        void handle_line(Dwarf_Line line, stacktrace_frame& frame) {
+            char what[] = "??";
+            char *         linesrc = what;
+            Dwarf_Unsigned lineno = 0;
+
+            if(line) {
+                /*  These never return DW_DLV_NO_ENTRY */
+                dwarf_linesrc(line, &linesrc, nullptr);
+                dwarf_lineno(line, &lineno, nullptr);
+            }
+            if(dump_dwarf) {
+                printf("%s:%" DW_PR_DUu "\n", linesrc, lineno);
+            }
+            frame.line = static_cast<uint_least32_t>(lineno);
+            frame.filename = linesrc;
+            if(line) {
+                dwarf_dealloc(dbg, linesrc, DW_DLA_STRING);
+            }
+        }
+
+        // retrieve_line_info code based on libdwarf-addr2line
         CPPTRACE_FORCE_NO_INLINE
         void retrieve_line_info(
             const die_object& die,
@@ -720,12 +716,12 @@ namespace libdwarf {
                             }
                         }
                         is_found = true;
-                        print_line(dbg, last_pc_line, pc, frame);
+                        handle_line(last_pc_line, frame);
                         break;
                     } else if(prev_line && pc > prev_lineaddr &&
                         pc < lineaddr) {
                         is_found = true;
-                        print_line(dbg, prev_line, pc, frame);
+                        handle_line(prev_line, frame);
                         break;
                     }
                     Dwarf_Bool is_lne;
@@ -761,7 +757,7 @@ namespace libdwarf {
                     if(trace_dwarf) {
                         fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
                     }
-                    if(pc_in_die(cu_die.get(), dwversion, pc)) {
+                    if(cu_die.pc_in_die(dwversion, pc)) {
                         if(trace_dwarf) {
                             fprintf(
                                 stderr,
