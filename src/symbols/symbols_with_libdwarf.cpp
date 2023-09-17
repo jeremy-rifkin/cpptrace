@@ -834,13 +834,16 @@ namespace libdwarf {
                     Dwarf_Die raw_die;
                     // Setting is_info = true for now, assuming in .debug_info rather than .debug_types
                     CPPTRACE_VERIFY(dwarf_offdie_b(dbg, cu_die_offset, true, &raw_die, nullptr) == DW_DLV_OK);
-                    die_object die(dbg, raw_die);
+                    die_object cu_die(dbg, raw_die);
+                    Dwarf_Half offset_size = 0;
+                    Dwarf_Half dwversion = 0;
+                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
                     if(trace_dwarf) {
                         fprintf(stderr, "Found CU in aranges\n");
-                        die.print();
+                        cu_die.print();
                     }
-                    retrieve_line_info(die, pc, 5, frame); // no offset for line info
-                    retrieve_symbol(die, pc, 5, frame);
+                    retrieve_line_info(cu_die, pc, dwversion, frame); // no offset for line info
+                    retrieve_symbol(cu_die, pc, dwversion, frame);
                     dwarf_dealloc(dbg, arange, DW_DLA_ARANGE);
                 }
                 dwarf_dealloc(dbg, aranges, DW_DLA_LIST);
