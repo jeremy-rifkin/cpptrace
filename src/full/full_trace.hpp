@@ -9,10 +9,10 @@
 #include <vector>
 
 namespace cpptrace {
-    namespace detail {
-        CPPTRACE_FORCE_NO_INLINE
-        std::vector<stacktrace_frame> generate_trace(size_t skip);
-    }
+namespace detail {
+    CPPTRACE_FORCE_NO_INLINE
+    std::vector<stacktrace_frame> generate_trace(size_t skip);
+}
 }
 
 #endif
