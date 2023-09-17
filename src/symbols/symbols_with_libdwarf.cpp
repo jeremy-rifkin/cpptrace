@@ -8,6 +8,7 @@
 #include "../platform/error.hpp"
 #include "../platform/utils.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <functional>
@@ -71,6 +72,9 @@ namespace libdwarf {
         die_object& operator=(const die_object&) = delete;
 
         die_object(die_object&& other) : dbg(other.dbg), die(other.die) {
+            // done for finding mistakes, attempts to use the die_object after this should segfault
+            // a valid use otherwise would be moved_from.get_sibling() which would get the next CU
+            other.dbg = nullptr;
             other.die = nullptr;
         }
 
@@ -79,6 +83,14 @@ namespace libdwarf {
             die = other.die;
             other.die = nullptr;
             return *this;
+        }
+
+        die_object clone() const {
+            Dwarf_Off off = get_global_offset();
+            Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
+            Dwarf_Die die_copy = 0;
+            CPPTRACE_VERIFY(dwarf_offdie_b(dbg, off, is_info, &die_copy, nullptr) == DW_DLV_OK);
+            return {dbg, die_copy};
         }
 
         die_object get_child() const {
@@ -242,7 +254,12 @@ namespace libdwarf {
         }
 
         // ranges code based on libdwarf-addr2line
-        int dwarf5_ranges(Dwarf_Die cu_die, Dwarf_Addr *lowest, Dwarf_Addr *highest) const {
+        int dwarf5_ranges(
+            Dwarf_Die cu_die,
+            Dwarf_Addr *lowest,
+            Dwarf_Addr *highest,
+            std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>>* ranges_vec // TODO: Super hacky
+        ) const {
             Dwarf_Unsigned offset = 0;
             Dwarf_Attribute attr = 0;
             Dwarf_Half attrform = 0;
@@ -315,6 +332,9 @@ namespace libdwarf {
                     case DW_RLE_start_end:
                     case DW_RLE_startx_length:
                     case DW_RLE_start_length:
+                        if(ranges_vec) {
+                            ranges_vec->push_back({cooked1, cooked2});
+                        }
                         if(cooked1 < *lowest) {
                             *lowest = cooked1;
                         }
@@ -335,7 +355,13 @@ namespace libdwarf {
         }
 
         // ranges code based on libdwarf-addr2line
-        int dwarf4_ranges(Dwarf_Die cu_die, Dwarf_Addr cu_lowpc, Dwarf_Addr *lowest, Dwarf_Addr *highest) const {
+        int dwarf4_ranges(
+            Dwarf_Die cu_die,
+            Dwarf_Addr cu_lowpc,
+            Dwarf_Addr *lowest,
+            Dwarf_Addr *highest,
+            std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>>* ranges_vec // TODO: Super hacky
+        ) const {
             Dwarf_Unsigned offset;
             Dwarf_Attribute attr = 0;
             int res = 0;
@@ -368,6 +394,9 @@ namespace libdwarf {
                         Dwarf_Addr rng_lowpc, rng_highpc;
                         rng_lowpc = baseaddr + cur->dwr_addr1;
                         rng_highpc = baseaddr + cur->dwr_addr2;
+                        if(ranges_vec) {
+                            ranges_vec->push_back({rng_lowpc, rng_highpc});
+                        }
                         if(rng_lowpc < *lowest) {
                             *lowest = rng_lowpc;
                         }
@@ -388,6 +417,37 @@ namespace libdwarf {
         }
 
         // pc_in_die code based on libdwarf-addr2line
+        // TODO: Super hacky. And ugly code duplication.
+        std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> get_pc_range(int version) const {
+            int ret;
+            Dwarf_Addr cu_lowpc = 0xffffffffffffffff;
+            Dwarf_Addr cu_highpc = 0;
+            enum Dwarf_Form_Class highpc_cls;
+            Dwarf_Addr lowest = 0xffffffffffffffff;
+            Dwarf_Addr highest = 0;
+
+            ret = dwarf_lowpc(die, &cu_lowpc, nullptr);
+            if(ret == DW_DLV_OK) {
+                ret = dwarf_highpc_b(die, &cu_highpc,
+                    nullptr, &highpc_cls, nullptr);
+                if(ret == DW_DLV_OK) {
+                    if(highpc_cls == DW_FORM_CLASS_CONSTANT) {
+                        cu_highpc += cu_lowpc;
+                    }
+                    return {{cu_lowpc, cu_highpc}};
+                }
+
+            }
+            std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> ranges;
+            if(version >= 5) {
+                ret = dwarf5_ranges(die, &lowest, &highest, &ranges);
+            } else {
+                ret = dwarf4_ranges(die, cu_lowpc, &lowest, &highest, &ranges);
+            }
+            return ranges;
+            //return {lowest, highest};
+        }
+
         Dwarf_Bool pc_in_die(int version, Dwarf_Addr pc) const {
             int ret;
             Dwarf_Addr cu_lowpc = 0xffffffffffffffff;
@@ -413,9 +473,9 @@ namespace libdwarf {
                 }
             }
             if(version >= 5) {
-                ret = dwarf5_ranges(die, &lowest, &highest);
+                ret = dwarf5_ranges(die, &lowest, &highest, nullptr);
             } else {
-                ret = dwarf4_ranges(die, cu_lowpc, &lowest, &highest);
+                ret = dwarf4_ranges(die, cu_lowpc, &lowest, &highest, nullptr);
             }
             if(pc >= lowest && pc < highest) {
                 return true;
@@ -444,10 +504,17 @@ namespace libdwarf {
         Dwarf_Line_Context ctx;
     };
 
+    struct subprogram_entry {
+        die_object die;
+        Dwarf_Addr low;
+        Dwarf_Addr high;
+    };
+
     struct dwarf_resolver {
         std::string obj_path;
         Dwarf_Debug dbg;
         std::unordered_map<Dwarf_Off, line_context> line_contexts;
+        std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
 
         CPPTRACE_FORCE_NO_INLINE
         dwarf_resolver(const std::string& object_path) {
@@ -479,9 +546,13 @@ namespace libdwarf {
 
         CPPTRACE_FORCE_NO_INLINE
         ~dwarf_resolver() {
+            // TODO: Maybe redundant since dwarf_finish(dbg); will clean up the line stuff anyway but may as well just
+            // for thoroughness
             for(auto& entry : line_contexts) {
                 dwarf_srclines_dealloc_b(entry.second.ctx);
             }
+            // subprograms_cache needs to be destroyed before dbg otherwise there will be another use after free
+            subprograms_cache.clear();
             dwarf_finish(dbg);
         }
 
@@ -583,7 +654,7 @@ namespace libdwarf {
 
         // returns true if this call found the symbol
         CPPTRACE_FORCE_NO_INLINE
-        bool retrieve_symbol(
+        bool retrieve_symbol_walk(
             const die_object& die,
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
@@ -624,7 +695,7 @@ namespace libdwarf {
                         }
                         auto child = die.get_child();
                         if(child) {
-                            if(retrieve_symbol(child, pc, dwversion, frame)) {
+                            if(retrieve_symbol_walk(child, pc, dwversion, frame)) {
                                 found = true;
                                 return false;
                             }
@@ -638,6 +709,91 @@ namespace libdwarf {
                 }
             );
             return found;
+        }
+
+        CPPTRACE_FORCE_NO_INLINE
+        void preprocess_subprograms(
+            const die_object& die,
+            Dwarf_Half dwversion,
+            std::vector<subprogram_entry>& vec
+        ) {
+            walk_die_list(
+                die,
+                [this, dwversion, &vec] (const die_object& die) {
+                    //die.print();
+                    switch(die.get_tag()) {
+                        case DW_TAG_subprogram:
+                            {
+                                auto ranges_vec = die.get_pc_range(dwversion);
+                                // TODO: Feels super inefficient and some day should maybe use an interval tree.
+                                for(auto range : ranges_vec) {
+                                    vec.push_back({ die.clone(), range.first, range.second });
+                                }
+                            }
+                            break;
+                        case DW_TAG_namespace:
+                        case DW_TAG_structure_type:
+                        case DW_TAG_class_type:
+                        case DW_TAG_module:
+                        case DW_TAG_imported_module:
+                        case DW_TAG_compile_unit:
+                            {
+                                auto child = die.get_child();
+                                if(child) {
+                                    preprocess_subprograms(child, dwversion, vec);
+                                }
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    return true;
+                }
+            );
+        }
+
+        CPPTRACE_FORCE_NO_INLINE
+        void retrieve_symbol(
+            const die_object& cu_die,
+            Dwarf_Addr pc,
+            Dwarf_Half dwversion,
+            stacktrace_frame& frame
+        ) {
+            //retrieve_symbol_walk(std::move(cu_die), pc, dwversion, frame);
+            //return;
+            auto off = cu_die.get_global_offset();
+            auto it = subprograms_cache.find(off);
+            if(it == subprograms_cache.end()) {
+                std::vector<subprogram_entry> vec;
+                preprocess_subprograms(cu_die, dwversion, vec);
+                std::sort(vec.begin(), vec.end(), [] (const subprogram_entry& a, const subprogram_entry& b) {
+                    return a.low < b.low;
+                });
+                subprograms_cache.emplace(off, std::move(vec));
+                it = subprograms_cache.find(off);
+            }
+            auto& vec = it->second;
+            //fprintf(stderr, "%llu\n", vec.size());
+            auto vec_it = std::lower_bound(
+                vec.begin(),
+                vec.end(),
+                pc,
+                [] (const subprogram_entry& entry, Dwarf_Addr pc) {
+                    //fprintf(stderr, "%llx %llx\n", entry.low, pc);
+                    return entry.low < pc;
+                }
+            );
+            // vec_it is first >= pc
+            // we want first <= pc
+            if(vec_it == vec.end()) {
+                return;
+            }
+            if(vec_it != vec.begin()) {
+                vec_it--;
+            }
+            if(vec_it->die.pc_in_die(dwversion, pc)) {
+                retrieve_symbol_for_subprogram(vec_it->die, pc, dwversion, frame);
+            }
         }
 
         void handle_line(Dwarf_Line line, stacktrace_frame& frame) {
@@ -759,6 +915,9 @@ namespace libdwarf {
                     Dwarf_Half offset_size = 0;
                     Dwarf_Half dwversion = 0;
                     dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    //auto p = cu_die.get_pc_range(dwversion);
+                    //cu_die.print();
+                    //fprintf(stderr, "        %llx, %llx\n", p.first, p.second);
                     if(trace_dwarf) {
                         fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
                     }
@@ -786,6 +945,7 @@ namespace libdwarf {
             // libdwarf keeps track of where it is in the file, dwarf_next_cu_header_d is statefull
             Dwarf_Unsigned next_cu_header;
             Dwarf_Half header_cu_type;
+            //fprintf(stderr, "-----------------\n");
             while(true) {
                 int ret = dwarf_next_cu_header_d(
                     dbg,
