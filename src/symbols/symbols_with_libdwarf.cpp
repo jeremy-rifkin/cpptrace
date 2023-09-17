@@ -149,18 +149,9 @@ namespace libdwarf {
         }
 
         bool has_attr(Dwarf_Half dw_attrnum) const {
-            Dwarf_Attribute attr;
-            int ret = dwarf_attr(die, dw_attrnum, &attr, nullptr);
-            if(ret == DW_DLV_NO_ENTRY) {
-                return false;
-            } else if(ret == DW_DLV_OK) {
-                // TODO: Better impl that doesn't require allocation....?
-                dwarf_dealloc_attribute(attr);
-                return true;
-            } else {
-                fprintf(stderr, "Error\n");
-                exit(1);
-            }
+            Dwarf_Bool present = false;
+            CPPTRACE_VERIFY(dwarf_hasattr(die, dw_attrnum, &present, nullptr) == DW_DLV_OK);
+            return present;
         }
 
         Dwarf_Half get_tag() const {
