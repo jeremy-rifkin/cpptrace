@@ -271,18 +271,17 @@ namespace addr2line {
     }
 
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         // TODO: Refactor better
         std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
-        const std::vector<dlframe> dlframes = get_frames_object_info(frames);
-        for(size_t i = 0; i < dlframes.size(); i++) {
-            trace[i].address = dlframes[i].raw_address;
+        for(size_t i = 0; i < frames.size(); i++) {
+            trace[i].address = frames[i].raw_address;
             // Set what is known for now, and resolutions from addr2line should overwrite
-            trace[i].filename = dlframes[i].obj_path;
-            trace[i].symbol = dlframes[i].symbol;
+            trace[i].filename = frames[i].obj_path;
+            trace[i].symbol = frames[i].symbol;
         }
         if(has_addr2line()) {
-            const auto entries = collate_frames(dlframes, trace);
+            const auto entries = collate_frames(frames, trace);
             for(const auto& entry : entries) {
                 const auto& object_name = entry.first;
                 const auto& entries_vec = entry.second;

@@ -24,13 +24,6 @@
 
 namespace cpptrace {
 namespace detail {
-    struct dlframe {
-        std::string obj_path;
-        std::string symbol;
-        uintptr_t raw_address = 0;
-        uintptr_t obj_address = 0;
-    };
-
     #if IS_LINUX || IS_APPLE
     #if !IS_APPLE
     inline uintptr_t get_module_image_base(const std::string& obj_path) {
@@ -69,19 +62,19 @@ namespace detail {
     }
     #endif
     // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-    inline std::vector<dlframe> get_frames_object_info(const std::vector<void*>& addrs) {
+    inline std::vector<object_frame> get_frames_object_info(const std::vector<uintptr_t>& addrs) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
-        std::vector<dlframe> frames;
+        std::vector<object_frame> frames;
         frames.reserve(addrs.size());
-        for(const void* addr : addrs) {
+        for(const uintptr_t addr : addrs) {
             Dl_info info;
-            dlframe frame;
-            frame.raw_address = reinterpret_cast<uintptr_t>(addr);
-            if(dladdr(addr, &info)) { // thread safe
+            object_frame frame;
+            frame.raw_address = addr;
+            if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread safe
                 // dli_sname and dli_saddr are only present with -rdynamic, sname will be included
                 // but we don't really need dli_saddr
                 frame.obj_path = info.dli_fname;
-                frame.obj_address = reinterpret_cast<uintptr_t>(addr)
+                frame.obj_address = addr
                                     - reinterpret_cast<uintptr_t>(info.dli_fbase)
                                     + get_module_image_base(info.dli_fname);
                 frame.symbol = info.dli_sname ?: "";
@@ -129,22 +122,22 @@ namespace detail {
     }
 
     // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-    inline std::vector<dlframe> get_frames_object_info(const std::vector<void*>& addrs) {
+    inline std::vector<object_frame> get_frames_object_info(const std::vector<uintptr_t>& addrs) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
-        std::vector<dlframe> frames;
+        std::vector<object_frame> frames;
         frames.reserve(addrs.size());
-        for(const void* addr : addrs) {
-            dlframe frame;
-            frame.raw_address = reinterpret_cast<uintptr_t>(addr);
+        for(const uintptr_t addr : addrs) {
+            object_frame frame;
+            frame.raw_address = addr;
             HMODULE handle;
             // Multithread safe as long as another thread doesn't come along and free the module
             if(GetModuleHandleExA(
                 GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-                static_cast<const char*>(addr),
+                reinterpret_cast<const char*>(addr),
                 &handle
             )) {
                 frame.obj_path = get_module_name(handle);
-                frame.obj_address = reinterpret_cast<uintptr_t>(addr)
+                frame.obj_address = addr
                                     - reinterpret_cast<uintptr_t>(handle)
                                     + get_module_image_base(frame.obj_path);
             } else {

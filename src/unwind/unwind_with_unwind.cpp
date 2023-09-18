@@ -17,7 +17,7 @@ namespace detail {
     struct unwind_state {
         std::size_t skip;
         std::size_t count;
-        std::vector<void*>& vec;
+        std::vector<uintptr_t>& vec;
     };
 
     _Unwind_Reason_Code unwind_callback(_Unwind_Context* context, void* arg) {
@@ -44,14 +44,14 @@ namespace detail {
             return _URC_END_OF_STACK;
         } else {
             // TODO: push_back?...
-            state.vec[state.count++] = (void*)ip;
+            state.vec[state.count++] = ip;
             return _URC_NO_REASON;
         }
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<void*> capture_frames(size_t skip) {
-        std::vector<void*> frames(hard_max_frames, nullptr);
+    std::vector<uintptr_t> capture_frames(size_t skip) {
+        std::vector<uintptr_t> frames(hard_max_frames, 0);
         unwind_state state{skip + 1, 0, frames};
         _Unwind_Backtrace(unwind_callback, &state); // presumably thread-safe
         frames.resize(state.count);
