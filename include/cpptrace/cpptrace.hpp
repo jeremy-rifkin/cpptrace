@@ -24,8 +24,8 @@ namespace cpptrace {
         stacktrace resolve() const;
         void clear();
 
-        using iterator = decltype(frames)::iterator;
-        using const_iterator = decltype(frames)::const_iterator;
+        using iterator = std::vector<uintptr_t>::iterator;
+        using const_iterator = std::vector<uintptr_t>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
         inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
@@ -45,8 +45,8 @@ namespace cpptrace {
         stacktrace resolve() const;
         void clear();
 
-        using iterator = decltype(frames)::iterator;
-        using const_iterator = decltype(frames)::const_iterator;
+        using iterator = std::vector<object_frame>::iterator;
+        using const_iterator = std::vector<object_frame>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
         inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
@@ -80,8 +80,8 @@ namespace cpptrace {
         std::string to_string() const;
         void clear();
 
-        using iterator = decltype(frames)::iterator;
-        using const_iterator = decltype(frames)::const_iterator;
+        using iterator = std::vector<stacktrace_frame>::iterator;
+        using const_iterator = std::vector<stacktrace_frame>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
         inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
@@ -100,7 +100,7 @@ namespace cpptrace {
         mutable raw_trace trace;
         mutable std::string resolved_message;
     public:
-        explicit exception() : std::exception(), trace(generate_raw_trace()) {}
+        explicit exception() : trace(generate_raw_trace()) {}
         virtual const std::string& get_resolved_message() const {
             if(resolved_message.empty()) {
                 resolved_message = "cpptrace::exception:\n" + trace.resolve().to_string();
@@ -116,6 +116,7 @@ namespace cpptrace {
     class CPPTRACE_API exception_with_message : public exception {
         mutable std::string message;
     public:
+        // NOLINTNEXTLINE(modernize-pass-by-value)
         explicit exception_with_message(const std::string& message_arg) : message(message_arg) {}
         explicit exception_with_message(const char* message_arg) : message(message_arg) {}
         const std::string& get_resolved_message() const override {

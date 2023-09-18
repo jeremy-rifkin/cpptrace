@@ -14,9 +14,9 @@ namespace detail {
 namespace libdl {
     stacktrace_frame resolve_frame(const uintptr_t addr) {
         Dl_info info;
-        if(dladdr(addr, &info)) { // thread-safe
+        if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread-safe
             return {
-                reinterpret_cast<uintptr_t>(addr),
+                addr,
                 0,
                 0,
                 info.dli_fname ? info.dli_fname : "",
@@ -24,7 +24,7 @@ namespace libdl {
             };
         } else {
             return {
-                reinterpret_cast<uintptr_t>(addr),
+                addr,
                 0,
                 0,
                 "",
