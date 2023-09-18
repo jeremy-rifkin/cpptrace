@@ -24,9 +24,6 @@ endif()
 
 option(CPPTRACE_STATIC "" OFF)
 
-option(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE "" OFF)
-option(CPPTRACE_FULL_TRACE_WITH_STACKTRACE "" OFF)
-
 option(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE "" OFF)
 option(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF "" OFF)
 option(CPPTRACE_GET_SYMBOLS_WITH_LIBDL "" OFF)
@@ -119,11 +116,9 @@ if(MINGW OR NOT WIN32) # No need to bother checking in msvc, but do check in min
 endif()
 
 # =============================================== Autoconfig unwinding ===============================================
-# Unwind back-ends (If not doing CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
+# Unwind back-ends
 if(
   NOT (
-    CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
-    CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
     CPPTRACE_UNWIND_WITH_UNWIND OR
     CPPTRACE_UNWIND_WITH_EXECINFO OR
     CPPTRACE_UNWIND_WITH_WINAPI OR
@@ -164,8 +159,6 @@ endif()
 # =============================================== Autoconfig symbols ===============================================
 if(
   NOT (
-    CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE OR
-    CPPTRACE_FULL_TRACE_WITH_STACKTRACE OR
     CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
     CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
     CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
@@ -217,8 +210,6 @@ set(
   src/cpptrace.cpp
   src/demangle/demangle_with_cxxabi.cpp
   src/demangle/demangle_with_nothing.cpp
-  src/full/full_trace_with_libbacktrace.cpp
-  src/full/full_trace_with_stacktrace.cpp
   src/symbols/symbols_with_addr2line.cpp
   src/symbols/symbols_with_dbghelp.cpp
   src/symbols/symbols_with_dl.cpp
@@ -275,21 +266,6 @@ function(check_backtrace_error)
     endif()
   endif()
 endfunction()
-
-# Full
-if(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
-  check_backtrace_error()
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE)
-  target_link_libraries(cpptrace PRIVATE backtrace)
-endif()
-
-if(CPPTRACE_FULL_TRACE_WITH_STACKTRACE)
-  if(NOT HAS_STACKTRACE)
-    message(WARNING "Cpptrace: CPPTRACE_FULL_TRACE_WITH_STACKTRACE specified but <stacktrace> doesn't seem to be available.")
-  endif()
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_FULL_TRACE_WITH_STACKTRACE)
-  target_link_libraries(cpptrace PRIVATE "${STACKTRACE_LINK_LIB}")
-endif()
 
 # Symbols
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)

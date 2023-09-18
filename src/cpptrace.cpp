@@ -7,45 +7,11 @@
 #include <iomanip>
 #include <iostream>
 
-#if !(defined(CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE) || defined(CPPTRACE_FULL_TRACE_WITH_STACKTRACE))
-
 #include "symbols/symbols.hpp"
 #include "unwind/unwind.hpp"
 #include "demangle/demangle.hpp"
 #include "platform/common.hpp"
 #include "platform/utils.hpp"
-
-namespace cpptrace {
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
-    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip) {
-        std::vector<void*> frames = detail::capture_frames(skip + 1);
-        std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
-        for(auto& frame : trace) {
-            frame.symbol = detail::demangle(frame.symbol);
-        }
-        return trace;
-    }
-}
-
-#else
-
-// full trace
-
-#include "full/full_trace.hpp"
-#include "demangle/demangle.hpp"
-
-namespace cpptrace {
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
-    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip) {
-        auto trace = detail::generate_trace(skip + 1);
-        for(auto& entry : trace) {
-            entry.symbol = detail::demangle(entry.symbol);
-        }
-        return trace;
-    }
-}
-
-#endif
 
 #define ESC     "\033["
 #define RESET   ESC "0m"
@@ -57,6 +23,16 @@ namespace cpptrace {
 #define CYAN    ESC "36m"
 
 namespace cpptrace {
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip) {
+        std::vector<void*> frames = detail::capture_frames(skip + 1);
+        std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
+        for(auto& frame : trace) {
+            frame.symbol = detail::demangle(frame.symbol);
+        }
+        return trace;
+    }
+
     CPPTRACE_API
     void print_trace(std::uint32_t skip) {
         detail::enable_virtual_terminal_processing_if_needed();

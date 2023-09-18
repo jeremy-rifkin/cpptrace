@@ -294,22 +294,12 @@ search the system path for `addr2line` at runtime. This is not the default to pr
 
 **Demangling**
 
-Lastly, depending on other back-ends used a demangler back-end may be needed. A demangler back-end is not needed when
-doing full traces with libbacktrace, getting symbols with addr2line, or getting symbols with dbghelp.
+Lastly, depending on other back-ends used a demangler back-end may be needed.
 
 | Library  | CMake config                     | Platforms           | Info                                                                               |
 | -------- | -------------------------------- | ------------------- | ---------------------------------------------------------------------------------- |
 | cxxabi.h | `CPPTRACE_DEMANGLE_WITH_CXXABI`  | Linux, macos, mingw | Should be available everywhere other than [msvc](https://godbolt.org/z/93ca9rcdz). |
 | N/A      | `CPPTRACE_DEMANGLE_WITH_NOTHING` | all                 | Don't attempt to do anything beyond what the symbol resolution back-end does.      |
-
-**Full tracing**
-
-Libbacktrace can generate a full stack trace itself, both unwinding and resolving symbols. This can be chosen with
-`CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. The auto config attempts to use this if it is available. Full tracing with
-libbacktrace ignores `CPPTRACE_HARD_MAX_FRAMES`.
-
-`<stacktrace>` can of course also generate a full trace, if you're using >=C++23 and your compiler supports it. This is
-controlled by `CPPTRACE_FULL_TRACE_WITH_STACKTRACE`. `CPPTRACE_HARD_MAX_FRAMES` is ignored.
 
 **More?**
 
@@ -321,8 +311,6 @@ more back-ends can be added. Ideally this library can "just work" on systems, wi
 Summary of all library configuration options:
 
 Back-ends:
-- `CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On/Off`
-- `CPPTRACE_FULL_TRACE_WITH_STACKTRACE=On/Off`
 - `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=On/Off`
 - `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP=On/Off`
 - `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE=On/Off`

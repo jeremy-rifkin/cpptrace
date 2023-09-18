@@ -81,10 +81,6 @@ def output_matches(output: str, params: Tuple[str]):
     max_line_diff = MAX_LINE_DIFF
     if "CPPTRACE_UNWIND_WITH_UNWIND" in params:
         max_line_diff = 0
-    if "CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE" in params:
-        max_line_diff = 0
-    if "CPPTRACE_FULL_TRACE_WITH_STACKTRACE" in params:
-        max_line_diff = 0
 
     errored = False
 
@@ -321,7 +317,7 @@ def main():
             "compiler": ["g++-10", "clang++-14"],
             "target": ["Debug"],
             "std": ["11", "20"],
-            "config": ["-DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On", ""]
+            "config": [""]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
@@ -441,11 +437,7 @@ def main():
             "std": ["11", "20"],
             "config": [""]
         }
-        exclude = [
-            {
-                "config": "-DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On"
-            }
-        ]
+        exclude = []
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
 
     global failed

@@ -163,7 +163,7 @@ def main():
             "compiler": ["g++-10", "clang++-14"],
             "target": ["Debug"],
             "std": ["11", "20"],
-            "config": ["-DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On", ""]
+            "config": [""]
         }
         exclude = []
         run_matrix(matrix, exclude, build_full_or_auto)
@@ -283,11 +283,7 @@ def main():
             "std": ["11", "20"],
             "config": [""]
         }
-        exclude = [
-            {
-                "config": "-DCPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On"
-            }
-        ]
+        exclude = []
         run_matrix(matrix, exclude, build_full_or_auto)
 
     global failed
