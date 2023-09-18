@@ -54,8 +54,8 @@ jobs:
           msbuild .\cpptrace.sln
           mkdir -p ../test/speedtest/build
           cd ../test/speedtest/build
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Debug \
+          cmake .. `
+            -DCMAKE_BUILD_TYPE=Debug `
             ${{matrix.config}}
           msbuild .\cpptrace-speedtest.sln
    - name: test
