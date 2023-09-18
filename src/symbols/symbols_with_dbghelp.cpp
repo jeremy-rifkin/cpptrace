@@ -41,7 +41,7 @@ namespace dbghelp {
         auto end = std::chrono::high_resolution_clock::now();
         auto start = timer_stack.top();
         timer_stack.pop();
-        fprintf(stderr, "%s: %lld ms\n", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+        fprintf(stderr, "%s: %lld ms\n", name, std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
     }
 
     // SymFromAddr only returns the function's name. In order to get information about parameters,
