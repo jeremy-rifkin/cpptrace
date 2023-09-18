@@ -3,3 +3,4 @@ a.out
 build*/
 repro*/
 __pycache__
+scratch

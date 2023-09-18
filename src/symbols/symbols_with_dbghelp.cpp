@@ -13,37 +13,9 @@
 #include <windows.h>
 #include <dbghelp.h>
 
-#include <chrono>
-#include <cstdio>
-#include <stack>
-
 namespace cpptrace {
 namespace detail {
 namespace dbghelp {
-
-    std::stack<std::chrono::steady_clock::time_point> timer_stack;
-
-    /*inline void log_time() {
-        auto end = std::chrono::high_resolution_clock::now();
-        auto start = timer_stack.top();
-        timer_stack.pop();
-    }
-
-    #define TIME_SECTION(...) \
-        timer_stack.push(std::chrono::high_resolution_clock::now()); \
-        __VA_ARGS__ ; \*/
-
-    inline void timer_start() {
-        timer_stack.push(std::chrono::high_resolution_clock::now());
-    }
-
-    inline void timer_end(const char* name) {
-        auto end = std::chrono::high_resolution_clock::now();
-        auto start = timer_stack.top();
-        timer_stack.pop();
-        fprintf(stderr, "%s: %lld ms\n", name, std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
-    }
-
     // SymFromAddr only returns the function's name. In order to get information about parameters,
     // important for C++ stack traces where functions may be overloaded, we have to manually use
     // Windows DIA to walk debug info structures. Resources:
@@ -360,14 +332,9 @@ namespace dbghelp {
         symbol->MaxNameLen = MAX_SYM_NAME;
         union { DWORD64 a; DWORD b; } displacement;
         IMAGEHLP_LINE64 line;
-        timer_start();
         bool got_line = SymGetLineFromAddr64(proc, (DWORD64)addr, &displacement.b, &line);
-        timer_end("SymGetLineFromAddr64");
-        timer_start();
         if(SymFromAddr(proc, (DWORD64)addr, &displacement.a, symbol)) {
-            timer_end("SymFromAddr");
             if(got_line) {
-                timer_start();
                 IMAGEHLP_STACK_FRAME frame;
                 frame.InstructionOffset = symbol->Address;
                 // https://docs.microsoft.com/en-us/windows/win32/api/dbghelp/nf-dbghelp-symsetcontext
@@ -375,7 +342,6 @@ namespace dbghelp {
                 // function fails but GetLastError returns ERROR_SUCCESS."
                 // This is the stupidest fucking api I've ever worked with.
                 if(SymSetContext(proc, &frame, nullptr) == FALSE && GetLastError() != ERROR_SUCCESS) {
-                    timer_end("SymSetContext");
                     fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
                     return {
                         reinterpret_cast<uintptr_t>(addr),
@@ -385,8 +351,6 @@ namespace dbghelp {
                         symbol->Name
                     };
                 }
-                timer_end("SymSetContext");
-                timer_start();
                 DWORD n_children = get_info<DWORD, IMAGEHLP_SYMBOL_TYPE_INFO::TI_GET_COUNT, true>(
                     symbol->TypeIndex,
                     proc,
@@ -410,7 +374,6 @@ namespace dbghelp {
                 // There's a phenomina with DIA not inserting commas after template parameters. Fix them here.
                 static std::regex comma_re(R"(,(?=\S))");
                 signature = std::regex_replace(signature, comma_re, ", ");
-                timer_end("symbol resolution");
                 return {
                     reinterpret_cast<uintptr_t>(addr),
                     static_cast<std::uint_least32_t>(line.LineNumber),
@@ -428,7 +391,6 @@ namespace dbghelp {
                 };
             }
         } else {
-            timer_end("SymFromAddr");
             return {
                 reinterpret_cast<uintptr_t>(addr),
                 0,
@@ -444,24 +406,18 @@ namespace dbghelp {
         trace.reserve(frames.size());
 
         // TODO: When does this need to be called? Can it be moved to the symbolizer?
-        timer_start();
         SymSetOptions(SYMOPT_ALLOW_ABSOLUTE_SYMBOLS);
         HANDLE proc = GetCurrentProcess();
         if(!SymInitialize(proc, NULL, TRUE)) {
             //TODO?
             throw std::logic_error("SymInitialize failed");
         }
-        timer_end("resolve_frames setup");
-        timer_start();
         for(const auto frame : frames) {
             trace.push_back(resolve_frame(proc, frame));
         }
-        timer_end("frame resolution");
-        timer_start();
         if(!SymCleanup(proc)) {
             //throw std::logic_error("SymCleanup failed");
         }
-        timer_end("resolve_frames cleanup");
 
         return trace;
     }
