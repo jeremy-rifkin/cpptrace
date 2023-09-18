@@ -16,7 +16,6 @@
 namespace cpptrace {
 namespace detail {
 namespace dbghelp {
-
     // SymFromAddr only returns the function's name. In order to get information about parameters,
     // important for C++ stack traces where functions may be overloaded, we have to manually use
     // Windows DIA to walk debug info structures. Resources:

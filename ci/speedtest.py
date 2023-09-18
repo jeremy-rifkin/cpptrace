@@ -1,5 +1,6 @@
 import sys
 import re
+import platform
 
 def main():
     output = sys.stdin.read()
@@ -17,7 +18,12 @@ def main():
     # https://github.com/jeremy-rifkin/cpptrace/pull/22
     expect_slow = False
 
-    threshold = 100 # ms
+    if platform.system() == "Windows":
+        # For some reason SymInitialize is super slow on github's windows runner and it alone takes 250ms. Nothing we
+        # can do about that.
+        threshold = 350 # ms
+    else:
+        threshold = 100 # ms
 
     if expect_slow:
         if time > threshold:
