@@ -191,6 +191,7 @@ if(
   )
 )
   if(HAS_CXXABI)
+    message(STATUS "Cpptrace auto config: Using cxxabi for symbols")
     set(CPPTRACE_DEMANGLE_WITH_CXXABI On)
   else()
     set(CPPTRACE_DEMANGLE_WITH_NOTHING On)
