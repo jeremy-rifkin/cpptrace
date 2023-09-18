@@ -53,7 +53,8 @@ namespace detail {
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         std::vector<stacktrace_frame> trace(frames.size());
         #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDL) \
-            || defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+            || defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP) \
+            || defined(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
          // actually need to go backwards to a void*
          std::vector<uintptr_t> raw_frames(frames.size());
          for(std::size_t i = 0; i < frames.size(); i++) {
