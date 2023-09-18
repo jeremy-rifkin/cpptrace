@@ -23,6 +23,9 @@ This library is in beta, if you run into any problems please open an [issue][iss
 - [30-Second Overview](#30-second-overview)
   - [CMake FetchContent Usage](#cmake-fetchcontent-usage)
 - [In-Depth Documentation](#in-depth-documentation)
+  - [API](#api)
+  - [Notable Library Configurations](#notable-library-configurations)
+  - [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
   - [Usage](#usage)
     - [CMake FetchContent](#cmake-fetchcontent)
     - [System-Wide Installation](#system-wide-installation)
@@ -30,13 +33,14 @@ This library is in beta, if you run into any problems please open an [issue][iss
     - [Package Managers](#package-managers)
     - [Platform Logistics](#platform-logistics)
     - [Static Linking](#static-linking)
-  - [API](#api)
-  - [Back-ends](#back-ends)
+  - [Library Internals](#library-internals)
     - [Summary of Library Configurations](#summary-of-library-configurations)
   - [Testing Methodology](#testing-methodology)
 - [License](#license)
 
 # 30-Second Overview
+
+Generating traces is as easy as calling `cpptrace::print_trace`:
 
 ```cpp
 #include <cpptrace/cpptrace.hpp>
@@ -66,6 +70,55 @@ target_link_libraries(your_target cpptrace)
 On windows and macos some extra work is required, see [below](#platform-logistics).
 
 # In-Depth Documentation
+
+## API
+
+`cpptrace::print_trace()` can be used to print a stacktrace at the current call site, `cpptrace::generate_trace()` can
+be used to get raw frame information for custom use.
+
+**Note:** Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`) is generally required for good trace information.
+
+**Note:** Currently on Mac .dSYM files are required, which can be generated with `dsymutil yourbinary`. A cmake snippet
+for generating these is included above.
+
+```cpp
+namespace cpptrace {
+    struct stacktrace_frame {
+        uintptr_t address;
+        std::uint_least32_t line;
+        std::uint_least32_t col;
+        std::string filename;
+        std::string symbol;
+    };
+    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip = 0);
+    void print_trace(std::uint32_t skip = 0);
+}
+```
+
+## Notable Library Configurations
+
+- `CPPTRACE_STATIC=On/Off`: Create cpptrace as a static library.
+- `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
+  Default is `100`.
+
+## Notes About the Library and Future Work
+
+For the most part I'm happy with the state of the library. But I'm sure that there is room for improvement and issues
+will exist. If you encounter any issue, please let me know! If you find any pain-points in the library, please let me
+know that too.
+
+A note about performance: For handling of DWARF symbols there is a lot of room to explore for performance optimizations
+and time-memory tradeoffs. If you find the current implementation is either slow or using too much memory, I'd be happy
+to explore some of these options.
+
+A couple things I'd like to fix in the future:
+- On MacOS .dSYM files are required
+- On Windows when collecting symbols with dbghelp (msvc/clang) parameter types are almost perfect but due to limitations
+  in dbghelp the library cannot accurately show const and volatile qualifiers or rvalue references (these appear as
+  pointers).
+- On Windows unwinding with `CaptureStackBackTrace` (msvc/clang) can sometimes produce program counters that are after
+  the call instruction. Execinfo suffers from the same problem, but libgcc's `_Unwind` provides a means to detect this.
+  I would like to find a solution on windows so stack traces are more accurate.
 
 ## Usage
 
@@ -199,40 +252,16 @@ endif()
 
 ### Static Linking
 
-To static link the library set `CPPTRACE_STATIC=On`.
+To static link the library set `-DCPPTRACE_STATIC=On`.
 
-## API
+## Library Internals
 
-`cpptrace::print_trace()` can be used to print a stacktrace at the current call site, `cpptrace::generate_trace()` can
-be used to get raw frame information for custom use.
-
-**Note:** Debug info (`-g`) is generally required for good trace information. Some back-ends read symbols from dynamic
-export information which may require `-rdynamic` or manually marking symbols for exporting.
-
-**Note:** Currently on Mac .dSYM files are required, which can be generated with `dsymutil yourbinary`. A cmake snippet
-for generating these is included above.
-
-```cpp
-namespace cpptrace {
-    struct stacktrace_frame {
-        uintptr_t address;
-        std::uint_least32_t line;
-        std::uint_least32_t col;
-        std::string filename;
-        std::string symbol;
-    };
-    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip = 0);
-    void print_trace(std::uint32_t skip = 0);
-}
-```
-
-## Back-ends
-
-Back-end libraries are required for unwinding the stack and resolving symbol information (name and source location) in
-order to generate a stacktrace.
-
-The CMake script attempts to automatically choose good back-ends based on what is available on your system. You can
-also manually set which back-end you want used.
+Cpptrace supports a number of back-ends and middle-ends to produce stack traces. Stack traces are produced in roughly
+three steps: Unwinding, symbol resolution, and demangling. Cpptrace by default on linux / macos will generate traces
+with `_Unwind_Backtrace`, libdwarf, and `__cxa_demangle`. On windows traces are generated by default with
+`CaptureStackBackTrace` and dbghelp.h (no demangling is needed with dbghelp). Under mingw libdwarf and dbghelp.h are
+used, along with `__cxa_demangle`. Support for these is the main focus of cpptrace and they should work well. If you
+want to use a different back-end such as addr2line, however, you can configure the library to do so.
 
 **Unwinding**
 
@@ -250,9 +279,10 @@ can hold addresses for 100 frames (beyond the `skip` frames). This is configurab
 
 | Library      | CMake config                             | Platforms             | Info                                                                                                                                                                                         |
 | ------------ | ---------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| libdwarf     | `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF`     | linux, macos, mingw   | Libdwarf is the preferred method for symbol resolution for cpptrace, and it's bundled in this repository for ease of use.                                                                    |
+| dbghelp      | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`      | windows               | Dbghelp.h is the preferred method for symbol resolution on windows under msvc/clang and is supported on all windows machines.                                                                |
 | libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | linux, macos*, mingw* | Libbacktrace is already installed on most systems or available through the compiler directly. For clang you must specify the absolute path to `backtrace.h` using `CPPTRACE_BACKTRACE_PATH`. |
 | addr2line    | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE`    | linux, macos, mingw   | Symbols are resolved by invoking `addr2line` (or `atos` on mac) via `fork()` (on linux/unix, and `popen` under mingw).                                                                       |
-| dbghelp      | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`      | windows               | Dbghelp.h allows access to symbols via debug info.                                                                                                                                           |
 | libdl        | `CPPTRACE_GET_SYMBOLS_WITH_LIBDL`        | linux, macos          | Libdl uses dynamic export information. Compiling with `-rdynamic` is needed for symbol information to be retrievable. Line numbers won't be retrievable.                                     |
 | N/A          | `CPPTRACE_GET_SYMBOLS_WITH_NOTHING`      | all                   | No attempt is made to resolve symbols.                                                                                                                                                       |
 
@@ -279,8 +309,7 @@ Libbacktrace can generate a full stack trace itself, both unwinding and resolvin
 libbacktrace ignores `CPPTRACE_HARD_MAX_FRAMES`.
 
 `<stacktrace>` can of course also generate a full trace, if you're using >=C++23 and your compiler supports it. This is
-controlled by `CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE`. The cmake script will attempt to auto configure to this if
-possible. `CPPTRACE_HARD_MAX_FRAMES` is ignored.
+controlled by `CPPTRACE_FULL_TRACE_WITH_STACKTRACE`. `CPPTRACE_HARD_MAX_FRAMES` is ignored.
 
 **More?**
 
@@ -294,10 +323,11 @@ Summary of all library configuration options:
 Back-ends:
 - `CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE=On/Off`
 - `CPPTRACE_FULL_TRACE_WITH_STACKTRACE=On/Off`
-- `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE=On/Off`
-- `CPPTRACE_GET_SYMBOLS_WITH_LIBDL=On/Off`
-- `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE=On/Off`
+- `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=On/Off`
 - `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP=On/Off`
+- `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE=On/Off`
+- `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE=On/Off`
+- `CPPTRACE_GET_SYMBOLS_WITH_LIBDL=On/Off`
 - `CPPTRACE_GET_SYMBOLS_WITH_NOTHING=On/Off`
 - `CPPTRACE_UNWIND_WITH_UNWIND=On/Off`
 - `CPPTRACE_UNWIND_WITH_EXECINFO=On/Off`
@@ -307,7 +337,7 @@ Back-ends:
 - `CPPTRACE_DEMANGLE_WITH_NOTHING=On/Off`
 
 Back-end configuration:
-- `CPPTRACE_STATIC=On/Off`: Create the cpptrace library as a static library.
+- `CPPTRACE_STATIC=On/Off`: Create cpptrace as a static library.
 - `CPPTRACE_BACKTRACE_PATH=<string>`: Path to libbacktrace backtrace.h, needed when compiling with clang/
 - `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
   Default is `100`.
