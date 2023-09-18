@@ -25,10 +25,12 @@
 #define CYAN    ESC "36m"
 
 namespace cpptrace {
+    CPPTRACE_API
     object_trace raw_trace::resolve_object_trace() const {
         return object_trace(detail::get_frames_object_info(frames));
     }
 
+    CPPTRACE_API
     stacktrace raw_trace::resolve() const {
         std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
         for(auto& frame : trace) {
@@ -37,26 +39,32 @@ namespace cpptrace {
         return stacktrace(std::move(trace));
     }
 
+    CPPTRACE_API
     void raw_trace::clear() {
         frames.clear();
     }
 
+    CPPTRACE_API
     stacktrace object_trace::resolve() const {
         return stacktrace(detail::resolve_frames(frames));
     }
 
+    CPPTRACE_API
     void object_trace::clear() {
         frames.clear();
     }
 
+    CPPTRACE_API
     void stacktrace::print() const {
         print(std::cerr, true);
     }
 
+    CPPTRACE_API
     void stacktrace::print(std::ostream& stream) const {
         print(stream, true);
     }
 
+    CPPTRACE_API
     void stacktrace::print(std::ostream& stream, bool color) const {
         if(color) {
             detail::enable_virtual_terminal_processing_if_needed();
@@ -102,12 +110,14 @@ namespace cpptrace {
         }
     }
 
+    CPPTRACE_API
     std::string stacktrace::to_string() const {
         std::ostringstream oss;
         print(oss, false);
         return std::move(oss).str();
     }
 
+    CPPTRACE_API
     void stacktrace::clear() {
         frames.clear();
     }
