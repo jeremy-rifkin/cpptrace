@@ -31,7 +31,6 @@ namespace detail {
         errno_t ret = fopen_s(&file, obj_path.c_str(), "rb");
         if(ret != 0 || file == nullptr) {
             throw file_error();
-            return 0;
         }
         auto magic = load_bytes<std::array<char, 2>>(file, 0);
         CPPTRACE_VERIFY(memcmp(magic.data(), "MZ", 2) == 0);

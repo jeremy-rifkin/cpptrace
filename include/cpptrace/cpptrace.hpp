@@ -17,12 +17,12 @@ namespace cpptrace {
     struct object_trace;
     struct stacktrace;
 
-    struct CPPTRACE_API raw_trace {
+    struct raw_trace {
         std::vector<uintptr_t> frames;
         explicit raw_trace(std::vector<uintptr_t>&& frames_) : frames(frames_) {}
-        object_trace resolve_object_trace() const;
-        stacktrace resolve() const;
-        void clear();
+        CPPTRACE_API object_trace resolve_object_trace() const;
+        CPPTRACE_API stacktrace resolve() const;
+        CPPTRACE_API void clear();
 
         using iterator = std::vector<uintptr_t>::iterator;
         using const_iterator = std::vector<uintptr_t>::const_iterator;
@@ -32,18 +32,18 @@ namespace cpptrace {
         inline const_iterator cend() const noexcept { return frames.cend(); }
     };
 
-    struct CPPTRACE_API object_frame {
+    struct object_frame {
         std::string obj_path;
         std::string symbol;
         uintptr_t raw_address = 0;
         uintptr_t obj_address = 0;
     };
 
-    struct CPPTRACE_API object_trace {
+    struct object_trace {
         std::vector<object_frame> frames;
         explicit object_trace(std::vector<object_frame>&& frames_) : frames(frames_) {}
-        stacktrace resolve() const;
-        void clear();
+        CPPTRACE_API stacktrace resolve() const;
+        CPPTRACE_API void clear();
 
         using iterator = std::vector<object_frame>::iterator;
         using const_iterator = std::vector<object_frame>::const_iterator;
@@ -53,7 +53,7 @@ namespace cpptrace {
         inline const_iterator cend() const noexcept { return frames.cend(); }
     };
 
-    struct CPPTRACE_API stacktrace_frame {
+    struct stacktrace_frame {
         uintptr_t address;
         std::uint_least32_t line;
         std::uint_least32_t col;
@@ -71,7 +71,7 @@ namespace cpptrace {
         }
     };
 
-    struct CPPTRACE_API stacktrace {
+    struct stacktrace {
         std::vector<stacktrace_frame> frames;
         explicit stacktrace(std::vector<stacktrace_frame>&& frames_) : frames(frames_) {}
         void print() const;
@@ -95,7 +95,7 @@ namespace cpptrace {
     // utilities:
     CPPTRACE_API std::string demangle(const std::string& str);
 
-    class CPPTRACE_API exception : public std::exception {
+    class exception : public std::exception {
     protected:
         mutable raw_trace trace;
         mutable std::string resolved_message;
@@ -113,7 +113,7 @@ namespace cpptrace {
         }
     };
 
-    class CPPTRACE_API exception_with_message : public exception {
+    class exception_with_message : public exception {
         mutable std::string message;
     public:
         // NOLINTNEXTLINE(modernize-pass-by-value)
@@ -132,15 +132,15 @@ namespace cpptrace {
         }
     };
 
-    class CPPTRACE_API logic_error : public exception_with_message {};
-    class CPPTRACE_API domain_error : public exception_with_message {};
-    class CPPTRACE_API invalid_argument : public exception_with_message {};
-    class CPPTRACE_API length_error : public exception_with_message {};
-    class CPPTRACE_API out_of_range : public exception_with_message {};
-    class CPPTRACE_API runtime_error : public exception_with_message {};
-    class CPPTRACE_API range_error : public exception_with_message {};
-    class CPPTRACE_API overflow_error : public exception_with_message {};
-    class CPPTRACE_API underflow_error : public exception_with_message {};
+    class logic_error : public exception_with_message {};
+    class domain_error : public exception_with_message {};
+    class invalid_argument : public exception_with_message {};
+    class length_error : public exception_with_message {};
+    class out_of_range : public exception_with_message {};
+    class runtime_error : public exception_with_message {};
+    class range_error : public exception_with_message {};
+    class overflow_error : public exception_with_message {};
+    class underflow_error : public exception_with_message {};
 }
 
 #endif
