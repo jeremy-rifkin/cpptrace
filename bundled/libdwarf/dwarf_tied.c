@@ -131,7 +131,6 @@ _dwarf_loop_reading_debug_info_for_cu(
     Dwarf_Debug tieddbg,
     Dwarf_Error *error)
 {
-    unsigned loop_count = 0;
     /*  We will not find tied signatures
         for .debug_addr (or line tables) in .debug_types.
         it seems. Those signatures point from
@@ -150,7 +149,7 @@ _dwarf_loop_reading_debug_info_for_cu(
             startingcontext->cc_extension_size;
     }
 
-    for (;;++loop_count) {
+    for (;;) {
         int sres = DW_DLV_OK;
         Dwarf_Half cu_type = 0;
         Dwarf_CU_Context latestcontext = 0;

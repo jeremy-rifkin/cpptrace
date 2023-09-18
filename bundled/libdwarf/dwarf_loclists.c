@@ -1014,10 +1014,9 @@ build_array_of_lle(Dwarf_Debug dbg,
     unsigned int   address_size = rctx->ll_address_size;
     Dwarf_Unsigned bytescounttotal= 0;
     int            done           = FALSE;
-    Dwarf_Unsigned locdesc_index  = 0;
     Dwarf_Unsigned i              = 0;
 
-    for ( ; !done  ;++locdesc_index ) {
+    for ( ; !done  ; ) {
         unsigned entrylen = 0;
         unsigned code = 0;
         Dwarf_Unsigned val1 = 0;

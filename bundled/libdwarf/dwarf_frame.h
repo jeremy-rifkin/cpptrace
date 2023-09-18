@@ -196,8 +196,6 @@ typedef struct Dwarf_Regtable3_s_i {
     Dwarf_Regtable_Entry3_i *rt3_rules;
 } Dwarf_Regtable3_i;
 
-
-
 typedef struct Dwarf_Frame_s *Dwarf_Frame;
 
 /*
@@ -486,6 +484,7 @@ int _dwarf_read_cie_fde_prefix(Dwarf_Debug dbg,
 int _dwarf_create_fde_from_after_start(Dwarf_Debug dbg,
     struct cie_fde_prefix_s *  prefix,
     Dwarf_Small *section_pointer,
+    Dwarf_Unsigned section_length,
     Dwarf_Small *frame_ptr,
     Dwarf_Small *section_ptr_end,
     int use_gnu_cie_calc,

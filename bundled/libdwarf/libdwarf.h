@@ -60,9 +60,9 @@
 # elif (defined(__SUNPRO_C)  || defined(__SUNPRO_CC))
 #  if defined(PIC) || defined(__PIC__)
 #   define DW_API __global
-#  endif  /* __PIC__ */
+#  endif /* __PIC__ */
 # elif (defined(__GNUC__) && __GNUC__ >= 4) || \
-     defined(__INTEL_COMPILER)
+    defined(__INTEL_COMPILER)
 #  if defined(PIC) || defined(__PIC__)
 #   define DW_API __attribute__ ((visibility("default")))
 #  endif /* PIC */
@@ -99,10 +99,10 @@ extern "C" {
 */
 
 /* Semantic Version identity for this libdwarf.h */
-#define DW_LIBDWARF_VERSION "0.7.1"
+#define DW_LIBDWARF_VERSION "0.8.0"
 #define DW_LIBDWARF_VERSION_MAJOR 0
-#define DW_LIBDWARF_VERSION_MINOR 7
-#define DW_LIBDWARF_VERSION_MICRO 1
+#define DW_LIBDWARF_VERSION_MINOR 8
+#define DW_LIBDWARF_VERSION_MICRO 0
 
 #define DW_PATHSOURCE_unspecified 0
 #define DW_PATHSOURCE_basic     1
@@ -458,11 +458,11 @@ typedef struct Dwarf_Ranges_s {
         possible case for dwarf2):
             If dw_offset_relevant is non-zero, then
                 the value is stored at at the address
-                CFA+N where N is a signed offset.
+                CFA+N where N (dw_offset) is a signed offset,
+                (not unsigned) and must be cast to Dwarf_Signed
+                before use.
                 dw_regnum is the cfa register rule which means
                 one ignores dw_regnum and uses the CFA appropriately.
-                So dw_offset is a signed value, really,
-                and must be printed/evaluated as such.
                 Rule: Offset(N)
             If dw_offset_relevant is zero, then the
                 value of the register
@@ -470,7 +470,8 @@ typedef struct Dwarf_Ranges_s {
                 Rule: register(R)
         If dw_value_type  == DW_EXPR_VAL_OFFSET
             the  value of this register is CFA +N where
-            N is a signed offset.
+            N (dw_offset) is a signed offset (not unsigned)
+            and must be cast to Dwarf_Signed before use.
             dw_regnum is the cfa register rule which means
             one ignores dw_regnum and uses the CFA appropriately.
             Rule: val_offset(N)
@@ -494,15 +495,16 @@ typedef struct Dwarf_Ranges_s {
 
         Note that this definition can only deal correctly
         with register numbers that fit in a 16 bit
-        unsigned value. And it is difficult to alter
+        unsigned value.  Changing this would be an incompatible
+        change to several functions in the libdwarf API.
 */
 
 typedef struct Dwarf_Regtable_Entry3_s {
     Dwarf_Small         dw_offset_relevant;
     Dwarf_Small         dw_value_type;
     Dwarf_Half          dw_regnum;
-    Dwarf_Unsigned      dw_offset;
-    Dwarf_Unsigned      dw_args_size; /* Not dealt with.  */
+    Dwarf_Unsigned      dw_offset; /* Should be Dwarf_Signed */
+    Dwarf_Unsigned      dw_args_size; /* Always zero. */
     Dwarf_Block         dw_block;
 } Dwarf_Regtable_Entry3;
 
@@ -2583,7 +2585,7 @@ DW_API int dwarf_attrlist(Dwarf_Die dw_die,
     Dwarf_Signed * dw_attrcount,
     Dwarf_Error*   dw_error);
 
-/*! @brief Sets TRUE of a Dwarf_Attribute has the indicated FORM
+/*! @brief Sets TRUE if a Dwarf_Attribute has the indicated FORM
     @param dw_attr
     The Dwarf_Attribute of interest.
     @param dw_form
@@ -5301,7 +5303,7 @@ DW_API int dwarf_get_fde_info_for_all_regs3(Dwarf_Fde dw_fde,
 /*! @brief Return details about a particular pc and register.
 
     It is inefficient to iterate across all table_columns (registers)
-    using this function (dwarf_get_fde_info_for_reg3_b()).
+    using this function (dwarf_get_fde_info_for_reg3_c()).
     Instead call dwarf_get_fde_info_for_all_regs3()
     and index into the table it fills in.
 
@@ -5311,6 +5313,11 @@ DW_API int dwarf_get_fde_info_for_all_regs3(Dwarf_Fde dw_fde,
     evaluate the expression, which usually depends
     on runtime frame data which cannot be calculated
     without a stack frame including registers (etc).
+
+    dwarf_get_fde_info_for_reg3_c() is new in Septmber 2023
+    to correct the incorrect type of the dw_offset
+    argument in  dwarf_get_fde_info_for_reg3_b().
+    Both versions operate correctly.
 
     @param dw_fde
     Pass in the FDE of interest.
@@ -5328,11 +5335,8 @@ DW_API int dwarf_get_fde_info_for_all_regs3(Dwarf_Fde dw_fde,
     @param dw_register
     On success returns a register number.
     @param dw_offset
-    On success returns a register offset value.
-    In principle these are signed, but historically
-    in libdwarf it is typed unsigned. 
-    Cast the returned value to Dwarf_Signed to
-    get the correct meaning.
+    On success returns a signed register offset value when
+    dw_value_tyoe is DW_EXPR_OFFSET or DW_EXPER_VAL_OFFSET.
     @param dw_block_content
     On success returns a pointer to a block.
     For example, for DW_EXPR_EXPRESSION the block
@@ -5355,6 +5359,28 @@ DW_API int dwarf_get_fde_info_for_all_regs3(Dwarf_Fde dw_fde,
     FDE passed in and there is a row for the pc
     in the table.
 */
+DW_API int dwarf_get_fde_info_for_reg3_c(Dwarf_Fde dw_fde,
+    Dwarf_Half       dw_table_column,
+    Dwarf_Addr       dw_pc_requested,
+    Dwarf_Small    * dw_value_type,
+    Dwarf_Unsigned * dw_offset_relevant,
+    Dwarf_Unsigned * dw_register,
+    Dwarf_Signed   * dw_offset,
+    Dwarf_Block    * dw_block_content,
+    Dwarf_Addr     * dw_row_pc_out,
+    Dwarf_Bool     * dw_has_more_rows,
+    Dwarf_Addr     * dw_subsequent_pc,
+    Dwarf_Error    * dw_error);
+
+/*! @brief Return details about a particular pc and register.
+
+    Identical to dwarf_get_fde_info_for_reg3_c() except that
+    this returns dw_offset as a Dwarf_Unsigned, which
+    was never appropriate, and required you to
+    cast that value to Dwarf_Signed to use it properly..
+
+    Please switch to using dwarf_get_fde_info_for_reg3_c()
+*/
 DW_API int dwarf_get_fde_info_for_reg3_b(Dwarf_Fde dw_fde,
     Dwarf_Half       dw_table_column,
     Dwarf_Addr       dw_pc_requested,
@@ -5370,23 +5396,46 @@ DW_API int dwarf_get_fde_info_for_reg3_b(Dwarf_Fde dw_fde,
 
 /*! @brief Get the value of the CFA for a particular pc value
 
-    @see dwarf_get_fde_info_for_reg3_b
-
-    This has essentially the same return values but
+    @see dwarf_get_fde_info_for_reg3_c
+    has essentially the same return values  as
+    dwarf_get_fde_info_for_reg3_c but
     it refers to the CFA (which is not part of the register
-    table)
-    In principle the value returned throuth
-    dw_offset is signed, but historically
-    in libdwarf it is typed unsigned.
-    Cast the returned dw_offset value to Dwarf_Signed to
-    get the correct meaning.
+    table) so function has no table column argument.
+ 
+    New in September 2023, release 0.8.0.
+    dwarf_get_fde_info_for_cfa_reg3_c() returns dw_offset
+    as a signed type.
+    dwarf_get_fde_info_for_cfa_reg3_b() returns dw_offset
+    as an unsigned type, requiring the caller to cast
+    to Dwarf_Signed before using the value.
+    Both versions exist and operate properly.
 
     If dw_value_type == DW_EXPR_EXPRESSION or
     DW_EXPR_VALUE_EXPRESSION dw_offset
     is not set and the caller must
     evaluate the expression, which usually depends
     on runtime frame data which cannot be calculated
-    without a stack frame including registers (etc).
+    without a stack frame including register values (etc).
+*/
+DW_API int dwarf_get_fde_info_for_cfa_reg3_c(Dwarf_Fde dw_fde,
+    Dwarf_Addr      dw_pc_requested,
+    Dwarf_Small   * dw_value_type,
+    Dwarf_Unsigned* dw_offset_relevant,
+    Dwarf_Unsigned* dw_register,
+    Dwarf_Signed  * dw_offset,
+    Dwarf_Block   * dw_block,
+    Dwarf_Addr    * dw_row_pc_out,
+    Dwarf_Bool    * dw_has_more_rows,
+    Dwarf_Addr    * dw_subsequent_pc,
+    Dwarf_Error   * dw_error);
+/*! @brief Get the value of the CFA for a particular pc value(obsolete)
+
+    @see dwarf_get_fde_info_for_cfa_reg3_c
+    This is the earlier version that returns a dw_offset
+    of Dwarf_Unsigned, requiring you to cast to Dwarf_Signed
+    to work  with the value.
+
+
 */
 DW_API int dwarf_get_fde_info_for_cfa_reg3_b(Dwarf_Fde dw_fde,
     Dwarf_Addr      dw_pc_requested,

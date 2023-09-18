@@ -945,7 +945,17 @@ _dwarf_macho_object_access_internals_init(
         _dwarf_destruct_macho_access(localdoas);
         return res;
     }
-    sp = intfc->mo_dwarf_sections+1;
+    if (intfc->mo_dwarf_sections) {
+        sp = intfc->mo_dwarf_sections+1;
+    } else {
+        /*  There are no dwarf sections,
+            count better be zero. */
+        if (intfc->mo_dwarf_sectioncount) {
+            _dwarf_destruct_macho_access(localdoas);
+            *errcode = DW_DLE_MACHO_CORRUPT_HEADER;
+            return DW_DLV_ERROR;
+        }
+    }
     for (i = 1; i < intfc->mo_dwarf_sectioncount ; ++i,++sp) {
         int j = 1;
         int lim = sizeof(SectionNames)/sizeof(SectionNames[0]);

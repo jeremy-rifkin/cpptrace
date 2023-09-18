@@ -65,6 +65,9 @@ calls
 #elif defined HAVE_UNISTD_H
 #include <unistd.h> /* close() */
 #endif /* _WIN32 */
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h> /* open() O_RDONLY */
+#endif /* HAVE_FCNTL_H */
 
 #include "dwarf.h"
 #include "libdwarf.h"
@@ -84,6 +87,9 @@ calls
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif /* O_BINARY */
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif /* O_CLOEXEC */
 
 #if 0
 /*  One example of calling this.
@@ -181,7 +187,7 @@ dwarf_construct_elf_access_path(const char *path,
     int res = 0;
     dwarf_elf_object_access_internals_t *mymp = 0;
 
-    fd = open(path, O_RDONLY|O_BINARY);
+    fd = open(path, O_RDONLY|O_BINARY|O_CLOEXEC);
     if (fd < 0) {
         *errcode = DW_DLE_PATH_SIZE_TOO_SMALL;
         return DW_DLV_ERROR;

@@ -76,7 +76,6 @@ extern "C" {
     *errcode when the function returns DW_DLV_ERROR)
     will hopefully suffice for most purposes. */
 
-
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

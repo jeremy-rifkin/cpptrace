@@ -154,7 +154,7 @@ _dwarf_file_name_is_full_path(Dwarf_Small  *fname)
 
 /*  Used for a short time in the next two functions.
     Not saved.  If multithreading ever allowed this
-    will have to change to be function local 
+    will have to change to be function local
     non-static buffers. */
 static char targbuf[300];
 static char nbuf[300];
@@ -163,7 +163,7 @@ static int
 ret_simple_full_path(Dwarf_Debug dbg,
     char *file_name,
     char ** name_ptr_out,
-    Dwarf_Error *error) 
+    Dwarf_Error *error)
 {
     char *tmp = 0;
     char * mstr = 0;
@@ -217,14 +217,14 @@ _dwarf_dirno_string(Dwarf_Line_Context line_context,
             " only %u directories present>",
             line_context->lc_include_directories_count);
         return;
-    } 
+    }
     {
         char *inc_dir_name =
             (char *)line_context->lc_include_directories[
             dirno - include_dir_offset];
         if (!inc_dir_name) {
             /*  This should never ever happen except in case
-                of a corrupted object file. 
+                of a corrupted object file.
                 Make the text look like a full-path */
             inc_dir_name =
                 "/ERROR<erroneous NULL include dir pointer>";
@@ -233,8 +233,6 @@ _dwarf_dirno_string(Dwarf_Line_Context line_context,
     }
     return;
 }
-
-
 
 /*  With this routine we ensure the file full path
     is calculated identically for
@@ -276,13 +274,13 @@ create_fullest_file_path(Dwarf_Debug dbg,
         return DW_DLV_ERROR;
     }
     if (_dwarf_file_name_is_full_path((Dwarf_Small *)file_name)) {
-       int res = 0;
+        int res = 0;
 
-       res = ret_simple_full_path(dbg,
-           file_name,
-           name_ptr_out,
-           error);
-       return res;
+        res = ret_simple_full_path(dbg,
+            file_name,
+            name_ptr_out,
+            error);
+        return res;
     }
     {
         int need_dir = FALSE;
@@ -350,12 +348,12 @@ create_fullest_file_path(Dwarf_Debug dbg,
             _dwarf_file_name_is_full_path(
             (Dwarf_Small*)dwarfstring_string(&incdir))) {
 
-            /* incdir is full path,Ignore DW_AT_comp_dir 
+            /* incdir is full path,Ignore DW_AT_comp_dir
                 and (for DWARF5 include_dir[0]) */
             _dwarf_pathjoinl(&targ,&incdir);
             _dwarf_pathjoinl(&targ,&filename);
         } else {
-            /* Join two or all three strings, 
+            /* Join two or all three strings,
                 ignoring empty/irrelevant ones. */
             /*  Remember that 0xf006 is the version of
                 the experimental line table */

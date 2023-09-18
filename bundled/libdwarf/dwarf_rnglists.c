@@ -1412,10 +1412,7 @@ dwarf_rnglists_get_rle_head(
         rle_global_offset = attr_val;
     }
 
-    shead.rh_rlepointer = rctx->rc_offsets_array +
-        rctx->rc_offset_entry_count*offsetsize;
     shead.rh_end_data_area = enddata;
-
     shead.rh_rlearea_offset = rle_global_offset;
     shead.rh_rlepointer = rle_global_offset +
         dbg->de_debug_rnglists.dss_data;

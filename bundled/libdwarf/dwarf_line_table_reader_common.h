@@ -235,7 +235,7 @@ _dwarf_read_line_table_header(Dwarf_Debug dbg,
     line_context->lc_section_offset = starting_line_ptr -
         dbg->de_debug_line.dss_data;
     /*  ASSERT: line_context->lc_length_field_length == line_ptr
-        -line_context->lc_line_ptr_start; 
+        -line_context->lc_line_ptr_start;
         The following test allows the == case too
         as that is normal for the last CUs line table. */
     if (line_ptr_end > section_end) {
@@ -678,7 +678,7 @@ _dwarf_read_line_table_header(Dwarf_Debug dbg,
             _dwarf_error_string(dbg, err, DW_DLE_LINE_OFFSET_BAD,
                 "DW_DLE_LINE_OFFSET_BAD "
                 "The line table actuals offset is too large "
-                "to be real."); 
+                "to be real.");
             return DW_DLV_ERROR;
         }
     }

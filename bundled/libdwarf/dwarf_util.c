@@ -1244,7 +1244,9 @@ _dwarf_free_abbrev_hash_table_contents(Dwarf_Hash_Table hash_table,
             Dwarf_Abbrev_List nextabbrev = 0;
             Dwarf_Abbrev_List abbrev =
                 hash_table->tb_entries[hashnum];
+#ifdef TESTINGHASHTAB
             unsigned listcount = 0;
+#endif
 
             if (!abbrev) {
                 continue;
@@ -1266,7 +1268,9 @@ _dwarf_free_abbrev_hash_table_contents(Dwarf_Hash_Table hash_table,
                 /*  dealloc single list entry */
                 free(abbrev);
                 abbrev = 0;
+#ifdef TESTINGHASHTAB
                 ++listcount;
+#endif
             }
 #ifdef TESTINGHASHTAB
 printf("debugging: hashnum %lu listcount %u\n",hashnum,listcount);

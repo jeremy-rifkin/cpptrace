@@ -65,6 +65,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef O_RDONLY
 #define O_RDONLY 0
 #endif
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif /* O_CLOEXEC */
 
 /*  TYP, SIZEOFT32 and ASNAR
     mean we can use correctly-sized arrays of char for the
@@ -572,7 +575,7 @@ dwarf_object_detector_path_dSYM(
             *errcode =  DW_DLE_PATH_SIZE_TOO_SMALL;
             return DW_DLV_ERROR;
         }
-        fd = open(outpath,O_RDONLY|O_BINARY);
+        fd = open(outpath,O_RDONLY|O_BINARY|O_CLOEXEC);
         if (fd < 0) {
             outpath[0] = 0;
             return DW_DLV_NO_ENTRY;
@@ -826,7 +829,7 @@ _dwarf_debuglink_finder_internal(
         /*  First, open the file to determine if it exists.
             If not, loop again */
 
-        pfd = open(pa,O_RDONLY|O_BINARY);
+        pfd = open(pa,O_RDONLY|O_BINARY| O_CLOEXEC);
         if (pfd  < 0) {
             /*  This is the usual path. */
             continue;
@@ -921,11 +924,11 @@ dwarf_object_detector_path_b(
             lpathsource = DW_PATHSOURCE_debuglink;
         }
         dwarfstring_destructor(&m);
-        fd = open(outpath,O_RDONLY|O_BINARY);
+        fd = open(outpath,O_RDONLY|O_BINARY|O_CLOEXEC);
         /* fall through to get fsize etc */
     } else {
         lpathsource = DW_PATHSOURCE_basic;
-        fd = open(path,O_RDONLY|O_BINARY);
+        fd = open(path,O_RDONLY|O_BINARY|O_CLOEXEC);
     }
     if (fd < 0) {
         if (pathsource) {

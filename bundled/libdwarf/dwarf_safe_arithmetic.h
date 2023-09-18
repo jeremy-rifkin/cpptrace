@@ -29,7 +29,6 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
 /*  Thanks to David Grayson/
 codereview.stackexchange.com/questions/98791/
 safe-multiplication-of-two-64-bit-signed-integers
@@ -45,7 +44,8 @@ int _dwarf_uint64_mult(Dwarf_Unsigned x, Dwarf_Unsigned y,
 
 #if 0
 /* See:
-https://stackoverflow.com/questions/3944505/detecting-signed-overflow-in-c-c
+https://stackoverflow.com/questions/
+3944505/detecting-signed-overflow-in-c-c
 */
 int _dwarf_signed_add_check(Dwarf_Signed l, Dwarf_Signed r,
     Dwarf_Signed *sum, Dwarf_Debug dbg,

@@ -93,6 +93,9 @@ dwarf_init_path_dl(path true_path and globals, dbg1
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif /* O_BINARY */
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif /* O_CLOEXEC */
 
 /*  This is the initialization set intended to
     handle multiple object formats.
@@ -107,7 +110,7 @@ open_a_file(const char * name)
     /* Set to a file number that cannot be legal. */
     int fd = -1;
 
-    fd = open(name, O_RDONLY | O_BINARY);
+    fd = open(name, O_RDONLY | O_BINARY|O_CLOEXEC);
     return fd;
 }
 

@@ -1246,6 +1246,13 @@ _dwarf_exec_frame_instr(Dwarf_Bool make_instr,
                 dfi->fi_expr.bl_len = block_len;
                 dfi->fi_expr.bl_data = instr_ptr;
             }
+            if (block_len >= instr_area_length) {
+                SERSTRING(DW_DLE_DF_FRAME_DECODING_ERROR,
+                    "DW_DLE_DF_FRAME_DECODING_ERROR: "
+                    "DW_CFA_def_cfa_expression "
+                    "block len overflows instructions "
+                    "available range.");
+            }
             instr_ptr += block_len;
             if (instr_area_length < block_len ||
                 instr_ptr < base_instr_ptr) {
@@ -2127,14 +2134,21 @@ dwarf_get_fde_for_die(Dwarf_Debug dbg,
     }
     fde_ptr = prefix.cf_addr_after_prefix;
     cie_id = prefix.cf_cie_id;
+    if (cie_id  >=  dbg->de_debug_frame.dss_size ) {
+        _dwarf_error_string(dbg, error, DW_DLE_NO_CIE_FOR_FDE,
+            "DW_DLE_NO_CIE_FOR_FDE: "
+            "dwarf_get_fde_for_die fails as the CIE id "
+            "offset is impossibly large");
+        return DW_DLV_ERROR;
+    }
     /*  Pass NULL, not section pointer, for 3rd argument.
         de_debug_frame.dss_data has no eh_frame relevance. */
     res = _dwarf_create_fde_from_after_start(dbg, &prefix,
         fde_start_ptr,
+        dbg->de_debug_frame.dss_size,
         fde_ptr,
         fde_end_ptr,
         /* use_gnu_cie_calc= */ 0,
-
         /* Dwarf_Cie = */ 0,
         address_size,
         &new_fde, error);
@@ -2151,7 +2165,25 @@ dwarf_get_fde_for_die(Dwarf_Debug dbg,
     /*  Now read the cie corresponding to the fde,
         _dwarf_read_cie_fde_prefix checks
         cie_ptr for being within the section. */
+    if (cie_id  >=  dbg->de_debug_frame.dss_size ) {
+        _dwarf_error_string(dbg, error, DW_DLE_NO_CIE_FOR_FDE,
+            "DW_DLE_NO_CIE_FOR_FDE: "
+            "dwarf_get_fde_for_die fails as the CIE id "
+            "offset is impossibly large");
+        return DW_DLV_ERROR;
+    }
     cie_ptr = new_fde->fd_section_ptr + cie_id;
+    if ((Dwarf_Unsigned)cie_ptr  <
+        (Dwarf_Unsigned) new_fde->fd_section_ptr ||
+        (Dwarf_Unsigned)cie_ptr <  cie_id) {
+        dwarf_dealloc(dbg,new_fde,DW_DLA_FDE);
+        new_fde = 0;
+        _dwarf_error_string(dbg, error, DW_DLE_NO_CIE_FOR_FDE,
+            "DW_DLE_NO_CIE_FOR_FDE: "
+            "dwarf_get_fde_for_die fails as the CIE id "
+            "offset is impossibly large");
+        return DW_DLV_ERROR;
+    }
     res = _dwarf_read_cie_fde_prefix(dbg, cie_ptr,
         dbg->de_debug_frame.dss_data,
         dbg->de_debug_frame.dss_index,
@@ -2193,7 +2225,9 @@ dwarf_get_fde_for_die(Dwarf_Debug dbg,
     } else {
         dwarf_dealloc(dbg,new_fde,DW_DLA_FDE);
         new_fde = 0;
-        _dwarf_error(dbg, error, DW_DLE_NO_CIE_FOR_FDE);
+        _dwarf_error_string(dbg, error, DW_DLE_NO_CIE_FOR_FDE,
+            "DW_DLE_NO_CIE_FOR_FDE: "
+            "The CIE id is not a true cid id. Corrupt DWARF.");
         return DW_DLV_ERROR;
     }
     *ret_fde = new_fde;
@@ -2551,8 +2585,7 @@ dwarf_get_fde_info_for_all_regs3(Dwarf_Fde fde,
     return DW_DLV_OK;
 }
 
-/*  In this interface, table_column of DW_FRAME_CFA_COL
-    is not meaningful.
+/*  Table_column DW_FRAME_CFA_COL is not meaningful.
     Use  dwarf_get_fde_info_for_cfa_reg3_b() to get the CFA.
     Call dwarf_set_frame_cfa_value() to set the correct column
     after calling dwarf_init()
@@ -2571,15 +2604,49 @@ dwarf_get_fde_info_for_all_regs3(Dwarf_Fde fde,
     if the pointer is null).
     Otherwise *has_more_rows and *subsequent_pc
     are not set.
+
+    The offset returned is Unsigned, which was
+    always wrong. Cast to Dwarf_Signed to use it.
 */
 int
 dwarf_get_fde_info_for_reg3_b(Dwarf_Fde fde,
+    Dwarf_Half      table_column,
+    Dwarf_Addr      requested,
+    Dwarf_Small    *value_type,
+    Dwarf_Unsigned *offset_relevant,
+    Dwarf_Unsigned *register_num,
+    Dwarf_Unsigned *offset,
+    Dwarf_Block    *block,
+    Dwarf_Addr     *row_pc_out,
+    Dwarf_Bool     *has_more_rows,
+    Dwarf_Addr     *subsequent_pc,
+    Dwarf_Error    *error)
+{
+    Dwarf_Signed soff = 0;
+    int res = 0;
+
+    res = dwarf_get_fde_info_for_reg3_c(
+        fde,table_column,requested,
+        value_type,offset_relevant,
+        register_num,&soff,
+        block,row_pc_out,has_more_rows,
+        subsequent_pc,error);
+    if (offset) {
+        *offset = (Dwarf_Unsigned)soff;
+    }
+    return res;
+}
+/*  New September 2023.
+    The same as dwarf_get_fde_info_for_reg3_b() but here
+*/
+int
+dwarf_get_fde_info_for_reg3_c(Dwarf_Fde fde,
     Dwarf_Half      table_column,
     Dwarf_Addr      pc_requested,
     Dwarf_Small    *value_type,
     Dwarf_Unsigned *offset_relevant,
     Dwarf_Unsigned *register_num,
-    Dwarf_Unsigned *offset,
+    Dwarf_Signed   *offset,
     Dwarf_Block    *block,
     Dwarf_Addr     *row_pc_out,
     Dwarf_Bool     *has_more_rows,
@@ -2671,6 +2738,37 @@ dwarf_get_fde_info_for_cfa_reg3_b(Dwarf_Fde fde,
     Dwarf_Unsigned *offset_relevant,
     Dwarf_Unsigned *register_num,
     Dwarf_Unsigned *offset,
+    Dwarf_Block    *block,
+    Dwarf_Addr     *row_pc_out,
+    Dwarf_Bool     *has_more_rows,
+    Dwarf_Addr     *subsequent_pc,
+    Dwarf_Error    *error)
+{
+    Dwarf_Signed soff = 0;
+    int res = 0;
+
+    res = dwarf_get_fde_info_for_cfa_reg3_c(fde,
+        pc_requested, value_type,offset_relevant,
+        register_num,&soff,block, row_pc_out,
+        has_more_rows,subsequent_pc,error);
+    if (offset) {
+        *offset = (Dwarf_Unsigned)soff;
+    }
+    return res;
+}
+/*
+    New September 2023. With the offset argument
+    a signed value.  This is more correct, so
+    convert from dwarf_get_fde_info_for_cfa_reg3_b
+    when convenient.
+*/
+int
+dwarf_get_fde_info_for_cfa_reg3_c(Dwarf_Fde fde,
+    Dwarf_Addr      pc_requested,
+    Dwarf_Small    *value_type,
+    Dwarf_Unsigned *offset_relevant,
+    Dwarf_Unsigned *register_num,
+    Dwarf_Signed   *offset,
     Dwarf_Block    *block,
     Dwarf_Addr     *row_pc_out,
     Dwarf_Bool     *has_more_rows,
