@@ -74,11 +74,11 @@ namespace cpptrace {
     struct stacktrace {
         std::vector<stacktrace_frame> frames;
         explicit stacktrace(std::vector<stacktrace_frame>&& frames_) : frames(frames_) {}
-        void print() const;
-        void print(std::ostream& stream) const;
-        void print(std::ostream& stream, bool color) const;
-        std::string to_string() const;
-        void clear();
+        CPPTRACE_API void print() const;
+        CPPTRACE_API void print(std::ostream& stream) const;
+        CPPTRACE_API void print(std::ostream& stream, bool color) const;
+        CPPTRACE_API std::string to_string() const;
+        CPPTRACE_API void clear();
 
         using iterator = std::vector<stacktrace_frame>::iterator;
         using const_iterator = std::vector<stacktrace_frame>::const_iterator;
