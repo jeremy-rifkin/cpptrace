@@ -5,6 +5,8 @@ project(cpptrace-speedtest CXX)
 option(SPEEDTEST_DWARF4 "" OFF)
 option(SPEEDTEST_DWARF5 "" OFF)
 
+include(CheckCXXCompilerFlag)
+
 if(SPEEDTEST_DWARF4)
   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
   if(HAS_DWARF4)
