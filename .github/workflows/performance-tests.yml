@@ -25,6 +25,7 @@ jobs:
            cd build
            cmake .. -DCMAKE_CXX_COMPILER=${{matrix.compiler}} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=foo
            make -j
+           make install
            mkdir -p ../test/speedtest/build
            cd ../test/speedtest/build
            cmake .. \
@@ -52,6 +53,7 @@ jobs:
           cd build
           cmake .. -DCMAKE_CXX_COMPILER=${{matrix.compiler}} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=foo
           msbuild .\cpptrace.sln /property:Configuration=Release
+          msbuild .\INSTALL.vcxproj
           mkdir -p ../test/speedtest/build
           cd ../test/speedtest/build
           cmake .. `
