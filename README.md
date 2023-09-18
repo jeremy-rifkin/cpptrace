@@ -321,9 +321,6 @@ Testing:
 - `CPPTRACE_BUILD_TEST` Build a small test program
 - `CPPTRACE_BUILD_DEMO` Build a small demo program
 - `CPPTRACE_BUILD_TEST_RDYNAMIC` Use `-rdynamic` when compiling the test program
-- `CPPTRACE_BUILD_SPEEDTEST` Build a small speed test program
-- `CPPTRACE_BUILD_SPEEDTEST_DWARF4`
-- `CPPTRACE_BUILD_SPEEDTEST_DWARF5`
 
 ## Testing Methodology
 

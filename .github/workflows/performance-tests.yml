@@ -11,20 +11,10 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [g++-11, clang++-14]
-        target: [Debug]
-        std: [11, 20]
         config: [
-          "-DCPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF4=On",
-          "-DCPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF5=On"
+          -DSPEEDTEST_DWARF4=On,
+          -DSPEEDTEST_DWARF5=On
         ]
-        #exclude:
-          ## TODO: Maybe a bug in dwarf5_ranges. b _dwarf_error_string
-          ## DW_DLE_RNGLISTS_ERROR: rnglists table index of 2052 too large for table of 5 entries.
-          #- config: "-DCPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF5=On"
-          #  compiler: clang++-14
-          ## TODO: Currently slow. Need to investigate why.
-          #- config: "-DCPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=On -DCPPTRACE_BUILD_SPEEDTEST_DWARF4=On"
-          #  compiler: clang++-14
     steps:
     - uses: actions/checkout@v2
     - name: dependencies
@@ -33,18 +23,18 @@ jobs:
       run: |
            mkdir -p build
            cd build
+           cmake .. -DCMAKE_CXX_COMPILER=${{matrix.compiler}} -DCMAKE_BUILD_TYPE=Release
+           make -j
+           mkdir -p ../test/speedtest/build
+           cd ../test/speedtest/build
            cmake .. \
-            -DCMAKE_BUILD_TYPE=${{matrix.target}} \
-            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
-            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
-            ${{matrix.config}} \
-            -DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/11/include/backtrace.h \
-            -DCPPTRACE_BUILD_SPEEDTEST=On
+            -DCMAKE_BUILD_TYPE=Debug \
+            ${{matrix.config}}
            make -j
     - name: test
-      working-directory: build
+      working-directory: test/speedtest/build
       run: |
-           ./speedtest | python3 ../ci/speedtest.py ${{matrix.compiler}} ${{matrix.config}}
+           ./speedtest | python3 ../../../ci/speedtest.py ${{matrix.compiler}} ${{matrix.config}}
 
   performancetest-windows:
    runs-on: windows-2019
@@ -52,11 +42,6 @@ jobs:
      fail-fast: false
      matrix:
        compiler: [cl, clang++]
-       target: [Debug]
-       std: [11, 20]
-       config: [
-         "-DCPPTRACE_GET_SYMBOLS_WITH_DBGHELP=On"
-       ]
    steps:
    - uses: actions/checkout@v2
    - name: Enable Developer Command Prompt
@@ -65,14 +50,15 @@ jobs:
      run: |
           mkdir -p build
           cd build
-          cmake .. `
-           -DCMAKE_BUILD_TYPE=Debug `
-           -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
-           -DCMAKE_CXX_STANDARD=${{matrix.std}} `
-           ${{matrix.config}} `
-           -DCPPTRACE_BUILD_SPEEDTEST=On
+          cmake .. -DCMAKE_CXX_COMPILER=${{matrix.compiler}} -DCMAKE_BUILD_TYPE=Release
           msbuild .\cpptrace.sln
+          mkdir -p ../test/speedtest/build
+          cd ../test/speedtest/build
+          cmake .. `
+            -DCMAKE_BUILD_TYPE=Debug `
+            ${{matrix.config}}
+          msbuild .\cpptrace-speedtest.sln
    - name: test
-     working-directory: build
+     working-directory: test/speedtest/build
      run: |
-          .\${{matrix.target}}\speedtest.exe | python3 ../ci/speedtest.py ${{matrix.config}}
+          .\Debug\speedtest.exe | python3 ../../../ci/speedtest.py ${{matrix.config}}
