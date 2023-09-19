@@ -37,6 +37,7 @@ option(CPPTRACE_UNWIND_WITH_WINAPI "" OFF)
 option(CPPTRACE_UNWIND_WITH_NOTHING "" OFF)
 
 option(CPPTRACE_DEMANGLE_WITH_CXXABI "" OFF)
+option(CPPTRACE_DEMANGLE_WITH_WINAPI "" OFF)
 option(CPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
 
 set(CPPTRACE_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
@@ -187,12 +188,16 @@ endif()
 if(
   NOT (
     CPPTRACE_DEMANGLE_WITH_CXXABI OR
+    CPPTRACE_DEMANGLE_WITH_WINAPI OR
     CPPTRACE_DEMANGLE_WITH_NOTHING
   )
 )
   if(HAS_CXXABI)
-    message(STATUS "Cpptrace auto config: Using cxxabi for symbols")
+    message(STATUS "Cpptrace auto config: Using cxxabi for demangling")
     set(CPPTRACE_DEMANGLE_WITH_CXXABI On)
+  elseif(WIN32 AND NOT MINGW)
+    message(STATUS "Cpptrace auto config: Using dbghelp for demangling")
+    set(CPPTRACE_DEMANGLE_WITH_WINAPI On)
   else()
     set(CPPTRACE_DEMANGLE_WITH_NOTHING On)
   endif()
@@ -210,6 +215,7 @@ set(
   sources
   src/cpptrace.cpp
   src/demangle/demangle_with_cxxabi.cpp
+  src/demangle/demangle_with_winapi.cpp
   src/demangle/demangle_with_nothing.cpp
   src/symbols/symbols_with_addr2line.cpp
   src/symbols/symbols_with_dbghelp.cpp
@@ -359,6 +365,11 @@ if(CPPTRACE_DEMANGLE_WITH_CXXABI)
     message(WARNING "Cpptrace: CPPTRACE_DEMANGLE_WITH_CXXABI specified but cxxabi.h doesn't seem to be available.")
   endif()
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_DEMANGLE_WITH_CXXABI)
+endif()
+
+if(CPPTRACE_DEMANGLE_WITH_WINAPI)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_DEMANGLE_WITH_WINAPI)
+  target_link_libraries(cpptrace PRIVATE dbghelp)
 endif()
 
 if(CPPTRACE_DEMANGLE_WITH_NOTHING)

@@ -416,10 +416,11 @@ search the system path for `addr2line` at runtime. This is not the default to pr
 
 Lastly, depending on other back-ends used a demangler back-end may be needed.
 
-| Library  | CMake config                     | Platforms           | Info                                                                               |
-| -------- | -------------------------------- | ------------------- | ---------------------------------------------------------------------------------- |
-| cxxabi.h | `CPPTRACE_DEMANGLE_WITH_CXXABI`  | Linux, macos, mingw | Should be available everywhere other than [msvc](https://godbolt.org/z/93ca9rcdz). |
-| N/A      | `CPPTRACE_DEMANGLE_WITH_NOTHING` | all                 | Don't attempt to do anything beyond what the symbol resolution back-end does.      |
+| Library   | CMake config                     | Platforms           | Info                                                                               |
+| --------- | -------------------------------- | ------------------- | ---------------------------------------------------------------------------------- |
+| cxxabi.h  | `CPPTRACE_DEMANGLE_WITH_CXXABI`  | Linux, macos, mingw | Should be available everywhere other than [msvc](https://godbolt.org/z/93ca9rcdz). |
+| dbghelp.h | `CPPTRACE_DEMANGLE_WITH_WINAPI`  | Windows             | Demangle with `UnDecorateSymbolName`. |
+| N/A       | `CPPTRACE_DEMANGLE_WITH_NOTHING` | all                 | Don't attempt to do anything beyond what the symbol resolution back-end does.      |
 
 **More?**
 
@@ -442,6 +443,7 @@ Back-ends:
 - `CPPTRACE_UNWIND_WITH_WINAPI=On/Off`
 - `CPPTRACE_UNWIND_WITH_NOTHING=On/Off`
 - `CPPTRACE_DEMANGLE_WITH_CXXABI=On/Off`
+- `CPPTRACE_DEMANGLE_WITH_WINAPI=On/Off`
 - `CPPTRACE_DEMANGLE_WITH_NOTHING=On/Off`
 
 Back-end configuration:
