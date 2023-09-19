@@ -49,14 +49,18 @@ namespace detail {
         uintptr_t image_base;
         if(optional_header_magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
             // 32 bit
-            image_base = pe_byteswap_if_needed(
-                load_bytes<DWORD>(file, nt_header_offset + 0x18 + 0x1c) // optional header + 0x1c
+            image_base = to<uintptr_t>(
+                pe_byteswap_if_needed(
+                    load_bytes<DWORD>(file, nt_header_offset + 0x18 + 0x1c) // optional header + 0x1c
+                )
             );
         } else {
             // 64 bit
             // I get an "error: 'QWORD' was not declared in this scope" for some reason when using QWORD
-            image_base = pe_byteswap_if_needed(
-                load_bytes<unsigned __int64>(file, nt_header_offset + 0x18 + 0x18) // optional header + 0x18
+            image_base = to<uintptr_t>(
+                pe_byteswap_if_needed(
+                    load_bytes<unsigned __int64>(file, nt_header_offset + 0x18 + 0x18) // optional header + 0x18
+                )
             );
         }
         fclose(file);

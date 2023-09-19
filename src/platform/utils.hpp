@@ -26,7 +26,6 @@
  #include <sys/stat.h>
 #endif
 
-
 namespace cpptrace {
 namespace detail {
     inline std::vector<std::string> split(const std::string& str, const std::string& delims) {
@@ -335,6 +334,18 @@ namespace detail {
         } else {
             return path.substr(pos + 1);
         }
+    }
+
+    // A way to cast to unsigned long long without "warning: useless cast to type"
+    template<typename T>
+    unsigned long long to_ull(T t) {
+        return static_cast<unsigned long long>(t);
+    }
+
+    // A way to cast to U without "warning: useless cast to type"
+    template<typename U, typename V>
+    unsigned long long to(V v) {
+        return static_cast<U>(v);
     }
 }
 }

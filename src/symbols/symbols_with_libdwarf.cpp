@@ -44,7 +44,7 @@ namespace libdwarf {
     constexpr bool trace_dwarf = false;
 
     static void err_handler(Dwarf_Error err, Dwarf_Ptr errarg) {
-        printf("libdwarf error reading %s: %lu %s\n", "xx", (unsigned long)dwarf_errno(err), dwarf_errmsg(err));
+        printf("libdwarf error reading %s: %llu %s\n", "xx", to_ull(dwarf_errno(err)), dwarf_errmsg(err));
         if(errarg) {
             printf("Error: errarg is nonnull but it should be null\n");
         }
@@ -487,7 +487,7 @@ namespace libdwarf {
             fprintf(
                 stderr,
                 "%08llx %s %s\n",
-                (unsigned long long) get_global_offset(),
+                to_ull(get_global_offset()),
                 get_tag_name(),
                 get_name().c_str()
             );
@@ -668,7 +668,7 @@ namespace libdwarf {
                         fprintf(
                             stderr,
                             "-------------> %08llx %s %s\n",
-                            (unsigned long long) die.get_global_offset(),
+                            to_ull(die.get_global_offset()),
                             die.get_tag_name(),
                             die.get_name().c_str()
                         );
@@ -684,7 +684,7 @@ namespace libdwarf {
                                 stderr,
                                 "%s %08llx %s\n",
                                 die.get_tag() == DW_TAG_namespace ? "pc maybe in die (namespace)" : "pc in die",
-                                (unsigned long long) die.get_global_offset(),
+                                to_ull(die.get_global_offset()),
                                 die.get_tag_name()
                             );
                         }
@@ -828,7 +828,6 @@ namespace libdwarf {
             Dwarf_Unsigned version;
             Dwarf_Small table_count;
             Dwarf_Line_Context ctxt;
-            Dwarf_Bool is_found = false;
             (void)dwversion;
             auto off = die.get_global_offset();
             auto it = line_contexts.find(off);
@@ -877,12 +876,9 @@ namespace libdwarf {
                                 last_pc_line = j_line;
                             }
                         }
-                        is_found = true;
                         handle_line(last_pc_line, frame);
                         break;
-                    } else if(prev_line && pc > prev_lineaddr &&
-                        pc < lineaddr) {
-                        is_found = true;
+                    } else if(prev_line && pc > prev_lineaddr && pc < lineaddr) {
                         handle_line(prev_line, frame);
                         break;
                     }
@@ -927,9 +923,9 @@ namespace libdwarf {
                             fprintf(
                                 stderr,
                                 "pc in die %08llx %s (now searching for %08llx)\n",
-                                (unsigned long long) cu_die.get_global_offset(),
+                                to_ull(cu_die.get_global_offset()),
                                 cu_die.get_tag_name(),
-                                pc
+                                to_ull(pc)
                             );
                         }
                         retrieve_line_info(cu_die, pc, dwversion, frame); // no offset for line info
@@ -984,7 +980,7 @@ namespace libdwarf {
         ) {
             if(dump_dwarf) {
                 fprintf(stderr, "%s\n", obj_path.c_str());
-                fprintf(stderr, "%llx\n", pc);
+                fprintf(stderr, "%llx\n", to_ull(pc));
             }
             // Check for .debug_aranges for fast lookup
             Dwarf_Arange *aranges;
@@ -1028,7 +1024,7 @@ namespace libdwarf {
                     stderr,
                     "Starting resolution for %s %08llx %s\n",
                     obj_path.c_str(),
-                    (unsigned long long)frame_info.obj_address,
+                    to_ull(frame_info.obj_address),
                     frame_info.symbol.c_str()
                 );
             }
