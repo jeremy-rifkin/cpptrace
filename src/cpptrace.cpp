@@ -66,6 +66,11 @@ namespace cpptrace {
 
     CPPTRACE_API
     void stacktrace::print(std::ostream& stream, bool color) const {
+        print(stream, color, true);
+    }
+
+    CPPTRACE_API
+    void stacktrace::print(std::ostream& stream, bool color, bool newline_at_end) const {
         if(color) {
             detail::enable_virtual_terminal_processing_if_needed();
         }
@@ -100,20 +105,31 @@ namespace cpptrace {
                 << " at "
                 << (color ? GREEN : "")
                 << frame.filename
-                << (color ? RESET : "")
-                << ":"
-                << (color ? BLUE : "")
-                << frame.line
-                << (color ? RESET : "")
-                << (frame.col > 0 ? (color ? ":" BLUE : ":") + std::to_string(frame.col) + (color ? RESET : "") : "")
-                << std::endl;
+                << (color ? RESET : "");
+            if(frame.line != 0) {
+                stream
+                    << ":"
+                    << (color ? BLUE : "")
+                    << frame.line
+                    << (color ? RESET : "");
+                if(frame.column != UINT_LEAST32_MAX) {
+                    stream << (
+                        frame.column > 0
+                            ? (color ? ":" BLUE : ":") + std::to_string(frame.column) + (color ? RESET : "")
+                            : ""
+                    );
+                }
+            }
+            if(newline_at_end || &frame != &frames.back()) {
+                stream << std::endl;
+            }
         }
     }
 
     CPPTRACE_API
     std::string stacktrace::to_string() const {
         std::ostringstream oss;
-        print(oss, false);
+        print(oss, false, false);
         return std::move(oss).str();
     }
 

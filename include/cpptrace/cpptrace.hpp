@@ -56,13 +56,13 @@ namespace cpptrace {
     struct stacktrace_frame {
         uintptr_t address;
         std::uint_least32_t line;
-        std::uint_least32_t col;
+        std::uint_least32_t column = UINT_LEAST32_MAX; // UINT_LEAST32_MAX if not present
         std::string filename;
         std::string symbol;
         bool operator==(const stacktrace_frame& other) const {
             return address == other.address
                 && line == other.line
-                && col == other.col
+                && column == other.column
                 && filename == other.filename
                 && symbol == other.symbol;
         }
@@ -86,6 +86,8 @@ namespace cpptrace {
         inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
         inline const_iterator cend() const noexcept { return frames.cend(); }
+    private:
+        CPPTRACE_API void print(std::ostream& stream, bool color, bool newline_at_end) const;
     };
 
     CPPTRACE_API raw_trace generate_raw_trace(std::uint32_t skip = 0);

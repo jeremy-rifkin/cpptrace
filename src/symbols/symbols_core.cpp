@@ -38,8 +38,8 @@ namespace detail {
             if(result[i].line == 0) {
                 result[i].line = trace[i].line;
             }
-            if(result[i].col == 0) {
-                result[i].col = trace[i].col;
+            if(result[i].column == 0) {
+                result[i].column = trace[i].column;
             }
             if(result[i].filename.empty()) {
                 result[i].filename = std::move(trace[i].filename);

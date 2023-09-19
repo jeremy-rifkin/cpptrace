@@ -18,7 +18,7 @@ namespace libdl {
             return {
                 addr,
                 0,
-                0,
+                UINT_LEAST32_MAX,
                 info.dli_fname ? info.dli_fname : "",
                 info.dli_sname ? info.dli_sname : ""
             };
@@ -26,7 +26,7 @@ namespace libdl {
             return {
                 addr,
                 0,
-                0,
+                UINT_LEAST32_MAX,
                 "",
                 ""
             };

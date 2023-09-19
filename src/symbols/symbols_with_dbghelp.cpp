@@ -346,7 +346,7 @@ namespace dbghelp {
                     return {
                         addr,
                         static_cast<std::uint_least32_t>(line.LineNumber),
-                        0,
+                        UINT_LEAST32_MAX,
                         line.FileName,
                         symbol->Name
                     };
@@ -377,7 +377,7 @@ namespace dbghelp {
                 return {
                     addr,
                     static_cast<std::uint_least32_t>(line.LineNumber),
-                    0,
+                    UINT_LEAST32_MAX,
                     line.FileName,
                     signature
                 };
@@ -385,7 +385,7 @@ namespace dbghelp {
                 return {
                     addr,
                     0,
-                    0,
+                    UINT_LEAST32_MAX,
                     "",
                     symbol->Name
                 };
@@ -394,7 +394,7 @@ namespace dbghelp {
             return {
                 addr,
                 0,
-                0,
+                UINT_LEAST32_MAX,
                 "",
                 ""
             };

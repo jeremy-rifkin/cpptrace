@@ -1037,7 +1037,7 @@ namespace libdwarf {
 
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
-        std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
+        std::vector<stacktrace_frame> trace(frames.size());
         for(const auto& obj_entry : collate_frames(frames, trace)) {
             const auto& obj_name = obj_entry.first;
             dwarf_resolver resolver(obj_name);
