@@ -26,15 +26,14 @@
 
 // TODO
 // Inlined calls
-// Memoizing / lazy loading
 // More utils to clean this up, some wrapper for unique_ptr
 // Ensure memory is being cleaned up properly
-// Efficiency tricks
-// Implementation cleanup
-// Properly get the image base
 
-#define DW_PR_DUx "llx"
-#define DW_PR_DUu "llu"
+#if false
+ #define CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING CPPTRACE_FORCE_NO_INLINE
+#else
+ #define CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+#endif
 
 namespace cpptrace {
 namespace detail {
@@ -516,7 +515,7 @@ namespace libdwarf {
         std::unordered_map<Dwarf_Off, line_context> line_contexts;
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
 
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         dwarf_resolver(const std::string& object_path) {
             obj_path = object_path;
             #if IS_APPLE
@@ -544,7 +543,7 @@ namespace libdwarf {
             }
         }
 
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         ~dwarf_resolver() {
             // TODO: Maybe redundant since dwarf_finish(dbg); will clean up the line stuff anyway but may as well just
             // for thoroughness
@@ -653,7 +652,7 @@ namespace libdwarf {
         }
 
         // returns true if this call found the symbol
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         bool retrieve_symbol_walk(
             const die_object& die,
             Dwarf_Addr pc,
@@ -711,7 +710,7 @@ namespace libdwarf {
             return found;
         }
 
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         void preprocess_subprograms(
             const die_object& die,
             Dwarf_Half dwversion,
@@ -752,7 +751,7 @@ namespace libdwarf {
             );
         }
 
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         void retrieve_symbol(
             const die_object& cu_die,
             Dwarf_Addr pc,
@@ -808,7 +807,7 @@ namespace libdwarf {
                 dwarf_lineno(line, &lineno, nullptr);
             }
             if(dump_dwarf) {
-                printf("%s:%" DW_PR_DUu "\n", linesrc, lineno);
+                printf("%s:%u\n", linesrc, to<unsigned>(lineno));
             }
             frame.line = static_cast<uint_least32_t>(lineno);
             frame.filename = linesrc;
@@ -818,7 +817,7 @@ namespace libdwarf {
         }
 
         // retrieve_line_info code based on libdwarf-addr2line
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         void retrieve_line_info(
             const die_object& die,
             Dwarf_Addr pc,
@@ -894,7 +893,7 @@ namespace libdwarf {
             }
         }
 
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         void walk_compilation_units(Dwarf_Addr pc, stacktrace_frame& frame) {
             // 0 passed as the die to the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d
             // to fetch the cu die
@@ -937,7 +936,7 @@ namespace libdwarf {
             );
         }
 
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         void walk_dbg(Dwarf_Addr pc, stacktrace_frame& frame) {
             // libdwarf keeps track of where it is in the file, dwarf_next_cu_header_d is statefull
             Dwarf_Unsigned next_cu_header;
@@ -973,7 +972,7 @@ namespace libdwarf {
             }
         }
 
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         void lookup_pc(
             Dwarf_Addr pc,
             stacktrace_frame& frame
@@ -1013,7 +1012,7 @@ namespace libdwarf {
             }
         }
 
-        CPPTRACE_FORCE_NO_INLINE
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         stacktrace_frame resolve_frame(const object_frame& frame_info) {
             stacktrace_frame frame{};
             frame.filename = frame_info.obj_path;
@@ -1036,7 +1035,7 @@ namespace libdwarf {
         }
     };
 
-    CPPTRACE_FORCE_NO_INLINE
+    CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
         for(const auto& obj_entry : collate_frames(frames, trace)) {

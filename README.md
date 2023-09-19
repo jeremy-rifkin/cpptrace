@@ -132,8 +132,8 @@ namespace cpptrace {
     };
 
     /*
-     * Object trace with object file information for each frame, any accessible symbol information, and the address in
-     * the object file for the frame's program counter.
+     * Object trace with object file information for each frame, any accessible symbol information,
+     * and the address in the object file for the frame's program counter.
      */
     struct object_frame {
         std::string obj_path;
@@ -187,13 +187,16 @@ namespace cpptrace {
     std::string demangle(const std::string& name);
 
     // Traced exception class
+    // Extending classes should call the exception constructor with a skip value of 1.
     class exception : public std::exception {
+        explicit exception(uint32_t skip)
     public:
         explicit exception();
         const char* what() const noexcept override;
     };
 
     class exception_with_message : public exception {
+        explicit exception_with_message(std::string&& message_arg, uint32_t skip)
     public:
         explicit exception_with_message(std::string&& message_arg);
         const char* what() const noexcept override;
