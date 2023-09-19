@@ -93,7 +93,7 @@ namespace detail {
             }
             Segment_Command segment = load_bytes<Segment_Command>(obj_file, actual_offset);
             if(should_swap) {
-                swap_segment_command(&segment, NX_UnknownByteOrder);
+                swap_segment_command(segment);
             }
             if(strcmp(segment.segname, "__TEXT") == 0) {
                 return segment.vmaddr;
