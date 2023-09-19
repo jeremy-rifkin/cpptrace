@@ -14,6 +14,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(main cpptrace)
+target_compile_features(main PRIVATE cxx_std_11)
 
 if(WIN32)
   add_custom_command(

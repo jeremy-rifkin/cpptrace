@@ -2,16 +2,18 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
-#include <vector>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "symbols/symbols.hpp"
 #include "unwind/unwind.hpp"
 #include "demangle/demangle.hpp"
 #include "platform/common.hpp"
 #include "platform/utils.hpp"
+#include "platform/object.hpp"
 
 #define ESC     "\033["
 #define RESET   ESC "0m"
@@ -23,29 +25,59 @@
 #define CYAN    ESC "36m"
 
 namespace cpptrace {
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
-    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip) {
-        std::vector<void*> frames = detail::capture_frames(skip + 1);
+    CPPTRACE_API
+    object_trace raw_trace::resolve_object_trace() const {
+        return object_trace(detail::get_frames_object_info(frames));
+    }
+
+    CPPTRACE_API
+    stacktrace raw_trace::resolve() const {
         std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
         for(auto& frame : trace) {
             frame.symbol = detail::demangle(frame.symbol);
         }
-        return trace;
+        return stacktrace(std::move(trace));
     }
 
     CPPTRACE_API
-    void print_trace(std::uint32_t skip) {
-        detail::enable_virtual_terminal_processing_if_needed();
-        std::cerr<<"Stack trace (most recent call first):"<<std::endl;
+    void raw_trace::clear() {
+        frames.clear();
+    }
+
+    CPPTRACE_API
+    stacktrace object_trace::resolve() const {
+        return stacktrace(detail::resolve_frames(frames));
+    }
+
+    CPPTRACE_API
+    void object_trace::clear() {
+        frames.clear();
+    }
+
+    CPPTRACE_API
+    void stacktrace::print() const {
+        print(std::cerr, true);
+    }
+
+    CPPTRACE_API
+    void stacktrace::print(std::ostream& stream) const {
+        print(stream, true);
+    }
+
+    CPPTRACE_API
+    void stacktrace::print(std::ostream& stream, bool color) const {
+        if(color) {
+            detail::enable_virtual_terminal_processing_if_needed();
+        }
+        stream<<"Stack trace (most recent call first):"<<std::endl;
         std::size_t counter = 0;
-        const auto trace = generate_trace(skip + 1);
-        if(trace.empty()) {
-            std::cerr<<"<empty trace>"<<std::endl;
+        if(frames.empty()) {
+            stream<<"<empty trace>"<<std::endl;
             return;
         }
-        const auto frame_number_width = detail::n_digits(static_cast<int>(trace.size()) - 1);
-        for(const auto& frame : trace) {
-            std::cerr
+        const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
+        for(const auto& frame : frames) {
+            stream
                 << '#'
                 << std::setw(static_cast<int>(frame_number_width))
                 << std::left
@@ -53,28 +85,65 @@ namespace cpptrace {
                 << std::right
                 << " "
                 << std::hex
-                << BLUE
+                << (color ? BLUE : "")
                 << "0x"
                 << std::setw(2 * sizeof(uintptr_t))
                 << std::setfill('0')
                 << frame.address
                 << std::dec
                 << std::setfill(' ')
-                << RESET
+                << (color ? RESET : "")
                 << " in "
-                << YELLOW
+                << (color ? YELLOW : "")
                 << frame.symbol
-                << RESET
+                << (color ? RESET : "")
                 << " at "
-                << GREEN
+                << (color ? GREEN : "")
                 << frame.filename
-                << RESET
+                << (color ? RESET : "")
                 << ":"
-                << BLUE
+                << (color ? BLUE : "")
                 << frame.line
-                << RESET
-                << (frame.col > 0 ? ":" BLUE + std::to_string(frame.col) + RESET : "")
+                << (color ? RESET : "")
+                << (frame.col > 0 ? (color ? ":" BLUE : ":") + std::to_string(frame.col) + (color ? RESET : "") : "")
                 << std::endl;
         }
+    }
+
+    CPPTRACE_API
+    std::string stacktrace::to_string() const {
+        std::ostringstream oss;
+        print(oss, false);
+        return std::move(oss).str();
+    }
+
+    CPPTRACE_API
+    void stacktrace::clear() {
+        frames.clear();
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    raw_trace generate_raw_trace(std::uint32_t skip) {
+        return raw_trace(detail::capture_frames(skip + 1));
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    object_trace generate_object_trace(std::uint32_t skip) {
+        return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1)));
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    stacktrace generate_trace(std::uint32_t skip) {
+        std::vector<uintptr_t> frames = detail::capture_frames(skip + 1);
+        std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
+        for(auto& frame : trace) {
+            frame.symbol = detail::demangle(frame.symbol);
+        }
+        return stacktrace(std::move(trace));
+    }
+
+    CPPTRACE_API
+    std::string demangle(const std::string& name) {
+        return detail::demangle(name);
     }
 }

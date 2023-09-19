@@ -324,7 +324,7 @@ namespace dbghelp {
     std::mutex dbghelp_lock;
 
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
-    stacktrace_frame resolve_frame(HANDLE proc, void* addr) {
+    stacktrace_frame resolve_frame(HANDLE proc, uintptr_t addr) {
         const std::lock_guard<std::mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
         alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
         SYMBOL_INFO* symbol = (SYMBOL_INFO*)buffer;
@@ -332,8 +332,8 @@ namespace dbghelp {
         symbol->MaxNameLen = MAX_SYM_NAME;
         union { DWORD64 a; DWORD b; } displacement;
         IMAGEHLP_LINE64 line;
-        bool got_line = SymGetLineFromAddr64(proc, (DWORD64)addr, &displacement.b, &line);
-        if(SymFromAddr(proc, (DWORD64)addr, &displacement.a, symbol)) {
+        bool got_line = SymGetLineFromAddr64(proc, addr, &displacement.b, &line);
+        if(SymFromAddr(proc, addr, &displacement.a, symbol)) {
             if(got_line) {
                 IMAGEHLP_STACK_FRAME frame;
                 frame.InstructionOffset = symbol->Address;
@@ -344,7 +344,7 @@ namespace dbghelp {
                 if(SymSetContext(proc, &frame, nullptr) == FALSE && GetLastError() != ERROR_SUCCESS) {
                     fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
                     return {
-                        reinterpret_cast<uintptr_t>(addr),
+                        addr,
                         static_cast<std::uint_least32_t>(line.LineNumber),
                         0,
                         line.FileName,
@@ -375,7 +375,7 @@ namespace dbghelp {
                 static std::regex comma_re(R"(,(?=\S))");
                 signature = std::regex_replace(signature, comma_re, ", ");
                 return {
-                    reinterpret_cast<uintptr_t>(addr),
+                    addr,
                     static_cast<std::uint_least32_t>(line.LineNumber),
                     0,
                     line.FileName,
@@ -383,7 +383,7 @@ namespace dbghelp {
                 };
             } else {
                 return {
-                    reinterpret_cast<uintptr_t>(addr),
+                    addr,
                     0,
                     0,
                     "",
@@ -392,7 +392,7 @@ namespace dbghelp {
             }
         } else {
             return {
-                reinterpret_cast<uintptr_t>(addr),
+                addr,
                 0,
                 0,
                 "",
@@ -401,7 +401,7 @@ namespace dbghelp {
         }
     }
 
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
         std::vector<stacktrace_frame> trace;
         trace.reserve(frames.size());
 

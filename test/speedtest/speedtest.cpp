@@ -7,5 +7,5 @@
 #include <exception>
 
 TEST(TraceTest, trace_test) {
-    ASSERT_THROW((cpptrace::print_trace(), false), std::logic_error);
+    ASSERT_THROW((cpptrace::generate_trace().print(), false), std::logic_error);
 }

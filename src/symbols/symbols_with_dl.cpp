@@ -12,11 +12,11 @@
 namespace cpptrace {
 namespace detail {
 namespace libdl {
-    stacktrace_frame resolve_frame(const void* addr) {
+    stacktrace_frame resolve_frame(const uintptr_t addr) {
         Dl_info info;
-        if(dladdr(addr, &info)) { // thread-safe
+        if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread-safe
             return {
-                reinterpret_cast<uintptr_t>(addr),
+                addr,
                 0,
                 0,
                 info.dli_fname ? info.dli_fname : "",
@@ -24,7 +24,7 @@ namespace libdl {
             };
         } else {
             return {
-                reinterpret_cast<uintptr_t>(addr),
+                addr,
                 0,
                 0,
                 "",
@@ -33,10 +33,10 @@ namespace libdl {
         }
     }
 
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
         std::vector<stacktrace_frame> trace;
         trace.reserve(frames.size());
-        for(const void* frame : frames) {
+        for(const auto frame : frames) {
             trace.push_back(resolve_frame(frame));
         }
         return trace;

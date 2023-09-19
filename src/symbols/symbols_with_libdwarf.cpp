@@ -1018,7 +1018,7 @@ namespace libdwarf {
         }
 
         CPPTRACE_FORCE_NO_INLINE
-        stacktrace_frame resolve_frame(const dlframe& frame_info) {
+        stacktrace_frame resolve_frame(const object_frame& frame_info) {
             stacktrace_frame frame{};
             frame.filename = frame_info.obj_path;
             frame.symbol = frame_info.symbol;
@@ -1041,10 +1041,9 @@ namespace libdwarf {
     };
 
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, 0, "", "" });
-        const auto dlframes = get_frames_object_info(frames);
-        for(const auto& obj_entry : collate_frames(dlframes, trace)) {
+        for(const auto& obj_entry : collate_frames(frames, trace)) {
             const auto& obj_name = obj_entry.first;
             dwarf_resolver resolver(obj_name);
             for(const auto& entry : obj_entry.second) {

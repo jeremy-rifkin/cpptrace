@@ -6,7 +6,7 @@
 #include <string>
 
 void trace() {
-    cpptrace::print_trace();
+    cpptrace::generate_trace().print();
 }
 
 void foo(int n) {

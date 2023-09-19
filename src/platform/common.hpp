@@ -45,6 +45,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <cpptrace/cpptrace.hpp>
+
 namespace cpptrace {
 namespace detail {
     // Placed here instead of utils because it's used by error.hpp and utils.hpp

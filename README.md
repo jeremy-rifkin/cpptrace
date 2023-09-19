@@ -46,13 +46,39 @@ Generating traces is as easy as calling `cpptrace::print_trace`:
 #include <cpptrace/cpptrace.hpp>
 
 void trace() {
-    cpptrace::print_trace();
+    cpptrace::generate_trace().print();
 }
 
-// ...
+/* other stuff */
 ```
 
 ![Screenshot](res/screenshot.png)
+
+Cpptrace provides access to resolved stack traces as well as lightweight raw traces (just addresses) that can be
+resolved later:
+
+```cpp
+const auto raw_trace = cpptrace::generate_raw_trace();
+// then later
+raw_trace.resolve().print();
+```
+
+Cpptrace also provides exception types that store stack traces:
+```cpp
+#include <cpptrace/cpptrace.hpp>
+
+void trace() {
+    throw cpptrace::exception();
+}
+
+/* other stuff */
+// terminate called after throwing an instance of 'cpptrace::exception'
+//   what():  cpptrace::exception:
+// Stack trace (most recent call first):
+// #0 0x00005641c715a1b6 in trace() at demo.cpp:9
+// #1 0x00005641c715a229 in foo(int) at demo.cpp:16
+// #2 0x00005641c715a2ba in main at demo.cpp:34
+```
 
 ## CMake FetchContent Usage
 
@@ -73,8 +99,9 @@ On windows and macos some extra work is required, see [below](#platform-logistic
 
 ## API
 
-`cpptrace::print_trace()` can be used to print a stacktrace at the current call site, `cpptrace::generate_trace()` can
-be used to get raw frame information for custom use.
+`cpptrace::generate_trace()` can used to generate a stacktrace object at the current call site. Resolved frames can be
+accessed from this object with `.frames` and also the trace can be printed with `.print()`. Cpptrace also provides a
+method to get lightweight raw traces, which are just vectors of program counters, which can be resolved at a later time.
 
 **Note:** Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`) is generally required for good trace information.
 
@@ -83,15 +110,96 @@ for generating these is included above.
 
 ```cpp
 namespace cpptrace {
+    /*
+     * Raw trace access
+     */
+    struct raw_trace {
+        std::vector<uintptr_t> frames;
+        explicit raw_trace(std::vector<uintptr_t>&& frames);
+        object_trace resolve_object_trace() const;
+        stacktrace resolve() const;
+        void clear();
+        /* iterators exist for this object */
+    };
+
+    /*
+     * Object trace with object file information for each frame, any accessible symbol information, and the address in
+     * the object file for the frame's program counter.
+     */
+    struct object_frame {
+        std::string obj_path;
+        std::string symbol;
+        uintptr_t raw_address = 0;
+        uintptr_t obj_address = 0;
+    };
+
+    struct object_trace {
+        std::vector<object_frame> frames;
+        explicit object_trace(std::vector<object_frame>&& frames);
+        stacktrace resolve() const;
+        void clear();
+        /* iterators exist for this object */
+    };
+
+    /*
+     * Resolved stacktrace object.
+     */
     struct stacktrace_frame {
         uintptr_t address;
         std::uint_least32_t line;
         std::uint_least32_t col;
         std::string filename;
         std::string symbol;
+        bool operator==(const stacktrace_frame& other) const;
+        bool operator!=(const stacktrace_frame& other) const;
     };
-    std::vector<stacktrace_frame> generate_trace(std::uint32_t skip = 0);
-    void print_trace(std::uint32_t skip = 0);
+
+    struct stacktrace {
+        std::vector<stacktrace_frame> frames;
+        explicit stacktrace(std::vector<stacktrace_frame>&& frames);
+        void print() const;
+        void print(std::ostream& stream) const;
+        void print(std::ostream& stream, bool color) const;
+        std::string to_string() const;
+        void clear();
+        /* iterators exist for this object */
+    };
+
+    /*
+     * Trace generation
+     */
+    raw_trace generate_raw_trace(std::uint32_t skip = 0);
+    object_trace generate_object_trace(std::uint32_t skip = 0);
+    stacktrace generate_trace(std::uint32_t skip = 0);
+
+    /*
+     * Utilities
+     */
+    std::string demangle(const std::string& name);
+
+    // Traced exception class
+    class exception : public std::exception {
+    public:
+        explicit exception();
+        const char* what() const noexcept override;
+    };
+
+    class exception_with_message : public exception {
+    public:
+        explicit exception_with_message(std::string&& message_arg);
+        const char* what() const noexcept override;
+    };
+
+    // All stdexcept errors have analogs here. Same constructor as exception_with_message.
+    class logic_error      : exception_with_message { ... };
+    class domain_error     : exception_with_message { ... };
+    class invalid_argument : exception_with_message { ... };
+    class length_error     : exception_with_message { ... };
+    class out_of_range     : exception_with_message { ... };
+    class runtime_error    : exception_with_message { ... };
+    class range_error      : exception_with_message { ... };
+    class overflow_error   : exception_with_message { ... };
+    class underflow_error  : exception_with_message { ... };
 }
 ```
 

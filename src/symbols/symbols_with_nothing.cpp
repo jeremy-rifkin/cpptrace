@@ -8,7 +8,17 @@
 namespace cpptrace {
 namespace detail {
 namespace nothing {
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
+        return std::vector<stacktrace_frame>(frames.size(), {
+            0,
+            0,
+            0,
+            "",
+            ""
+        });
+    }
+
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         return std::vector<stacktrace_frame>(frames.size(), {
             0,
             0,

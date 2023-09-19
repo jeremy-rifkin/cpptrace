@@ -58,12 +58,12 @@ namespace libbacktrace {
     }
 
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
-    stacktrace_frame resolve_frame(const void* addr) {
+    stacktrace_frame resolve_frame(const uintptr_t addr) {
         stacktrace_frame frame;
         frame.col = 0;
         backtrace_pcinfo(
             get_backtrace_state(),
-            reinterpret_cast<uintptr_t>(addr),
+            addr,
             full_callback,
             error_callback,
             &frame
@@ -72,7 +72,7 @@ namespace libbacktrace {
             // fallback, try to at least recover the symbol name with backtrace_syminfo
             backtrace_syminfo(
                 get_backtrace_state(),
-                reinterpret_cast<uintptr_t>(addr),
+                addr,
                 syminfo_callback,
                 error_callback,
                 &frame
@@ -81,10 +81,10 @@ namespace libbacktrace {
         return frame;
     }
 
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<void*>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
         std::vector<stacktrace_frame> trace;
         trace.reserve(frames.size());
-        for(const void* frame : frames) {
+        for(const auto frame : frames) {
             trace.push_back(resolve_frame(frame));
         }
         return trace;
