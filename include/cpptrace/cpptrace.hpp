@@ -56,7 +56,7 @@ namespace cpptrace {
     struct stacktrace_frame {
         uintptr_t address;
         std::uint_least32_t line;
-        std::uint_least32_t column = UINT_LEAST32_MAX; // UINT_LEAST32_MAX if not present
+        std::uint_least32_t column; // UINT_LEAST32_MAX if not present
         std::string filename;
         std::string symbol;
         bool operator==(const stacktrace_frame& other) const {

@@ -59,6 +59,7 @@ namespace libbacktrace {
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
     stacktrace_frame resolve_frame(const uintptr_t addr) {
         stacktrace_frame frame;
+        frame.column = UINT_LEAST32_MAX;
         backtrace_pcinfo(
             get_backtrace_state(),
             addr,
