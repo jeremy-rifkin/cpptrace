@@ -68,7 +68,7 @@ namespace detail {
     }
 
     template<std::size_t Bits>
-    static uintptr_t macho_get_text_vmaddr_mach(FILE* obj_file, off_t offset, bool is_64, bool should_swap) {
+    static uintptr_t macho_get_text_vmaddr_mach(FILE* obj_file, off_t offset, bool should_swap) {
         static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
         using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
         using Segment_Command = typename std::conditional<Bits == 32, segment_command, segment_command_64>::type;
@@ -122,12 +122,19 @@ namespace detail {
             off_t mach_header_offset = (off_t)arch.offset;
             arch_offset += arch_size;
             uint32_t magic = load_bytes<uint32_t>(obj_file, mach_header_offset);
-            text_vmaddr = macho_get_text_vmaddr_mach(
-                obj_file,
-                mach_header_offset,
-                is_magic_64(magic),
-                should_swap_bytes(magic)
-            );
+            if(is_magic_64(magic)) {
+                text_vmaddr = macho_get_text_vmaddr_mach<64>(
+                    obj_file,
+                    mach_header_offset,
+                    should_swap_bytes(magic)
+                );
+            } else {
+                text_vmaddr = macho_get_text_vmaddr_mach<32>(
+                    obj_file,
+                    mach_header_offset,
+                    should_swap_bytes(magic)
+                );
+            }
             if(text_vmaddr != 0) {
                 return text_vmaddr;
             }
@@ -149,7 +156,11 @@ namespace detail {
         if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
             return macho_get_text_vmaddr_fat(file, should_swap);
         } else {
-            return macho_get_text_vmaddr_mach(file, 0, is_64, should_swap);
+            if(is_64) {
+                return macho_get_text_vmaddr_mach<64>(file, 0, should_swap);
+            } else {
+                return macho_get_text_vmaddr_mach<32>(file, 0, should_swap);
+            }
         }
     }
 }
