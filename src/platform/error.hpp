@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <exception>
 #include <stdexcept>
+#include <string>
 
 #include "common.hpp"
 
@@ -16,8 +17,11 @@
 namespace cpptrace {
 namespace detail {
     class file_error : public std::exception {
+        std::string msg;
+    public:
+        file_error(std::string path) : msg("Unable to read file " + std::move(path)) {}
         const char* what() const noexcept override {
-            return "Unable to read file";
+            return msg.c_str();
         }
     };
 
@@ -39,12 +43,12 @@ namespace detail {
         const char* expression,
         const char* signature,
         source_location location,
-        const char* message = nullptr
+        const std::string& message = ""
     ) {
         if(!condition) {
             const char* action = verify ? "verification" : "assertion";
             const char* name   = verify ? "VERIFY"       : "ASSERT";
-            if(message == nullptr) {
+            if(message == "") {
                 throw std::runtime_error(
                     stringf(
                         "Cpptrace %s failed at %s:%d: %s\n"
@@ -58,7 +62,7 @@ namespace detail {
                     stringf(
                         "Cpptrace %s failed at %s:%d: %s: %s\n"
                         "    CPPTRACE_%s(%s);\n",
-                        action, location.file, location.line, signature, message,
+                        action, location.file, location.line, signature, message.c_str(),
                         name, expression
                     )
                 );

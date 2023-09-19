@@ -342,6 +342,52 @@ namespace detail {
     U to(V v) {
         return static_cast<U>(v);
     }
+
+    template<
+        typename T,
+        typename D,
+        typename std::enable_if<
+            std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value, int
+        >::type = 0
+    >
+    class raii_wrapper {
+        T obj;
+        optional<D> deleter;
+    public:
+        raii_wrapper(T&& obj, D deleter) : obj(std::move(obj)), deleter(deleter) {}
+        raii_wrapper(raii_wrapper&& other) : obj(std::move(other.obj)), deleter(other.deleter) {
+            other.deleter = nullopt;
+        }
+        raii_wrapper(const raii_wrapper&) = delete;
+        raii_wrapper& operator=(raii_wrapper&&) = delete;
+        raii_wrapper& operator=(const raii_wrapper&) = delete;
+        ~raii_wrapper() {
+            if(deleter) {
+                deleter.unwrap()(obj);
+            }
+        }
+        operator T&() {
+            return obj;
+        }
+        operator const T&() const {
+            return obj;
+        }
+    };
+
+    template<
+        typename T,
+        typename D,
+        typename std::enable_if<
+            std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value, int
+        >::type = 0
+    >
+    raii_wrapper<T, D> raii_wrap(T&& obj, D deleter) {
+        return {std::move(obj), deleter};
+    }
+
+    inline void file_deleter(FILE* ptr) {
+        fclose(ptr);
+    }
 }
 }
 
