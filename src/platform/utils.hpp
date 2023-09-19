@@ -142,7 +142,6 @@ namespace detail {
         #endif
     }
 
-    // NOLINTNEXTLINE(misc-no-recursion)
     inline constexpr unsigned n_digits(unsigned value) {
         return value < 10 ? 1 : 1 + n_digits(value / 10);
     }
@@ -177,8 +176,6 @@ namespace detail {
         };
 
     public:
-        // clang-tidy false positive
-        // NOLINTNEXTLINE(modernize-use-equals-default)
         optional() noexcept {}
 
         optional(nullopt_t) noexcept {}
@@ -223,8 +220,6 @@ namespace detail {
             typename U = T,
             typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0
         >
-        // clang-tidy false positive
-        // NOLINTNEXTLINE(bugprone-forwarding-reference-overload)
         optional(U&& value) : holds_value(true) {
             new (static_cast<void*>(std::addressof(uvalue))) T(std::forward<U>(value));
         }

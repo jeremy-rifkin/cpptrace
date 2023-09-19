@@ -23,10 +23,8 @@ namespace detail {
 
     // Lightweight std::source_location.
     struct source_location {
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
         const char* const file;
         //const char* const function; // disabled for now due to static constexpr restrictions
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
         const int line;
         constexpr source_location(
             //const char* _function /*= __builtin_FUNCTION()*/,

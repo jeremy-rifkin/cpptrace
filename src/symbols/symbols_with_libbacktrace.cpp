@@ -47,7 +47,6 @@ namespace libbacktrace {
         static std::mutex mutex;
         const std::lock_guard<std::mutex> lock(mutex);
         // backtrace_create_state must be called only one time per program
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
         static backtrace_state* state = nullptr;
         static bool called = false;
         if(!called) {

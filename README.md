@@ -2,8 +2,6 @@
 
 [![build](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/build.yml)
 [![test](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/test.yml)
-[![lint](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/lint.yml)
-<br/>
 [![performance-test](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/performance-tests.yml/badge.svg?branch=main)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/performance-tests.yml)
 [![cmake-integration](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/cmake-integration.yml/badge.svg?branch=main)](https://github.com/jeremy-rifkin/cpptrace/actions/workflows/cmake-integration.yml)
 <br/>

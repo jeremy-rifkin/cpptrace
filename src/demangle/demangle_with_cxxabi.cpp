@@ -19,7 +19,6 @@ namespace detail {
         // we'll just quietly return the mangled name
         if(demangled) {
             std::string str = demangled;
-            // NOLINTNEXTLINE(cppcoreguidelines-no-malloc)
             std::free(demangled);
             return str;
         } else {

@@ -16,7 +16,6 @@
 
 #if IS_LINUX || IS_APPLE
  #include <unistd.h>
- // NOLINTNEXTLINE(misc-include-cleaner)
  #include <sys/types.h>
  #include <sys/wait.h>
 #endif
@@ -36,7 +35,6 @@ namespace addr2line {
             checked = true;
             // Detects if addr2line exists by trying to invoke addr2line --help
             constexpr int magic = 42;
-            // NOLINTNEXTLINE(misc-include-cleaner)
             const pid_t pid = fork();
             if(pid == -1) { return false; }
             if(pid == 0) { // child
@@ -58,7 +56,6 @@ namespace addr2line {
             }
             int status;
             waitpid(pid, &status, 0);
-            // NOLINTNEXTLINE(misc-include-cleaner)
             has_addr2line = WEXITSTATUS(status) == 0;
         }
         return has_addr2line;
@@ -80,7 +77,6 @@ namespace addr2line {
         pipe_t input_pipe;
         CPPTRACE_VERIFY(pipe(output_pipe.data) == 0);
         CPPTRACE_VERIFY(pipe(input_pipe.data) == 0);
-        // NOLINTNEXTLINE(misc-include-cleaner)
         const pid_t pid = fork();
         if(pid == -1) { return ""; } // error? TODO: Diagnostic
         if(pid == 0) { // child
@@ -190,7 +186,6 @@ namespace addr2line {
     }
     #endif
 
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     void update_trace(const std::string& line, size_t entry_index, const collated_vec& entries_vec) {
         #if !IS_APPLE
         // Result will be of the form "<symbol> at path:line"
@@ -270,7 +265,6 @@ namespace addr2line {
         #endif
     }
 
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         // TODO: Refactor better
         std::vector<stacktrace_frame> trace(frames.size());
