@@ -270,7 +270,7 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 git checkout v0.1.1
 mkdir cpptrace/build
 cd cpptrace/build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On
+cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j
 sudo make install
 ```
@@ -324,7 +324,7 @@ git clone https://github.com/jeremy-rifkin/cpptrace.git
 git checkout v0.1.1
 mkdir cpptrace/build
 cd cpptrace/build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On -DCMAKE_INSTALL_PREFIX=$HOME/wherever
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/wherever
 make -j
 sudo make install
 ```
