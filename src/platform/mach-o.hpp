@@ -67,6 +67,7 @@ namespace detail {
     template<std::size_t Bits>
     static uintptr_t macho_get_text_vmaddr_mach(
         FILE* obj_file,
+        const std::string& obj_path,
         off_t offset,
         bool should_swap,
         bool allow_arch_mismatch
@@ -115,7 +116,7 @@ namespace detail {
         return 0;
     }
 
-    static uintptr_t macho_get_text_vmaddr_fat(FILE* obj_file, bool should_swap) {
+    static uintptr_t macho_get_text_vmaddr_fat(FILE* obj_file, const std::string& obj_path, bool should_swap) {
         size_t header_size = sizeof(fat_header);
         size_t arch_size = sizeof(fat_arch);
         fat_header header = load_bytes<fat_header>(obj_file, 0);
@@ -135,14 +136,18 @@ namespace detail {
             if(is_magic_64(magic)) {
                 text_vmaddr = macho_get_text_vmaddr_mach<64>(
                     obj_file,
+                    obj_path,
                     mach_header_offset,
-                    should_swap_bytes(magic)
+                    should_swap_bytes(magic),
+                    true
                 );
             } else {
                 text_vmaddr = macho_get_text_vmaddr_mach<32>(
                     obj_file,
+                    obj_path,
                     mach_header_offset,
-                    should_swap_bytes(magic)
+                    should_swap_bytes(magic),
+                    true
                 );
             }
             if(text_vmaddr != 0) {
@@ -164,12 +169,12 @@ namespace detail {
         bool is_64 = is_magic_64(magic);
         bool should_swap = should_swap_bytes(magic);
         if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
-            return macho_get_text_vmaddr_fat(file, should_swap);
+            return macho_get_text_vmaddr_fat(file, obj_path, should_swap);
         } else {
             if(is_64) {
-                return macho_get_text_vmaddr_mach<64>(file, 0, should_swap);
+                return macho_get_text_vmaddr_mach<64>(file, obj_path, 0, should_swap, false);
             } else {
-                return macho_get_text_vmaddr_mach<32>(file, 0, should_swap);
+                return macho_get_text_vmaddr_mach<32>(file, obj_path, 0, should_swap, false);
             }
         }
     }
