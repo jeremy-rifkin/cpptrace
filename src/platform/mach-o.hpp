@@ -68,11 +68,10 @@ namespace detail {
     static uintptr_t macho_get_text_vmaddr_mach(
         FILE* obj_file,
         off_t offset,
-        bool is_64,
         bool should_swap,
         bool allow_arch_mismatch
     ) {
-        static_assert(Bits == 32 || Bits == 64);
+        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
         using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
         using Segment_Command = typename std::conditional<Bits == 32, segment_command, segment_command_64>::type;
         uint32_t ncmds;
@@ -80,7 +79,7 @@ namespace detail {
         size_t header_size = sizeof(Mach_Header);
         Mach_Header header = load_bytes<Mach_Header>(obj_file, offset);
         if(should_swap) {
-            swap_mach_header<Bits>(header);
+            swap_mach_header(header);
         }
         static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
         if(
@@ -104,7 +103,7 @@ namespace detail {
             }
             Segment_Command segment = load_bytes<Segment_Command>(obj_file, actual_offset);
             if(should_swap) {
-                swap_segment_command(&segment, NX_UnknownByteOrder);
+                swap_segment_command(segment);
             }
             if(strcmp(segment.segname, "__TEXT") == 0) {
                 return segment.vmaddr;
@@ -112,7 +111,7 @@ namespace detail {
             actual_offset += cmd.cmdsize;
         }
         // somehow no __TEXT section was found...
-        CPPTRACE_VERIFY(false, "Couldn't find __TEXT section while parsing Mach-O object")
+        CPPTRACE_VERIFY(false, "Couldn't find __TEXT section while parsing Mach-O object");
         return 0;
     }
 
@@ -133,13 +132,19 @@ namespace detail {
             off_t mach_header_offset = (off_t)arch.offset;
             arch_offset += arch_size;
             uint32_t magic = load_bytes<uint32_t>(obj_file, mach_header_offset);
-            text_vmaddr = macho_get_text_vmaddr_mach(
-                obj_file,
-                mach_header_offset,
-                is_magic_64(magic),
-                should_swap_bytes(magic),
-                true
-            );
+            if(is_magic_64(magic)) {
+                text_vmaddr = macho_get_text_vmaddr_mach<64>(
+                    obj_file,
+                    mach_header_offset,
+                    should_swap_bytes(magic)
+                );
+            } else {
+                text_vmaddr = macho_get_text_vmaddr_mach<32>(
+                    obj_file,
+                    mach_header_offset,
+                    should_swap_bytes(magic)
+                );
+            }
             if(text_vmaddr != 0) {
                 return text_vmaddr;
             }
@@ -150,7 +155,7 @@ namespace detail {
     }
 
     static uintptr_t macho_get_text_vmaddr(const std::string& obj_path) {
-        auto file = raii_wrapper(fopen(obj_path.c_str(), "rb"), file_deleter);
+        auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             throw file_error("Unable to read object file " + obj_path);
         }
@@ -161,7 +166,11 @@ namespace detail {
         if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
             return macho_get_text_vmaddr_fat(file, should_swap);
         } else {
-            return macho_get_text_vmaddr_mach(file, 0, is_64, should_swap, false);
+            if(is_64) {
+                return macho_get_text_vmaddr_mach<64>(file, 0, should_swap);
+            } else {
+                return macho_get_text_vmaddr_mach<32>(file, 0, should_swap);
+            }
         }
     }
 }
