@@ -80,7 +80,7 @@ namespace detail {
             return 0;
         }
         if(should_swap) {
-            swap_mach_header<Bits>(header);
+            swap_mach_header(header);
         }
         ncmds = header.ncmds;
         load_commands_offset += header_size;
@@ -138,7 +138,7 @@ namespace detail {
     }
 
     static uintptr_t macho_get_text_vmaddr(const std::string& obj_path) {
-        auto file = raii_wrapper(fopen(obj_path.c_str(), "rb"), file_deleter);
+        auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             throw file_error("Unable to read object file " + obj_path);
         }

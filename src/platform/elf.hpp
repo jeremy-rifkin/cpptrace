@@ -50,7 +50,7 @@ namespace detail {
     }
 
     static uintptr_t elf_get_module_image_base(const std::string& obj_path) {
-        auto file = raii_wrapper(fopen(obj_path.c_str(), "rb"), file_deleter);
+        auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             throw file_error("Unable to read object file " + obj_path);
         }
