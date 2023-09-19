@@ -5,6 +5,11 @@
 #include "utils.hpp"
 
 #if IS_APPLE
+
+// A number of mach-o functions are deprecated as of macos 13
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 #include <cstdio>
 #include <cstring>
 #include <type_traits>
@@ -180,6 +185,8 @@ namespace detail {
     }
 }
 }
+
+#pragma GCC diagnostic pop
 
 #endif
 
