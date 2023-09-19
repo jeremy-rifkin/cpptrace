@@ -321,11 +321,11 @@ namespace dbghelp {
         return true;
     }
 
-    std::mutex dbghelp_lock;
+    std::recursive_mutex dbghelp_lock;
 
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
     stacktrace_frame resolve_frame(HANDLE proc, uintptr_t addr) {
-        const std::lock_guard<std::mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
+        const std::lock_guard<std::recursive_mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
         alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
         SYMBOL_INFO* symbol = (SYMBOL_INFO*)buffer;
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -402,6 +402,7 @@ namespace dbghelp {
     }
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
+        const std::lock_guard<std::recursive_mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
         std::vector<stacktrace_frame> trace;
         trace.reserve(frames.size());
 
