@@ -30,7 +30,7 @@ namespace detail {
         FILE* file,
         bool is_little_endian
     ) {
-        static_assert(Bits == 32 || Bits == 64);
+        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
         using Header = typename std::conditional<Bits == 32, Elf32_Ehdr, Elf64_Ehdr>::type;
         using PHeader = typename std::conditional<Bits == 32, Elf32_Phdr, Elf64_Phdr>::type;
         Header file_header = load_bytes<Header>(file, 0);

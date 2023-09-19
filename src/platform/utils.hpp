@@ -382,7 +382,7 @@ namespace detail {
         >::type = 0
     >
     raii_wrapper<T, D> raii_wrap(T&& obj, D deleter) {
-        return {std::move(obj), deleter};
+        return raii_wrapper<T, D>(std::move(obj), deleter);
     }
 
     inline void file_deleter(FILE* ptr) {

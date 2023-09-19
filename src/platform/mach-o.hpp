@@ -69,7 +69,7 @@ namespace detail {
 
     template<std::size_t Bits>
     static uintptr_t macho_get_text_vmaddr_mach(FILE* obj_file, off_t offset, bool is_64, bool should_swap) {
-        static_assert(Bits == 32 || Bits == 64);
+        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
         using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
         using Segment_Command = typename std::conditional<Bits == 32, segment_command, segment_command_64>::type;
         uint32_t ncmds;
@@ -101,7 +101,7 @@ namespace detail {
             actual_offset += cmd.cmdsize;
         }
         // somehow no __TEXT section was found...
-        CPPTRACE_VERIFY(false, "Couldn't find __TEXT section while parsing Mach-O object")
+        CPPTRACE_VERIFY(false, "Couldn't find __TEXT section while parsing Mach-O object");
         return 0;
     }
 
