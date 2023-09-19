@@ -12,18 +12,9 @@
 #include <mach-o/loader.h>
 #include <mach-o/swap.h>
 #include <mach-o/fat.h>
-
-#if defined(__aarch64__)
- #define CURRENT_CPU CPU_TYPE_ARM64
-#elif defined(__arm__) && defined(__thumb__)
- #define CURRENT_CPU CPU_TYPE_ARM
-#elif defined(__amd64__)
- #define CURRENT_CPU CPU_TYPE_X86_64
-#elif defined(__i386__)
- #define CURRENT_CPU CPU_TYPE_I386
-#else
- #error "Unknown CPU architecture"
-#endif
+#include <crt_externs.h>
+#include <mach-o/nlist.h>
+#include <mach-o/stab.h>
 
 namespace cpptrace {
 namespace detail {
@@ -67,8 +58,20 @@ namespace detail {
         swap_segment_command(&segment, NX_UnknownByteOrder);
     }
 
+    #ifdef __LP64__
+     #define LP(x) x##_64
+    #else
+     #define LP(x) x
+    #endif
+
     template<std::size_t Bits>
-    static uintptr_t macho_get_text_vmaddr_mach(FILE* obj_file, off_t offset, bool is_64, bool should_swap) {
+    static uintptr_t macho_get_text_vmaddr_mach(
+        FILE* obj_file,
+        off_t offset,
+        bool is_64,
+        bool should_swap,
+        bool allow_arch_mismatch
+    ) {
         static_assert(Bits == 32 || Bits == 64);
         using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
         using Segment_Command = typename std::conditional<Bits == 32, segment_command, segment_command_64>::type;
@@ -76,11 +79,19 @@ namespace detail {
         off_t load_commands_offset = offset;
         size_t header_size = sizeof(Mach_Header);
         Mach_Header header = load_bytes<Mach_Header>(obj_file, offset);
-        if(header.cputype != CURRENT_CPU) {
-            return 0;
-        }
         if(should_swap) {
             swap_mach_header<Bits>(header);
+        }
+        static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
+        if(
+            header.cputype != mhp->cputype ||
+            static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) != header.cpusubtype
+        ) {
+            if(allow_arch_mismatch) {
+                return 0;
+            } else {
+                CPPTRACE_VERIFY(false, "Mach-O file cpu type and subtype do not match current machine " + obj_path);
+            }
         }
         ncmds = header.ncmds;
         load_commands_offset += header_size;
@@ -126,7 +137,8 @@ namespace detail {
                 obj_file,
                 mach_header_offset,
                 is_magic_64(magic),
-                should_swap_bytes(magic)
+                should_swap_bytes(magic),
+                true
             );
             if(text_vmaddr != 0) {
                 return text_vmaddr;
@@ -149,7 +161,7 @@ namespace detail {
         if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
             return macho_get_text_vmaddr_fat(file, should_swap);
         } else {
-            return macho_get_text_vmaddr_mach(file, 0, is_64, should_swap);
+            return macho_get_text_vmaddr_mach(file, 0, is_64, should_swap, false);
         }
     }
 }
