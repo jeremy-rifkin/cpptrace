@@ -344,7 +344,7 @@ namespace detail {
 
     // A way to cast to U without "warning: useless cast to type"
     template<typename U, typename V>
-    unsigned long long to(V v) {
+    U to(V v) {
         return static_cast<U>(v);
     }
 }
