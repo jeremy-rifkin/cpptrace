@@ -93,14 +93,13 @@ namespace cpptrace {
     CPPTRACE_API stacktrace generate_trace(std::uint32_t skip = 0);
 
     // utilities:
-    CPPTRACE_API std::string demangle(const std::string& str);
+    CPPTRACE_API std::string demangle(const std::string& name);
 
     class exception : public std::exception {
     protected:
         mutable raw_trace trace;
         mutable std::string resolved_message;
-    public:
-        explicit exception() : trace(generate_raw_trace()) {}
+        explicit exception(uint32_t skip) : trace(generate_raw_trace(skip + 1)) {}
         virtual const std::string& get_resolved_message() const {
             if(resolved_message.empty()) {
                 resolved_message = "cpptrace::exception:\n" + trace.resolve().to_string();
@@ -108,17 +107,18 @@ namespace cpptrace {
             }
             return resolved_message;
         }
+    public:
+        explicit exception() : exception(1) {}
         const char* what() const noexcept override {
             return get_resolved_message().c_str();
         }
     };
 
     class exception_with_message : public exception {
+    protected:
         mutable std::string message;
-    public:
-        // NOLINTNEXTLINE(modernize-pass-by-value)
-        explicit exception_with_message(const std::string& message_arg) : message(message_arg) {}
-        explicit exception_with_message(const char* message_arg) : message(message_arg) {}
+        explicit exception_with_message(std::string&& message_arg, uint32_t skip)
+            : exception(skip + 1), message(std::move(message_arg)) {}
         const std::string& get_resolved_message() const override {
             if(resolved_message.empty()) {
                 resolved_message = message + "\n" + trace.resolve().to_string();
@@ -127,20 +127,58 @@ namespace cpptrace {
             }
             return resolved_message;
         }
+    public:
+        explicit exception_with_message(std::string&& message_arg)
+            : exception_with_message(std::move(message_arg), 1) {}
         const char* what() const noexcept override {
             return get_resolved_message().c_str();
         }
     };
 
-    class logic_error : public exception_with_message {};
-    class domain_error : public exception_with_message {};
-    class invalid_argument : public exception_with_message {};
-    class length_error : public exception_with_message {};
-    class out_of_range : public exception_with_message {};
-    class runtime_error : public exception_with_message {};
-    class range_error : public exception_with_message {};
-    class overflow_error : public exception_with_message {};
-    class underflow_error : public exception_with_message {};
+    class logic_error : public exception_with_message {
+    public:
+        explicit logic_error(std::string&& message_arg) : exception_with_message(std::move(message_arg), 1) {}
+    };
+
+    class domain_error : public exception_with_message {
+    public:
+        explicit domain_error(std::string&& message_arg) : exception_with_message(std::move(message_arg), 1) {}
+    };
+
+    class invalid_argument : public exception_with_message {
+    public:
+        explicit invalid_argument(std::string&& message_arg) : exception_with_message(std::move(message_arg), 1) {}
+    };
+
+    class length_error : public exception_with_message {
+    public:
+        explicit length_error(std::string&& message_arg) : exception_with_message(std::move(message_arg), 1) {}
+    };
+
+    class out_of_range : public exception_with_message {
+    public:
+        explicit out_of_range(std::string&& message_arg) : exception_with_message(std::move(message_arg), 1) {}
+    };
+
+    class runtime_error : public exception_with_message {
+    public:
+        explicit runtime_error(std::string&& message_arg) : exception_with_message(std::move(message_arg), 1) {}
+    };
+
+    class range_error : public exception_with_message {
+    public:
+        explicit range_error(std::string&& message_arg) : exception_with_message(std::move(message_arg), 1) {}
+    };
+
+    class overflow_error : public exception_with_message {
+    public:
+        explicit overflow_error(std::string&& message_arg) : exception_with_message(std::move(message_arg), 1) {}
+    };
+
+    class underflow_error : public exception_with_message {
+    public:
+        explicit underflow_error(std::string&& message_arg) : exception_with_message(std::move(message_arg), 1) {}
+    };
 }
 
 #endif
