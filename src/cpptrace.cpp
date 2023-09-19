@@ -143,7 +143,7 @@ namespace cpptrace {
     }
 
     CPPTRACE_API
-    std::string demangle(const std::string& str) {
-        return detail::demangle(str);
+    std::string demangle(const std::string& name) {
+        return detail::demangle(name);
     }
 }
