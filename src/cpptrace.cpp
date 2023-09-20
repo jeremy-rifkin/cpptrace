@@ -1,5 +1,6 @@
 #include <cpptrace/cpptrace.hpp>
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <iomanip>
@@ -25,6 +26,10 @@
 #define CYAN    ESC "36m"
 
 namespace cpptrace {
+    namespace detail {
+        std::atomic_bool absorb_trace_exceptions = true;
+    }
+
     CPPTRACE_API
     object_trace raw_trace::resolve_object_trace() const {
         return object_trace(detail::get_frames_object_info(frames));
@@ -45,6 +50,11 @@ namespace cpptrace {
     }
 
     CPPTRACE_API
+    bool raw_trace::empty() const noexcept {
+        return frames.empty();
+    }
+
+    CPPTRACE_API
     stacktrace object_trace::resolve() const {
         return stacktrace(detail::resolve_frames(frames));
     }
@@ -52,6 +62,41 @@ namespace cpptrace {
     CPPTRACE_API
     void object_trace::clear() {
         frames.clear();
+    }
+
+    CPPTRACE_API
+    bool object_trace::empty() const noexcept {
+        return frames.empty();
+    }
+
+    CPPTRACE_API std::string stacktrace_frame::to_string() const {
+        std::ostringstream oss;
+        oss << *this;
+        return std::move(oss).str();
+    }
+
+    CPPTRACE_API std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame) {
+        stream
+            << std::hex
+            << "0x"
+            << std::setw(2 * sizeof(uintptr_t))
+            << std::setfill('0')
+            << frame.address
+            << std::dec
+            << std::setfill(' ')
+            << " in "
+            << frame.symbol
+            << " at "
+            << frame.filename;
+        if(frame.line != 0) {
+            stream
+                << ":"
+                << frame.line;
+            if(frame.column != UINT_LEAST32_MAX) {
+                stream << frame.column;
+            }
+        }
+        return stream;
     }
 
     CPPTRACE_API
@@ -113,11 +158,9 @@ namespace cpptrace {
                     << frame.line
                     << (color ? RESET : "");
                 if(frame.column != UINT_LEAST32_MAX) {
-                    stream << (
-                        frame.column > 0
-                            ? (color ? ":" BLUE : ":") + std::to_string(frame.column) + (color ? RESET : "")
-                            : ""
-                    );
+                    stream << (color ? ":" BLUE : ":")
+                           << std::to_string(frame.column)
+                           << (color ? RESET : "");
                 }
             }
             if(newline_at_end || &frame != &frames.back()) {
@@ -127,15 +170,24 @@ namespace cpptrace {
     }
 
     CPPTRACE_API
+    void stacktrace::clear() {
+        frames.clear();
+    }
+
+    CPPTRACE_API
+    bool stacktrace::empty() const noexcept {
+        return frames.empty();
+    }
+
+    CPPTRACE_API
     std::string stacktrace::to_string() const {
         std::ostringstream oss;
         print(oss, false, false);
         return std::move(oss).str();
     }
 
-    CPPTRACE_API
-    void stacktrace::clear() {
-        frames.clear();
+    CPPTRACE_API std::ostream& operator<<(std::ostream& stream, const stacktrace& trace) {
+        return stream << trace.to_string();
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
@@ -161,5 +213,15 @@ namespace cpptrace {
     CPPTRACE_API
     std::string demangle(const std::string& name) {
         return detail::demangle(name);
+    }
+
+    CPPTRACE_API void absorb_trace_exceptions(bool absorb) {
+        detail::absorb_trace_exceptions = absorb;
+    }
+
+    namespace detail {
+        CPPTRACE_API bool should_absorb_trace_exceptions() {
+            return detail::absorb_trace_exceptions;
+        }
     }
 }

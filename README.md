@@ -122,6 +122,7 @@ namespace cpptrace {
         object_trace resolve_object_trace() const;
         stacktrace resolve() const;
         void clear();
+        bool empty() const noexcept;
         /* iterators exist for this object */
     };
 
@@ -141,6 +142,7 @@ namespace cpptrace {
         explicit object_trace(std::vector<object_frame>&& frames);
         stacktrace resolve() const;
         void clear();
+        bool empty() const noexcept;
         /* iterators exist for this object */
     };
 
@@ -155,17 +157,21 @@ namespace cpptrace {
         std::string symbol;
         bool operator==(const stacktrace_frame& other) const;
         bool operator!=(const stacktrace_frame& other) const;
+        std::string to_string() const;
+        /* operator<<(ostream, ..) and std::format support exist for this object */
     };
 
     struct stacktrace {
         std::vector<stacktrace_frame> frames;
+        explicit stacktrace();
         explicit stacktrace(std::vector<stacktrace_frame>&& frames);
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
         std::string to_string() const;
         void clear();
-        /* iterators exist for this object */
+        bool empty() const noexcept;
+        /* operator<<(ostream, ..), std::format support, and iterators exist for this object */
     };
 
     /*
@@ -183,17 +189,29 @@ namespace cpptrace {
     // Traced exception class
     // Extending classes should call the exception constructor with a skip value of 1.
     class exception : public std::exception {
-        explicit exception(uint32_t skip)
+    protected:
+        mutable raw_trace trace;
+        mutable stacktrace resolved_trace;
+        mutable std::string resolved_what;
+        explicit exception(uint32_t skip) noexcept;
+        const stacktrace& get_resolved_trace() const noexcept;
+        virtual const std::string& get_resolved_what() const noexcept;
     public:
-        explicit exception();
+        explicit exception() noexcept;
         const char* what() const noexcept override;
+        const std::string& get_what() const noexcept; // what(), but not a C-string
+        const raw_trace& get_raw_trace() const noexcept;
+        const stacktrace& get_trace() const noexcept;
     };
 
     class exception_with_message : public exception {
-        explicit exception_with_message(std::string&& message_arg, uint32_t skip)
+        mutable std::string message;
+        explicit exception_with_message(std::string&& message_arg, uint32_t skip) noexcept;
+        const std::string& get_resolved_what() const noexcept override;
     public:
         explicit exception_with_message(std::string&& message_arg);
         const char* what() const noexcept override;
+        const std::string& get_message() const noexcept;
     };
 
     // All stdexcept errors have analogs here. Same constructor as exception_with_message.
