@@ -173,6 +173,7 @@ namespace detail {
     }
 
     static uintptr_t macho_get_text_vmaddr(const std::string& obj_path) {
+        fprintf(stderr, "--%s--\n", obj_path.c_str());
         auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             throw file_error("Unable to read object file " + obj_path);
