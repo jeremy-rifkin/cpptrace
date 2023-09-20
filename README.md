@@ -10,12 +10,6 @@
 Cpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, macOS, and Windows including
 MinGW and Cygwin environments. The goal: Make stack traces simple for once.
 
-Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
-
-This library is in beta, if you run into any problems please open an [issue][issue]!
-
-[issue]: https://github.com/jeremy-rifkin/cpptrace/issues
-
 ## Table of Contents <!-- omit in toc -->
 
 - [30-Second Overview](#30-second-overview)
@@ -24,6 +18,8 @@ This library is in beta, if you run into any problems please open an [issue][iss
   - [API](#api)
   - [Notable Library Configurations](#notable-library-configurations)
   - [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
+    - [FAQ: What about C++23 `<stacktrace>`?](#faq-what-about-c23-stacktrace)
+  - [Supported Debug Symbols](#supported-debug-symbols)
   - [Usage](#usage)
     - [CMake FetchContent](#cmake-fetchcontent)
     - [System-Wide Installation](#system-wide-installation)
@@ -85,7 +81,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.1.1 # <HASH or TAG>
+  GIT_TAG        v0.2.0-beta # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace)
@@ -238,6 +234,28 @@ A couple things I'd like to fix in the future:
   the call instruction. Execinfo suffers from the same problem, but libgcc's `_Unwind` provides a means to detect this.
   I would like to find a solution on windows so stack traces are more accurate.
 
+### FAQ: What about C++23 `<stacktrace>`?
+
+Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
+The main motivation for this library was  The original motivation for cpptrace was to support projects using older C++
+standards and as the library has grown its functionality has extended beyond the standard library's implementation.
+
+Plenty of additional functionality is planned too, such as stack tracing from signal handlers, stack tracing other
+threads, and generating lightweight stack traces on embedded devices that can be resolved either on embedded or on
+another system (this is theoretically possible currently but untested).
+
+## Supported Debug Symbols
+
+| Format                                           | Supported |
+| ------------------------------------------------ | --------- |
+| DWARF in binary                                  | ✔️      |
+| DWARF in separate binary (binary gnu debug link) | Not yet   |
+| DWARF in separate binary (split dwarf)           | Not yet   |
+| DWARF in dSYM                                    | ✔️      |
+| DWARF in via Mach-O debug map                    | Not yet   |
+| Windows debug symbols in PE                      | Untested  |
+| Windows debug symbols in PDB                     | ✔️      |
+
 ## Usage
 
 ### CMake FetchContent
@@ -249,7 +267,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.1.1 # <HASH or TAG>
+  GIT_TAG        v0.2.0-beta # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace)
@@ -265,7 +283,7 @@ information.
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.1.1
+git checkout v0.2.0-beta
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -301,7 +319,7 @@ you when installing new libraries.
 
 ```ps1
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.1.1
+git checkout v0.2.0-beta
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -319,7 +337,7 @@ To install just for the local user (or any custom prefix):
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.1.1
+git checkout v0.2.0-beta
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/wherever
