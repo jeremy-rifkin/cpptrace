@@ -87,7 +87,15 @@ namespace detail {
         if(should_swap) {
             swap_mach_header(header);
         }
-        static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
+        thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
+        fprintf(
+            stderr,
+            "----> %d %d; %d %d\n",
+            header.cputype,
+            mhp->cputype,
+            static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK),
+            header.cpusubtype
+        );
         if(
             header.cputype != mhp->cputype ||
             static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) != header.cpusubtype
