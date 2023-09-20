@@ -112,21 +112,6 @@ namespace cpptrace {
 
     namespace detail {
         CPPTRACE_API bool should_absorb_trace_exceptions();
-
-        raw_trace wrapped_generate_raw_trace(uint32_t skip) noexcept {
-            try {
-                return generate_raw_trace(skip + 1);
-            } catch(const std::exception& e) {
-                if(!detail::should_absorb_trace_exceptions()) {
-                    fprintf(
-                        stderr,
-                        "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
-                        e.what()
-                    );
-                }
-                return raw_trace({});
-            }
-        }
     }
 
     class exception : public std::exception {
@@ -134,7 +119,20 @@ namespace cpptrace {
         mutable raw_trace trace;
         mutable stacktrace resolved_trace;
         mutable std::string resolved_what;
-        explicit exception(uint32_t skip) noexcept : trace(detail::wrapped_generate_raw_trace(skip + 1)) {}
+        explicit exception(uint32_t skip) noexcept : trace([skip] () noexcept {
+                try {
+                    return generate_raw_trace(skip + 2);
+                } catch(const std::exception& e) {
+                    if(!detail::should_absorb_trace_exceptions()) {
+                        fprintf(
+                            stderr,
+                            "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                            e.what()
+                        );
+                    }
+                    return raw_trace({});
+                }
+            } ()) {}
         const stacktrace& get_resolved_trace() const noexcept {
             // I think a non-empty raw trace can never resolve as empty, so this will accurately prevent resolving more
             // than once. Either way the raw trace is cleared.
