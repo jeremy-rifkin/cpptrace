@@ -1014,7 +1014,7 @@ namespace libdwarf {
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         stacktrace_frame resolve_frame(const object_frame& frame_info) {
-            stacktrace_frame frame{};
+            stacktrace_frame frame { 0, 0, UINT_LEAST32_MAX, "", "" };
             frame.filename = frame_info.obj_path;
             frame.symbol = frame_info.symbol;
             frame.address = frame_info.raw_address;
