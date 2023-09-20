@@ -70,7 +70,7 @@ namespace detail {
     #endif
 
     template<std::size_t Bits>
-    static uintptr_t macho_get_text_vmaddr_mach(
+    static optional<uintptr_t> macho_get_text_vmaddr_mach(
         FILE* obj_file,
         const std::string& obj_path,
         off_t offset,
@@ -88,20 +88,20 @@ namespace detail {
             swap_mach_header(header);
         }
         thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
-        fprintf(
-            stderr,
-            "----> %d %d; %d %d\n",
-            header.cputype,
-            mhp->cputype,
-            static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK),
-            header.cpusubtype
-        );
+        //fprintf(
+        //    stderr,
+        //    "----> %d %d; %d %d\n",
+        //    header.cputype,
+        //    mhp->cputype,
+        //    static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK),
+        //    header.cpusubtype
+        //);
         if(
             header.cputype != mhp->cputype ||
             static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) != header.cpusubtype
         ) {
             if(allow_arch_mismatch) {
-                return 0;
+                return nullopt;
             } else {
                 CPPTRACE_VERIFY(false, "Mach-O file cpu type and subtype do not match current machine " + obj_path);
             }
@@ -137,7 +137,7 @@ namespace detail {
             swap_fat_header(&header, NX_UnknownByteOrder);
         }
         off_t arch_offset = (off_t)header_size;
-        uintptr_t text_vmaddr = 0;
+        optional<uintptr_t> text_vmaddr;
         for(uint32_t i = 0; i < header.nfat_arch; i++) {
             fat_arch arch = load_bytes<fat_arch>(obj_file, arch_offset);
             if(should_swap) {
@@ -163,8 +163,8 @@ namespace detail {
                     true
                 );
             }
-            if(text_vmaddr != 0) {
-                return text_vmaddr;
+            if(text_vmaddr) {
+                return text_vmaddr.unwrap();
             }
         }
         // If this is reached... something went wrong. The cpu we're on wasn't found.
@@ -173,7 +173,7 @@ namespace detail {
     }
 
     static uintptr_t macho_get_text_vmaddr(const std::string& obj_path) {
-        fprintf(stderr, "--%s--\n", obj_path.c_str());
+        //fprintf(stderr, "--%s--\n", obj_path.c_str());
         auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             throw file_error("Unable to read object file " + obj_path);
