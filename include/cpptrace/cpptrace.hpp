@@ -2,6 +2,7 @@
 #define CPPTRACE_HPP
 
 #include <cstdint>
+#include <cstdio>
 #include <exception>
 #include <ostream>
 #include <string>
@@ -122,7 +123,11 @@ namespace cpptrace {
             try : trace(generate_raw_trace(skip + 1)) {}
             catch(const std::exception& e) {
                 if(!detail::should_absorb_trace_exceptions()) {
-                    std::rethrow_exception(std::current_exception());
+                    fprintf(
+                        stderr,
+                        "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                        e.what()
+                    );
                 }
             }
         const stacktrace& get_resolved_trace() const noexcept {
@@ -135,7 +140,11 @@ namespace cpptrace {
                 }
             } catch(const std::exception& e) {
                 if(!detail::should_absorb_trace_exceptions()) {
-                    std::rethrow_exception(std::current_exception());
+                    fprintf(
+                        stderr,
+                        "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                        e.what()
+                    );
                 }
             }
             return resolved_trace;

@@ -27,7 +27,7 @@
 
 namespace cpptrace {
     namespace detail {
-        std::atomic_bool absorb_trace_exceptions = true;
+        std::atomic_bool absorb_trace_exceptions(true);
     }
 
     CPPTRACE_API
