@@ -249,8 +249,6 @@ namespace cpptrace {
     };
 }
 
-#endif
-
 #ifdef __cpp_lib_format
 template <>
 struct std::formatter<cpptrace::stacktrace_frame> : std::formatter<std::string> {
@@ -265,4 +263,6 @@ struct std::formatter<cpptrace::stacktrace> : std::formatter<std::string> {
         return formatter<string>::format(trace.to_string(), ctx);
     }
 };
+#endif
+
 #endif
