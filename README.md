@@ -269,8 +269,8 @@ another system (this is theoretically possible currently but untested).
 | Format                                           | Supported |
 | ------------------------------------------------ | --------- |
 | DWARF in binary                                  | ✔️      |
-| DWARF in separate binary (binary gnu debug link) | Not yet   |
-| DWARF in separate binary (split dwarf)           | Not yet   |
+| DWARF in separate binary (binary gnu debug link) | ️️✔️  |
+| DWARF in separate binary (split dwarf)           | Untested  |
 | DWARF in dSYM                                    | ✔️      |
 | DWARF in via Mach-O debug map                    | Not yet   |
 | Windows debug symbols in PE                      | Untested  |
