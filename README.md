@@ -251,6 +251,8 @@ A couple things I'd like to fix in the future:
 - On Windows unwinding with `CaptureStackBackTrace` (msvc/clang) can sometimes produce program counters that are after
   the call instruction. Execinfo suffers from the same problem, but libgcc's `_Unwind` provides a means to detect this.
   I would like to find a solution on windows so stack traces are more accurate.
+- Support for universal binaries on macos (fat mach-o files) is hacky and inefficient at the moment. Libdwarf should be
+  adding proper support for these soon thanks to an awesome maintainer.
 
 ### FAQ: What about C++23 `<stacktrace>`?
 

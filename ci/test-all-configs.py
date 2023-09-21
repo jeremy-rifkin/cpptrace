@@ -323,7 +323,7 @@ def main():
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
     if platform.system() == "Darwin":
         matrix = {
-            "compiler": ["g++-13", "clang++"],
+            "compiler": ["g++-12", "clang++"],
             "target": ["Debug"],
             "std": ["11", "20"],
             "unwind": [
@@ -346,7 +346,7 @@ def main():
         exclude = []
         run_matrix(matrix, exclude, build_and_test)
         matrix = {
-            "compiler": ["g++-13", "clang++"],
+            "compiler": ["g++-12", "clang++"],
             "target": ["Debug"],
             "std": ["11", "20"],
             "config": [""]

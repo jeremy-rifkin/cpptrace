@@ -152,7 +152,7 @@ namespace detail {
     static_assert(n_digits(1024) == 4, "n_digits utility producing the wrong result");
 
     // TODO: Re-evaluate use of off_t
-    template<typename T, typename std::enable_if<std::is_pod<T>::value, int>::type = 0>
+    template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
     T load_bytes(FILE* obj_file, off_t offset) {
         T object;
         CPPTRACE_VERIFY(fseek(obj_file, offset, SEEK_SET) == 0, "fseek error");
@@ -260,7 +260,7 @@ namespace detail {
             return holds_value;
         }
 
-        operator bool() const {
+        explicit operator bool() const {
             return holds_value;
         }
 
@@ -347,7 +347,8 @@ namespace detail {
         typename T,
         typename D,
         typename std::enable_if<
-            std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value, int
+            std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
+            int
         >::type = 0
     >
     class raii_wrapper {
@@ -362,7 +363,7 @@ namespace detail {
         raii_wrapper& operator=(raii_wrapper&&) = delete;
         raii_wrapper& operator=(const raii_wrapper&) = delete;
         ~raii_wrapper() {
-            if(deleter) {
+            if(deleter.has_value()) {
                 deleter.unwrap()(obj);
             }
         }
@@ -378,7 +379,8 @@ namespace detail {
         typename T,
         typename D,
         typename std::enable_if<
-            std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value, int
+            std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
+            int
         >::type = 0
     >
     raii_wrapper<T, D> raii_wrap(T&& obj, D deleter) {
