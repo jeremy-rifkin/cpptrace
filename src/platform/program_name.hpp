@@ -7,6 +7,8 @@
 #if defined(_WIN32)
 #include <windows.h>
 
+#define CPPTRACE_MAX_PATH MAX_PATH
+
 namespace cpptrace {
 namespace detail {
     inline std::string program_name() {
@@ -35,6 +37,8 @@ namespace detail {
 #include <mach-o/dyld.h>
 #include <sys/syslimits.h>
 
+#define CPPTRACE_MAX_PATH PATH_MAX
+
 namespace cpptrace {
 namespace detail {
     inline const char* program_name() {
@@ -62,6 +66,8 @@ namespace detail {
 #include <linux/limits.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define CPPTRACE_MAX_PATH PATH_MAX
 
 namespace cpptrace {
 namespace detail {

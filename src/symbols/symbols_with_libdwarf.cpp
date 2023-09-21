@@ -548,11 +548,14 @@ namespace libdwarf {
             }
             #endif
 
+            // Giving libdwarf a buffer for a true output path is needed for its automatic resolution of debuglink and
+            // dSYM files. We don't utilize the dSYM logic here, we just care about debuglink.
+            std::unique_ptr<char[]> buffer(new char[CPPTRACE_MAX_PATH]);
             Dwarf_Ptr errarg = 0;
             auto ret = dwarf_init_path(
                 obj_path.c_str(),
-                nullptr,
-                0,
+                buffer.get(),
+                CPPTRACE_MAX_PATH,
                 DW_GROUPNUMBER_ANY,
                 err_handler,
                 errarg,
@@ -563,7 +566,6 @@ namespace libdwarf {
                 // fail, no debug info
             } else if(ret != DW_DLV_OK) {
                 fprintf(stderr, "Error\n");
-            } else {
             }
         }
 
