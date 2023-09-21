@@ -10,12 +10,6 @@
 Cpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, macOS, and Windows including
 MinGW and Cygwin environments. The goal: Make stack traces simple for once.
 
-Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
-
-This library is in beta, if you run into any problems please open an [issue][issue]!
-
-[issue]: https://github.com/jeremy-rifkin/cpptrace/issues
-
 ## Table of Contents <!-- omit in toc -->
 
 - [30-Second Overview](#30-second-overview)
@@ -24,6 +18,8 @@ This library is in beta, if you run into any problems please open an [issue][iss
   - [API](#api)
   - [Notable Library Configurations](#notable-library-configurations)
   - [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
+    - [FAQ: What about C++23 `<stacktrace>`?](#faq-what-about-c23-stacktrace)
+  - [Supported Debug Symbols](#supported-debug-symbols)
   - [Usage](#usage)
     - [CMake FetchContent](#cmake-fetchcontent)
     - [System-Wide Installation](#system-wide-installation)
@@ -85,7 +81,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.1.1 # <HASH or TAG>
+  GIT_TAG        v0.2.0-beta # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace)
@@ -126,6 +122,7 @@ namespace cpptrace {
         object_trace resolve_object_trace() const;
         stacktrace resolve() const;
         void clear();
+        bool empty() const noexcept;
         /* iterators exist for this object */
     };
 
@@ -145,6 +142,7 @@ namespace cpptrace {
         explicit object_trace(std::vector<object_frame>&& frames);
         stacktrace resolve() const;
         void clear();
+        bool empty() const noexcept;
         /* iterators exist for this object */
     };
 
@@ -159,17 +157,21 @@ namespace cpptrace {
         std::string symbol;
         bool operator==(const stacktrace_frame& other) const;
         bool operator!=(const stacktrace_frame& other) const;
+        std::string to_string() const;
+        /* operator<<(ostream, ..) and std::format support exist for this object */
     };
 
     struct stacktrace {
         std::vector<stacktrace_frame> frames;
+        explicit stacktrace();
         explicit stacktrace(std::vector<stacktrace_frame>&& frames);
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
         std::string to_string() const;
         void clear();
-        /* iterators exist for this object */
+        bool empty() const noexcept;
+        /* operator<<(ostream, ..), std::format support, and iterators exist for this object */
     };
 
     /*
@@ -187,17 +189,29 @@ namespace cpptrace {
     // Traced exception class
     // Extending classes should call the exception constructor with a skip value of 1.
     class exception : public std::exception {
-        explicit exception(uint32_t skip)
+    protected:
+        mutable raw_trace trace;
+        mutable stacktrace resolved_trace;
+        mutable std::string resolved_what;
+        explicit exception(uint32_t skip) noexcept;
+        const stacktrace& get_resolved_trace() const noexcept;
+        virtual const std::string& get_resolved_what() const noexcept;
     public:
-        explicit exception();
+        explicit exception() noexcept;
         const char* what() const noexcept override;
+        const std::string& get_what() const noexcept; // what(), but not a C-string
+        const raw_trace& get_raw_trace() const noexcept;
+        const stacktrace& get_trace() const noexcept;
     };
 
     class exception_with_message : public exception {
-        explicit exception_with_message(std::string&& message_arg, uint32_t skip)
+        mutable std::string message;
+        explicit exception_with_message(std::string&& message_arg, uint32_t skip) noexcept;
+        const std::string& get_resolved_what() const noexcept override;
     public:
         explicit exception_with_message(std::string&& message_arg);
         const char* what() const noexcept override;
+        const std::string& get_message() const noexcept;
     };
 
     // All stdexcept errors have analogs here. Same constructor as exception_with_message.
@@ -238,6 +252,28 @@ A couple things I'd like to fix in the future:
   the call instruction. Execinfo suffers from the same problem, but libgcc's `_Unwind` provides a means to detect this.
   I would like to find a solution on windows so stack traces are more accurate.
 
+### FAQ: What about C++23 `<stacktrace>`?
+
+Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
+The main motivation for this library was  The original motivation for cpptrace was to support projects using older C++
+standards and as the library has grown its functionality has extended beyond the standard library's implementation.
+
+Plenty of additional functionality is planned too, such as stack tracing from signal handlers, stack tracing other
+threads, and generating lightweight stack traces on embedded devices that can be resolved either on embedded or on
+another system (this is theoretically possible currently but untested).
+
+## Supported Debug Symbols
+
+| Format                                           | Supported |
+| ------------------------------------------------ | --------- |
+| DWARF in binary                                  | ✔️      |
+| DWARF in separate binary (binary gnu debug link) | Not yet   |
+| DWARF in separate binary (split dwarf)           | Not yet   |
+| DWARF in dSYM                                    | ✔️      |
+| DWARF in via Mach-O debug map                    | Not yet   |
+| Windows debug symbols in PE                      | Untested  |
+| Windows debug symbols in PDB                     | ✔️      |
+
 ## Usage
 
 ### CMake FetchContent
@@ -249,7 +285,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.1.1 # <HASH or TAG>
+  GIT_TAG        v0.2.0-beta # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace)
@@ -265,7 +301,7 @@ information.
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.1.1
+git checkout v0.2.0-beta
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -301,7 +337,7 @@ you when installing new libraries.
 
 ```ps1
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.1.1
+git checkout v0.2.0-beta
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -319,7 +355,7 @@ To install just for the local user (or any custom prefix):
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.1.1
+git checkout v0.2.0-beta
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/wherever
