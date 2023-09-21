@@ -37,6 +37,10 @@ namespace detail {
         }
     }
 
+    static bool is_fat_magic(uint32_t magic) {
+        return magic == FAT_MAGIC || magic == FAT_CIGAM;
+    }
+
     // Based on https://github.com/AlexDenisov/segment_dumper/blob/master/main.c
     // and https://lowlevelbits.org/parsing-mach-o-files/
     static bool is_magic_64(uint32_t magic) {
@@ -115,6 +119,7 @@ namespace detail {
             if(should_swap) {
                 swap_load_command(&cmd, NX_UnknownByteOrder);
             }
+            // TODO: This is a mistake? Need to check cmd.cmd == LC_SEGMENT_64 / cmd.cmd == LC_SEGMENT
             Segment_Command segment = load_bytes<Segment_Command>(obj_file, actual_offset);
             if(should_swap) {
                 swap_segment_command(segment);
@@ -163,13 +168,12 @@ namespace detail {
                     true
                 );
             }
-            if(text_vmaddr) {
+            if(text_vmaddr.has_value()) {
                 return text_vmaddr.unwrap();
             }
         }
         // If this is reached... something went wrong. The cpu we're on wasn't found.
-        // TODO: Disabled temporarily for CI
-        /////CPPTRACE_VERIFY(false, "Couldn't find appropriate architecture in fat Mach-O");
+        CPPTRACE_VERIFY(false, "Couldn't find appropriate architecture in fat Mach-O");
         return 0;
     }
 
@@ -187,11 +191,61 @@ namespace detail {
             return macho_get_text_vmaddr_fat(file, obj_path, should_swap);
         } else {
             if(is_64) {
-                return macho_get_text_vmaddr_mach<64>(file, obj_path, 0, should_swap, false);
+                return macho_get_text_vmaddr_mach<64>(file, obj_path, 0, should_swap, false).unwrap();
             } else {
-                return macho_get_text_vmaddr_mach<32>(file, obj_path, 0, should_swap, false);
+                return macho_get_text_vmaddr_mach<32>(file, obj_path, 0, should_swap, false).unwrap();
             }
         }
+    }
+
+    inline bool macho_is_fat(const std::string& obj_path) {
+        auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
+        if(file == nullptr) {
+            throw file_error("Unable to read object file " + obj_path);
+        }
+        uint32_t magic = load_bytes<uint32_t>(file, 0);
+        return is_fat_magic(magic);
+    }
+
+    struct fat_info {
+        uint32_t offset;
+        uint32_t size;
+    };
+
+    // returns offset, file size
+    // TODO: Code duplication with macho_get_text_vmaddr_fat
+    inline fat_info get_fat_macho_information(const std::string& obj_path) {
+        auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
+        if(file == nullptr) {
+            throw file_error("Unable to read object file " + obj_path);
+        }
+        uint32_t magic = load_bytes<uint32_t>(file, 0);
+        CPPTRACE_VERIFY(is_fat_magic(magic));
+        bool should_swap = should_swap_bytes(magic);
+        size_t header_size = sizeof(fat_header);
+        size_t arch_size = sizeof(fat_arch);
+        fat_header header = load_bytes<fat_header>(file, 0);
+        if(should_swap) {
+            swap_fat_header(&header, NX_UnknownByteOrder);
+        }
+        off_t arch_offset = (off_t)header_size;
+        thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
+        for(uint32_t i = 0; i < header.nfat_arch; i++) {
+            fat_arch arch = load_bytes<fat_arch>(file, arch_offset);
+            if(should_swap) {
+                swap_fat_arch(&arch, 1, NX_UnknownByteOrder);
+            }
+            arch_offset += arch_size;
+            if(
+                arch.cputype == mhp->cputype &&
+                static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) == arch.cpusubtype
+            ) {
+                return { arch.offset, arch.size };
+            }
+        }
+        // If this is reached... something went wrong. The cpu we're on wasn't found.
+        CPPTRACE_VERIFY(false, "Couldn't find appropriate architecture in fat Mach-O");
+        return { 0, 0 };
     }
 }
 }

@@ -260,7 +260,7 @@ namespace detail {
             return holds_value;
         }
 
-        operator bool() const {
+        explicit operator bool() const {
             return holds_value;
         }
 
@@ -363,7 +363,7 @@ namespace detail {
         raii_wrapper& operator=(raii_wrapper&&) = delete;
         raii_wrapper& operator=(const raii_wrapper&) = delete;
         ~raii_wrapper() {
-            if(deleter) {
+            if(deleter.has_value()) {
                 deleter.unwrap()(obj);
             }
         }

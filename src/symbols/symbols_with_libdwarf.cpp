@@ -515,12 +515,36 @@ namespace libdwarf {
         std::unordered_map<Dwarf_Off, line_context> line_contexts;
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
 
+        // Exists only for cleaning up an awful mach-o hack
+        std::string tmp_object_path;
+
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         dwarf_resolver(const std::string& object_path) {
             obj_path = object_path;
             #if IS_APPLE
             if(directory_exists(obj_path + ".dSYM")) {
                 obj_path += ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
+            }
+            if(macho_is_fat(obj_path)) {
+                // If the object is fat, we'll copy out the mach-o object we care about
+                // Awful hack until libdwarf supports fat mach
+                auto sub_object = get_fat_macho_information(obj_path);
+                char tmp_template[] = "/tmp/tmp.cpptrace.XXXXXX";
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+                CPPTRACE_VERIFY(mktemp(tmp_template) != nullptr);
+                #pragma GCC diagnostic pop
+                std::string tmp_path = tmp_template;
+                auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
+                auto tmp = raii_wrap(fopen(tmp_path.c_str(), "wb"), file_deleter);
+                CPPTRACE_VERIFY(file != nullptr);
+                CPPTRACE_VERIFY(tmp != nullptr);
+                std::unique_ptr<char[]> buffer(new char[sub_object.size]);
+                CPPTRACE_VERIFY(fseek(file, sub_object.offset, SEEK_SET) == 0);
+                CPPTRACE_VERIFY(fread(buffer.get(), 1, sub_object.size, file) == sub_object.size);
+                CPPTRACE_VERIFY(fwrite(buffer.get(), 1, sub_object.size, tmp) == sub_object.size);
+                obj_path = tmp_path;
+                tmp_object_path = std::move(tmp_path);
             }
             #endif
 
@@ -553,6 +577,10 @@ namespace libdwarf {
             // subprograms_cache needs to be destroyed before dbg otherwise there will be another use after free
             subprograms_cache.clear();
             dwarf_finish(dbg);
+            // cleanup awful mach-o hack
+            if(!tmp_object_path.empty()) {
+                unlink(tmp_object_path.c_str());
+            }
         }
 
         // walk die list, callback is called on each die and should return true to
@@ -616,7 +644,7 @@ namespace libdwarf {
             } else if(auto linkage_name = die.get_string_attribute(DW_AT_name)) {
                 name = std::move(linkage_name);
             }
-            if(name) {
+            if(name.has_value()) {
                 frame.symbol = std::move(name).unwrap();
             } else {
                 if(die.has_attr(DW_AT_specification)) {
