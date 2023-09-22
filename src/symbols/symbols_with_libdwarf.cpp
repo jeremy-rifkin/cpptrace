@@ -820,9 +820,14 @@ namespace libdwarf {
             if(vec_it != vec.begin()) {
                 vec_it--;
             }
-            //vec_it->die.print();
-            if(vec_it->die.pc_in_die(dwversion, pc)) {
-                retrieve_symbol_for_subprogram(vec_it->die, pc, dwversion, frame);
+            // If the vector has been empty this can happen
+            if(vec_it != vec.end()) {
+                //vec_it->die.print();
+                if(vec_it->die.pc_in_die(dwversion, pc)) {
+                    retrieve_symbol_for_subprogram(vec_it->die, pc, dwversion, frame);
+                }
+            } else {
+                CPPTRACE_ASSERT(vec.size() == 0, "Vec should be empty?");
             }
         }
 
