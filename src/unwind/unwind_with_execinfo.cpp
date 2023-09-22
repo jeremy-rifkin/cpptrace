@@ -14,7 +14,7 @@ namespace cpptrace {
 namespace detail {
     CPPTRACE_FORCE_NO_INLINE
     std::vector<uintptr_t> capture_frames(size_t skip, size_t max_depth) {
-        skip += 2; // TODO: Not sure where the other 1 comes from
+        skip++;
         std::vector<void*> addrs(std::min(hard_max_frames, skip + max_depth), nullptr);
         const int n_frames = backtrace(addrs.data(), static_cast<int>(addrs.size())); // thread safe
         std::vector<uintptr_t> frames(n_frames - skip, 0);
