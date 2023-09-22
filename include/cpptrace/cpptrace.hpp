@@ -30,6 +30,7 @@ namespace cpptrace {
     struct raw_trace {
         std::vector<uintptr_t> frames;
         explicit raw_trace(std::vector<uintptr_t>&& frames_) : frames(frames_) {}
+        CPPTRACE_API static raw_trace current(std::uint32_t skip = 0);
         CPPTRACE_API object_trace resolve_object_trace() const;
         CPPTRACE_API stacktrace resolve() const;
         CPPTRACE_API void clear();
@@ -53,6 +54,7 @@ namespace cpptrace {
     struct object_trace {
         std::vector<object_frame> frames;
         explicit object_trace(std::vector<object_frame>&& frames_) : frames(frames_) {}
+        CPPTRACE_API static object_trace current(std::uint32_t skip = 0);
         CPPTRACE_API stacktrace resolve() const;
         CPPTRACE_API void clear();
         CPPTRACE_API bool empty() const noexcept;
@@ -89,6 +91,7 @@ namespace cpptrace {
         std::vector<stacktrace_frame> frames;
         explicit stacktrace() {}
         explicit stacktrace(std::vector<stacktrace_frame>&& frames_) : frames(frames_) {}
+        CPPTRACE_API static stacktrace current(std::uint32_t skip = 0);
         CPPTRACE_API void print() const;
         CPPTRACE_API void print(std::ostream& stream) const;
         CPPTRACE_API void print(std::ostream& stream, bool color) const;

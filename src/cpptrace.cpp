@@ -30,6 +30,11 @@ namespace cpptrace {
         std::atomic_bool absorb_trace_exceptions(true);
     }
 
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    raw_trace raw_trace::current(std::uint32_t skip) {
+        return generate_raw_trace(skip + 1);
+    }
+
     CPPTRACE_API
     object_trace raw_trace::resolve_object_trace() const {
         return object_trace(detail::get_frames_object_info(frames));
@@ -52,6 +57,11 @@ namespace cpptrace {
     CPPTRACE_API
     bool raw_trace::empty() const noexcept {
         return frames.empty();
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    object_trace object_trace::current(std::uint32_t skip) {
+        return generate_object_trace(skip + 1);
     }
 
     CPPTRACE_API
@@ -97,6 +107,11 @@ namespace cpptrace {
             }
         }
         return stream;
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    stacktrace stacktrace::current(std::uint32_t skip) {
+        return generate_trace(skip + 1);
     }
 
     CPPTRACE_API
