@@ -31,7 +31,7 @@ namespace detail {
             }
         }
 
-        CPPTRACE_VERIFY(
+        VERIFY(
             state.count < state.vec.size(),
             "Somehow cpptrace::detail::unwind_callback is overflowing a vector"
         );

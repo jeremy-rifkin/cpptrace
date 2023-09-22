@@ -155,8 +155,8 @@ namespace detail {
     template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
     T load_bytes(FILE* obj_file, off_t offset) {
         T object;
-        CPPTRACE_VERIFY(fseek(obj_file, offset, SEEK_SET) == 0, "fseek error");
-        CPPTRACE_VERIFY(fread(&object, sizeof(T), 1, obj_file) == 1, "fread error");
+        VERIFY(fseek(obj_file, offset, SEEK_SET) == 0, "fseek error");
+        VERIFY(fread(&object, sizeof(T), 1, obj_file) == 1, "fread error");
         return object;
     }
 
