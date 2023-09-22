@@ -82,7 +82,9 @@ namespace libdwarf {
             return ret;
         }
 
-        die_object(Dwarf_Debug dbg, Dwarf_Die die) : dbg(dbg), die(die) {}
+        die_object(Dwarf_Debug dbg, Dwarf_Die die) : dbg(dbg), die(die) {
+            ASSERT(dbg != nullptr);
+        }
 
         ~die_object() {
             if(die) {
@@ -521,6 +523,7 @@ namespace libdwarf {
     struct dwarf_resolver {
         std::string obj_path;
         Dwarf_Debug dbg;
+        bool ok = false;
         std::unordered_map<Dwarf_Off, line_context> line_contexts;
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
 
@@ -596,10 +599,14 @@ namespace libdwarf {
                 nullptr,
                 &dbg
             );
-            if(ret == DW_DLV_NO_ENTRY) {
+            if(ret == DW_DLV_OK) {
+                ok = true;
+            } else if(ret == DW_DLV_NO_ENTRY) {
                 // fail, no debug info
-            } else if(ret != DW_DLV_OK) {
-                fprintf(stderr, "Error\n");
+                ok = false;
+            } else {
+                ok = false;
+                PANIC("Unknown return code from dwarf_init_path");
             }
         }
 
@@ -1113,10 +1120,13 @@ namespace libdwarf {
         for(const auto& obj_entry : collate_frames(frames, trace)) {
             const auto& obj_name = obj_entry.first;
             dwarf_resolver resolver(obj_name);
-            for(const auto& entry : obj_entry.second) {
-                const auto& dlframe = entry.first.get();
-                auto& frame = entry.second.get();
-                frame = resolver.resolve_frame(dlframe);
+            // If there's no debug information it'll mark itself as not ok
+            if(resolver.ok) {
+                for(const auto& entry : obj_entry.second) {
+                    const auto& dlframe = entry.first.get();
+                    auto& frame = entry.second.get();
+                    frame = resolver.resolve_frame(dlframe);
+                }
             }
         }
         return trace;

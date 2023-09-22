@@ -103,9 +103,15 @@ namespace detail {
 
     #define PHONY_USE(E) (nullfn<decltype(E)>())
 
+    // Workaround a compiler warning
+    template<typename T>
+    bool as_bool(T&& value) {
+        return static_cast<bool>(value);
+    }
+
     // Check condition in both debug and release. std::runtime_error on failure.
     #define VERIFY(c, ...) ( \
-            static_cast<bool>(c) \
+            as_bool(c) \
                 ? static_cast<void>(0) \
                 : (::cpptrace::detail::assert_fail)(assert_type::verify, #c, CPPTRACE_PFUNC, {}, ##__VA_ARGS__) \
     )
@@ -116,7 +122,7 @@ namespace detail {
     #ifndef NDEBUG
      // Check condition in both debug. std::runtime_error on failure.
      #define ASSERT(c, ...) ( \
-             static_cast<bool>(c) \
+             as_bool(c) \
                  ? static_cast<void>(0) \
                  : (::cpptrace::detail::assert_fail)(assert_type::assert, #c, CPPTRACE_PFUNC, {}, ##__VA_ARGS__) \
      )
@@ -124,11 +130,6 @@ namespace detail {
      // Check condition in both debug. std::runtime_error on failure.
      #define ASSERT(c, ...) PHONY_USE(c)
     #endif
-
-    // TODO: Setting to silence these or make them fatal
-    inline void nonfatal_error(const std::string& message) {
-        fprintf(stderr, "Non-fatal cpptrace error: %s\n", message.c_str());
-    }
 }
 }
 
