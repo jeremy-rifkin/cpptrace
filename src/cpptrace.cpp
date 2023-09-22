@@ -31,8 +31,13 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
-    raw_trace raw_trace::current(std::uint32_t skip) {
+    raw_trace raw_trace::current(std::uint_least32_t skip) {
         return generate_raw_trace(skip + 1);
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    raw_trace raw_trace::current(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+        return generate_raw_trace(skip + 1, max_depth);
     }
 
     CPPTRACE_API
@@ -60,8 +65,13 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
-    object_trace object_trace::current(std::uint32_t skip) {
+    object_trace object_trace::current(std::uint_least32_t skip) {
         return generate_object_trace(skip + 1);
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    object_trace object_trace::current(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+        return generate_object_trace(skip + 1, max_depth);
     }
 
     CPPTRACE_API
@@ -112,6 +122,11 @@ namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     stacktrace stacktrace::current(std::uint32_t skip) {
         return generate_trace(skip + 1);
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    stacktrace stacktrace::current(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+        return generate_trace(skip + 1, max_depth);
     }
 
     CPPTRACE_API
@@ -206,18 +221,33 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
-    raw_trace generate_raw_trace(std::uint32_t skip) {
-        return raw_trace(detail::capture_frames(skip + 1));
+    raw_trace generate_raw_trace(std::uint_least32_t skip) {
+        return raw_trace(detail::capture_frames(skip + 1, UINT_LEAST32_MAX));
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
-    object_trace generate_object_trace(std::uint32_t skip) {
-        return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1)));
+    raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+        return raw_trace(detail::capture_frames(skip + 1, max_depth));
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
-    stacktrace generate_trace(std::uint32_t skip) {
-        std::vector<uintptr_t> frames = detail::capture_frames(skip + 1);
+    object_trace generate_object_trace(std::uint_least32_t skip) {
+        return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, UINT_LEAST32_MAX)));
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+        return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, max_depth)));
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    stacktrace generate_trace(std::uint_least32_t skip) {
+        return generate_trace(skip + 1, UINT_LEAST32_MAX);
+    }
+
+    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    stacktrace generate_trace(std::uint32_t skip, std::uint_least32_t max_depth) {
+        std::vector<uintptr_t> frames = detail::capture_frames(skip + 1, max_depth);
         std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
         for(auto& frame : trace) {
             frame.symbol = detail::demangle(frame.symbol);

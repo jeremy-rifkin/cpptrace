@@ -40,18 +40,22 @@ namespace detail {
         if(!is_before_instruction && ip != uintptr_t(0)) {
             ip--;
         }
-        if (ip == uintptr_t(0) || state.count == state.vec.size()) {
+        if (ip == uintptr_t(0)) {
             return _URC_END_OF_STACK;
         } else {
             // TODO: push_back?...
             state.vec[state.count++] = ip;
-            return _URC_NO_REASON;
+            if(state.count == state.vec.size()) {
+                return _URC_END_OF_STACK;
+            } else {
+                return _URC_NO_REASON;
+            }
         }
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<uintptr_t> capture_frames(size_t skip) {
-        std::vector<uintptr_t> frames(hard_max_frames, 0);
+    std::vector<uintptr_t> capture_frames(size_t skip, size_t max_depth) {
+        std::vector<uintptr_t> frames(std::min(hard_max_frames, max_depth), 0);
         unwind_state state{skip + 1, 0, frames};
         _Unwind_Backtrace(unwind_callback, &state); // presumably thread-safe
         frames.resize(state.count);

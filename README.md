@@ -142,7 +142,8 @@ namespace cpptrace {
         std::vector<stacktrace_frame> frames;
         explicit stacktrace();
         explicit stacktrace(std::vector<stacktrace_frame>&& frames);
-        static stacktrace current(std::uint32_t skip = 0); // here as a drop-in for std::stacktrace
+        static stacktrace current(std::uint_least32_t skip = 0); // here as a drop-in for std::stacktrace
+        static stacktrace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
@@ -152,7 +153,8 @@ namespace cpptrace {
         /* operator<<(ostream, ..), std::format support, and iterators exist for this object */
     };
 
-    stacktrace generate_trace(std::uint32_t skip = 0);
+    stacktrace generate_trace(std::uint_least32_t skip = 0);
+    stacktrace generate_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
 }
 ```
 
@@ -174,14 +176,16 @@ namespace cpptrace {
     struct object_trace {
         std::vector<object_frame> frames;
         explicit object_trace(std::vector<object_frame>&& frames);
-        static object_trace current(std::uint32_t skip = 0);
+        static object_trace current(std::uint_least32_t skip = 0);
+        static object_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         stacktrace resolve() const;
         void clear();
         bool empty() const noexcept;
         /* iterators exist for this object */
     };
 
-    object_trace generate_object_trace(std::uint32_t skip = 0);
+    object_trace generate_object_trace(std::uint_least32_t skip = 0);
+    object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
 }
 ```
 
@@ -197,7 +201,8 @@ namespace cpptrace {
     struct raw_trace {
         std::vector<uintptr_t> frames;
         explicit raw_trace(std::vector<uintptr_t>&& frames);
-        static raw_trace current(std::uint32_t skip = 0);
+        static raw_trace current(std::uint_least32_t skip = 0);
+        static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         object_trace resolve_object_trace() const;
         stacktrace resolve() const;
         void clear();
@@ -205,7 +210,8 @@ namespace cpptrace {
         /* iterators exist for this object */
     };
 
-    raw_trace generate_raw_trace(std::uint32_t skip = 0);
+    raw_trace generate_raw_trace(std::uint_least32_t skip = 0);
+    raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
 }
 ```
 
@@ -236,7 +242,8 @@ namespace cpptrace {
         mutable raw_trace trace;
         mutable stacktrace resolved_trace;
         mutable std::string resolved_what;
-        explicit exception(uint32_t skip) noexcept;
+        explicit exception(std::uint_least32_t skip) noexcept;
+        explicit exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
         const stacktrace& get_resolved_trace() const noexcept;
         virtual const std::string& get_resolved_what() const noexcept;
     public:
@@ -249,7 +256,8 @@ namespace cpptrace {
 
     class exception_with_message : public exception {
         mutable std::string message;
-        explicit exception_with_message(std::string&& message_arg, uint32_t skip) noexcept;
+        explicit exception_with_message(std::string&& message_arg, std::uint_least32_t skip) noexcept;
+        explicit exception_with_message(std::string&& message_arg, std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
         const std::string& get_resolved_what() const noexcept override;
     public:
         explicit exception_with_message(std::string&& message_arg);

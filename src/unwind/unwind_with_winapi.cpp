@@ -5,20 +5,30 @@
 #include "../platform/common.hpp"
 #include "../platform/utils.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 
 #include <windows.h>
 
+// Fucking windows headers
+#ifdef min
+ #undef min
+#endif
+
 namespace cpptrace {
 namespace detail {
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<uintptr_t> capture_frames(size_t skip) {
-        std::vector<void*> addrs(hard_max_frames, nullptr);
-        int n_frames = CaptureStackBackTrace(static_cast<DWORD>(skip + 1), hard_max_frames, addrs.data(), NULL);
-        addrs.resize(n_frames);
-        std::vector<uintptr_t> frames(addrs.size(), 0);
-        for(std::size_t i = 0; i < addrs.size(); i++) {
+    std::vector<uintptr_t> capture_frames(size_t skip, size_t max_depth) {
+        std::vector<void*> addrs(std::min(hard_max_frames, max_depth), nullptr);
+        int n_frames = CaptureStackBackTrace(
+            static_cast<ULONG>(skip + 1),
+            static_cast<ULONG>(addrs.size()),
+            addrs.data(),
+            NULL
+        );
+        std::vector<uintptr_t> frames(n_frames, 0);
+        for(std::size_t i = 0; i < n_frames; i++) {
             frames[i] = reinterpret_cast<uintptr_t>(addrs[i]);
         }
         return frames;

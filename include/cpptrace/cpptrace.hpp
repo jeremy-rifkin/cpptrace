@@ -30,7 +30,8 @@ namespace cpptrace {
     struct raw_trace {
         std::vector<uintptr_t> frames;
         explicit raw_trace(std::vector<uintptr_t>&& frames_) : frames(frames_) {}
-        CPPTRACE_API static raw_trace current(std::uint32_t skip = 0);
+        CPPTRACE_API static raw_trace current(std::uint_least32_t skip = 0);
+        CPPTRACE_API static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         CPPTRACE_API object_trace resolve_object_trace() const;
         CPPTRACE_API stacktrace resolve() const;
         CPPTRACE_API void clear();
@@ -54,7 +55,8 @@ namespace cpptrace {
     struct object_trace {
         std::vector<object_frame> frames;
         explicit object_trace(std::vector<object_frame>&& frames_) : frames(frames_) {}
-        CPPTRACE_API static object_trace current(std::uint32_t skip = 0);
+        CPPTRACE_API static object_trace current(std::uint_least32_t skip = 0);
+        CPPTRACE_API static object_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         CPPTRACE_API stacktrace resolve() const;
         CPPTRACE_API void clear();
         CPPTRACE_API bool empty() const noexcept;
@@ -91,7 +93,8 @@ namespace cpptrace {
         std::vector<stacktrace_frame> frames;
         explicit stacktrace() {}
         explicit stacktrace(std::vector<stacktrace_frame>&& frames_) : frames(frames_) {}
-        CPPTRACE_API static stacktrace current(std::uint32_t skip = 0);
+        CPPTRACE_API static stacktrace current(std::uint_least32_t skip = 0);
+        CPPTRACE_API static stacktrace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         CPPTRACE_API void print() const;
         CPPTRACE_API void print(std::ostream& stream) const;
         CPPTRACE_API void print(std::ostream& stream, bool color) const;
@@ -110,9 +113,12 @@ namespace cpptrace {
         CPPTRACE_API void print(std::ostream& stream, bool color, bool newline_at_end) const;
     };
 
-    CPPTRACE_API raw_trace generate_raw_trace(std::uint32_t skip = 0);
-    CPPTRACE_API object_trace generate_object_trace(std::uint32_t skip = 0);
-    CPPTRACE_API stacktrace generate_trace(std::uint32_t skip = 0);
+    CPPTRACE_API raw_trace generate_raw_trace(std::uint_least32_t skip = 0);
+    CPPTRACE_API raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    CPPTRACE_API object_trace generate_object_trace(std::uint_least32_t skip = 0);
+    CPPTRACE_API object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    CPPTRACE_API stacktrace generate_trace(std::uint_least32_t skip = 0);
+    CPPTRACE_API stacktrace generate_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
 
     // utilities:
     CPPTRACE_API std::string demangle(const std::string& name);
@@ -127,9 +133,10 @@ namespace cpptrace {
         mutable raw_trace trace;
         mutable stacktrace resolved_trace;
         mutable std::string resolved_what;
-        explicit exception(uint32_t skip) noexcept : trace([skip] () noexcept {
+        explicit exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept
+            : trace([skip, max_depth] () noexcept {
                 try {
-                    return generate_raw_trace(skip + 2);
+                    return generate_raw_trace(skip + 2, max_depth);
                 } catch(const std::exception& e) {
                     if(!detail::should_absorb_trace_exceptions()) {
                         fprintf(
@@ -141,6 +148,7 @@ namespace cpptrace {
                     return raw_trace({});
                 }
             } ()) {}
+        explicit exception(std::uint_least32_t skip) noexcept : exception(skip + 1, UINT_LEAST32_MAX) {}
         const stacktrace& get_resolved_trace() const noexcept {
             // I think a non-empty raw trace can never resolve as empty, so this will accurately prevent resolving more
             // than once. Either way the raw trace is cleared.
@@ -186,8 +194,15 @@ namespace cpptrace {
     class exception_with_message : public exception {
     protected:
         mutable std::string message;
-        explicit exception_with_message(std::string&& message_arg, uint32_t skip) noexcept
-            : exception(skip + 1), message(std::move(message_arg)) {}
+        explicit exception_with_message(
+            std::string&& message_arg,
+            uint32_t skip
+        ) noexcept : exception(skip + 1), message(std::move(message_arg)) {}
+        explicit exception_with_message(
+            std::string&& message_arg,
+            uint_least32_t skip,
+            uint_least32_t max_depth
+        ) noexcept : exception(skip + 1, max_depth), message(std::move(message_arg)) {}
         const std::string& get_resolved_what() const noexcept override {
             if(resolved_what.empty()) {
                 resolved_what = message + "\n" + get_resolved_trace().to_string();
