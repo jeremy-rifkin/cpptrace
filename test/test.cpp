@@ -1,9 +1,11 @@
 #include <cpptrace/cpptrace.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <iostream>
 #include <string>
+#include <vector>
 
 std::string normalize_filename(std::string name) {
     if(name.find('/') == 0 || (name.find(':') == 1 && std::isupper(name[0]))) {
@@ -27,12 +29,69 @@ void trace() {
     }
 }
 
+void www(std::string&&, const std::string& str, std::vector<std::string*>&& foobar) {
+    trace();
+}
+
+void jjj(void(*const arr[5])(float)) {
+    www(std::string{}, "", {});
+}
+
+namespace Foo {
+    struct Bar {};
+}
+
+void iii(Foo::Bar) {
+    jjj(nullptr);
+}
+
+struct S {
+    int foo(float) const volatile && {
+        return 1;
+    }
+};
+
+void hhh(int(*(*)[10])[20]) {
+    iii(Foo::Bar{});
+}
+
+void ggg(const int * const *) {
+    hhh(nullptr);
+}
+
+void fff(int(S::*)(float) const volatile &&) {
+    ggg(nullptr);
+}
+
+//void eee(int(*(*(*)[10])())(float)) {
+void eee(int(*(* const * volatile(*)[10])())(float)) {
+    fff(&S::foo);
+}
+
+void ddd(int(*(*)[10])()) {
+    eee(nullptr);
+}
+
+void ccc(int(*)[5][6][7][8]) {
+    ddd(nullptr);
+}
+
+void bbb(int(*const (&)[5])(float, const int&)) {
+    ccc(nullptr);
+}
+
+void aaa(int(&)[5]) {
+    int(*const (arr)[5])(float, const int&) = {};
+    bbb(arr);
+}
+
 int x;
 
 void foo(int n) {
     if(n == 0) {
         x = 0;
-        trace();
+        int arr[5];
+        aaa(arr);
         x = 0;
     } else {
         x = 0;
