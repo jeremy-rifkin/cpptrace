@@ -5,6 +5,7 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "common.hpp"
 
@@ -37,36 +38,64 @@ namespace detail {
         ) : file(_file), /*function(_function),*/ line(_line) {}
     };
 
-    inline void primitive_assert_impl(
-        bool condition,
-        bool verify,
+    enum class assert_type {
+        assert,
+        verify,
+        panic,
+    };
+
+    constexpr const char* assert_actions[] = {"assertion", "verification", "panic"};
+    constexpr const char* assert_names[] = {"ASSERT", "VERIFY", "PANIC"};
+
+    inline void assert_fail(
+        assert_type type,
         const char* expression,
         const char* signature,
         source_location location,
         const std::string& message = ""
     ) {
-        if(!condition) {
-            const char* action = verify ? "verification" : "assertion";
-            const char* name   = verify ? "VERIFY"       : "ASSERT";
-            if(message == "") {
-                throw std::runtime_error(
-                    stringf(
-                        "Cpptrace %s failed at %s:%d: %s\n"
-                        "    CPPTRACE_%s(%s);\n",
-                        action, location.file, location.line, signature,
-                        name, expression
-                    )
-                );
-            } else {
-                throw std::runtime_error(
-                    stringf(
-                        "Cpptrace %s failed at %s:%d: %s: %s\n"
-                        "    CPPTRACE_%s(%s);\n",
-                        action, location.file, location.line, signature, message.c_str(),
-                        name, expression
-                    )
-                );
-            }
+        const char* action = assert_actions[static_cast<std::underlying_type<assert_type>::type>(type)];
+        const char* name   = assert_names[static_cast<std::underlying_type<assert_type>::type>(type)];
+        if(message == "") {
+            throw std::logic_error(
+                stringf(
+                    "Cpptrace %s failed at %s:%d: %s\n"
+                    "    %s(%s);\n",
+                    action, location.file, location.line, signature,
+                    name, expression
+                )
+            );
+        } else {
+            throw std::logic_error(
+                stringf(
+                    "Cpptrace %s failed at %s:%d: %s: %s\n"
+                    "    %s(%s);\n",
+                    action, location.file, location.line, signature, message.c_str(),
+                    name, expression
+                )
+            );
+        }
+    }
+
+    [[noreturn]] inline void panic(
+        const char* signature,
+        source_location location,
+        const std::string& message = ""
+    ) {
+        if(message == "") {
+            throw std::logic_error(
+                stringf(
+                    "Cpptrace panic %s:%d: %s\n",
+                    location.file, location.line, signature
+                )
+            );
+        } else {
+            throw std::logic_error(
+                stringf(
+                    "Cpptrace panic %s:%d: %s: %s\n",
+                    location.file, location.line, signature, message.c_str()
+                )
+            );
         }
     }
 
@@ -75,25 +104,43 @@ namespace detail {
 
     #define PHONY_USE(E) (nullfn<decltype(E)>())
 
+    // Workaround a compiler warning
+    template<typename T>
+    bool as_bool(T&& value) {
+        return static_cast<bool>(std::forward<T>(value));
+    }
+
     // Check condition in both debug and release. std::runtime_error on failure.
-    #define CPPTRACE_VERIFY(c, ...) ( \
-        ::cpptrace::detail::primitive_assert_impl(c, true, #c, CPPTRACE_PFUNC, {}, ##__VA_ARGS__) \
+    #define VERIFY(c, ...) ( \
+            (::cpptrace::detail::as_bool(c)) \
+                ? static_cast<void>(0) \
+                : (::cpptrace::detail::assert_fail)( \
+                    ::cpptrace::detail::assert_type::verify, \
+                    #c, \
+                    CPPTRACE_PFUNC, \
+                    {}, \
+                    ##__VA_ARGS__) \
     )
+
+    // Check condition in both debug and release. std::runtime_error on failure.
+    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, {}, std::string(__VA_ARGS__)))
 
     #ifndef NDEBUG
      // Check condition in both debug. std::runtime_error on failure.
-     #define CPPTRACE_ASSERT(c, ...) ( \
-         ::cpptrace::detail::primitive_assert_impl(c, false, #c, CPPTRACE_PFUNC, {}, ##__VA_ARGS__) \
+     #define ASSERT(c, ...) ( \
+             (::cpptrace::detail::as_bool(c)) \
+                 ? static_cast<void>(0) \
+                 : (::cpptrace::detail::assert_fail)( \
+                    ::cpptrace::detail::assert_type::assert, \
+                    #c, \
+                    CPPTRACE_PFUNC, \
+                    {}, \
+                    ##__VA_ARGS__) \
      )
     #else
      // Check condition in both debug. std::runtime_error on failure.
-     #define CPPTRACE_ASSERT(c, ...) PHONY_USE(c)
+     #define ASSERT(c, ...) PHONY_USE(c)
     #endif
-
-    // TODO: Setting to silence these or make them fatal
-    inline void nonfatal_error(const std::string& message) {
-        fprintf(stderr, "Non-fatal cpptrace error: %s\n", message.c_str());
-    }
 }
 }
 

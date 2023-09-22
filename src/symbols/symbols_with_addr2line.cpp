@@ -75,8 +75,8 @@ namespace addr2line {
     std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
         pipe_t output_pipe;
         pipe_t input_pipe;
-        CPPTRACE_VERIFY(pipe(output_pipe.data) == 0);
-        CPPTRACE_VERIFY(pipe(input_pipe.data) == 0);
+        VERIFY(pipe(output_pipe.data) == 0);
+        VERIFY(pipe(input_pipe.data) == 0);
         const pid_t pid = fork();
         if(pid == -1) { return ""; } // error? TODO: Diagnostic
         if(pid == 0) { // child
@@ -120,7 +120,7 @@ namespace addr2line {
             #endif
             _exit(1); // TODO: Diagnostic?
         }
-        CPPTRACE_VERIFY(write(input_pipe.write_end, addresses.data(), addresses.size()) != -1);
+        VERIFY(write(input_pipe.write_end, addresses.data(), addresses.size()) != -1);
         close(input_pipe.read_end);
         close(input_pipe.write_end);
         close(output_pipe.write_end);
@@ -200,14 +200,14 @@ namespace addr2line {
             symbol_end = at_location;
             filename_start = at_location + 4;
         } else {
-            CPPTRACE_VERIFY(line.find("?? ") == 0, "Unexpected edge case while processing addr2line output");
+            VERIFY(line.find("?? ") == 0, "Unexpected edge case while processing addr2line output");
             symbol_end = 2;
             filename_start = 3;
         }
         auto symbol = line.substr(0, symbol_end);
         auto colon = line.rfind(':');
-        CPPTRACE_VERIFY(colon != std::string::npos);
-        CPPTRACE_VERIFY(colon >= filename_start); // :? to deal with "symbol :?" edge case
+        VERIFY(colon != std::string::npos);
+        VERIFY(colon >= filename_start); // :? to deal with "symbol :?" edge case
         auto filename = line.substr(filename_start, colon - filename_start);
         auto line_number = line.substr(colon + 1);
         if(line_number != "?") {
@@ -237,7 +237,7 @@ namespace addr2line {
         const std::size_t symbol_end = in_location;
         entries_vec[entry_index].second.get().symbol = line.substr(0, symbol_end);
         const std::size_t obj_end = line.find(")", in_location);
-        CPPTRACE_VERIFY(
+        VERIFY(
             obj_end != std::string::npos,
             "Unexpected edge case while processing addr2line/atos output"
         );
@@ -247,7 +247,7 @@ namespace addr2line {
             return;
         }
         const std::size_t filename_end = line.find(":", filename_start);
-        CPPTRACE_VERIFY(
+        VERIFY(
             filename_end != std::string::npos,
             "Unexpected edge case while processing addr2line/atos output"
         );
@@ -257,7 +257,7 @@ namespace addr2line {
         );
         const std::size_t line_start = filename_end + 1;
         const std::size_t line_end = line.find(")", filename_end);
-        CPPTRACE_VERIFY(
+        VERIFY(
             line_end == line.size() - 1,
             "Unexpected edge case while processing addr2line/atos output"
         );
@@ -296,7 +296,7 @@ namespace addr2line {
                     #endif
                 }
                 auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
-                CPPTRACE_VERIFY(output.size() == entries_vec.size());
+                VERIFY(output.size() == entries_vec.size());
                 for(size_t i = 0; i < output.size(); i++) {
                     update_trace(output[i], i, entries_vec);
                 }

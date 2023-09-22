@@ -34,7 +34,7 @@ namespace detail {
         using Header = typename std::conditional<Bits == 32, Elf32_Ehdr, Elf64_Ehdr>::type;
         using PHeader = typename std::conditional<Bits == 32, Elf32_Phdr, Elf64_Phdr>::type;
         Header file_header = load_bytes<Header>(file, 0);
-        CPPTRACE_VERIFY(file_header.e_ehsize == sizeof(Header), "ELF file header size mismatch" + obj_path);
+        VERIFY(file_header.e_ehsize == sizeof(Header), "ELF file header size mismatch" + obj_path);
         // PT_PHDR will occur at most once
         // Should be somewhat reliable https://stackoverflow.com/q/61568612/15675011
         // It should occur at the beginning but may as well loop just in case
@@ -56,10 +56,10 @@ namespace detail {
         }
         // Initial checks/metadata
         auto magic = load_bytes<std::array<char, 4>>(file, 0);
-        CPPTRACE_VERIFY(magic == (std::array<char, 4>{0x7F, 'E', 'L', 'F'}), "File is not ELF " + obj_path);
+        VERIFY(magic == (std::array<char, 4>{0x7F, 'E', 'L', 'F'}), "File is not ELF " + obj_path);
         bool is_64 = load_bytes<uint8_t>(file, 4) == 2;
         bool is_little_endian = load_bytes<uint8_t>(file, 5) == 1;
-        CPPTRACE_VERIFY(load_bytes<uint8_t>(file, 6) == 1, "Unexpected ELF endianness " + obj_path);
+        VERIFY(load_bytes<uint8_t>(file, 6) == 1, "Unexpected ELF endianness " + obj_path);
         // get image base
         if(is_64) {
             return elf_get_module_image_base_from_program_table<64>(obj_path, file, is_little_endian);

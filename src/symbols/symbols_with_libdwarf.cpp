@@ -14,6 +14,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <type_traits>
 #include <vector>
 
@@ -42,23 +43,48 @@ namespace libdwarf {
     constexpr bool dump_dwarf = false;
     constexpr bool trace_dwarf = false;
 
-    static void err_handler(Dwarf_Error err, Dwarf_Ptr errarg) {
-        printf("libdwarf error reading %s: %llu %s\n", "xx", to_ull(dwarf_errno(err)), dwarf_errmsg(err));
-        if(errarg) {
-            printf("Error: errarg is nonnull but it should be null\n");
-        }
-        printf("Giving up");
-        exit(1);
-    }
-
     static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
+
+    void handle_error(Dwarf_Debug dbg, Dwarf_Error error) {
+        int ev = dwarf_errno(error);
+        char* msg = dwarf_errmsg(error);
+        dwarf_dealloc_error(dbg, error);
+        throw std::runtime_error(stringf("Cpptrace dwarf error %d %s\n", ev, msg));
+    }
 
     struct die_object {
         Dwarf_Debug dbg = nullptr;
         Dwarf_Die die = nullptr;
 
-        die_object(Dwarf_Debug dbg, Dwarf_Die die) : dbg(dbg), die(die) {}
+        // Error handling helper
+        // For some reason R (*f)(Args..., void*)-style deduction isn't possible, seems like a bug in all compilers
+        // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56190
+        template<
+            typename... Args,
+            typename... Args2,
+            typename std::enable_if<
+                std::is_same<
+                    decltype(
+                        (void)std::declval<int(Args...)>()(std::forward<Args2>(std::declval<Args2>())..., nullptr)
+                    ),
+                    void
+                >::value,
+                int
+            >::type = 0
+        >
+        int wrap(int (*f)(Args...), Args2&&... args) const {
+            Dwarf_Error error = 0;
+            int ret = f(std::forward<Args2>(args)..., &error);
+            if(ret == DW_DLV_ERROR) {
+                handle_error(dbg, error);
+            }
+            return ret;
+        }
+
+        die_object(Dwarf_Debug dbg, Dwarf_Die die) : dbg(dbg), die(die) {
+            ASSERT(dbg != nullptr);
+        }
 
         ~die_object() {
             if(die) {
@@ -88,37 +114,31 @@ namespace libdwarf {
             Dwarf_Off off = get_global_offset();
             Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
             Dwarf_Die die_copy = 0;
-            CPPTRACE_VERIFY(dwarf_offdie_b(dbg, off, is_info, &die_copy, nullptr) == DW_DLV_OK);
+            VERIFY(wrap(dwarf_offdie_b, dbg, off, is_info, &die_copy) == DW_DLV_OK);
             return {dbg, die_copy};
         }
 
         die_object get_child() const {
             Dwarf_Die child = nullptr;
-            int ret = dwarf_child(
-                die,
-                &child,
-                nullptr
-            );
+            int ret = wrap(dwarf_child, die, &child);
             if(ret == DW_DLV_OK) {
                 return die_object(dbg, child);
             } else if(ret == DW_DLV_NO_ENTRY) {
                 return die_object(dbg, 0);
             } else {
-                fprintf(stderr, "Error\n");
-                exit(1);
+                PANIC();
             }
         }
 
         die_object get_sibling() const {
             Dwarf_Die sibling = 0;
-            int ret = dwarf_siblingof_b(dbg, die, true, &sibling, nullptr);
+            int ret = wrap(dwarf_siblingof_b, dbg, die, true, &sibling);
             if(ret == DW_DLV_OK) {
                 return die_object(dbg, sibling);
             } else if(ret == DW_DLV_NO_ENTRY) {
                 return die_object(dbg, 0);
             } else {
-                fprintf(stderr, "Error\n");
-                exit(1);
+                PANIC();
             }
         }
 
@@ -133,7 +153,7 @@ namespace libdwarf {
         std::string get_name() const {
             char empty[] = "";
             char* name = empty;
-            int ret = dwarf_diename(die, &name, nullptr);
+            int ret = wrap(dwarf_diename, die, &name);
             std::string str;
             if(ret != DW_DLV_NO_ENTRY) {
                 str = name;
@@ -144,12 +164,10 @@ namespace libdwarf {
 
         optional<std::string> get_string_attribute(Dwarf_Half dw_attrnum) const {
             Dwarf_Attribute attr;
-            int ret = dwarf_attr(die, dw_attrnum, &attr, nullptr);
-            if(ret == DW_DLV_OK) {
+            if(wrap(dwarf_attr, die, dw_attrnum, &attr) == DW_DLV_OK) {
                 char* raw_str;
                 std::string str;
-                ret = dwarf_formstring(attr, &raw_str, nullptr);
-                CPPTRACE_VERIFY(ret == DW_DLV_OK);
+                VERIFY(wrap(dwarf_formstring, attr, &raw_str) == DW_DLV_OK);
                 str = raw_str;
                 dwarf_dealloc(dbg, raw_str, DW_DLA_STRING);
                 dwarf_dealloc_attribute(attr);
@@ -161,34 +179,36 @@ namespace libdwarf {
 
         bool has_attr(Dwarf_Half dw_attrnum) const {
             Dwarf_Bool present = false;
-            CPPTRACE_VERIFY(dwarf_hasattr(die, dw_attrnum, &present, nullptr) == DW_DLV_OK);
+            VERIFY(wrap(dwarf_hasattr, die, dw_attrnum, &present) == DW_DLV_OK);
             return present;
         }
 
         Dwarf_Half get_tag() const {
             Dwarf_Half tag = 0;
-            dwarf_tag(die, &tag, nullptr);
+            VERIFY(wrap(dwarf_tag, die, &tag) == DW_DLV_OK);
             return tag;
         }
 
         const char* get_tag_name() const {
             const char* tag_name;
-            dwarf_get_TAG_name(get_tag(), &tag_name);
-            return tag_name;
+            if(dwarf_get_TAG_name(get_tag(), &tag_name) == DW_DLV_OK) {
+                return tag_name;
+            } else {
+                return "<unknown tag name>";
+            }
         }
 
         Dwarf_Off get_global_offset() const {
             Dwarf_Off off;
-            int ret = dwarf_dieoffset(die, &off, nullptr);
-            CPPTRACE_VERIFY(ret == DW_DLV_OK);
+            VERIFY(wrap(dwarf_dieoffset, die, &off) == DW_DLV_OK);
             return off;
         }
 
         die_object resolve_reference_attribute(Dwarf_Half dw_attrnum) const {
             Dwarf_Attribute attr;
-            int ret = dwarf_attr(die, dw_attrnum, &attr, nullptr);
+            VERIFY(dwarf_attr(die, dw_attrnum, &attr, nullptr) == DW_DLV_OK);
             Dwarf_Half form = 0;
-            ret = dwarf_whatform(attr, &form, nullptr);
+            VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
             switch(form) {
                 case DW_FORM_ref1:
                 case DW_FORM_ref2:
@@ -198,37 +218,31 @@ namespace libdwarf {
                     {
                         Dwarf_Off off = 0;
                         Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
-                        ret = dwarf_formref(attr, &off, &is_info, nullptr);
-                        CPPTRACE_VERIFY(ret == DW_DLV_OK);
+                        VERIFY(wrap(dwarf_formref, attr, &off, &is_info) == DW_DLV_OK);
                         Dwarf_Off goff = 0;
-                        ret = dwarf_convert_to_global_offset(attr, off, &goff, nullptr);
-                        CPPTRACE_VERIFY(ret == DW_DLV_OK);
+                        VERIFY(wrap(dwarf_convert_to_global_offset, attr, off, &goff) == DW_DLV_OK);
                         Dwarf_Die targ_die_a = 0;
-                        ret = dwarf_offdie_b(dbg, goff, is_info, &targ_die_a, nullptr);
-                        CPPTRACE_VERIFY(ret == DW_DLV_OK);
+                        VERIFY(wrap(dwarf_offdie_b, dbg, goff, is_info, &targ_die_a) == DW_DLV_OK);
                         dwarf_dealloc_attribute(attr);
                         return die_object(dbg, targ_die_a);
                     }
                 case DW_FORM_ref_addr:
                     {
                         Dwarf_Off off;
-                        ret = dwarf_global_formref(attr, &off, nullptr);
+                        VERIFY(wrap(dwarf_global_formref, attr, &off) == DW_DLV_OK);
                         int is_info_a = dwarf_get_die_infotypes_flag(die);
                         Dwarf_Die targ_die_a = 0;
-                        ret = dwarf_offdie_b(dbg, off, is_info_a, &targ_die_a, nullptr);
-                        CPPTRACE_VERIFY(ret == DW_DLV_OK);
+                        VERIFY(wrap(dwarf_offdie_b, dbg, off, is_info_a, &targ_die_a) == DW_DLV_OK);
                         dwarf_dealloc_attribute(attr);
                         return die_object(dbg, targ_die_a);
                     }
                 case DW_FORM_ref_sig8:
                     {
                         Dwarf_Sig8 signature;
-                        ret = dwarf_formsig8(attr, &signature, nullptr);
-                        CPPTRACE_VERIFY(ret == DW_DLV_OK);
+                        VERIFY(wrap(dwarf_formsig8, attr, &signature) == DW_DLV_OK);
                         Dwarf_Die  targdie = 0;
                         Dwarf_Bool targ_is_info = false;
-                        ret = dwarf_find_die_given_sig8(dbg, &signature, &targdie, &targ_is_info, nullptr);
-                        CPPTRACE_VERIFY(ret == DW_DLV_OK);
+                        VERIFY(wrap(dwarf_find_die_given_sig8, dbg, &signature, &targdie, &targ_is_info) == DW_DLV_OK);
                         dwarf_dealloc_attribute(attr);
                         return die_object(dbg, targdie);
                     }
@@ -241,13 +255,11 @@ namespace libdwarf {
         Dwarf_Unsigned get_ranges_offset(Dwarf_Attribute attr) const {
             Dwarf_Unsigned off = 0;
             Dwarf_Half attrform = 0;
-            dwarf_whatform(attr, &attrform, nullptr);
+            VERIFY(wrap(dwarf_whatform, attr, &attrform) == DW_DLV_OK);
             if (attrform == DW_FORM_rnglistx) {
-                int fres = dwarf_formudata(attr, &off, nullptr);
-                CPPTRACE_VERIFY(fres == DW_DLV_OK);
+                VERIFY(wrap(dwarf_formudata, attr, &off) == DW_DLV_OK);
             } else {
-                int fres = dwarf_global_formref(attr, &off, nullptr);
-                CPPTRACE_VERIFY(fres == DW_DLV_OK);
+                VERIFY(wrap(dwarf_global_formref, attr, &off) == DW_DLV_OK);
             }
             return off;
         }
@@ -265,7 +277,7 @@ namespace libdwarf {
             Dwarf_Unsigned i = 0;
             int res = 0;
 
-            res = dwarf_attr(cu_die, DW_AT_ranges, &attr, nullptr);
+            res = wrap(dwarf_attr, cu_die, DW_AT_ranges, &attr);
             if(res != DW_DLV_OK) {
                 return res;
             }
@@ -275,18 +287,18 @@ namespace libdwarf {
                 Dwarf_Unsigned rnglists_count = 0;
                 Dwarf_Rnglists_Head head = 0;
 
-                dwarf_whatform(attr, &attrform, nullptr);
-                /* offset is in .debug_rnglists */
-                res = dwarf_rnglists_get_rle_head(
+                VERIFY(wrap(dwarf_whatform, attr, &attrform) == DW_DLV_OK);
+                // offset is in .debug_rnglists
+                res = wrap(
+                    dwarf_rnglists_get_rle_head,
                     attr,
                     attrform,
                     offset,
                     &head,
                     &rnglists_count,
-                    &rlesetoffset,
-                    nullptr
+                    &rlesetoffset
                 );
-                CPPTRACE_VERIFY(res == DW_DLV_OK);
+                VERIFY(res == DW_DLV_OK);
                 if(res != DW_DLV_OK) {
                     /* ASSERT: is DW_DLV_NO_ENTRY */
                     dwarf_dealloc_attribute(attr);
@@ -301,7 +313,8 @@ namespace libdwarf {
                     Dwarf_Unsigned cooked1 = 0;
                     Dwarf_Unsigned cooked2 = 0;
 
-                    res = dwarf_get_rnglists_entry_fields_a(
+                    res = wrap(
+                        dwarf_get_rnglists_entry_fields_a,
                         head,
                         i,
                         &entrylen,
@@ -310,11 +323,10 @@ namespace libdwarf {
                         &raw2,
                         &unavail,
                         &cooked1,
-                        &cooked2,
-                        nullptr
+                        &cooked2
                     );
                     if(res != DW_DLV_OK) {
-                        /* ASSERT: is DW_DLV_NO_ENTRY */
+                        ASSERT(res == DW_DLV_NO_ENTRY);
                         continue;
                     }
                     if(unavail) {
@@ -342,8 +354,7 @@ namespace libdwarf {
                         }
                         break;
                     default:
-                        CPPTRACE_VERIFY(false);
-                        /* Something is wrong. */
+                        PANIC("Something is wrong");
                         break;
                     }
                 }
@@ -365,26 +376,28 @@ namespace libdwarf {
             Dwarf_Attribute attr = 0;
             int res = 0;
 
-            res = dwarf_attr(cu_die, DW_AT_ranges, &attr, nullptr);
+            res = wrap(dwarf_attr, cu_die, DW_AT_ranges, &attr);
             if(res != DW_DLV_OK) {
                 return res;
             }
-            if(dwarf_global_formref(attr, &offset, nullptr) == DW_DLV_OK) {
+            if(wrap(dwarf_global_formref, attr, &offset) == DW_DLV_OK) {
                 Dwarf_Signed count = 0;
                 Dwarf_Ranges *ranges = 0;
                 Dwarf_Addr baseaddr = 0;
                 if(cu_lowpc != 0xffffffffffffffff) {
                     baseaddr = cu_lowpc;
                 }
-                res = dwarf_get_ranges_b(
-                    dbg,
-                    offset,
-                    cu_die,
-                    nullptr,
-                    &ranges,
-                    &count,
-                    nullptr,
-                    nullptr
+                VERIFY(
+                    wrap(
+                        dwarf_get_ranges_b,
+                        dbg,
+                        offset,
+                        cu_die,
+                        nullptr,
+                        &ranges,
+                        &count,
+                        nullptr
+                    ) == DW_DLV_OK
                 );
                 for(int i = 0; i < count; i++) {
                     Dwarf_Ranges *cur = ranges + i;
@@ -425,10 +438,9 @@ namespace libdwarf {
             Dwarf_Addr lowest = 0xffffffffffffffff;
             Dwarf_Addr highest = 0;
 
-            ret = dwarf_lowpc(die, &cu_lowpc, nullptr);
+            ret = wrap(dwarf_lowpc, die, &cu_lowpc);
             if(ret == DW_DLV_OK) {
-                ret = dwarf_highpc_b(die, &cu_highpc,
-                    nullptr, &highpc_cls, nullptr);
+                ret = wrap(dwarf_highpc_b, die, &cu_highpc, nullptr, &highpc_cls);
                 if(ret == DW_DLV_OK) {
                     if(highpc_cls == DW_FORM_CLASS_CONSTANT) {
                         cu_highpc += cu_lowpc;
@@ -455,13 +467,12 @@ namespace libdwarf {
             Dwarf_Addr lowest = 0xffffffffffffffff;
             Dwarf_Addr highest = 0;
 
-            ret = dwarf_lowpc(die, &cu_lowpc, nullptr);
+            ret = wrap(dwarf_lowpc, die, &cu_lowpc);
             if(ret == DW_DLV_OK) {
                 if(pc == cu_lowpc) {
                     return true;
                 }
-                ret = dwarf_highpc_b(die, &cu_highpc,
-                    nullptr, &highpc_cls, nullptr);
+                ret = wrap(dwarf_highpc_b, die, &cu_highpc, nullptr, &highpc_cls);
                 if(ret == DW_DLV_OK) {
                     if(highpc_cls == DW_FORM_CLASS_CONSTANT) {
                         cu_highpc += cu_lowpc;
@@ -512,11 +523,37 @@ namespace libdwarf {
     struct dwarf_resolver {
         std::string obj_path;
         Dwarf_Debug dbg;
+        bool ok = false;
         std::unordered_map<Dwarf_Off, line_context> line_contexts;
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
 
         // Exists only for cleaning up an awful mach-o hack
         std::string tmp_object_path;
+
+        // Error handling helper
+        // For some reason R (*f)(Args..., void*)-style deduction isn't possible, seems like a bug in all compilers
+        // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56190
+        template<
+            typename... Args,
+            typename... Args2,
+            typename std::enable_if<
+                std::is_same<
+                    decltype(
+                        (void)std::declval<int(Args...)>()(std::forward<Args2>(std::declval<Args2>())..., nullptr)
+                    ),
+                    void
+                >::value,
+                int
+            >::type = 0
+        >
+        int wrap(int (*f)(Args...), Args2&&... args) const {
+            Dwarf_Error error = 0;
+            int ret = f(std::forward<Args2>(args)..., &error);
+            if(ret == DW_DLV_ERROR) {
+                handle_error(dbg, error);
+            }
+            return ret;
+        }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         dwarf_resolver(const std::string& object_path) {
@@ -532,17 +569,17 @@ namespace libdwarf {
                 char tmp_template[] = "/tmp/tmp.cpptrace.XXXXXX";
                 #pragma GCC diagnostic push
                 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-                CPPTRACE_VERIFY(mktemp(tmp_template) != nullptr);
+                VERIFY(mktemp(tmp_template) != nullptr);
                 #pragma GCC diagnostic pop
                 std::string tmp_path = tmp_template;
                 auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
                 auto tmp = raii_wrap(fopen(tmp_path.c_str(), "wb"), file_deleter);
-                CPPTRACE_VERIFY(file != nullptr);
-                CPPTRACE_VERIFY(tmp != nullptr);
+                VERIFY(file != nullptr);
+                VERIFY(tmp != nullptr);
                 std::unique_ptr<char[]> buffer(new char[sub_object.size]);
-                CPPTRACE_VERIFY(fseek(file, sub_object.offset, SEEK_SET) == 0);
-                CPPTRACE_VERIFY(fread(buffer.get(), 1, sub_object.size, file) == sub_object.size);
-                CPPTRACE_VERIFY(fwrite(buffer.get(), 1, sub_object.size, tmp) == sub_object.size);
+                VERIFY(fseek(file, sub_object.offset, SEEK_SET) == 0);
+                VERIFY(fread(buffer.get(), 1, sub_object.size, file) == sub_object.size);
+                VERIFY(fwrite(buffer.get(), 1, sub_object.size, tmp) == sub_object.size);
                 obj_path = tmp_path;
                 tmp_object_path = std::move(tmp_path);
             }
@@ -551,21 +588,24 @@ namespace libdwarf {
             // Giving libdwarf a buffer for a true output path is needed for its automatic resolution of debuglink and
             // dSYM files. We don't utilize the dSYM logic here, we just care about debuglink.
             std::unique_ptr<char[]> buffer(new char[CPPTRACE_MAX_PATH]);
-            Dwarf_Ptr errarg = 0;
-            auto ret = dwarf_init_path(
+            auto ret = wrap(
+                dwarf_init_path,
                 obj_path.c_str(),
                 buffer.get(),
                 CPPTRACE_MAX_PATH,
                 DW_GROUPNUMBER_ANY,
-                err_handler,
-                errarg,
-                &dbg,
-                nullptr
+                nullptr,
+                nullptr,
+                &dbg
             );
-            if(ret == DW_DLV_NO_ENTRY) {
+            if(ret == DW_DLV_OK) {
+                ok = true;
+            } else if(ret == DW_DLV_NO_ENTRY) {
                 // fail, no debug info
-            } else if(ret != DW_DLV_OK) {
-                fprintf(stderr, "Error\n");
+                ok = false;
+            } else {
+                ok = false;
+                PANIC("Unknown return code from dwarf_init_path");
             }
         }
 
@@ -637,7 +677,7 @@ namespace libdwarf {
             Dwarf_Half dwversion,
             stacktrace_frame& frame
         ) {
-            CPPTRACE_ASSERT(die.get_tag() == DW_TAG_subprogram);
+            ASSERT(die.get_tag() == DW_TAG_subprogram);
             optional<std::string> name;
             if(auto linkage_name = die.get_string_attribute(DW_AT_linkage_name)) {
                 name = std::move(linkage_name);
@@ -827,7 +867,7 @@ namespace libdwarf {
                     retrieve_symbol_for_subprogram(vec_it->die, pc, dwversion, frame);
                 }
             } else {
-                CPPTRACE_ASSERT(vec.size() == 0, "Vec should be empty?");
+                ASSERT(vec.size() == 0, "Vec should be empty?");
             }
         }
 
@@ -837,9 +877,8 @@ namespace libdwarf {
             Dwarf_Unsigned lineno = 0;
 
             if(line) {
-                /*  These never return DW_DLV_NO_ENTRY */
-                dwarf_linesrc(line, &linesrc, nullptr);
-                dwarf_lineno(line, &lineno, nullptr);
+                VERIFY(wrap(dwarf_linesrc, line, &linesrc) == DW_DLV_OK);
+                VERIFY(wrap(dwarf_lineno, line, &lineno) == DW_DLV_OK);
             }
             if(dump_dwarf) {
                 printf("%s:%u\n", linesrc, to<unsigned>(lineno));
@@ -871,41 +910,42 @@ namespace libdwarf {
                 table_count = entry.table_count;
                 ctxt = entry.ctx;
             } else {
-                int ret = dwarf_srclines_b(
+                int ret = wrap(
+                    dwarf_srclines_b,
                     die.get(),
                     &version,
                     &table_count,
-                    &ctxt,
-                    nullptr
+                    &ctxt
                 );
-                line_contexts.insert({off, {version, table_count, ctxt}});
                 if(ret == DW_DLV_NO_ENTRY) {
-                    fprintf(stderr, "dwarf_srclines_b error\n");
+                    // TODO: Failing silently for now
                     return;
                 }
+                line_contexts.insert({off, {version, table_count, ctxt}});
             }
-
             if(table_count == 1) {
-                Dwarf_Line *linebuf = 0;
+                Dwarf_Line* linebuf = 0;
                 Dwarf_Signed linecount = 0;
                 Dwarf_Addr prev_lineaddr = 0;
-
-                dwarf_srclines_from_linecontext(ctxt, &linebuf,
-                    &linecount, nullptr);
+                VERIFY(
+                    wrap(
+                        dwarf_srclines_from_linecontext,
+                        ctxt,
+                        &linebuf,
+                        &linecount
+                    ) == DW_DLV_OK
+                );
                 Dwarf_Line prev_line = 0;
                 for(int i = 0; i < linecount; i++) {
                     Dwarf_Line line = linebuf[i];
                     Dwarf_Addr lineaddr = 0;
-
-                    dwarf_lineaddr(line, &lineaddr, nullptr);
+                    VERIFY(wrap(dwarf_lineaddr, line, &lineaddr) == DW_DLV_OK);
                     if(pc == lineaddr) {
-                        /* Print the last line entry containing current pc. */
+                        // Find the last line entry containing current pc
                         Dwarf_Line last_pc_line = line;
-
                         for(int j = i + 1; j < linecount; j++) {
                             Dwarf_Line j_line = linebuf[j];
-                            dwarf_lineaddr(j_line, &lineaddr, nullptr);
-
+                            VERIFY(wrap(dwarf_lineaddr, j_line, &lineaddr) == DW_DLV_OK);
                             if(pc == lineaddr) {
                                 last_pc_line = j_line;
                             }
@@ -917,7 +957,7 @@ namespace libdwarf {
                         break;
                     }
                     Dwarf_Bool is_lne;
-                    dwarf_lineendsequence(line, &is_lne, nullptr);
+                    VERIFY(wrap(dwarf_lineendsequence, line, &is_lne) == DW_DLV_OK);
                     if(is_lne) {
                         prev_line = 0;
                     } else {
@@ -978,7 +1018,8 @@ namespace libdwarf {
             Dwarf_Half header_cu_type;
             //fprintf(stderr, "-----------------\n");
             while(true) {
-                int ret = dwarf_next_cu_header_d(
+                int ret = wrap(
+                    dwarf_next_cu_header_d,
                     dbg,
                     true,
                     nullptr,
@@ -990,8 +1031,7 @@ namespace libdwarf {
                     nullptr,
                     nullptr,
                     &next_cu_header,
-                    &header_cu_type,
-                    nullptr
+                    &header_cu_type
                 );
                 if(ret == DW_DLV_NO_ENTRY) {
                     if(dump_dwarf) {
@@ -1000,7 +1040,7 @@ namespace libdwarf {
                     return;
                 }
                 if(ret != DW_DLV_OK) {
-                    fprintf(stderr, "Error\n");
+                    PANIC("Unexpected return code from dwarf_next_cu_header_d");
                     return;
                 }
                 walk_compilation_units(pc, frame);
@@ -1019,20 +1059,20 @@ namespace libdwarf {
             // Check for .debug_aranges for fast lookup
             Dwarf_Arange *aranges;
             Dwarf_Signed arange_count;
-            if(dwarf_get_aranges(dbg, &aranges, &arange_count, nullptr) == DW_DLV_OK) {
+            if(wrap(dwarf_get_aranges, dbg, &aranges, &arange_count) == DW_DLV_OK) {
                 // Try to find pc in aranges
                 Dwarf_Arange arange;
-                if(dwarf_get_arange(aranges, arange_count, pc, &arange, nullptr) == DW_DLV_OK) {
+                if(wrap(dwarf_get_arange, aranges, arange_count, pc, &arange) == DW_DLV_OK) {
                     // Address in table, load CU die
                     Dwarf_Off cu_die_offset;
-                    CPPTRACE_VERIFY(dwarf_get_cu_die_offset(arange, &cu_die_offset, nullptr) == DW_DLV_OK);
+                    VERIFY(wrap(dwarf_get_cu_die_offset, arange, &cu_die_offset) == DW_DLV_OK);
                     Dwarf_Die raw_die;
                     // Setting is_info = true for now, assuming in .debug_info rather than .debug_types
-                    CPPTRACE_VERIFY(dwarf_offdie_b(dbg, cu_die_offset, true, &raw_die, nullptr) == DW_DLV_OK);
+                    VERIFY(wrap(dwarf_offdie_b, dbg, cu_die_offset, true, &raw_die) == DW_DLV_OK);
                     die_object cu_die(dbg, raw_die);
                     Dwarf_Half offset_size = 0;
                     Dwarf_Half dwversion = 0;
-                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    VERIFY(dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size) == DW_DLV_OK);
                     if(trace_dwarf) {
                         fprintf(stderr, "Found CU in aranges\n");
                         cu_die.print();
@@ -1079,10 +1119,13 @@ namespace libdwarf {
         for(const auto& obj_entry : collate_frames(frames, trace)) {
             const auto& obj_name = obj_entry.first;
             dwarf_resolver resolver(obj_name);
-            for(const auto& entry : obj_entry.second) {
-                const auto& dlframe = entry.first.get();
-                auto& frame = entry.second.get();
-                frame = resolver.resolve_frame(dlframe);
+            // If there's no debug information it'll mark itself as not ok
+            if(resolver.ok) {
+                for(const auto& entry : obj_entry.second) {
+                    const auto& dlframe = entry.first.get();
+                    auto& frame = entry.second.get();
+                    frame = resolver.resolve_frame(dlframe);
+                }
             }
         }
         return trace;
@@ -1182,7 +1225,7 @@ namespace libdwarf {
     std::string resolve_type(Dwarf_Debug dbg, const die_object& die, std::string build = "");
 
     std::string get_array_extents(Dwarf_Debug dbg, const die_object& die) {
-        CPPTRACE_VERIFY(die.get_tag() == DW_TAG_array_type);
+        VERIFY(die.get_tag() == DW_TAG_array_type);
         std::string extents = "";
         walk_die_list(dbg, die.get_child(), [&extents](Dwarf_Debug dbg, const die_object& subrange) {
             if(subrange.get_tag() == DW_TAG_subrange_type) {
@@ -1216,7 +1259,7 @@ namespace libdwarf {
     }
 
     std::string get_parameters(Dwarf_Debug dbg, const die_object& die) {
-        CPPTRACE_VERIFY(die.get_tag() == DW_TAG_subroutine_type);
+        VERIFY(die.get_tag() == DW_TAG_subroutine_type);
         std::vector<std::string> params;
         walk_die_list(dbg, die.get_child(), [&params](Dwarf_Debug dbg, const die_object& die) {
             if(die.get_tag() == DW_TAG_formal_parameter) {

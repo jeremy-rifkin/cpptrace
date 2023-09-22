@@ -107,7 +107,7 @@ namespace detail {
             if(allow_arch_mismatch) {
                 return nullopt;
             } else {
-                CPPTRACE_VERIFY(false, "Mach-O file cpu type and subtype do not match current machine " + obj_path);
+                PANIC("Mach-O file cpu type and subtype do not match current machine " + obj_path);
             }
         }
         ncmds = header.ncmds;
@@ -130,7 +130,7 @@ namespace detail {
             actual_offset += cmd.cmdsize;
         }
         // somehow no __TEXT section was found...
-        CPPTRACE_VERIFY(false, "Couldn't find __TEXT section while parsing Mach-O object");
+        PANIC("Couldn't find __TEXT section while parsing Mach-O object");
         return 0;
     }
 
@@ -173,7 +173,7 @@ namespace detail {
             }
         }
         // If this is reached... something went wrong. The cpu we're on wasn't found.
-        CPPTRACE_VERIFY(false, "Couldn't find appropriate architecture in fat Mach-O");
+        PANIC("Couldn't find appropriate architecture in fat Mach-O");
         return 0;
     }
 
@@ -184,7 +184,7 @@ namespace detail {
             throw file_error("Unable to read object file " + obj_path);
         }
         uint32_t magic = load_bytes<uint32_t>(file, 0);
-        CPPTRACE_VERIFY(is_mach_o(magic), "File is not Mach-O " + obj_path);
+        VERIFY(is_mach_o(magic), "File is not Mach-O " + obj_path);
         bool is_64 = is_magic_64(magic);
         bool should_swap = should_swap_bytes(magic);
         if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
@@ -220,7 +220,7 @@ namespace detail {
             throw file_error("Unable to read object file " + obj_path);
         }
         uint32_t magic = load_bytes<uint32_t>(file, 0);
-        CPPTRACE_VERIFY(is_fat_magic(magic));
+        VERIFY(is_fat_magic(magic));
         bool should_swap = should_swap_bytes(magic);
         size_t header_size = sizeof(fat_header);
         size_t arch_size = sizeof(fat_arch);
@@ -244,7 +244,7 @@ namespace detail {
             }
         }
         // If this is reached... something went wrong. The cpu we're on wasn't found.
-        CPPTRACE_VERIFY(false, "Couldn't find appropriate architecture in fat Mach-O");
+        PANIC("Couldn't find appropriate architecture in fat Mach-O");
         return { 0, 0 };
     }
 }

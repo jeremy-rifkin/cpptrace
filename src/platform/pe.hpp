@@ -37,19 +37,19 @@ namespace detail {
             throw file_error("Unable to read object file " + obj_path);
         }
         auto magic = load_bytes<std::array<char, 2>>(file, 0);
-        CPPTRACE_VERIFY(memcmp(magic.data(), "MZ", 2) == 0, "File is not a PE file " + obj_path);
+        VERIFY(memcmp(magic.data(), "MZ", 2) == 0, "File is not a PE file " + obj_path);
         DWORD e_lfanew = pe_byteswap_if_needed(load_bytes<DWORD>(file, 0x3c)); // dos header + 0x3c
         DWORD nt_header_offset = e_lfanew;
         auto signature = load_bytes<std::array<char, 4>>(file, nt_header_offset); // nt header + 0
-        CPPTRACE_VERIFY(memcmp(signature.data(), "PE\0\0", 4) == 0, "File is not a PE file " + obj_path);
+        VERIFY(memcmp(signature.data(), "PE\0\0", 4) == 0, "File is not a PE file " + obj_path);
         WORD size_of_optional_header = pe_byteswap_if_needed(
             load_bytes<WORD>(file, nt_header_offset + 4 + 0x10) // file header + 0x10
         );
-        CPPTRACE_VERIFY(size_of_optional_header != 0);
+        VERIFY(size_of_optional_header != 0);
         WORD optional_header_magic = pe_byteswap_if_needed(
             load_bytes<WORD>(file, nt_header_offset + 0x18) // optional header + 0x0
         );
-        CPPTRACE_VERIFY(
+        VERIFY(
             optional_header_magic == IMAGE_NT_OPTIONAL_HDR_MAGIC,
             "PE file does not match expected bit-mode " + obj_path
         );
