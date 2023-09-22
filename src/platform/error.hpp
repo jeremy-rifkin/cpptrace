@@ -5,6 +5,7 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "common.hpp"
 
@@ -106,25 +107,35 @@ namespace detail {
     // Workaround a compiler warning
     template<typename T>
     bool as_bool(T&& value) {
-        return static_cast<bool>(value);
+        return static_cast<bool>(std::forward<T>(value));
     }
 
     // Check condition in both debug and release. std::runtime_error on failure.
     #define VERIFY(c, ...) ( \
-            as_bool(c) \
+            (::cpptrace::detail::as_bool(c)) \
                 ? static_cast<void>(0) \
-                : (::cpptrace::detail::assert_fail)(assert_type::verify, #c, CPPTRACE_PFUNC, {}, ##__VA_ARGS__) \
+                : (::cpptrace::detail::assert_fail)( \
+                    ::cpptrace::detail::assert_type::verify, \
+                    #c, \
+                    CPPTRACE_PFUNC, \
+                    {}, \
+                    ##__VA_ARGS__) \
     )
 
     // Check condition in both debug and release. std::runtime_error on failure.
-    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, {}, ##__VA_ARGS__))
+    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, {}, std::string(__VA_ARGS__)))
 
     #ifndef NDEBUG
      // Check condition in both debug. std::runtime_error on failure.
      #define ASSERT(c, ...) ( \
-             as_bool(c) \
+             (::cpptrace::detail::as_bool(c)) \
                  ? static_cast<void>(0) \
-                 : (::cpptrace::detail::assert_fail)(assert_type::assert, #c, CPPTRACE_PFUNC, {}, ##__VA_ARGS__) \
+                 : (::cpptrace::detail::assert_fail)( \
+                    ::cpptrace::detail::assert_type::assert, \
+                    #c, \
+                    CPPTRACE_PFUNC, \
+                    {}, \
+                    ##__VA_ARGS__) \
      )
     #else
      // Check condition in both debug. std::runtime_error on failure.
