@@ -228,6 +228,11 @@ set(
   src/unwind/unwind_with_nothing.cpp
   src/unwind/unwind_with_unwind.cpp
   src/unwind/unwind_with_winapi.cpp
+
+  src/ctrace.cpp
+  src/ctrace/string.cpp
+  src/ctrace/exception.cpp
+  src/ctrace/logging.cpp
 )
 
 if(CPPTRACE_STATIC)
@@ -412,6 +417,7 @@ if(NOT CMAKE_SKIP_INSTALL_RULES)
   install(
     FILES
     include/cpptrace/cpptrace.hpp
+    include/ctrace/ctrace.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cpptrace
   )
 
