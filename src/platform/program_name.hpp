@@ -7,26 +7,28 @@
 #if defined(_WIN32)
 #include <windows.h>
 
+#define CPPTRACE_MAX_PATH MAX_PATH
+
 namespace cpptrace {
-namespace detail {
-    inline std::string program_name() {
-        static std::mutex mutex;
-        const std::lock_guard<std::mutex> lock(mutex);
-        static std::string name;
-        static bool did_init = false;
-        static bool valid = false;
-        if(!did_init) {
-            did_init = true;
-            char buffer[MAX_PATH + 1];
-            int res = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
-            if(res) {
-                name = buffer;
-                valid = true;
+    namespace detail {
+        inline std::string program_name() {
+            static std::mutex mutex;
+            const std::lock_guard<std::mutex> lock(mutex);
+            static std::string name;
+            static bool did_init = false;
+            static bool valid = false;
+            if(!did_init) {
+                did_init = true;
+                char buffer[MAX_PATH + 1];
+                int res = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+                if(res) {
+                    name = buffer;
+                    valid = true;
+                }
             }
+            return valid && !name.empty() ? name.c_str() : nullptr;
         }
-        return valid && !name.empty() ? name.c_str() : nullptr;
     }
-}
 }
 
 #elif defined(__APPLE__)
@@ -34,6 +36,8 @@ namespace detail {
 #include <cstdint>
 #include <mach-o/dyld.h>
 #include <sys/syslimits.h>
+
+#define CPPTRACE_MAX_PATH PATH_MAX
 
 namespace cpptrace {
 namespace detail {
@@ -62,6 +66,8 @@ namespace detail {
 #include <linux/limits.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define CPPTRACE_MAX_PATH PATH_MAX
 
 namespace cpptrace {
 namespace detail {

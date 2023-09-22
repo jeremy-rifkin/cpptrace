@@ -32,7 +32,7 @@ namespace detail {
         // Endianness should always be little for dos and pe headers
         FILE* file_ptr;
         errno_t ret = fopen_s(&file_ptr, obj_path.c_str(), "rb");
-        auto file = raii_wrap(file_ptr, file_deleter);
+        auto file = raii_wrap(std::move(file_ptr), file_deleter);
         if(ret != 0 || file == nullptr) {
             throw file_error("Unable to read object file " + obj_path);
         }
