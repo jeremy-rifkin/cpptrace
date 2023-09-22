@@ -46,9 +46,10 @@ namespace libdwarf {
     static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
 
-    void handle_error(Dwarf_Error error) {
+    void handle_error(Dwarf_Debug dbg, Dwarf_Error error) {
         int ev = dwarf_errno(error);
         char* msg = dwarf_errmsg(error);
+        dwarf_dealloc_error(dbg, error);
         throw std::runtime_error(stringf("Cpptrace dwarf error %d %s\n", ev, msg));
     }
 
@@ -76,8 +77,7 @@ namespace libdwarf {
             Dwarf_Error error = 0;
             int ret = f(std::forward<Args2>(args)..., &error);
             if(ret == DW_DLV_ERROR) {
-                handle_error(error);
-                dwarf_dealloc_error(dbg, error);
+                handle_error(dbg, error);
             }
             return ret;
         }
@@ -550,8 +550,7 @@ namespace libdwarf {
             Dwarf_Error error = 0;
             int ret = f(std::forward<Args2>(args)..., &error);
             if(ret == DW_DLV_ERROR) {
-                handle_error(error);
-                dwarf_dealloc_error(dbg, error);
+                handle_error(dbg, error);
             }
             return ret;
         }
