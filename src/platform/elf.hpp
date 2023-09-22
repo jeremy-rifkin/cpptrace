@@ -30,7 +30,7 @@ namespace detail {
         FILE* file,
         bool is_little_endian
     ) {
-        static_assert(Bits == 32 || Bits == 64);
+        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
         using Header = typename std::conditional<Bits == 32, Elf32_Ehdr, Elf64_Ehdr>::type;
         using PHeader = typename std::conditional<Bits == 32, Elf32_Phdr, Elf64_Phdr>::type;
         Header file_header = load_bytes<Header>(file, 0);
@@ -50,7 +50,7 @@ namespace detail {
     }
 
     static uintptr_t elf_get_module_image_base(const std::string& obj_path) {
-        auto file = raii_wrapper(fopen(obj_path.c_str(), "rb"), file_deleter);
+        auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             throw file_error("Unable to read object file " + obj_path);
         }

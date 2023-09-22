@@ -38,7 +38,7 @@ namespace detail {
             if(result[i].line == 0) {
                 result[i].line = trace[i].line;
             }
-            if(result[i].column == 0) {
+            if(result[i].column == UINT_LEAST32_MAX) {
                 result[i].column = trace[i].column;
             }
             if(result[i].filename.empty()) {
@@ -51,7 +51,7 @@ namespace detail {
     }
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
-        std::vector<stacktrace_frame> trace(frames.size());
+        std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, UINT_LEAST32_MAX, "", "" });
         #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDL) \
             || defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP) \
             || defined(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
@@ -87,7 +87,7 @@ namespace detail {
             || defined(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
          auto dlframes = get_frames_object_info(frames);
         #endif
-        std::vector<stacktrace_frame> trace(frames.size());
+        std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, UINT_LEAST32_MAX, "", "" });
         #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
          apply_trace(trace, libdl::resolve_frames(frames));
         #endif
