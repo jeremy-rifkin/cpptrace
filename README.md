@@ -39,7 +39,7 @@ MinGW and Cygwin environments. The goal: Make stack traces simple for once.
 
 # 30-Second Overview
 
-Generating traces is as easy as calling `cpptrace::print_trace`:
+Generating traces is as easy as:
 
 ```cpp
 #include <cpptrace/cpptrace.hpp>
@@ -107,8 +107,8 @@ On windows and macos some extra work is required, see [below](#platform-logistic
 
 ## `namespace cpptrace`
 
-`cpptrace::generate_trace()` can used to generate a stacktrace object at the current call site. Resolved frames can be
-accessed from this object with `.frames` and also the trace can be printed with `.print()`. Cpptrace also provides a
+`cpptrace::generate_trace()` can be used to generate a stacktrace object at the current call site. Resolved frames can
+be accessed from this object with `.frames` and also the trace can be printed with `.print()`. Cpptrace also provides a
 method to get lightweight raw traces, which are just vectors of program counters, which can be resolved at a later time.
 
 **Note:** Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`) is generally required for good trace information.
@@ -299,8 +299,8 @@ A couple things I'd like to fix in the future:
 ### FAQ: What about C++23 `<stacktrace>`?
 
 Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
-The main motivation for this library was  The original motivation for cpptrace was to support projects using older C++
-standards and as the library has grown its functionality has extended beyond the standard library's implementation.
+The original motivation for cpptrace was to support projects using older C++ standards and as the library has grown its
+functionality has extended beyond the standard library's implementation.
 
 Plenty of additional functionality is planned too, such as stack tracing from signal handlers, stack tracing other
 threads, and generating lightweight stack traces on embedded devices that can be resolved either on embedded or on
@@ -312,11 +312,12 @@ another system (this is theoretically possible currently but untested).
 | ------------------------------------------------ | --------- |
 | DWARF in binary                                  | ✔️      |
 | DWARF in separate binary (binary gnu debug link) | ️️✔️  |
-| DWARF in separate binary (split dwarf)           | Untested  |
+| DWARF in separate binary (split dwarf)           | Soon  |
 | DWARF in dSYM                                    | ✔️      |
-| DWARF in via Mach-O debug map                    | Not yet   |
-| Windows debug symbols in PE                      | Untested  |
+| DWARF in via Mach-O debug map                    | Soon   |
 | Windows debug symbols in PDB                     | ✔️      |
+
+DWARF5 added DWARF package files. As far as I can tell no compiler implements these yet.
 
 ## Usage
 
