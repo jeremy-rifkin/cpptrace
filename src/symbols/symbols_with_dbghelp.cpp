@@ -404,7 +404,7 @@ namespace dbghelp {
         for(const auto frame : frames) {
             try {
                 trace.push_back(resolve_frame(proc, frame));
-            } catch(std::exception& e) {
+            } catch(...) {
                 if(!detail::should_absorb_trace_exceptions()) {
                     throw;
                 }

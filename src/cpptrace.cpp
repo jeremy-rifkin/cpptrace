@@ -44,7 +44,7 @@ namespace cpptrace {
     object_trace raw_trace::resolve_object_trace() const {
         try {
             return object_trace(detail::get_frames_object_info(frames));
-        } catch(std::exception& e) {
+        } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -60,7 +60,7 @@ namespace cpptrace {
                 frame.symbol = detail::demangle(frame.symbol);
             }
             return stacktrace(std::move(trace));
-        } catch(std::exception& e) {
+        } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -92,7 +92,7 @@ namespace cpptrace {
     stacktrace object_trace::resolve() const {
         try {
             return stacktrace(detail::resolve_frames(frames));
-        } catch(std::exception& e) {
+        } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -245,7 +245,7 @@ namespace cpptrace {
     raw_trace generate_raw_trace(std::uint_least32_t skip) {
         try {
             return raw_trace(detail::capture_frames(skip + 1, UINT_LEAST32_MAX));
-        } catch(std::exception& e) {
+        } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -257,7 +257,7 @@ namespace cpptrace {
     raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
         try {
             return raw_trace(detail::capture_frames(skip + 1, max_depth));
-        } catch(std::exception& e) {
+        } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -269,7 +269,7 @@ namespace cpptrace {
     object_trace generate_object_trace(std::uint_least32_t skip) {
         try {
             return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, UINT_LEAST32_MAX)));
-        } catch(std::exception& e) {
+        } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -281,7 +281,7 @@ namespace cpptrace {
     object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
         try {
             return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, max_depth)));
-        } catch(std::exception& e) {
+        } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -303,7 +303,7 @@ namespace cpptrace {
                 frame.symbol = detail::demangle(frame.symbol);
             }
             return stacktrace(std::move(trace));
-        } catch(std::exception& e) {
+        } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }

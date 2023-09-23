@@ -77,7 +77,7 @@ namespace libbacktrace {
                 );
             }
             return frame;
-        } catch(std::exception& e) {
+        } catch(...) {
             if(!should_absorb_trace_exceptions()) {
                 throw;
             }

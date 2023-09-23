@@ -1127,14 +1127,14 @@ namespace libdwarf {
                             const auto& dlframe = entry.first.get();
                             auto& frame = entry.second.get();
                             frame = resolver.resolve_frame(dlframe);
-                        } catch(std::exception& e) {
+                        } catch(...) {
                             if(!should_absorb_trace_exceptions()) {
                                 throw;
                             }
                         }
                     }
                 }
-            } catch(std::exception& e) {
+            } catch(...) {
                 if(!should_absorb_trace_exceptions()) {
                     throw;
                 }
