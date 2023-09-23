@@ -305,7 +305,6 @@ namespace addr2line {
                     if(!should_absorb_trace_exceptions()) {
                         throw;
                     }
-                    return null_frame;
                 }
             }
         }
