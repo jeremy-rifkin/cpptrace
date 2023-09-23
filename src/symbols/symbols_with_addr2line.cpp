@@ -277,28 +277,35 @@ namespace addr2line {
         if(has_addr2line()) {
             const auto entries = collate_frames(frames, trace);
             for(const auto& entry : entries) {
-                const auto& object_name = entry.first;
-                const auto& entries_vec = entry.second;
-                // You may ask why it'd ever happen that there could be an empty entries_vec array, if there're
-                // no addresses why would get_addr2line_targets do anything? The reason is because if things in
-                // get_addr2line_targets fail it will silently skip. This is partly an optimization but also an
-                // assertion below will fail if addr2line is given an empty input.
-                if(entries_vec.empty()) {
-                    continue;
-                }
-                std::string address_input;
-                for(const auto& pair : entries_vec) {
-                    address_input += to_hex(pair.first.get().obj_address);
-                    #if !IS_WINDOWS
-                        address_input += '\n';
-                    #else
-                        address_input += ' ';
-                    #endif
-                }
-                auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
-                VERIFY(output.size() == entries_vec.size());
-                for(size_t i = 0; i < output.size(); i++) {
-                    update_trace(output[i], i, entries_vec);
+                try {
+                    const auto& object_name = entry.first;
+                    const auto& entries_vec = entry.second;
+                    // You may ask why it'd ever happen that there could be an empty entries_vec array, if there're
+                    // no addresses why would get_addr2line_targets do anything? The reason is because if things in
+                    // get_addr2line_targets fail it will silently skip. This is partly an optimization but also an
+                    // assertion below will fail if addr2line is given an empty input.
+                    if(entries_vec.empty()) {
+                        continue;
+                    }
+                    std::string address_input;
+                    for(const auto& pair : entries_vec) {
+                        address_input += to_hex(pair.first.get().obj_address);
+                        #if !IS_WINDOWS
+                            address_input += '\n';
+                        #else
+                            address_input += ' ';
+                        #endif
+                    }
+                    auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
+                    VERIFY(output.size() == entries_vec.size());
+                    for(size_t i = 0; i < output.size(); i++) {
+                        update_trace(output[i], i, entries_vec);
+                    }
+                } catch(std::exception& e) {
+                    if(!should_absorb_trace_exceptions()) {
+                        throw;
+                    }
+                    return null_frame;
                 }
             }
         }

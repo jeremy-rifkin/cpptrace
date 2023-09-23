@@ -402,7 +402,14 @@ namespace dbghelp {
             throw std::logic_error("SymInitialize failed");
         }
         for(const auto frame : frames) {
-            trace.push_back(resolve_frame(proc, frame));
+            try {
+                trace.push_back(resolve_frame(proc, frame));
+            } catch(std::exception& e) {
+                if(!detail::should_absorb_trace_exceptions()) {
+                    throw;
+                }
+                trace.push_back(null_frame);
+            }
         }
         if(!SymCleanup(proc)) {
             //throw std::logic_error("SymCleanup failed");
