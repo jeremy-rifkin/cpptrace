@@ -71,7 +71,7 @@ namespace cpptrace {
 
     struct stacktrace_frame {
         uintptr_t address;
-        std::uint_least32_t line;
+        std::uint_least32_t line; // TODO: This should use UINT_LEAST32_MAX as a sentinel
         std::uint_least32_t column; // UINT_LEAST32_MAX if not present
         std::string filename;
         std::string symbol;
@@ -139,6 +139,7 @@ namespace cpptrace {
                     return generate_raw_trace(skip + 2, max_depth);
                 } catch(const std::exception& e) {
                     if(!detail::should_absorb_trace_exceptions()) {
+                        // TODO: Append to message somehow
                         fprintf(
                             stderr,
                             "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
@@ -159,6 +160,7 @@ namespace cpptrace {
                 }
             } catch(const std::exception& e) {
                 if(!detail::should_absorb_trace_exceptions()) {
+                    // TODO: Append to message somehow
                     fprintf(
                         stderr,
                         "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
