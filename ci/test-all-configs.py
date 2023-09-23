@@ -177,9 +177,10 @@ def build(matrix):
         succeeded = run_command(*args)
         if succeeded:
             if matrix["compiler"] == "g++":
-                run_command("make", "-j")
+                return run_command("make", "-j")
             else:
-                run_command("msbuild", "cpptrace.sln")
+                return run_command("msbuild", "cpptrace.sln")
+    return False
 
 def build_full_or_auto(matrix):
     if platform.system() != "Windows":
@@ -213,9 +214,10 @@ def build_full_or_auto(matrix):
         succeeded = run_command(*args)
         if succeeded:
             if matrix["compiler"] == "g++":
-                run_command("make", "-j")
+                return run_command("make", "-j")
             else:
-                run_command("msbuild", "cpptrace.sln")
+                return run_command("msbuild", "cpptrace.sln")
+    return False
 
 def test(matrix):
     if platform.system() != "Windows":
