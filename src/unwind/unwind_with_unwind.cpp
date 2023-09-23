@@ -57,7 +57,8 @@ namespace detail {
     std::vector<uintptr_t> capture_frames(size_t skip, size_t max_depth) {
         std::vector<uintptr_t> frames(std::min(hard_max_frames, max_depth), 0);
         unwind_state state{skip + 1, 0, frames};
-        _Unwind_Backtrace(unwind_callback, &state); // presumably thread-safe
+        auto code = _Unwind_Backtrace(unwind_callback, &state); // presumably thread-safe
+        fprintf(stderr, "code: %d\n", code);
         frames.resize(state.count);
         frames.shrink_to_fit();
         return frames;
