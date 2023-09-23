@@ -131,15 +131,18 @@ def run_test(test_binary, params: Tuple[str]):
         print("stdout:")
         print(test_stdout.decode("utf-8"), end="")
         failed = True
+        return False
     else:
         if len(test_stderr) != 0:
             print("stderr:")
             print(test_stderr.decode("utf-8"), end="")
         if output_matches(test_stdout.decode("utf-8"), params):
             print(f"{Fore.GREEN}{Style.BRIGHT}Test succeeded{Style.RESET_ALL}")
+            return True
         else:
             print(f"{Fore.RED}{Style.BRIGHT}Test failed{Style.RESET_ALL}")
             failed = True
+            return False
 
 def build(matrix):
     if platform.system() != "Windows":
@@ -221,36 +224,36 @@ def build_full_or_auto(matrix):
 
 def test(matrix):
     if platform.system() != "Windows":
-        run_test(
+        return run_test(
             "./test",
             (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
         )
     else:
         if matrix["compiler"] == "g++":
-            run_test(
+            return run_test(
                 f".\\test.exe",
                 (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
             )
         else:
-            run_test(
+            return run_test(
                 f".\\{matrix['target']}\\test.exe",
                 (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
             )
 
 def test_full_or_auto(matrix):
     if platform.system() != "Windows":
-        run_test(
+        return run_test(
             "./test",
             (matrix["compiler"],)
         )
     else:
         if matrix["compiler"] == "g++":
-            run_test(
+            return run_test(
                 f".\\test.exe",
                 (matrix["compiler"],)
             )
         else:
-            run_test(
+            return run_test(
                 f".\\{matrix['target']}\\test.exe",
                 (matrix["compiler"],)
             )
@@ -264,11 +267,14 @@ def build_and_test(matrix):
     os.mkdir("build")
     os.chdir("build")
 
+    good = False
     if build(matrix):
-        test(matrix)
+        good = test(matrix)
 
     os.chdir("..")
     print()
+
+    return good
 
 def build_and_test_full_or_auto(matrix):
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build and test with config {'<auto>' if matrix['config'] == '' else ', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
@@ -279,11 +285,14 @@ def build_and_test_full_or_auto(matrix):
     os.mkdir("build")
     os.chdir("build")
 
+    good = False
     if build_full_or_auto(matrix):
-        test_full_or_auto(matrix)
+        good = test_full_or_auto(matrix)
 
     os.chdir("..")
     print()
+
+    return good
 
 def main():
     parser = argparse.ArgumentParser(
