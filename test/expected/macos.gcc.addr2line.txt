@@ -32,7 +32,7 @@ test/test.cpp||106||void foo<int, int, int, int, int, int, int, int>(int, int, i
 test/test.cpp||106||void foo<int, int, int, int, int, int, int, int, int>(int, int, int, int, int, int, int, int, int, int)
 test/test.cpp||112||function_two(int, float)
 test/test.cpp||118||function_one(int)
-test/test.cpp||124||main
+test/test.cpp||125||main
 ./csu/../sysdeps/nptl/libc_start_call_main.h||58||__libc_start_call_main
 ./csu/../csu/libc-start.c||392||__libc_start_main_impl
 ./test||0||

@@ -32,7 +32,7 @@ test\test.cpp||110||foo<int, int, int, int, int, int, int, int>(int, int, int, i
 test\test.cpp||110||foo<int, int, int, int, int, int, int, int, int>(int, int, int, int, int, int, int, int, int, int)
 test\test.cpp||116||function_two(int, float)
 test\test.cpp||122||function_one(int)
-test\test.cpp||128||main()
+test\test.cpp||125||main()
 D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl||79||invoke_main()
 D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl||288||__scrt_common_main_seh()
 D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl||331||__scrt_common_main()

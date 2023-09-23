@@ -121,6 +121,7 @@ void function_one(int) {
 
 int main() {
     x = 0;
+    cpptrace::absorb_trace_exceptions(false);
     function_one(0);
     x = 0;
 }
