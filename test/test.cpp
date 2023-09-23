@@ -17,17 +17,17 @@ std::string normalize_filename(std::string name) {
     }
 }
 
+void custom_print(const cpptrace::stacktrace&);
+
 void trace() {
-    for(const auto& frame : cpptrace::generate_trace()) {
-        std::cout
-            << normalize_filename(frame.filename)
-            << "||"
-            << frame.line
-            << "||"
-            << frame.symbol
-            << std::endl;
+    auto trace = cpptrace::generate_trace();
+    if(trace.empty()) {
+        std::cerr << "<empty trace>" << std::endl;
     }
+    custom_print(trace);
 }
+
+// padding to avoid upsetting existing trace expected files
 
 void www(std::string&&, const std::string& str, std::vector<std::string*>&& foobar) {
     trace();
@@ -124,4 +124,16 @@ int main() {
     cpptrace::absorb_trace_exceptions(false);
     function_one(0);
     x = 0;
+}
+
+void custom_print(const cpptrace::stacktrace& trace) {
+    for(const auto& frame : trace) {
+        std::cout
+            << normalize_filename(frame.filename)
+            << "||"
+            << frame.line
+            << "||"
+            << frame.symbol
+            << std::endl;
+    }
 }

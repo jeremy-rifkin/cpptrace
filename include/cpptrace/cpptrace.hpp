@@ -40,8 +40,10 @@ namespace cpptrace {
         using iterator = std::vector<uintptr_t>::iterator;
         using const_iterator = std::vector<uintptr_t>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
-        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
+        inline const_iterator begin() const noexcept { return frames.begin(); }
+        inline const_iterator end() const noexcept { return frames.end(); }
+        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline const_iterator cend() const noexcept { return frames.cend(); }
     };
 
@@ -64,14 +66,16 @@ namespace cpptrace {
         using iterator = std::vector<object_frame>::iterator;
         using const_iterator = std::vector<object_frame>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
-        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
+        inline const_iterator begin() const noexcept { return frames.begin(); }
+        inline const_iterator end() const noexcept { return frames.end(); }
+        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline const_iterator cend() const noexcept { return frames.cend(); }
     };
 
     struct stacktrace_frame {
         uintptr_t address;
-        std::uint_least32_t line;
+        std::uint_least32_t line; // TODO: This should use UINT_LEAST32_MAX as a sentinel
         std::uint_least32_t column; // UINT_LEAST32_MAX if not present
         std::string filename;
         std::string symbol;
@@ -106,8 +110,10 @@ namespace cpptrace {
         using iterator = std::vector<stacktrace_frame>::iterator;
         using const_iterator = std::vector<stacktrace_frame>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
-        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
+        inline const_iterator begin() const noexcept { return frames.begin(); }
+        inline const_iterator end() const noexcept { return frames.end(); }
+        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline const_iterator cend() const noexcept { return frames.cend(); }
     private:
         CPPTRACE_API void print(std::ostream& stream, bool color, bool newline_at_end) const;
@@ -139,6 +145,7 @@ namespace cpptrace {
                     return generate_raw_trace(skip + 2, max_depth);
                 } catch(const std::exception& e) {
                     if(!detail::should_absorb_trace_exceptions()) {
+                        // TODO: Append to message somehow
                         fprintf(
                             stderr,
                             "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
@@ -159,6 +166,7 @@ namespace cpptrace {
                 }
             } catch(const std::exception& e) {
                 if(!detail::should_absorb_trace_exceptions()) {
+                    // TODO: Append to message somehow
                     fprintf(
                         stderr,
                         "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
