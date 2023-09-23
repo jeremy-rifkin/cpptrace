@@ -73,7 +73,7 @@ def output_matches(output: str, params: Tuple[str]):
 
     if output.strip() == "":
         print(f"Error: No output from test")
-        sys.exit(1)
+        return False
 
     expected = [line.strip().split("||") for line in expected.split("\n")]
     output = [line.strip().split("||") for line in output.split("\n")]
@@ -403,7 +403,7 @@ def main():
                 #"CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
             "demangle": [
-                #"CPPTRACE_DEMANGLE_WITH_CXXABI",
+                "CPPTRACE_DEMANGLE_WITH_CXXABI",
                 "CPPTRACE_DEMANGLE_WITH_NOTHING",
             ]
         }
@@ -439,6 +439,18 @@ def main():
             {
                 "symbols": "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
                 "compiler": "g++"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+                "demangle": "CPPTRACE_DEMANGLE_WITH_CXXABI"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+                "demangle": "CPPTRACE_DEMANGLE_WITH_NOTHING"
+            },
+            {
+                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+                "demangle": "CPPTRACE_DEMANGLE_WITH_NOTHING"
             }
         ]
         run_matrix(matrix, exclude, build_and_test)
