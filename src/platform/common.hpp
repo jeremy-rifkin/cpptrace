@@ -60,6 +60,8 @@ namespace detail {
         snprintf(&str[0], length + 1, args...);
         return str;
     }
+
+    static const stacktrace_frame null_frame {0, 0, UINT_LEAST32_MAX, "", ""};
 }
 }
 

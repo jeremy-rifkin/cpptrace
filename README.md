@@ -218,9 +218,11 @@ namespace cpptrace {
 ### Utilities
 
 `cpptrace::demangle` provides a helper function for name demangling, since it has to implement that helper internally
-anyways. It also provides a function to control whether any exceptions that are throw internally are caught and ignored
-before returning to user code. The library makes an attempt to fail silently during trace generation if any errors are
-encountered.
+anyways.
+
+The library makes an attempt to fail silently and continue during trace generation if any errors are encountered.
+`cpptrace::absorb_trace_exceptions` can be used to configure whether these exceptions are absorbed silently internally
+or wether they're rethrown to the caller.
 
 ```cpp
 namespace cpptrace {

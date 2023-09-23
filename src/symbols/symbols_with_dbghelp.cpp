@@ -382,22 +382,10 @@ namespace dbghelp {
                     signature
                 };
             } else {
-                return {
-                    addr,
-                    0,
-                    UINT_LEAST32_MAX,
-                    "",
-                    symbol->Name
-                };
+                return { addr, 0, UINT_LEAST32_MAX, "", symbol->Name };
             }
         } else {
-            return {
-                addr,
-                0,
-                UINT_LEAST32_MAX,
-                "",
-                ""
-            };
+            return { addr, 0, UINT_LEAST32_MAX, "", "" };
         }
     }
 
@@ -414,7 +402,14 @@ namespace dbghelp {
             throw std::logic_error("SymInitialize failed");
         }
         for(const auto frame : frames) {
-            trace.push_back(resolve_frame(proc, frame));
+            try {
+                trace.push_back(resolve_frame(proc, frame));
+            } catch(...) {
+                if(!detail::should_absorb_trace_exceptions()) {
+                    throw;
+                }
+                trace.push_back(null_frame);
+            }
         }
         if(!SymCleanup(proc)) {
             //throw std::logic_error("SymCleanup failed");

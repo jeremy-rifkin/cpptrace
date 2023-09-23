@@ -42,16 +42,30 @@ namespace cpptrace {
 
     CPPTRACE_API
     object_trace raw_trace::resolve_object_trace() const {
-        return object_trace(detail::get_frames_object_info(frames));
+        try {
+            return object_trace(detail::get_frames_object_info(frames));
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return object_trace({});
+        }
     }
 
     CPPTRACE_API
     stacktrace raw_trace::resolve() const {
-        std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
-        for(auto& frame : trace) {
-            frame.symbol = detail::demangle(frame.symbol);
+        try {
+            std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
+            for(auto& frame : trace) {
+                frame.symbol = detail::demangle(frame.symbol);
+            }
+            return stacktrace(std::move(trace));
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return stacktrace();
         }
-        return stacktrace(std::move(trace));
     }
 
     CPPTRACE_API
@@ -76,7 +90,14 @@ namespace cpptrace {
 
     CPPTRACE_API
     stacktrace object_trace::resolve() const {
-        return stacktrace(detail::resolve_frames(frames));
+        try {
+            return stacktrace(detail::resolve_frames(frames));
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return stacktrace();
+        }
     }
 
     CPPTRACE_API
@@ -222,22 +243,50 @@ namespace cpptrace {
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     raw_trace generate_raw_trace(std::uint_least32_t skip) {
-        return raw_trace(detail::capture_frames(skip + 1, UINT_LEAST32_MAX));
+        try {
+            return raw_trace(detail::capture_frames(skip + 1, UINT_LEAST32_MAX));
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return raw_trace({});
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
-        return raw_trace(detail::capture_frames(skip + 1, max_depth));
+        try {
+            return raw_trace(detail::capture_frames(skip + 1, max_depth));
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return raw_trace({});
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     object_trace generate_object_trace(std::uint_least32_t skip) {
-        return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, UINT_LEAST32_MAX)));
+        try {
+            return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, UINT_LEAST32_MAX)));
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return object_trace({});
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
-        return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, max_depth)));
+        try {
+            return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, max_depth)));
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return object_trace({});
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
@@ -247,12 +296,19 @@ namespace cpptrace {
 
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     stacktrace generate_trace(std::uint32_t skip, std::uint_least32_t max_depth) {
-        std::vector<uintptr_t> frames = detail::capture_frames(skip + 1, max_depth);
-        std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
-        for(auto& frame : trace) {
-            frame.symbol = detail::demangle(frame.symbol);
+        try {
+            std::vector<uintptr_t> frames = detail::capture_frames(skip + 1, max_depth);
+            std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
+            for(auto& frame : trace) {
+                frame.symbol = detail::demangle(frame.symbol);
+            }
+            return stacktrace(std::move(trace));
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return stacktrace();
         }
-        return stacktrace(std::move(trace));
     }
 
     CPPTRACE_API

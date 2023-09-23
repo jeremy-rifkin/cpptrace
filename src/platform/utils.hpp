@@ -126,7 +126,7 @@ namespace detail {
         return byte_swapper<T, sizeof(T)>{}(value);
     }
 
-    inline void enable_virtual_terminal_processing_if_needed() {
+    inline void enable_virtual_terminal_processing_if_needed() noexcept {
         // enable colors / ansi processing if necessary
         #if IS_WINDOWS
          // https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#example-of-enabling-virtual-terminal-processing
@@ -142,7 +142,7 @@ namespace detail {
         #endif
     }
 
-    inline constexpr unsigned n_digits(unsigned value) {
+    inline constexpr unsigned n_digits(unsigned value) noexcept {
         return value < 10 ? 1 : 1 + n_digits(value / 10);
     }
     static_assert(n_digits(1) == 1, "n_digits utility producing the wrong result");
