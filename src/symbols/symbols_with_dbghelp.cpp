@@ -382,22 +382,10 @@ namespace dbghelp {
                     signature
                 };
             } else {
-                return {
-                    addr,
-                    0,
-                    UINT_LEAST32_MAX,
-                    "",
-                    symbol->Name
-                };
+                return { addr, 0, UINT_LEAST32_MAX, "", symbol->Name };
             }
         } else {
-            return {
-                addr,
-                0,
-                UINT_LEAST32_MAX,
-                "",
-                ""
-            };
+            return { addr, 0, UINT_LEAST32_MAX, "", "" };
         }
     }
 

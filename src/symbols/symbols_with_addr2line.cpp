@@ -267,7 +267,7 @@ namespace addr2line {
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         // TODO: Refactor better
-        std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, UINT_LEAST32_MAX, "", "" });
+        std::vector<stacktrace_frame> trace(frames.size(), null_frame);
         for(size_t i = 0; i < frames.size(); i++) {
             trace[i].address = frames[i].raw_address;
             // Set what is known for now, and resolutions from addr2line should overwrite

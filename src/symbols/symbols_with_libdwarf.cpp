@@ -1089,7 +1089,7 @@ namespace libdwarf {
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         stacktrace_frame resolve_frame(const object_frame& frame_info) {
-            stacktrace_frame frame { 0, 0, UINT_LEAST32_MAX, "", "" };
+            stacktrace_frame frame = null_frame;
             frame.filename = frame_info.obj_path;
             frame.symbol = frame_info.symbol;
             frame.address = frame_info.raw_address;
@@ -1112,19 +1112,31 @@ namespace libdwarf {
 
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
-        std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, UINT_LEAST32_MAX, "", "" });
+        std::vector<stacktrace_frame> trace(frames.size(), null_frame);
         static std::mutex mutex;
         // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
         const std::lock_guard<std::mutex> lock(mutex);
         for(const auto& obj_entry : collate_frames(frames, trace)) {
-            const auto& obj_name = obj_entry.first;
-            dwarf_resolver resolver(obj_name);
-            // If there's no debug information it'll mark itself as not ok
-            if(resolver.ok) {
-                for(const auto& entry : obj_entry.second) {
-                    const auto& dlframe = entry.first.get();
-                    auto& frame = entry.second.get();
-                    frame = resolver.resolve_frame(dlframe);
+            try {
+                const auto& obj_name = obj_entry.first;
+                dwarf_resolver resolver(obj_name);
+                // If there's no debug information it'll mark itself as not ok
+                if(resolver.ok) {
+                    for(const auto& entry : obj_entry.second) {
+                        try {
+                            const auto& dlframe = entry.first.get();
+                            auto& frame = entry.second.get();
+                            frame = resolver.resolve_frame(dlframe);
+                        } catch(std::exception& e) {
+                            if(!should_absorb_trace_exceptions()) {
+                                throw;
+                            }
+                        }
+                    }
+                }
+            } catch(std::exception& e) {
+                if(!should_absorb_trace_exceptions()) {
+                    throw;
                 }
             }
         }

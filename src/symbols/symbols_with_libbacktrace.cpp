@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <vector>
 
 #ifdef CPPTRACE_BACKTRACE_PATH
@@ -21,9 +22,6 @@ namespace detail {
 namespace libbacktrace {
     int full_callback(void* data, uintptr_t address, const char* file, int line, const char* symbol) {
         stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
-        if(line == 0) {
-            ///fprintf(stderr, "Getting bad data for some reason\n"); // TODO: Eliminate
-        }
         frame.address = address;
         frame.line = line;
         frame.filename = file ? file : "";
@@ -40,7 +38,7 @@ namespace libbacktrace {
     }
 
     void error_callback(void*, const char* msg, int errnum) {
-        fprintf(stderr, "Libbacktrace error: %s, code %d\n", msg, errnum);
+        throw std::runtime_error(stringf("Libbacktrace error: %s, code %d\n", msg, errnum));
     }
 
     backtrace_state* get_backtrace_state() {
@@ -58,26 +56,33 @@ namespace libbacktrace {
 
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
     stacktrace_frame resolve_frame(const uintptr_t addr) {
-        stacktrace_frame frame;
-        frame.column = UINT_LEAST32_MAX;
-        backtrace_pcinfo(
-            get_backtrace_state(),
-            addr,
-            full_callback,
-            error_callback,
-            &frame
-        );
-        if(frame.symbol.empty()) {
-            // fallback, try to at least recover the symbol name with backtrace_syminfo
-            backtrace_syminfo(
+        try {
+            stacktrace_frame frame;
+            frame.column = UINT_LEAST32_MAX;
+            backtrace_pcinfo(
                 get_backtrace_state(),
                 addr,
-                syminfo_callback,
+                full_callback,
                 error_callback,
                 &frame
             );
+            if(frame.symbol.empty()) {
+                // fallback, try to at least recover the symbol name with backtrace_syminfo
+                backtrace_syminfo(
+                    get_backtrace_state(),
+                    addr,
+                    syminfo_callback,
+                    error_callback,
+                    &frame
+                );
+            }
+            return frame;
+        } catch(std::exception& e) {
+            if(!should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return null_frame;
         }
-        return frame;
     }
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
