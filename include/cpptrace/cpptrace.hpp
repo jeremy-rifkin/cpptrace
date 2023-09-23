@@ -40,8 +40,10 @@ namespace cpptrace {
         using iterator = std::vector<uintptr_t>::iterator;
         using const_iterator = std::vector<uintptr_t>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
-        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
+        inline const_iterator begin() const noexcept { return frames.begin(); }
+        inline const_iterator end() const noexcept { return frames.end(); }
+        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline const_iterator cend() const noexcept { return frames.cend(); }
     };
 
@@ -64,8 +66,10 @@ namespace cpptrace {
         using iterator = std::vector<object_frame>::iterator;
         using const_iterator = std::vector<object_frame>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
-        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
+        inline const_iterator begin() const noexcept { return frames.begin(); }
+        inline const_iterator end() const noexcept { return frames.end(); }
+        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline const_iterator cend() const noexcept { return frames.cend(); }
     };
 
@@ -106,8 +110,10 @@ namespace cpptrace {
         using iterator = std::vector<stacktrace_frame>::iterator;
         using const_iterator = std::vector<stacktrace_frame>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
-        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline iterator end() noexcept { return frames.end(); }
+        inline const_iterator begin() const noexcept { return frames.begin(); }
+        inline const_iterator end() const noexcept { return frames.end(); }
+        inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline const_iterator cend() const noexcept { return frames.cend(); }
     private:
         CPPTRACE_API void print(std::ostream& stream, bool color, bool newline_at_end) const;
