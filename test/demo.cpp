@@ -6,6 +6,7 @@
 #include <string>
 
 void trace() {
+    cpptrace::absorb_trace_exceptions(false);
     cpptrace::generate_trace().print();
 }
 
