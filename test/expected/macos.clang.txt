@@ -1,4 +1,4 @@
-test/test.cpp||21||trace()
+test/test.cpp||23||trace()
 test/test.cpp||33||www(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>&&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>*, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>*>>&&)
 test/test.cpp||37||jjj(void (* const*)(float))
 test/test.cpp||45||iii(Foo::Bar)

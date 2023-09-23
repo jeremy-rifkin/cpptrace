@@ -59,7 +59,7 @@ def build(matrix):
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
         )
         if succeeded:
-            run_command("make", "-j", "VERBOSE=1")
+            succeeded = run_command("make", "-j", "VERBOSE=1")
     else:
         args = [
             "cmake",
@@ -76,12 +76,14 @@ def build(matrix):
         succeeded = run_command(*args)
         if succeeded:
             if matrix["compiler"] == "g++":
-                run_command("make", "-j", "VERBOSE=1")
+                succeeded = run_command("make", "-j", "VERBOSE=1")
             else:
-                run_command("msbuild", "cpptrace.sln")
+                succeeded = run_command("msbuild", "cpptrace.sln")
 
     os.chdir("..")
     print()
+
+    return succeeded
 
 def build_full_or_auto(matrix):
     #touch_sources()
@@ -106,7 +108,7 @@ def build_full_or_auto(matrix):
             args.append(f"{matrix['config']}")
         succeeded = run_command(*args)
         if succeeded:
-            run_command("make", "-j")
+            succeeded = run_command("make", "-j")
     else:
         args = [
             "cmake",
@@ -122,12 +124,14 @@ def build_full_or_auto(matrix):
         succeeded = run_command(*args)
         if succeeded:
             if matrix["compiler"] == "g++":
-                run_command("make", "-j")
+                succeeded = run_command("make", "-j")
             else:
-                run_command("msbuild", "cpptrace.sln")
+                succeeded = run_command("msbuild", "cpptrace.sln")
 
     os.chdir("..")
     print()
+
+    return succeeded
 
 def main():
     parser = argparse.ArgumentParser(
@@ -148,7 +152,7 @@ def main():
             "symbols": [
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
-                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF"
+                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
             ],
