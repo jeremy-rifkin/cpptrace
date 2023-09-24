@@ -448,8 +448,7 @@ namespace libdwarf {
 
     struct line_context {
         Dwarf_Unsigned version;
-        Dwarf_Small table_count;
-        Dwarf_Line_Context ctx;
+        Dwarf_Line_Context line_context;
     };
 
     struct subprogram_entry {
@@ -552,7 +551,7 @@ namespace libdwarf {
             // TODO: Maybe redundant since dwarf_finish(dbg); will clean up the line stuff anyway but may as well just
             // for thoroughness
             for(auto& entry : line_contexts) {
-                dwarf_srclines_dealloc_b(entry.second.ctx);
+                dwarf_srclines_dealloc_b(entry.second.line_context);
             }
             // subprograms_cache needs to be destroyed before dbg otherwise there will be another use after free
             subprograms_cache.clear();
@@ -777,98 +776,92 @@ namespace libdwarf {
             }
         }
 
-        void handle_line(Dwarf_Line line, stacktrace_frame& frame) {
-            char what[] = "??";
-            char *         linesrc = what;
-            Dwarf_Unsigned lineno = 0;
-
-            if(line) {
-                VERIFY(wrap(dwarf_linesrc, line, &linesrc) == DW_DLV_OK);
-                VERIFY(wrap(dwarf_lineno, line, &lineno) == DW_DLV_OK);
-            }
-            if(dump_dwarf) {
-                printf("%s:%u\n", linesrc, to<unsigned>(lineno));
-            }
-            frame.line = static_cast<uint_least32_t>(lineno);
-            frame.filename = linesrc;
-            if(line) {
-                dwarf_dealloc(dbg, linesrc, DW_DLA_STRING);
-            }
-        }
-
-        // retrieve_line_info code based on libdwarf-addr2line
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         void retrieve_line_info(
             const die_object& die,
             Dwarf_Addr pc,
-            Dwarf_Half dwversion,
             stacktrace_frame& frame
         ) {
-            Dwarf_Unsigned version;
-            Dwarf_Small table_count;
-            Dwarf_Line_Context ctxt;
-            (void)dwversion;
             auto off = die.get_global_offset();
             auto it = line_contexts.find(off);
+            Dwarf_Line_Context line_context;
             if(it != line_contexts.end()) {
                 auto& entry = it->second;
-                version = entry.version;
-                table_count = entry.table_count;
-                ctxt = entry.ctx;
+                line_context = entry.line_context;
             } else {
+                Dwarf_Unsigned version;
+                Dwarf_Small table_count;
                 int ret = wrap(
                     dwarf_srclines_b,
                     die.get(),
                     &version,
                     &table_count,
-                    &ctxt
+                    &line_context
                 );
+                VERIFY(table_count >= 0 && table_count <= 2, "Unknown dwarf line table count");
                 if(ret == DW_DLV_NO_ENTRY) {
                     // TODO: Failing silently for now
                     return;
                 }
-                line_contexts.insert({off, {version, table_count, ctxt}});
+                VERIFY(ret == DW_DLV_OK);
+                line_contexts.insert({off, {version, line_context}});
             }
-            if(table_count == 1) {
-                Dwarf_Line* linebuf = 0;
-                Dwarf_Signed linecount = 0;
-                Dwarf_Addr prev_lineaddr = 0;
-                VERIFY(
-                    wrap(
-                        dwarf_srclines_from_linecontext,
-                        ctxt,
-                        &linebuf,
-                        &linecount
-                    ) == DW_DLV_OK
-                );
-                Dwarf_Line prev_line = 0;
-                for(int i = 0; i < linecount; i++) {
-                    Dwarf_Line line = linebuf[i];
-                    Dwarf_Addr lineaddr = 0;
-                    VERIFY(wrap(dwarf_lineaddr, line, &lineaddr) == DW_DLV_OK);
-                    if(pc == lineaddr) {
-                        // Find the last line entry containing current pc
-                        Dwarf_Line last_pc_line = line;
-                        for(int j = i + 1; j < linecount; j++) {
-                            Dwarf_Line j_line = linebuf[j];
-                            VERIFY(wrap(dwarf_lineaddr, j_line, &lineaddr) == DW_DLV_OK);
-                            if(pc == lineaddr) {
-                                last_pc_line = j_line;
-                            }
+            Dwarf_Line* line_buffer = 0;
+            Dwarf_Signed line_count = 0;
+            Dwarf_Line* linebuf_actuals = nullptr;
+            Dwarf_Signed linecount_actuals = 0;
+            VERIFY(
+                wrap(
+                    dwarf_srclines_two_level_from_linecontext,
+                    line_context,
+                    &line_buffer,
+                    &line_count,
+                    &linebuf_actuals,
+                    &linecount_actuals
+                ) == DW_DLV_OK
+            );
+            Dwarf_Addr last_lineaddr = 0;
+            Dwarf_Line last_line = 0;
+            for(int i = 0; i < line_count; i++) {
+                Dwarf_Line line = line_buffer[i];
+                Dwarf_Addr lineaddr = 0;
+                VERIFY(wrap(dwarf_lineaddr, line, &lineaddr) == DW_DLV_OK);
+                Dwarf_Line found_line = nullptr;
+                if(pc == lineaddr) {
+                    // Multiple PCs may correspond to a line, find the last one
+                    found_line = line;
+                    for(int j = i + 1; j < line_count; j++) {
+                        Dwarf_Line line = line_buffer[j];
+                        Dwarf_Addr lineaddr = 0;
+                        VERIFY(wrap(dwarf_lineaddr, line, &lineaddr) == DW_DLV_OK);
+                        if(pc == lineaddr) {
+                            found_line = line;
                         }
-                        handle_line(last_pc_line, frame);
-                        break;
-                    } else if(prev_line && pc > prev_lineaddr && pc < lineaddr) {
-                        handle_line(prev_line, frame);
-                        break;
                     }
-                    Dwarf_Bool is_lne;
-                    VERIFY(wrap(dwarf_lineendsequence, line, &is_lne) == DW_DLV_OK);
-                    if(is_lne) {
-                        prev_line = 0;
+                } else if(last_line && pc > last_lineaddr && pc < lineaddr) {
+                    // Guess that the last line had it
+                    found_line = last_line;
+                }
+                if(found_line) {
+                    Dwarf_Unsigned line_number = 0;
+                    VERIFY(wrap(dwarf_lineno, found_line, &line_number) == DW_DLV_OK);
+                    frame.line = static_cast<uint_least32_t>(line_number);
+                    char* filename = nullptr;
+                    VERIFY(wrap(dwarf_linesrc, found_line, &filename) == DW_DLV_OK);
+                    auto wrapper = raii_wrap(
+                        filename,
+                        [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
+                    );
+                    frame.filename = filename;
+                } else {
+                    Dwarf_Bool is_line_end;
+                    VERIFY(wrap(dwarf_lineendsequence, line, &is_line_end) == DW_DLV_OK);
+                    if(is_line_end) {
+                        last_lineaddr = 0;
+                        last_line = 0;
                     } else {
-                        prev_lineaddr = lineaddr;
-                        prev_line = line;
+                        last_lineaddr = lineaddr;
+                        last_line = line;
                     }
                 }
             }
@@ -908,7 +901,7 @@ namespace libdwarf {
                                 to_ull(pc)
                             );
                         }
-                        retrieve_line_info(cu_die, pc, dwversion, frame); // no offset for line info
+                        retrieve_line_info(cu_die, pc, frame); // no offset for line info
                         retrieve_symbol(cu_die, pc, dwversion, frame);
                         return false;
                     }
@@ -991,7 +984,7 @@ namespace libdwarf {
                         fprintf(stderr, "Found CU in aranges\n");
                         cu_die.print();
                     }
-                    retrieve_line_info(cu_die, pc, dwversion, frame); // no offset for line info
+                    retrieve_line_info(cu_die, pc, frame); // no offset for line info
                     retrieve_symbol(cu_die, pc, dwversion, frame);
                 }
             } else {
