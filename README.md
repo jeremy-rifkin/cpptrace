@@ -545,6 +545,7 @@ Back-end configuration:
   injection).
 - `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH=On/Off`: Specifies whether cpptrace should let the system search the PATH
   environment variable directories for the binary.
+- `CPPTRACE_USE_SYSTEM_LIBDWARF=On/Off`: Use libdwarf resolved via `find_package` rather than the bundled libdwarf.
 
 Testing:
 - `CPPTRACE_BUILD_TEST` Build a small test program
