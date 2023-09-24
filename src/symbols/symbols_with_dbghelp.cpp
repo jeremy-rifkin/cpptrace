@@ -3,6 +3,7 @@
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
 #include "../platform/program_name.hpp"
+#include "../platform/dbghelp_syminit_manager.hpp"
 
 #include <memory>
 #include <regex>
@@ -397,10 +398,7 @@ namespace dbghelp {
         // TODO: When does this need to be called? Can it be moved to the symbolizer?
         SymSetOptions(SYMOPT_ALLOW_ABSOLUTE_SYMBOLS);
         HANDLE proc = GetCurrentProcess();
-        if(!SymInitialize(proc, NULL, TRUE)) {
-            //TODO?
-            throw std::logic_error("SymInitialize failed");
-        }
+        get_syminit_manager().init(proc);
         for(const auto frame : frames) {
             try {
                 trace.push_back(resolve_frame(proc, frame));
@@ -411,10 +409,6 @@ namespace dbghelp {
                 trace.push_back(null_frame);
             }
         }
-        if(!SymCleanup(proc)) {
-            //throw std::logic_error("SymCleanup failed");
-        }
-
         return trace;
     }
 }

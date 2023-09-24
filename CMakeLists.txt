@@ -34,6 +34,7 @@ option(CPPTRACE_GET_SYMBOLS_WITH_NOTHING "" OFF)
 option(CPPTRACE_UNWIND_WITH_UNWIND "" OFF)
 option(CPPTRACE_UNWIND_WITH_EXECINFO "" OFF)
 option(CPPTRACE_UNWIND_WITH_WINAPI "" OFF)
+option(CPPTRACE_UNWIND_WITH_DBGHELP "" OFF)
 option(CPPTRACE_UNWIND_WITH_NOTHING "" OFF)
 
 option(CPPTRACE_DEMANGLE_WITH_CXXABI "" OFF)
@@ -123,6 +124,7 @@ if(
     CPPTRACE_UNWIND_WITH_UNWIND OR
     CPPTRACE_UNWIND_WITH_EXECINFO OR
     CPPTRACE_UNWIND_WITH_WINAPI OR
+    CPPTRACE_UNWIND_WITH_DBGHELP OR
     CPPTRACE_UNWIND_WITH_NOTHING
   )
 )
@@ -150,7 +152,7 @@ if(
       message(STATUS "Cpptrace auto config: Using winapi for unwinding")
     endif()
   elseif(WIN32)
-    set(CPPTRACE_UNWIND_WITH_WINAPI On)
+    set(CPPTRACE_UNWIND_WITH_DBGHELP On)
     message(STATUS "Cpptrace auto config: Using winapi for unwinding")
   endif()
 else()
@@ -228,6 +230,7 @@ set(
   src/unwind/unwind_with_nothing.cpp
   src/unwind/unwind_with_unwind.cpp
   src/unwind/unwind_with_winapi.cpp
+  src/unwind/unwind_with_dbghelp.cpp
 )
 
 if(CPPTRACE_STATIC)
@@ -350,6 +353,11 @@ endif()
 
 if(CPPTRACE_UNWIND_WITH_WINAPI)
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_WINAPI)
+endif()
+
+if(CPPTRACE_UNWIND_WITH_DBGHELP)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_DBGHELP)
+  target_link_libraries(cpptrace PRIVATE dbghelp)
 endif()
 
 if(CPPTRACE_UNWIND_WITH_NOTHING)
