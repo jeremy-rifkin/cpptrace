@@ -395,6 +395,7 @@ def main():
             "std": ["11", "20"],
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_WINAPI",
+                "CPPTRACE_UNWIND_WITH_DBGHELP",
                 #"CPPTRACE_UNWIND_WITH_UNWIND", # Broken on github actions for some reason
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
