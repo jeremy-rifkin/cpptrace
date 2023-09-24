@@ -122,8 +122,18 @@ namespace detail {
                     ##__VA_ARGS__) \
     )
 
+    // Workaround a compiler warning
+    template<typename T>
+    std::string as_string(T&& value) {
+        return std::string(std::forward<T>(value));
+    }
+
+    inline std::string as_string() {
+        return "";
+    }
+
     // Check condition in both debug and release. std::runtime_error on failure.
-    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, {}, std::string(__VA_ARGS__)))
+    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, {}, ::cpptrace::detail::as_string(__VA_ARGS__)))
 
     #ifndef NDEBUG
      // Check condition in both debug. std::runtime_error on failure.

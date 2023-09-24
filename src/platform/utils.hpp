@@ -349,13 +349,17 @@ namespace detail {
         typename std::enable_if<
             std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
             int
+        >::type = 0,
+        typename std::enable_if<
+            std::is_standard_layout<T>::value && std::is_trivial<T>::value,
+            int
         >::type = 0
     >
     class raii_wrapper {
         T obj;
         optional<D> deleter;
     public:
-        raii_wrapper(T&& obj, D deleter) : obj(std::move(obj)), deleter(deleter) {}
+        raii_wrapper(T obj, D deleter) : obj(obj), deleter(deleter) {}
         raii_wrapper(raii_wrapper&& other) : obj(std::move(other.obj)), deleter(other.deleter) {
             other.deleter = nullopt;
         }
@@ -373,6 +377,12 @@ namespace detail {
         operator const T&() const {
             return obj;
         }
+        T& get() {
+            return obj;
+        }
+        const T& get() const {
+            return obj;
+        }
     };
 
     template<
@@ -381,10 +391,14 @@ namespace detail {
         typename std::enable_if<
             std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
             int
+        >::type = 0,
+        typename std::enable_if<
+            std::is_standard_layout<T>::value && std::is_trivial<T>::value,
+            int
         >::type = 0
     >
-    raii_wrapper<T, D> raii_wrap(T&& obj, D deleter) {
-        return raii_wrapper<T, D>(std::move(obj), deleter);
+    raii_wrapper<typename std::remove_reference<T>::type, D> raii_wrap(T obj, D deleter) {
+        return raii_wrapper<typename std::remove_reference<T>::type, D>(obj, deleter);
     }
 
     inline void file_deleter(FILE* ptr) {
