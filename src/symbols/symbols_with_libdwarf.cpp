@@ -89,7 +89,7 @@ namespace libdwarf {
 
         ~die_object() {
             if(die) {
-                dwarf_dealloc(dbg, die, DW_DLA_DIE);
+                dwarf_dealloc_die(die);
             }
         }
 
@@ -459,7 +459,7 @@ namespace libdwarf {
 
     struct dwarf_resolver {
         std::string obj_path;
-        Dwarf_Debug dbg;
+        Dwarf_Debug dbg = nullptr;
         bool ok = false;
         std::unordered_map<Dwarf_Off, line_context> line_contexts;
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
