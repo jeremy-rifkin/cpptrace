@@ -130,8 +130,22 @@ namespace cpptrace {
     CPPTRACE_API std::string demangle(const std::string& name);
     CPPTRACE_API void absorb_trace_exceptions(bool absorb);
 
+    enum class cache_mode {
+        // Only minimal lookup tables
+        prioritize_memory,
+        // Build lookup tables but don't keep them around between trace calls
+        hybrid,
+        // Build lookup tables as needed
+        prioritize_speed
+    };
+
+    namespace experimental {
+        CPPTRACE_API void set_cache_mode(cache_mode mode);
+    }
+
     namespace detail {
         CPPTRACE_API bool should_absorb_trace_exceptions();
+        CPPTRACE_API enum cache_mode get_cache_mode();
     }
 
     class exception : public std::exception {

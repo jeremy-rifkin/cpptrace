@@ -26,10 +26,6 @@
 #define CYAN    ESC "36m"
 
 namespace cpptrace {
-    namespace detail {
-        std::atomic_bool absorb_trace_exceptions(true);
-    }
-
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     raw_trace raw_trace::current(std::uint_least32_t skip) {
         return generate_raw_trace(skip + 1);
@@ -316,13 +312,28 @@ namespace cpptrace {
         return detail::demangle(name);
     }
 
+    namespace detail {
+        std::atomic_bool absorb_trace_exceptions(true);
+        std::atomic<enum cache_mode> cache_mode(cache_mode::prioritize_speed);
+    }
+
     CPPTRACE_API void absorb_trace_exceptions(bool absorb) {
         detail::absorb_trace_exceptions = absorb;
     }
 
+    namespace experimental {
+        CPPTRACE_API void set_cache_mode(cache_mode mode) {
+            detail::cache_mode = mode;
+        }
+    }
+
     namespace detail {
         CPPTRACE_API bool should_absorb_trace_exceptions() {
-            return detail::absorb_trace_exceptions;
+            return absorb_trace_exceptions;
+        }
+
+        CPPTRACE_API enum cache_mode get_cache_mode() {
+            return cache_mode;
         }
     }
 }

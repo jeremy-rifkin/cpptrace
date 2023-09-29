@@ -398,7 +398,13 @@ namespace dbghelp {
         // TODO: When does this need to be called? Can it be moved to the symbolizer?
         SymSetOptions(SYMOPT_ALLOW_ABSOLUTE_SYMBOLS);
         HANDLE proc = GetCurrentProcess();
-        get_syminit_manager().init(proc);
+        if(get_cache_mode() == cache_mode::prioritize_speed) {
+            get_syminit_manager().init(proc);
+        } else {
+            if(!SymInitialize(proc, NULL, TRUE)) {
+                throw std::logic_error("Cpptrace SymInitialize failed");
+            }
+        }
         for(const auto frame : frames) {
             try {
                 trace.push_back(resolve_frame(proc, frame));
@@ -407,6 +413,11 @@ namespace dbghelp {
                     throw;
                 }
                 trace.push_back(null_frame);
+            }
+        }
+        if(get_cache_mode() != cache_mode::prioritize_speed) {
+            if(!SymCleanup(proc)) {
+                throw std::logic_error("Cpptrace SymCleanup failed");
             }
         }
         return trace;

@@ -575,7 +575,7 @@ namespace libdwarf {
                 // Check for .debug_aranges for fast lookup
                 wrap(dwarf_get_aranges, dbg, &aranges, &arange_count);
             }
-            if(ok && !aranges) {
+            if(ok && !aranges && get_cache_mode() != cache_mode::prioritize_memory) {
                 walk_compilation_units([this] (const die_object& cu_die) {
                     Dwarf_Half offset_size = 0;
                     Dwarf_Half dwversion = 0;
@@ -839,39 +839,44 @@ namespace libdwarf {
             Dwarf_Half dwversion,
             stacktrace_frame& frame
         ) {
-            auto off = cu_die.get_global_offset();
-            auto it = subprograms_cache.find(off);
-            if(it == subprograms_cache.end()) {
-                std::vector<subprogram_entry> vec;
-                preprocess_subprograms(cu_die, dwversion, vec);
-                std::sort(vec.begin(), vec.end(), [] (const subprogram_entry& a, const subprogram_entry& b) {
-                    return a.low < b.low;
-                });
-                subprograms_cache.emplace(off, std::move(vec));
-                it = subprograms_cache.find(off);
-            }
-            auto& vec = it->second;
-            auto vec_it = std::lower_bound(
-                vec.begin(),
-                vec.end(),
-                pc,
-                [] (const subprogram_entry& entry, Dwarf_Addr pc) {
-                    return entry.low < pc;
-                }
-            );
-            // vec_it is first >= pc
-            // we want first <= pc
-            if(vec_it != vec.begin()) {
-                vec_it--;
-            }
-            // If the vector has been empty this can happen
-            if(vec_it != vec.end()) {
-                //vec_it->die.print();
-                if(vec_it->die.pc_in_die(dwversion, pc)) {
-                    retrieve_symbol_for_subprogram(vec_it->die, dwversion, frame);
-                }
+            if(get_cache_mode() == cache_mode::prioritize_memory) {
+                retrieve_symbol_walk(cu_die, pc, dwversion, frame);
             } else {
-                ASSERT(vec.size() == 0, "Vec should be empty?");
+                auto off = cu_die.get_global_offset();
+                auto it = subprograms_cache.find(off);
+                if(it == subprograms_cache.end()) {
+                    // TODO: Refactor. Do the sort in the preprocess function and return the vec directly.
+                    std::vector<subprogram_entry> vec;
+                    preprocess_subprograms(cu_die, dwversion, vec);
+                    std::sort(vec.begin(), vec.end(), [] (const subprogram_entry& a, const subprogram_entry& b) {
+                        return a.low < b.low;
+                    });
+                    subprograms_cache.emplace(off, std::move(vec));
+                    it = subprograms_cache.find(off);
+                }
+                auto& vec = it->second;
+                auto vec_it = std::lower_bound(
+                    vec.begin(),
+                    vec.end(),
+                    pc,
+                    [] (const subprogram_entry& entry, Dwarf_Addr pc) {
+                        return entry.low < pc;
+                    }
+                );
+                // vec_it is first >= pc
+                // we want first <= pc
+                if(vec_it != vec.begin()) {
+                    vec_it--;
+                }
+                // If the vector has been empty this can happen
+                if(vec_it != vec.end()) {
+                    //vec_it->die.print();
+                    if(vec_it->die.pc_in_die(dwversion, pc)) {
+                        retrieve_symbol_for_subprogram(vec_it->die, dwversion, frame);
+                    }
+                } else {
+                    ASSERT(vec.size() == 0, "Vec should be empty?");
+                }
             }
         }
 
@@ -998,7 +1003,7 @@ namespace libdwarf {
                     retrieve_symbol(cu_die, pc, dwversion, frame);
                 }
             } else {
-                if(false) { // TODO: Proper condition
+                if(get_cache_mode() == cache_mode::prioritize_memory) {
                     // walk for the cu and go from there
                     walk_compilation_units([this, pc, &frame] (const die_object& cu_die) {
                         Dwarf_Half offset_size = 0;

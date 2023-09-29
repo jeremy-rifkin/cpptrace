@@ -224,10 +224,27 @@ The library makes an attempt to fail silently and continue during trace generati
 `cpptrace::absorb_trace_exceptions` can be used to configure whether these exceptions are absorbed silently internally
 or wether they're rethrown to the caller.
 
+`cpptrace::experimental::set_cache_mode` can be used to control time-memory tradeoffs within the library. By default
+speed is prioritized. If using this function, set the cache mode at the very start of your program before any traces are
+performed.
+
 ```cpp
 namespace cpptrace {
     std::string demangle(const std::string& name);
     void absorb_trace_exceptions(bool absorb);
+
+    enum class cache_mode {
+        // Only minimal lookup tables
+        prioritize_memory,
+        // Build lookup tables but don't keep them around between trace calls
+        hybrid,
+        // Build lookup tables as needed
+        prioritize_speed
+    };
+
+    namespace experimental {
+        void set_cache_mode(cache_mode mode);
+    }
 }
 ```
 

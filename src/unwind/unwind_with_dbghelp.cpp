@@ -89,7 +89,13 @@ namespace detail {
         //
         HANDLE proc = GetCurrentProcess();
         HANDLE thread = GetCurrentThread();
-        get_syminit_manager().init(proc);
+        if(get_cache_mode() == cache_mode::prioritize_speed) {
+            get_syminit_manager().init(proc);
+        } else {
+            if(!SymInitialize(proc, NULL, TRUE)) {
+                throw std::logic_error("Cpptrace SymInitialize failed");
+            }
+        }
         while(trace.size() < max_depth) {
             if(
                 !StackWalk64(
@@ -120,6 +126,11 @@ namespace detail {
             } else {
                 // base
                 break;
+            }
+        }
+        if(get_cache_mode() != cache_mode::prioritize_speed) {
+            if(!SymCleanup(proc)) {
+                throw std::logic_error("Cpptrace SymCleanup failed");
             }
         }
         return trace;
