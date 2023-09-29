@@ -3,9 +3,10 @@
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
 #include "../platform/common.hpp"
-#include "../platform/program_name.hpp"
-#include "../platform/object.hpp"
+#include "../platform/dwarf.hpp"
 #include "../platform/error.hpp"
+#include "../platform/object.hpp"
+#include "../platform/program_name.hpp"
 #include "../platform/utils.hpp"
 
 #include <algorithm>
@@ -43,420 +44,6 @@ namespace libdwarf {
     // printbugging as we go
     constexpr bool dump_dwarf = false;
     constexpr bool trace_dwarf = false;
-
-    static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
-    static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
-
-    void handle_error(Dwarf_Debug dbg, Dwarf_Error error) {
-        int ev = dwarf_errno(error);
-        char* msg = dwarf_errmsg(error);
-        dwarf_dealloc_error(dbg, error);
-        throw std::runtime_error(stringf("Cpptrace dwarf error %d %s\n", ev, msg));
-    }
-
-    struct die_object {
-        Dwarf_Debug dbg = nullptr;
-        Dwarf_Die die = nullptr;
-
-        // Error handling helper
-        // For some reason R (*f)(Args..., void*)-style deduction isn't possible, seems like a bug in all compilers
-        // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56190
-        template<
-            typename... Args,
-            typename... Args2,
-            typename std::enable_if<
-                std::is_same<
-                    decltype(
-                        (void)std::declval<int(Args...)>()(std::forward<Args2>(std::declval<Args2>())..., nullptr)
-                    ),
-                    void
-                >::value,
-                int
-            >::type = 0
-        >
-        int wrap(int (*f)(Args...), Args2&&... args) const {
-            Dwarf_Error error = 0;
-            int ret = f(std::forward<Args2>(args)..., &error);
-            if(ret == DW_DLV_ERROR) {
-                handle_error(dbg, error);
-            }
-            return ret;
-        }
-
-        die_object(Dwarf_Debug dbg, Dwarf_Die die) : dbg(dbg), die(die) {
-            ASSERT(dbg != nullptr);
-        }
-
-        ~die_object() {
-            if(die) {
-                dwarf_dealloc_die(die);
-            }
-        }
-
-        die_object(const die_object&) = delete;
-
-        die_object& operator=(const die_object&) = delete;
-
-        die_object(die_object&& other) : dbg(other.dbg), die(other.die) {
-            // done for finding mistakes, attempts to use the die_object after this should segfault
-            // a valid use otherwise would be moved_from.get_sibling() which would get the next CU
-            other.dbg = nullptr;
-            other.die = nullptr;
-        }
-
-        die_object& operator=(die_object&& other) {
-            dbg = other.dbg;
-            die = other.die;
-            other.die = nullptr;
-            return *this;
-        }
-
-        die_object clone() const {
-            Dwarf_Off global_offset = get_global_offset();
-            Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
-            Dwarf_Die die_copy = 0;
-            VERIFY(wrap(dwarf_offdie_b, dbg, global_offset, is_info, &die_copy) == DW_DLV_OK);
-            return {dbg, die_copy};
-        }
-
-        die_object get_child() const {
-            Dwarf_Die child = nullptr;
-            int ret = wrap(dwarf_child, die, &child);
-            if(ret == DW_DLV_OK) {
-                return die_object(dbg, child);
-            } else if(ret == DW_DLV_NO_ENTRY) {
-                return die_object(dbg, 0);
-            } else {
-                PANIC();
-            }
-        }
-
-        die_object get_sibling() const {
-            Dwarf_Die sibling = 0;
-            int ret = wrap(dwarf_siblingof_b, dbg, die, true, &sibling);
-            if(ret == DW_DLV_OK) {
-                return die_object(dbg, sibling);
-            } else if(ret == DW_DLV_NO_ENTRY) {
-                return die_object(dbg, 0);
-            } else {
-                PANIC();
-            }
-        }
-
-        operator bool() const {
-            return die != nullptr;
-        }
-
-        Dwarf_Die get() const {
-            return die;
-        }
-
-        std::string get_name() const {
-            char empty[] = "";
-            char* name = empty;
-            int ret = wrap(dwarf_diename, die, &name);
-            auto wrapper = raii_wrap(name, [this] (char* str) { dwarf_dealloc(dbg, str, DW_DLA_STRING); });
-            std::string str;
-            if(ret != DW_DLV_NO_ENTRY) {
-                str = name;
-            }
-            return name;
-        }
-
-        optional<std::string> get_string_attribute(Dwarf_Half attr_num) const {
-            Dwarf_Attribute attr;
-            if(wrap(dwarf_attr, die, attr_num, &attr) == DW_DLV_OK) {
-                auto attwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
-                char* raw_str;
-                VERIFY(wrap(dwarf_formstring, attr, &raw_str) == DW_DLV_OK);
-                auto strwrapper = raii_wrap(raw_str, [this] (char* str) { dwarf_dealloc(dbg, str, DW_DLA_STRING); });
-                std::string str = raw_str;
-                return str;
-            } else {
-                return nullopt;
-            }
-        }
-
-        bool has_attr(Dwarf_Half attr_num) const {
-            Dwarf_Bool present = false;
-            VERIFY(wrap(dwarf_hasattr, die, attr_num, &present) == DW_DLV_OK);
-            return present;
-        }
-
-        Dwarf_Half get_tag() const {
-            Dwarf_Half tag = 0;
-            VERIFY(wrap(dwarf_tag, die, &tag) == DW_DLV_OK);
-            return tag;
-        }
-
-        const char* get_tag_name() const {
-            const char* tag_name;
-            if(dwarf_get_TAG_name(get_tag(), &tag_name) == DW_DLV_OK) {
-                return tag_name;
-            } else {
-                return "<unknown tag name>";
-            }
-        }
-
-        Dwarf_Off get_global_offset() const {
-            Dwarf_Off off;
-            VERIFY(wrap(dwarf_dieoffset, die, &off) == DW_DLV_OK);
-            return off;
-        }
-
-        die_object resolve_reference_attribute(Dwarf_Half attr_num) const {
-            Dwarf_Attribute attr;
-            VERIFY(dwarf_attr(die, attr_num, &attr, nullptr) == DW_DLV_OK);
-            auto wrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
-            Dwarf_Half form = 0;
-            VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
-            switch(form) {
-                case DW_FORM_ref1:
-                case DW_FORM_ref2:
-                case DW_FORM_ref4:
-                case DW_FORM_ref8:
-                case DW_FORM_ref_udata:
-                    {
-                        Dwarf_Off off = 0;
-                        Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
-                        VERIFY(wrap(dwarf_formref, attr, &off, &is_info) == DW_DLV_OK);
-                        Dwarf_Off global_offset = 0;
-                        VERIFY(wrap(dwarf_convert_to_global_offset, attr, off, &global_offset) == DW_DLV_OK);
-                        Dwarf_Die target = 0;
-                        VERIFY(wrap(dwarf_offdie_b, dbg, global_offset, is_info, &target) == DW_DLV_OK);
-                        return die_object(dbg, target);
-                    }
-                case DW_FORM_ref_addr:
-                    {
-                        Dwarf_Off off;
-                        VERIFY(wrap(dwarf_global_formref, attr, &off) == DW_DLV_OK);
-                        int is_info = dwarf_get_die_infotypes_flag(die);
-                        Dwarf_Die target = 0;
-                        VERIFY(wrap(dwarf_offdie_b, dbg, off, is_info, &target) == DW_DLV_OK);
-                        return die_object(dbg, target);
-                    }
-                case DW_FORM_ref_sig8:
-                    {
-                        Dwarf_Sig8 signature;
-                        VERIFY(wrap(dwarf_formsig8, attr, &signature) == DW_DLV_OK);
-                        Dwarf_Die target = 0;
-                        Dwarf_Bool targ_is_info = false;
-                        VERIFY(wrap(dwarf_find_die_given_sig8, dbg, &signature, &target, &targ_is_info) == DW_DLV_OK);
-                        return die_object(dbg, target);
-                    }
-                default:
-                    PANIC(stringf("unknown form for attribute %d %d\n", attr_num, form));
-            }
-        }
-
-        Dwarf_Unsigned get_ranges_offset(Dwarf_Attribute attr) const {
-            Dwarf_Unsigned off = 0;
-            Dwarf_Half form = 0;
-            VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
-            if (form == DW_FORM_rnglistx) {
-                VERIFY(wrap(dwarf_formudata, attr, &off) == DW_DLV_OK);
-            } else {
-                VERIFY(wrap(dwarf_global_formref, attr, &off) == DW_DLV_OK);
-            }
-            return off;
-        }
-
-        template<typename F>
-        void dwarf5_ranges(F callback) const {
-            Dwarf_Attribute attr = 0;
-            if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
-                return;
-            }
-            auto attrwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
-            Dwarf_Unsigned offset = get_ranges_offset(attr);
-            Dwarf_Half form = 0;
-            VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
-            // get .debug_rnglists info
-            Dwarf_Rnglists_Head head = 0;
-            Dwarf_Unsigned rnglists_entries = 0;
-            Dwarf_Unsigned dw_global_offset_of_rle_set = 0;
-            int res = wrap(
-                dwarf_rnglists_get_rle_head,
-                attr,
-                form,
-                offset,
-                &head,
-                &rnglists_entries,
-                &dw_global_offset_of_rle_set
-            );
-            auto headwrapper = raii_wrap(head, [] (Dwarf_Rnglists_Head head) { dwarf_dealloc_rnglists_head(head); });
-            if(res == DW_DLV_NO_ENTRY) {
-                return;
-            }
-            VERIFY(res == DW_DLV_OK);
-            for(size_t i = 0 ; i < rnglists_entries; i++) {
-                unsigned entrylen = 0;
-                unsigned rle_value_out = 0;
-                Dwarf_Unsigned raw1 = 0;
-                Dwarf_Unsigned raw2 = 0;
-                Dwarf_Bool unavailable = 0;
-                Dwarf_Unsigned cooked1 = 0;
-                Dwarf_Unsigned cooked2 = 0;
-                res = wrap(
-                    dwarf_get_rnglists_entry_fields_a,
-                    head,
-                    i,
-                    &entrylen,
-                    &rle_value_out,
-                    &raw1,
-                    &raw2,
-                    &unavailable,
-                    &cooked1,
-                    &cooked2
-                );
-                if(res == DW_DLV_NO_ENTRY) {
-                    continue;
-                }
-                VERIFY(res == DW_DLV_OK);
-                if(unavailable) {
-                    continue;
-                }
-                switch(rle_value_out) {
-                    // Following the same scheme from libdwarf-addr2line
-                    case DW_RLE_end_of_list:
-                    case DW_RLE_base_address:
-                    case DW_RLE_base_addressx:
-                        // Already handled
-                        break;
-                    case DW_RLE_offset_pair:
-                    case DW_RLE_startx_endx:
-                    case DW_RLE_start_end:
-                    case DW_RLE_startx_length:
-                    case DW_RLE_start_length:
-                        if(!callback(cooked1, cooked2)) {
-                            return;
-                        }
-                        break;
-                    default:
-                        PANIC("Something is wrong");
-                        break;
-                }
-            }
-        }
-
-        template<typename F>
-        void dwarf4_ranges(Dwarf_Addr lowpc, F callback) const {
-            Dwarf_Attribute attr = 0;
-            if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
-                return;
-            }
-            auto attrwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
-            Dwarf_Unsigned offset;
-            if(wrap(dwarf_global_formref, attr, &offset) != DW_DLV_OK) {
-                return;
-            }
-            Dwarf_Addr baseaddr = 0;
-            if(lowpc != std::numeric_limits<Dwarf_Addr>::max()) {
-                baseaddr = lowpc;
-            }
-            Dwarf_Ranges* ranges = 0;
-            Dwarf_Signed count = 0;
-            VERIFY(
-                wrap(
-                    dwarf_get_ranges_b,
-                    dbg,
-                    offset,
-                    die,
-                    nullptr,
-                    &ranges,
-                    &count,
-                    nullptr
-                ) == DW_DLV_OK
-            );
-            auto rangeswrapper = raii_wrap(
-                ranges,
-                [this, count] (Dwarf_Ranges* ranges) { dwarf_dealloc_ranges(dbg, ranges, count); }
-            );
-            for(int i = 0; i < count; i++) {
-                if(ranges[i].dwr_type == DW_RANGES_ENTRY) {
-                    if(!callback(baseaddr + ranges[i].dwr_addr1, baseaddr + ranges[i].dwr_addr2)) {
-                        return;
-                    }
-                } else if(ranges[i].dwr_type == DW_RANGES_ADDRESS_SELECTION) {
-                    baseaddr = ranges[i].dwr_addr2;
-                } else {
-                    ASSERT(ranges[i].dwr_type == DW_RANGES_END);
-                    baseaddr = lowpc;
-                }
-            }
-        }
-
-        template<typename F>
-        void dwarf_ranges(int version, optional<Dwarf_Addr> pc, F callback) const {
-            Dwarf_Addr lowpc = std::numeric_limits<Dwarf_Addr>::max();
-            if(wrap(dwarf_lowpc, die, &lowpc) == DW_DLV_OK) {
-                if(pc.has_value() && pc.unwrap() == lowpc) {
-                    callback(lowpc, lowpc + 1);
-                    return;
-                }
-                Dwarf_Addr highpc = 0;
-                enum Dwarf_Form_Class return_class;
-                if(wrap(dwarf_highpc_b, die, &highpc, nullptr, &return_class) == DW_DLV_OK) {
-                    if(return_class == DW_FORM_CLASS_CONSTANT) {
-                        highpc += lowpc;
-                    }
-                    if(!callback(lowpc, highpc)) {
-                        return;
-                    }
-                }
-            }
-            if(version >= 5) {
-                dwarf5_ranges(callback);
-            } else {
-                dwarf4_ranges(lowpc, callback);
-            }
-        }
-
-        std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> get_rangelist_entries(int version) const {
-            std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> vec;
-            dwarf_ranges(version, nullopt, [&vec] (Dwarf_Addr low, Dwarf_Addr high) {
-                // Simple coalescing optimization:
-                // Sometimes the range list entries are really continuous: [100, 200), [200, 300)
-                // Other times there's just one byte of separation [300, 399), [400, 500)
-                // Those are the main two cases I've observed.
-                // This will not catch all cases, presumably, as the range lists aren't sorted. But compilers/linkers
-                // seem to like to emit the ranges in sorted order.
-                if(!vec.empty() && low - vec.back().second <= 1) {
-                    vec.back().second = high;
-                } else {
-                    vec.push_back({low, high});
-                }
-                return true;
-            });
-            return vec;
-        }
-
-        Dwarf_Bool pc_in_die(int version, Dwarf_Addr pc) const {
-            bool found = false;
-            dwarf_ranges(version, pc, [&found, pc] (Dwarf_Addr low, Dwarf_Addr high) {
-                if(pc >= low && pc < high) {
-                    found = true;
-                    return false;
-                }
-                return true;
-            });
-            return found;
-        }
-
-        void print() const {
-            fprintf(
-                stderr,
-                "%08llx %s %s\n",
-                to_ull(get_global_offset()),
-                get_tag_name(),
-                get_name().c_str()
-            );
-        }
-    };
-
-    bool is_mangled_name(const std::string& name) {
-        return name.find("_Z") || name.find("?h@@");
-    }
 
     struct line_context {
         Dwarf_Unsigned version;
@@ -513,7 +100,7 @@ namespace libdwarf {
             Dwarf_Error error = 0;
             int ret = f(std::forward<Args2>(args)..., &error);
             if(ret == DW_DLV_ERROR) {
-                handle_error(dbg, error);
+                handle_dwarf_error(dbg, error);
             }
             return ret;
         }
@@ -612,53 +199,6 @@ namespace libdwarf {
             }
         }
 
-        // walk die list, callback is called on each die and should return true to
-        // continue traversal
-        // returns true if traversal should continue
-        bool walk_die_list(
-            const die_object& die,
-            std::function<bool(const die_object&)> fn
-        ) {
-            // TODO: Refactor so there is only one fn call
-            bool continue_traversal = true;
-            if(fn(die)) {
-                die_object current = die.get_sibling();
-                while(current) {
-                    if(fn(current)) {
-                        current = current.get_sibling();
-                    } else {
-                        continue_traversal = false;
-                        break;
-                    }
-                }
-            }
-            if(dump_dwarf) {
-                fprintf(stderr, "End walk_die_list\n");
-            }
-            return continue_traversal;
-        }
-
-        // walk die list, recursing into children, callback is called on each die
-        // and should return true to continue traversal
-        // returns true if traversal should continue
-        bool walk_die_list_recursive(
-            const die_object& die,
-            std::function<bool(const die_object&)> fn
-        ) {
-            return walk_die_list(
-                die,
-                [this, &fn](const die_object& die) {
-                    auto child = die.get_child();
-                    if(child) {
-                        if(!walk_die_list_recursive(child, fn)) {
-                            return false;
-                        }
-                    }
-                    return fn(die);
-                }
-            );
-        }
-
         // walk all CU's in a dbg, callback is called on each die and should return true to
         // continue traversal
         void walk_compilation_units(std::function<bool(const die_object&)> fn) {
@@ -696,14 +236,14 @@ namespace libdwarf {
                 die_object cu_die(dbg, nullptr);
                 cu_die = cu_die.get_sibling();
                 if(!cu_die) {
-                    if(dump_dwarf) {
-                        fprintf(stderr, "End walk_compilation_units\n");
-                    }
-                    return;
+                    break;
                 }
                 if(!walk_die_list(cu_die, fn)) {
                     break;
                 }
+            }
+            if(dump_dwarf) {
+                fprintf(stderr, "End walk_compilation_units\n");
             }
         }
 
@@ -789,6 +329,9 @@ namespace libdwarf {
                     return true;
                 }
             );
+            if(dump_dwarf) {
+                fprintf(stderr, "End walk_die_list\n");
+            }
             return found;
         }
 
@@ -830,6 +373,9 @@ namespace libdwarf {
                     return true;
                 }
             );
+            if(dump_dwarf) {
+                fprintf(stderr, "End walk_die_list\n");
+            }
         }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
