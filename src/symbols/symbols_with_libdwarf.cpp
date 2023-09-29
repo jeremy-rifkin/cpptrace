@@ -264,7 +264,9 @@ namespace libdwarf {
         template<typename F>
         void dwarf5_ranges(F callback) const {
             Dwarf_Attribute attr = 0;
-            VERIFY(wrap(dwarf_attr, die, DW_AT_ranges, &attr) == DW_DLV_OK);
+            if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
+                return;
+            }
             auto attrwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
             Dwarf_Unsigned offset = get_ranges_offset(attr);
             Dwarf_Half form = 0;
@@ -413,7 +415,17 @@ namespace libdwarf {
         std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> get_rangelist_entries(int version) const {
             std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> vec;
             dwarf_ranges(version, nullopt, [&vec] (Dwarf_Addr low, Dwarf_Addr high) {
-                vec.push_back({low, high});
+                // Simple coalescing optimization:
+                // Sometimes the range list entries are really continuous: [100, 200), [200, 300)
+                // Other times there's just one byte of separation [300, 399), [400, 500)
+                // Those are the main two cases I've observed.
+                // This will not catch all cases, presumably, as the range lists aren't sorted. But compilers/linkers
+                // seem to like to emit the ranges in sorted order.
+                if(!vec.empty() && low - vec.back().second <= 1) {
+                    vec.back().second = high;
+                } else {
+                    vec.push_back({low, high});
+                }
                 return true;
             });
             return vec;
@@ -457,12 +469,26 @@ namespace libdwarf {
         Dwarf_Addr high;
     };
 
+    struct cu_entry {
+        die_object die;
+        Dwarf_Half dwversion;
+        Dwarf_Addr low;
+        Dwarf_Addr high;
+    };
+
     struct dwarf_resolver {
         std::string obj_path;
         Dwarf_Debug dbg = nullptr;
         bool ok = false;
+        // .debug_aranges cache
+        Dwarf_Arange* aranges = nullptr;
+        Dwarf_Signed arange_count = 0;
+        // Map from CU -> Line context
         std::unordered_map<Dwarf_Off, line_context> line_contexts;
+        // Map from CU -> Sorted subprograms vector
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
+        // Vector of ranges and their corresponding CU offsets
+        std::vector<cu_entry> cu_cache;
 
         // Exists only for cleaning up an awful mach-o hack
         std::string tmp_object_path;
@@ -544,6 +570,26 @@ namespace libdwarf {
                 ok = false;
                 PANIC("Unknown return code from dwarf_init_path");
             }
+
+            if(ok) {
+                // Check for .debug_aranges for fast lookup
+                wrap(dwarf_get_aranges, dbg, &aranges, &arange_count);
+            }
+            if(ok && !aranges) {
+                walk_compilation_units([this] (const die_object& cu_die) {
+                    Dwarf_Half offset_size = 0;
+                    Dwarf_Half dwversion = 0;
+                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    auto ranges_vec = cu_die.get_rangelist_entries(dwversion);
+                    for(auto range : ranges_vec) {
+                        cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
+                    }
+                    return true;
+                });
+                std::sort(cu_cache.begin(), cu_cache.end(), [] (const cu_entry& a, const cu_entry& b) {
+                    return a.low < b.low;
+                });
+            }
         }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
@@ -555,6 +601,10 @@ namespace libdwarf {
             }
             // subprograms_cache needs to be destroyed before dbg otherwise there will be another use after free
             subprograms_cache.clear();
+            if(aranges) {
+                dwarf_dealloc(dbg, aranges, DW_DLA_LIST);
+            }
+            cu_cache.clear();
             dwarf_finish(dbg);
             // cleanup awful mach-o hack
             if(!tmp_object_path.empty()) {
@@ -564,17 +614,20 @@ namespace libdwarf {
 
         // walk die list, callback is called on each die and should return true to
         // continue traversal
-        void walk_die_list(
+        // returns true if traversal should continue
+        bool walk_die_list(
             const die_object& die,
             std::function<bool(const die_object&)> fn
         ) {
             // TODO: Refactor so there is only one fn call
+            bool continue_traversal = true;
             if(fn(die)) {
                 die_object current = die.get_sibling();
                 while(current) {
                     if(fn(current)) {
                         current = current.get_sibling();
                     } else {
+                        continue_traversal = false;
                         break;
                     }
                 }
@@ -582,6 +635,7 @@ namespace libdwarf {
             if(dump_dwarf) {
                 fprintf(stderr, "End walk_die_list\n");
             }
+            return continue_traversal;
         }
 
         // walk die list, recursing into children, callback is called on each die
@@ -591,21 +645,66 @@ namespace libdwarf {
             const die_object& die,
             std::function<bool(const die_object&)> fn
         ) {
-            bool continue_traversal = true;
-            walk_die_list(
+            return walk_die_list(
                 die,
-                [this, &fn, &continue_traversal](const die_object& die) {
+                [this, &fn](const die_object& die) {
                     auto child = die.get_child();
                     if(child) {
                         if(!walk_die_list_recursive(child, fn)) {
-                            continue_traversal = false;
                             return false;
                         }
                     }
                     return fn(die);
                 }
             );
-            return continue_traversal;
+        }
+
+        // walk all CU's in a dbg, callback is called on each die and should return true to
+        // continue traversal
+        void walk_compilation_units(std::function<bool(const die_object&)> fn) {
+            // libdwarf keeps track of where it is in the file, dwarf_next_cu_header_d is statefull
+            Dwarf_Unsigned next_cu_header;
+            Dwarf_Half header_cu_type;
+            while(true) {
+                int ret = wrap(
+                    dwarf_next_cu_header_d,
+                    dbg,
+                    true,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    &next_cu_header,
+                    &header_cu_type
+                );
+                if(ret == DW_DLV_NO_ENTRY) {
+                    if(dump_dwarf) {
+                        fprintf(stderr, "End walk_dbg\n");
+                    }
+                    return;
+                }
+                if(ret != DW_DLV_OK) {
+                    PANIC("Unexpected return code from dwarf_next_cu_header_d");
+                    return;
+                }
+                // 0 passed as the die to the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d
+                // to fetch the cu die
+                die_object cu_die(dbg, nullptr);
+                cu_die = cu_die.get_sibling();
+                if(!cu_die) {
+                    if(dump_dwarf) {
+                        fprintf(stderr, "End walk_compilation_units\n");
+                    }
+                    return;
+                }
+                if(!walk_die_list(cu_die, fn)) {
+                    break;
+                }
+            }
         }
 
         void retrieve_symbol_for_subprogram(
@@ -868,85 +967,6 @@ namespace libdwarf {
         }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        void walk_compilation_units(Dwarf_Addr pc, stacktrace_frame& frame) {
-            // 0 passed as the die to the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d
-            // to fetch the cu die
-            die_object cu_die(dbg, nullptr);
-            cu_die = cu_die.get_sibling();
-            if(!cu_die) {
-                if(dump_dwarf) {
-                    fprintf(stderr, "End walk_compilation_units\n");
-                }
-                return;
-            }
-            walk_die_list(
-                cu_die,
-                [this, &frame, pc] (const die_object& cu_die) {
-                    Dwarf_Half offset_size = 0;
-                    Dwarf_Half dwversion = 0;
-                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
-                    //auto p = cu_die.get_pc_range(dwversion);
-                    //cu_die.print();
-                    //fprintf(stderr, "        %llx, %llx\n", p.first, p.second);
-                    if(trace_dwarf) {
-                        fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
-                    }
-                    if(cu_die.pc_in_die(dwversion, pc)) {
-                        if(trace_dwarf) {
-                            fprintf(
-                                stderr,
-                                "pc in die %08llx %s (now searching for %08llx)\n",
-                                to_ull(cu_die.get_global_offset()),
-                                cu_die.get_tag_name(),
-                                to_ull(pc)
-                            );
-                        }
-                        retrieve_line_info(cu_die, pc, frame); // no offset for line info
-                        retrieve_symbol(cu_die, pc, dwversion, frame);
-                        return false;
-                    }
-                    return true;
-                }
-            );
-        }
-
-        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        void walk_dbg(Dwarf_Addr pc, stacktrace_frame& frame) {
-            // libdwarf keeps track of where it is in the file, dwarf_next_cu_header_d is statefull
-            Dwarf_Unsigned next_cu_header;
-            Dwarf_Half header_cu_type;
-            //fprintf(stderr, "-----------------\n");
-            while(true) {
-                int ret = wrap(
-                    dwarf_next_cu_header_d,
-                    dbg,
-                    true,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    &next_cu_header,
-                    &header_cu_type
-                );
-                if(ret == DW_DLV_NO_ENTRY) {
-                    if(dump_dwarf) {
-                        fprintf(stderr, "End walk_dbg\n");
-                    }
-                    return;
-                }
-                if(ret != DW_DLV_OK) {
-                    PANIC("Unexpected return code from dwarf_next_cu_header_d");
-                    return;
-                }
-                walk_compilation_units(pc, frame);
-            }
-        }
-
-        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         void lookup_pc(
             Dwarf_Addr pc,
             stacktrace_frame& frame
@@ -956,20 +976,10 @@ namespace libdwarf {
                 fprintf(stderr, "%llx\n", to_ull(pc));
             }
             // Check for .debug_aranges for fast lookup
-            Dwarf_Arange* aranges;
-            Dwarf_Signed arange_count;
-            if(wrap(dwarf_get_aranges, dbg, &aranges, &arange_count) == DW_DLV_OK) {
-                auto aranges_wrapper = raii_wrap(
-                    aranges,
-                    [this] (Dwarf_Arange* aranges) { dwarf_dealloc(dbg, aranges, DW_DLA_LIST); }
-                );
+            if(aranges) {
                 // Try to find pc in aranges
                 Dwarf_Arange arange;
                 if(wrap(dwarf_get_arange, aranges, arange_count, pc, &arange) == DW_DLV_OK) {
-                    auto arange_wrapper = raii_wrap(
-                        arange,
-                        [this] (Dwarf_Arange arange) { dwarf_dealloc(dbg, arange, DW_DLA_ARANGE); }
-                    );
                     // Address in table, load CU die
                     Dwarf_Off cu_die_offset;
                     VERIFY(wrap(dwarf_get_cu_die_offset, arange, &cu_die_offset) == DW_DLV_OK);
@@ -988,7 +998,60 @@ namespace libdwarf {
                     retrieve_symbol(cu_die, pc, dwversion, frame);
                 }
             } else {
-                walk_dbg(pc, frame);
+                if(false) { // TODO: Proper condition
+                    // walk for the cu and go from there
+                    walk_compilation_units([this, pc, &frame] (const die_object& cu_die) {
+                        Dwarf_Half offset_size = 0;
+                        Dwarf_Half dwversion = 0;
+                        dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                        //auto p = cu_die.get_pc_range(dwversion);
+                        //cu_die.print();
+                        //fprintf(stderr, "        %llx, %llx\n", p.first, p.second);
+                        if(trace_dwarf) {
+                            fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
+                        }
+                        if(cu_die.pc_in_die(dwversion, pc)) {
+                            if(trace_dwarf) {
+                                fprintf(
+                                    stderr,
+                                    "pc in die %08llx %s (now searching for %08llx)\n",
+                                    to_ull(cu_die.get_global_offset()),
+                                    cu_die.get_tag_name(),
+                                    to_ull(pc)
+                                );
+                            }
+                            retrieve_line_info(cu_die, pc, frame); // no offset for line info
+                            retrieve_symbol(cu_die, pc, dwversion, frame);
+                            return false;
+                        }
+                        return true;
+                    });
+                } else {
+                    // look up the cu
+                    auto vec_it = std::lower_bound(
+                       cu_cache.begin(),
+                       cu_cache.end(),
+                       pc,
+                       [] (const cu_entry& entry, Dwarf_Addr pc) {
+                           return entry.low < pc;
+                       }
+                    );
+                    // vec_it is first >= pc
+                    // we want first <= pc
+                    if(vec_it != cu_cache.begin()) {
+                       vec_it--;
+                    }
+                    // If the vector has been empty this can happen
+                    if(vec_it != cu_cache.end()) {
+                       //vec_it->die.print();
+                       if(vec_it->die.pc_in_die(vec_it->dwversion, pc)) {
+                           retrieve_line_info(vec_it->die, pc, frame); // no offset for line info
+                           retrieve_symbol(vec_it->die, pc, vec_it->dwversion, frame);
+                       }
+                    } else {
+                       ASSERT(cu_cache.size() == 0, "Vec should be empty?");
+                    }
+                }
             }
         }
 
