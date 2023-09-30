@@ -27,6 +27,13 @@
 
 */
 
+#ifndef DWARF_ABBREV_H
+#define DWARF_ABBREV_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /*  In a given CU, one of these is (eventually) set up
     for every abbreviation we need to find (and for all
     those earlier in the abbreviations for that CU).
@@ -67,3 +74,9 @@ int _dwarf_count_abbrev_entries(Dwarf_Debug dbg,
     Dwarf_Unsigned *abbrev_implicit_const_count_out,
     Dwarf_Byte_Ptr *abbrev_ptr_out,
     Dwarf_Error *error);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* DWARF_ABBREV_H */

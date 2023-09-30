@@ -26,6 +26,13 @@
    Fifth Floor, Boston MA 02110-1301, USA.
 */
 
+#ifndef DWARF_ALLOC_H
+#define DWARF_ALLOC_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /* #define DWARF_SIMPLE_MALLOC 1  */
 
 char * _dwarf_get_alloc(Dwarf_Debug, Dwarf_Small, Dwarf_Unsigned);
@@ -43,3 +50,9 @@ void _dwarf_error_destructor(void *);
 void _dwarf_add_to_static_err_list(Dwarf_Error err);
 void _dwarf_flush_static_error_list(void);
 void _dwarf_free_static_errlist(void);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* DWARF_ALLOC_H */

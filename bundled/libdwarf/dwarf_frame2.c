@@ -975,10 +975,12 @@ _dwarf_create_cie_from_after_start(Dwarf_Debug dbg,
             &gnu_personality_handler_addr,
             error);
         if (resz != DW_DLV_OK) {
-            _dwarf_error_string(dbg, error,
-                DW_DLE_FRAME_AUGMENTATION_UNKNOWN,
-                "DW_DLE_FRAME_AUGMENTATION_UNKNOWN "
-                " Reading gnu aug encodings failed");
+            if (resz == DW_DLV_ERROR) {
+                _dwarf_error_string(dbg, error,
+                    DW_DLE_FRAME_AUGMENTATION_UNKNOWN,
+                    "DW_DLE_FRAME_AUGMENTATION_UNKNOWN "
+                    " Reading gnu aug encodings failed");
+            } /* DW_DLV_NO_ENTRY seems impossible. */
             return resz;
         }
         frame_ptr += adlen;
@@ -1119,7 +1121,7 @@ _dwarf_create_fde_from_after_start(Dwarf_Debug dbg,
             address_range in the FDE are read according to the CIE
             augmentation string instructions.  */
 
-        {
+        if (cieptr) {
             Dwarf_Small *fp_updated = 0;
             int res = _dwarf_read_encoded_ptr(dbg,
                 section_pointer,
@@ -1150,6 +1152,15 @@ _dwarf_create_fde_from_after_start(Dwarf_Debug dbg,
                 return res;
             }
             frame_ptr = fp_updated;
+        } else {
+            _dwarf_error_string(dbg, error,
+                    DW_DLE_AUG_DATA_LENGTH_BAD,
+                    "DW_DLE_AUG_DATA_LENGTH_BAD: The "
+                    "gcc augmentation cannot be read, "
+                    "as no cie pointer is available "
+                    "to get critical data, "
+                    "Corrupt DWARF");
+            return DW_DLV_ERROR;
         }
         {
             Dwarf_Unsigned adlen = 0;

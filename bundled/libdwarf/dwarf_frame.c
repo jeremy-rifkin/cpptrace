@@ -2160,7 +2160,9 @@ dwarf_get_fde_for_die(Dwarf_Debug dbg,
     }
     /* DW_DLV_OK */
 
-    /*  This is the only situation this is set. */
+    /*  This is the only situation this is set. 
+        and is really dangerous. as fde and cie
+        are set for dealloc by dwarf_finish(). */
     new_fde->fd_fde_owns_cie = TRUE;
     /*  Now read the cie corresponding to the fde,
         _dwarf_read_cie_fde_prefix checks
@@ -3416,14 +3418,21 @@ _dwarf_frame_destructor(void *frame)
     struct Dwarf_Frame_s *fp = frame;
     _dwarf_free_fde_table(fp);
 }
+
 void
 _dwarf_fde_destructor(void *f)
 {
     struct Dwarf_Fde_s *fde = f;
+
     if (fde->fd_fde_owns_cie) {
-        /*  This is just for dwarf_get_fde_for_die() */
-        dwarf_dealloc(fde->fd_dbg,fde->fd_cie,DW_DLA_CIE);
-        fde->fd_cie = 0;
+        Dwarf_Debug dbg = fde->fd_dbg;
+
+        if (!dbg->de_in_tdestroy) {
+            /*  This is just for dwarf_get_fde_for_die() and
+                must not be applied in alloc tree destruction. */
+            dwarf_dealloc(fde->fd_dbg,fde->fd_cie,DW_DLA_CIE);
+            fde->fd_cie = 0;
+        }
     }
     if (fde->fd_have_fde_tab) {
         _dwarf_free_fde_table(&fde->fd_fde_table);

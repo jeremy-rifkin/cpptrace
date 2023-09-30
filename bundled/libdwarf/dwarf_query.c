@@ -2106,3 +2106,25 @@ int dwarf_cu_header_basics(Dwarf_Die die,
     }
     return DW_DLV_OK;
 }
+
+int 
+dwarf_get_universalbinary_count(
+    Dwarf_Debug dbg,
+    Dwarf_Unsigned *current_index,
+    Dwarf_Unsigned *available_count)
+{
+    if (!dbg) {
+        return DW_DLV_NO_ENTRY;
+    }
+    if (!dbg->de_universalbinary_count ) { 
+        return DW_DLV_NO_ENTRY;
+    }
+    if (current_index) {
+        *current_index = dbg->de_universalbinary_index;
+    }
+    if (available_count) {
+        *available_count = dbg->de_universalbinary_count;
+    }
+    return DW_DLV_OK;
+}
+

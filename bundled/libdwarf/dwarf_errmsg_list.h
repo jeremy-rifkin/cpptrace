@@ -682,6 +682,8 @@ static const char _dwarf_errmsgs[DW_DLE_LAST+1][DW_MAX_MSG_LEN] = {
 {"DW_DLE_LINE_COUNT_WRONG(500) A count in a line table is "
     "not valid. Corrupt data."},
 {"DW_DLE_ARITHMETIC_OVERFLOW(501) Arithmetic overflow. "
-    " Corrupt Dwarf." }
+    " Corrupt Dwarf." },
+{" DW_DLE_UNIVERSAL_BINARY_ERROR(502) Error reading Mach-O "
+    "uninversal binary head. Corrupt Mach-O object." }
 };
 #endif /* DWARF_ERRMSG_LIST_H */

@@ -99,10 +99,10 @@ extern "C" {
 */
 
 /* Semantic Version identity for this libdwarf.h */
-#define DW_LIBDWARF_VERSION "0.8.0"
+#define DW_LIBDWARF_VERSION "0.8.1"
 #define DW_LIBDWARF_VERSION_MAJOR 0
 #define DW_LIBDWARF_VERSION_MINOR 8
-#define DW_LIBDWARF_VERSION_MICRO 0
+#define DW_LIBDWARF_VERSION_MICRO 1
 
 #define DW_PATHSOURCE_unspecified 0
 #define DW_PATHSOURCE_basic     1
@@ -115,6 +115,7 @@ extern "C" {
 #define DW_FTYPE_MACH_O     2  /* MacOS. */
 #define DW_FTYPE_PE         3  /* Windows */
 #define DW_FTYPE_ARCHIVE    4  /* unix archive */
+#define DW_FTYPE_APPLEUNIVERSAL    5
 #endif /* DW_FTYPE_UNKNOWN */
 /* standard return values for functions */
 #define DW_DLV_NO_ENTRY -1
@@ -1385,9 +1386,10 @@ typedef struct Dwarf_Rnglists_Head_s * Dwarf_Rnglists_Head;
 #define DW_DLE_LINE_INDEX_WRONG                499
 #define DW_DLE_LINE_COUNT_WRONG                500
 #define DW_DLE_ARITHMETIC_OVERFLOW             501
+#define DW_DLE_UNIVERSAL_BINARY_ERROR          502
 
 /*! @note DW_DLE_LAST MUST EQUAL LAST ERROR NUMBER */
-#define DW_DLE_LAST        501
+#define DW_DLE_LAST        502
 #define DW_DLE_LO_USER     0x10000
 /*! @} */
 
@@ -1402,6 +1404,10 @@ typedef struct Dwarf_Rnglists_Head_s * Dwarf_Rnglists_Head;
 
 /*! @brief Initialization based on path, the most common
     initialization.
+
+    On a Mach-O universal binary this function can
+    only return information about the first (zero index)
+    object in the universal binary. 
 
     @param dw_path
     Pass in the path to the object file to open.
@@ -1448,10 +1454,34 @@ typedef struct Dwarf_Rnglists_Head_s * Dwarf_Rnglists_Head;
     @see dwarf_init_path_dl dwarf_init_b
     @see exampleinit
 */
+
+
 DW_API int dwarf_init_path(const char * dw_path,
     char *            dw_true_path_out_buffer,
     unsigned int      dw_true_path_bufferlen,
     unsigned int      dw_groupnumber,
+    Dwarf_Handler     dw_errhand,
+    Dwarf_Ptr         dw_errarg,
+    Dwarf_Debug*      dw_dbg,
+    Dwarf_Error*      dw_error);
+
+/*! @brief Initialization based on path
+
+    This identical to dwarf_init_path() except that it
+    adds a new argument, dw_universalnumber,
+    with which you can specify which object in
+    a Mach-O universal binary you wish to open. 
+
+    It is always safe and appropriate to pass
+    zero as the dw_universalnumber.
+    Elf and PE and (non-universal) Mach-O object
+    files ignore the value of dw_universalnumber.
+*/
+DW_API int dwarf_init_path_a(const char * dw_path,
+    char *            dw_true_path_out_buffer,
+    unsigned int      dw_true_path_bufferlen,
+    unsigned int      dw_groupnumber,
+    unsigned int      dw_universalnumber,
     Dwarf_Handler     dw_errhand,
     Dwarf_Ptr         dw_errarg,
     Dwarf_Debug*      dw_dbg,
@@ -1517,6 +1547,35 @@ DW_API int dwarf_init_path_dl(const char * dw_path,
     char *            dw_true_path_out_buffer,
     unsigned int      dw_true_path_bufferlen,
     unsigned int      dw_groupnumber,
+    Dwarf_Handler     dw_errhand,
+    Dwarf_Ptr         dw_errarg,
+    Dwarf_Debug*      dw_dbg,
+    char **           dw_dl_path_array,
+    unsigned int      dw_dl_path_array_size,
+    unsigned char   * dw_dl_path_source,
+    Dwarf_Error*      dw_error);
+
+/*! @brief Initialization based on path with debuglink
+
+    This identical to dwarf_init_path_dl() except that it
+    adds a new argument, dw_universalnumber,
+    with which you can specify which object in
+    a Mach-O universal binary you wish to open.
+
+    It is always safe and appropriate to pass
+    zero as the dw_universalnumber.
+    Elf and PE and (non-universal) Mach-O object
+    files ignore the value of dw_universalnumber.
+
+    Mach-O objects do not contain or use debuglink
+    data.
+*/
+
+DW_API int dwarf_init_path_dl_a(const char * dw_path,
+    char *            dw_true_path_out_buffer,
+    unsigned int      dw_true_path_bufferlen,
+    unsigned int      dw_groupnumber,
+    unsigned int      dw_universalnumber,
     Dwarf_Handler     dw_errhand,
     Dwarf_Ptr         dw_errarg,
     Dwarf_Debug*      dw_dbg,
@@ -3964,7 +4023,8 @@ DW_API void dwarf_dealloc_ranges(Dwarf_Debug dw_dbg,
     @param dw_attr
     The attribute referring to .debug_rnglists
     @param dw_theform
-    The form number.
+    The form number, DW_FORM_sec_offset or
+    DW_FORM_rnglistx.
     @param dw_index_or_offset_value
     If the form is an index, pass it here.
     If the form is an offset, pass that here.
@@ -5401,7 +5461,7 @@ DW_API int dwarf_get_fde_info_for_reg3_b(Dwarf_Fde dw_fde,
     dwarf_get_fde_info_for_reg3_c but
     it refers to the CFA (which is not part of the register
     table) so function has no table column argument.
- 
+
     New in September 2023, release 0.8.0.
     dwarf_get_fde_info_for_cfa_reg3_c() returns dw_offset
     as a signed type.
@@ -5428,13 +5488,13 @@ DW_API int dwarf_get_fde_info_for_cfa_reg3_c(Dwarf_Fde dw_fde,
     Dwarf_Bool    * dw_has_more_rows,
     Dwarf_Addr    * dw_subsequent_pc,
     Dwarf_Error   * dw_error);
-/*! @brief Get the value of the CFA for a particular pc value(obsolete)
+/*! @brief Get the value of the CFA for a particular pc value
 
     @see dwarf_get_fde_info_for_cfa_reg3_c
-    This is the earlier version that returns a dw_offset
-    of Dwarf_Unsigned, requiring you to cast to Dwarf_Signed
-    to work  with the value.
 
+    This is the earlier version that returns a dw_offset
+    of type Dwarf_Unsigned, requiring you to cast to Dwarf_Signed
+    to work  with the value.
 
 */
 DW_API int dwarf_get_fde_info_for_cfa_reg3_b(Dwarf_Fde dw_fde,
@@ -8846,11 +8906,50 @@ DW_API Dwarf_Small dwarf_set_default_address_size(
     Dwarf_Debug dw_dbg,
     Dwarf_Small dw_value);
 
+/*! @brief Retrieve universal binary index
+
+    For Mach-O universal binaries this returns
+    relevant information. 
+
+    For non-universal binaries (Mach-O, Elf,
+    or PE) the values are not meaningful, so
+    the function returns DW_DLV_NO_ENTRY..
+
+    @param dw_dbg
+    The Dwarf_Debug of interest.
+    @param dw_current_index
+    If dw_current_index is passed in non-null the function
+    returns the universal-binary index of the current
+    object (which came from a universal binary).
+    @param dw_available_count
+    If dw_current_index is passed in non-null the function
+    returns the count of binaries in
+    the universal binary.
+    @return
+    Returns DW_DLV_NO_ENTRY if the object file is
+    not from a Mach-O universal binary.
+    Returns DW_DLV_NO_ENTRY if dw_dbg is passed in NULL.
+    Never returns DW_DLV_ERROR.
+*/
+DW_API int dwarf_get_universalbinary_count(
+    Dwarf_Debug dw_dbg,
+    Dwarf_Unsigned *dw_current_index,
+    Dwarf_Unsigned *dw_available_count);
+
+
 /*! @}
 */
 
 /*! @defgroup objectdetector Determine Object Type of a File
     @{
+
+    This group of functions are unlikely to be called
+    by your code unless your code needs to know
+    the basic data about an object file without
+    actually opening a Dwarf_Debug.
+
+    These are crucial for libdwarf itself.
+
 */
 DW_API int dwarf_object_detector_path_b(const char * dw_path,
     char           *dw_outpath_buffer,

@@ -33,6 +33,22 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef DWARF_MACHOREAD_H
 #define DWARF_MACHOREAD_H
 
+struct Dwarf_Universal_Arch_s;
+struct Dwarf_Universal_Head_s {
+    Dwarf_Unsigned au_magic;
+    Dwarf_Unsigned au_count;
+    struct Dwarf_Universal_Arch_s * au_arches;
+
+};
+struct Dwarf_Universal_Arch_s {
+    Dwarf_Unsigned au_cputype;
+    Dwarf_Unsigned au_cpusubtype;
+    Dwarf_Unsigned au_offset;
+    Dwarf_Unsigned au_size;
+    Dwarf_Unsigned au_align;
+    Dwarf_Unsigned au_reserved;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -102,12 +118,14 @@ typedef struct dwarf_macho_filedata_s {
     const char *     mo_path; /* libdwarf must free.*/
     int              mo_fd;
     int              mo_destruct_close_fd; /*aka: lib owns fd */
-    int              mo_is_64bit;
     Dwarf_Unsigned   mo_filesize;
+    Dwarf_Unsigned   mo_inner_offset; /* for universal inner */
     Dwarf_Small      mo_offsetsize; /* 32 or 64 section data */
     Dwarf_Small      mo_pointersize;
     int              mo_ftype;
     Dwarf_Small      mo_endian;
+    unsigned         mo_uninumber; /* for universal binary */
+    unsigned         mo_universal_count; /* for universal binary*/
     /*Dwarf_Small      mo_machine; */
     void (*mo_copy_word) (void *, const void *, unsigned long);
 

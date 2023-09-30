@@ -76,6 +76,15 @@ extern "C" {
     *errcode when the function returns DW_DLV_ERROR)
     will hopefully suffice for most purposes. */
 
+/*  Added September 2023 for Mach-O universal binaries */
+int _dwarf_object_detector_fd_a(int dw_fd,
+    unsigned int   *dw_ftype,
+    unsigned int   *dw_endian,
+    unsigned int   *dw_offsetsize,
+    Dwarf_Unsigned dw_offset_base,
+    Dwarf_Unsigned *dw_filesize,
+    int            *dw_errcode);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

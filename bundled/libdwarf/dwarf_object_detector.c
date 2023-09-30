@@ -56,6 +56,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dwarf_memcpy_swap.h"
 #include "dwarf_object_read_common.h"
 #include "dwarf_object_detector.h"
+#include "dwarf_macho_loader.h"
 #include "dwarf_string.h"
 
 #ifndef O_BINARY
@@ -432,6 +433,39 @@ is_pe_object(int fd,
 }
 
 static int
+is_mach_o_universal(struct elf_header *h,
+    unsigned *endian,
+    unsigned *offsetsize)
+{
+    unsigned long magicval = 0;
+    unsigned locendian = 0;
+    unsigned locoffsetsize = 0;
+
+    /*  No swapping here. Need to match size of
+        the universal-object  magic field. */
+    magicval = magic_copy(h->e_ident,4);
+    if (magicval == FAT_MAGIC) {
+        locendian = DW_END_big;
+        locoffsetsize = 32;
+    } else if (magicval == FAT_CIGAM) {
+        locendian = DW_END_little;
+        locoffsetsize = 32;
+    }else if (magicval == FAT_MAGIC_64) {
+        locendian = DW_END_big;
+        locoffsetsize = 64;
+    } else if (magicval == FAT_CIGAM_64) {
+        locendian = DW_END_little;
+        locoffsetsize = 64;
+    } else {
+        return FALSE;
+    }
+    *endian = locendian;
+    *offsetsize = locoffsetsize;
+    return TRUE;
+}
+
+
+static int
 is_mach_o_magic(struct elf_header *h,
     unsigned *endian,
     unsigned *offsetsize)
@@ -471,12 +505,32 @@ dwarf_object_detector_fd(int fd,
     Dwarf_Unsigned  *filesize,
     int *errcode)
 {
+    Dwarf_Unsigned fileoffsetbase = 0;
+    int res = 0;
+
+    res = _dwarf_object_detector_fd_a(fd,
+        ftype,endian,offsetsize,
+        fileoffsetbase,filesize,
+        errcode);
+    return res;
+}
+
+int
+_dwarf_object_detector_fd_a(int fd,
+    unsigned *ftype,
+    unsigned *endian,
+    unsigned *offsetsize,
+    Dwarf_Unsigned fileoffsetbase,
+    Dwarf_Unsigned  *filesize,
+    int *errcode)
+{
     struct elf_header h;
     size_t readlen = sizeof(h);
     int res = 0;
     off_t fsize = 0;
     off_t lsval = 0;
     ssize_t readval = 0;
+    Dwarf_Unsigned remaininglen  = 0;
 
     fsize = lseek(fd,0L,SEEK_END);
     if (fsize < 0) {
@@ -488,7 +542,19 @@ dwarf_object_detector_fd(int fd,
         *errcode = DW_DLE_FILE_TOO_SMALL;
         return DW_DLV_ERROR;
     }
-    lsval  = lseek(fd,0L,SEEK_SET);
+    remaininglen = fsize - fileoffsetbase;
+    if ((Dwarf_Unsigned)fsize <= fileoffsetbase) {
+        printf("FAIL: fsize <= offsetbase impossible\n");
+        *errcode = DW_DLE_SEEK_ERROR;
+        return DW_DLV_ERROR;
+    }
+    if (remaininglen <= readlen) {
+        /* Not a real object file */
+        *errcode = DW_DLE_FILE_TOO_SMALL;
+        return DW_DLV_ERROR;
+    }
+
+    lsval  = lseek(fd,fileoffsetbase,SEEK_SET);
     if (lsval < 0) {
         *errcode = DW_DLE_SEEK_ERROR;
         return DW_DLV_ERROR;
@@ -509,23 +575,28 @@ dwarf_object_detector_fd(int fd,
             return res;
         }
         *ftype = DW_FTYPE_ELF;
-        *filesize = (size_t)fsize;
+        *filesize = (Dwarf_Unsigned)fsize;
+        return DW_DLV_OK;
+    }
+    if (is_mach_o_universal(&h,endian,offsetsize)) {
+        *ftype = DW_FTYPE_APPLEUNIVERSAL;
+        *filesize = (Dwarf_Unsigned)fsize;
         return DW_DLV_OK;
     }
     if (is_mach_o_magic(&h,endian,offsetsize)) {
         *ftype = DW_FTYPE_MACH_O;
-        *filesize = (size_t)fsize;
+        *filesize = (Dwarf_Unsigned)fsize;
         return DW_DLV_OK;
     }
     if (is_archive_magic(&h)) {
         *ftype = DW_FTYPE_ARCHIVE;
-        *filesize = (size_t)fsize;
+        *filesize = (Dwarf_Unsigned)fsize;
         return DW_DLV_OK;
     }
     res = is_pe_object(fd,fsize,endian,offsetsize,errcode);
     if (res == DW_DLV_OK ) {
         *ftype = DW_FTYPE_PE;
-        *filesize = (size_t)fsize;
+        *filesize = (Dwarf_Unsigned)fsize;
         return DW_DLV_OK;
     }
     /* Unknown object format. */

@@ -1140,7 +1140,9 @@ _dwarf_free_all_of_one_debug(Dwarf_Debug dbg)
     /*  de_alloc_tree might be NULL if
         global_de_alloc_tree_on is zero. */
     if (dbg->de_alloc_tree) {
+        dbg->de_in_tdestroy = TRUE;
         dwarf_tdestroy(dbg->de_alloc_tree,tdestroy_free_node);
+        dbg->de_in_tdestroy = FALSE;
         dbg->de_alloc_tree = 0;
     }
     _dwarf_free_static_errlist();

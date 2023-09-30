@@ -125,6 +125,24 @@ set_global_paths_init(Dwarf_Debug dbg, Dwarf_Error* error)
 }
 
 /* New in December 2018. */
+int dwarf_init_path_a(const char *path,
+    char            * true_path_out_buffer,
+    unsigned          true_path_bufferlen,
+    unsigned          groupnumber,
+    unsigned          universalnumber,
+    Dwarf_Handler     errhand,
+    Dwarf_Ptr         errarg,
+    Dwarf_Debug     * ret_dbg,
+    Dwarf_Error     * error)
+{
+    return dwarf_init_path_dl_a(path,
+        true_path_out_buffer,true_path_bufferlen,
+        groupnumber,universalnumber,
+        errhand,errarg,ret_dbg,
+        0,0,0,
+        error);
+}
+
 int dwarf_init_path(const char *path,
     char            * true_path_out_buffer,
     unsigned          true_path_bufferlen,
@@ -134,9 +152,11 @@ int dwarf_init_path(const char *path,
     Dwarf_Debug     * ret_dbg,
     Dwarf_Error     * error)
 {
-    return dwarf_init_path_dl(path,
+    unsigned int universalnumber = 0;
+    return dwarf_init_path_dl_a(path,
         true_path_out_buffer,true_path_bufferlen,
-        groupnumber,errhand,errarg,ret_dbg,
+        groupnumber,universalnumber,
+        errhand,errarg,ret_dbg,
         0,0,0,
         error);
 }
@@ -185,6 +205,30 @@ dwarf_init_path_dl(const char *path,
     char            * true_path_out_buffer,
     unsigned        true_path_bufferlen,
     unsigned        groupnumber,
+    Dwarf_Handler   errhand,
+    Dwarf_Ptr       errarg,
+    Dwarf_Debug     * ret_dbg,
+    char            ** dl_path_array,
+    unsigned int    dl_path_count,
+    unsigned char   * path_source,
+    Dwarf_Error     * error)
+{
+    unsigned int universalnumber = 0;
+    int res = 0;
+
+    res = dwarf_init_path_dl_a(path,
+        true_path_out_buffer, true_path_bufferlen,
+        groupnumber,universalnumber,
+        errhand,errarg,ret_dbg, dl_path_array,
+        dl_path_count,path_source,error);
+    return res;
+}
+int
+dwarf_init_path_dl_a(const char *path,
+    char            * true_path_out_buffer,
+    unsigned        true_path_bufferlen,
+    unsigned        groupnumber,
+    unsigned        universalnumber,
     Dwarf_Handler   errhand,
     Dwarf_Ptr       errarg,
     Dwarf_Debug     * ret_dbg,
@@ -302,9 +346,11 @@ dwarf_init_path_dl(const char *path,
         *ret_dbg = dbg;
         return res;
     }
+    case DW_FTYPE_APPLEUNIVERSAL:
     case DW_FTYPE_MACH_O: {
         res = _dwarf_macho_setup(fd,
             file_path,
+            universalnumber,
             ftype,endian,offsetsize,filesize,
             groupnumber,errhand,errarg,&dbg,error);
         if (res != DW_DLV_OK) {
@@ -355,6 +401,7 @@ dwarf_init_b(int fd,
     unsigned ftype = 0;
     unsigned endian = 0;
     unsigned offsetsize = 0;
+    unsigned universalnumber = 0;
     Dwarf_Unsigned   filesize = 0;
     int res = 0;
     int errcode = 0;
@@ -387,10 +434,12 @@ dwarf_init_b(int fd,
         set_global_paths_init(*ret_dbg,error);
         return res2;
         }
+    case DW_FTYPE_APPLEUNIVERSAL:
     case DW_FTYPE_MACH_O: {
         int resm = 0;
 
         resm = _dwarf_macho_setup(fd,"",
+            universalnumber,
             ftype,endian,offsetsize,filesize,
             group_number,errhand,errarg,ret_dbg,error);
         if (resm != DW_DLV_OK) {

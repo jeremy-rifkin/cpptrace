@@ -594,6 +594,7 @@ struct Dwarf_Debug_s {
         under de_obj_file. */
     int  de_fd;
     char de_owns_fd;
+    char de_in_tdestroy; /* for de_alloc_tree  DW202309-001 */
     /* DW_PATHSOURCE_BASIC or MACOS or DEBUGLINK */
     unsigned char de_path_source;
     /*  de_path is only set automatically if dwarf_init_path()
@@ -752,6 +753,14 @@ struct Dwarf_Debug_s {
     Dwarf_Unsigned de_frame_cfa_col_number;
     Dwarf_Unsigned de_frame_same_value_number;
     Dwarf_Unsigned de_frame_undefined_value_number;
+
+    /*  If count > 0 means the DW_FTYPE_APPLEUNIVERSAL
+        we initially read has this number of
+        binaries in it, and de_universalbinary_index
+        is the index of the current object inside
+        the universal binary. */
+    unsigned int   de_universalbinary_count;
+    unsigned int   de_universalbinary_index;
 
     unsigned char de_big_endian_object; /* Non-zero if
         object being read is big-endian. */
@@ -1010,10 +1019,11 @@ void _dwarf_destruct_elf_nlaccess(
 
 extern int _dwarf_macho_setup(int fd,
     char *true_path,
+    unsigned universalnumber,
     unsigned ftype,
     unsigned endian,
     unsigned offsetsize,
-    size_t filesize,
+    Dwarf_Unsigned filesize,
     unsigned groupnumber,
     Dwarf_Handler errhand,
     Dwarf_Ptr errarg,
