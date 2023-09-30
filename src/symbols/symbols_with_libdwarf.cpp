@@ -17,6 +17,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 #include <libdwarf.h>
@@ -197,6 +198,39 @@ namespace libdwarf {
             if(!tmp_object_path.empty()) {
                 unlink(tmp_object_path.c_str());
             }
+        }
+
+        dwarf_resolver(const dwarf_resolver&) = delete;
+        dwarf_resolver& operator=(const dwarf_resolver&) = delete;
+
+        dwarf_resolver(dwarf_resolver&& other) :
+            obj_path(std::move(other.obj_path)),
+            dbg(other.dbg),
+            ok(other.ok),
+            aranges(other.aranges),
+            arange_count(other.arange_count),
+            line_contexts(std::move(other.line_contexts)),
+            subprograms_cache(std::move(other.subprograms_cache)),
+            cu_cache(std::move(other.cu_cache)),
+            tmp_object_path(std::move(other.tmp_object_path))
+        {
+            other.dbg = nullptr;
+            other.aranges = nullptr;
+        }
+
+        dwarf_resolver& operator=(dwarf_resolver&& other) {
+            obj_path = std::move(other.obj_path);
+            dbg = other.dbg;
+            ok = other.ok;
+            aranges = other.aranges;
+            arange_count = other.arange_count;
+            line_contexts = std::move(other.line_contexts);
+            subprograms_cache = std::move(other.subprograms_cache);
+            cu_cache = std::move(other.cu_cache);
+            tmp_object_path = std::move(other.tmp_object_path);
+            other.dbg = nullptr;
+            other.aranges = nullptr;
+            return *this;
         }
 
         // walk all CU's in a dbg, callback is called on each die and should return true to
@@ -633,25 +667,38 @@ namespace libdwarf {
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         std::vector<stacktrace_frame> trace(frames.size(), null_frame);
         static std::mutex mutex;
+        // cache resolvers since objects are likely to be traced more than once
+        static std::unordered_map<std::string, dwarf_resolver> resolver_map;
         // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
         const std::lock_guard<std::mutex> lock(mutex);
         for(const auto& obj_entry : collate_frames(frames, trace)) {
             try {
                 const auto& obj_name = obj_entry.first;
-                dwarf_resolver resolver(obj_name);
+                optional<dwarf_resolver> resolver_object;// = nullopt;
+                dwarf_resolver* resolver = nullptr;
+                auto it = resolver_map.find(obj_name);
+                if(it != resolver_map.end()) {
+                    resolver = &it->second;
+                } else {
+                    resolver_object = dwarf_resolver(obj_name);
+                    resolver = &resolver_object.unwrap();
+                }
                 // If there's no debug information it'll mark itself as not ok
-                if(resolver.ok) {
+                if(resolver->ok) {
                     for(const auto& entry : obj_entry.second) {
                         try {
                             const auto& dlframe = entry.first.get();
                             auto& frame = entry.second.get();
-                            frame = resolver.resolve_frame(dlframe);
+                            frame = resolver->resolve_frame(dlframe);
                         } catch(...) {
                             if(!should_absorb_trace_exceptions()) {
                                 throw;
                             }
                         }
                     }
+                }
+                if(resolver_object.has_value() && get_cache_mode() == cache_mode::prioritize_speed) {
+                    resolver_map.insert({obj_name, std::move(resolver_object).unwrap()});
                 }
             } catch(...) {
                 if(!should_absorb_trace_exceptions()) {
