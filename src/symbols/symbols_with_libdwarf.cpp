@@ -109,30 +109,14 @@ namespace libdwarf {
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         dwarf_resolver(const std::string& object_path) {
             obj_path = object_path;
+            // for universal / fat mach-o files
+            unsigned universal_number = 0;
             #if IS_APPLE
             if(directory_exists(obj_path + ".dSYM")) {
                 obj_path += ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
             }
             if(macho_is_fat(obj_path)) {
-                // If the object is fat, we'll copy out the mach-o object we care about
-                // Awful hack until libdwarf supports fat mach
-                auto sub_object = get_fat_macho_information(obj_path);
-                char tmp_template[] = "/tmp/tmp.cpptrace.XXXXXX";
-                #pragma GCC diagnostic push
-                #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-                VERIFY(mktemp(tmp_template) != nullptr);
-                #pragma GCC diagnostic pop
-                std::string tmp_path = tmp_template;
-                auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
-                auto tmp = raii_wrap(fopen(tmp_path.c_str(), "wb"), file_deleter);
-                VERIFY(file != nullptr);
-                VERIFY(tmp != nullptr);
-                std::unique_ptr<char[]> buffer(new char[sub_object.size]);
-                VERIFY(fseek(file, sub_object.offset, SEEK_SET) == 0);
-                VERIFY(fread(buffer.get(), 1, sub_object.size, file) == sub_object.size);
-                VERIFY(fwrite(buffer.get(), 1, sub_object.size, tmp) == sub_object.size);
-                obj_path = tmp_path;
-                tmp_object_path = std::move(tmp_path);
+                universal_number = get_fat_macho_index(obj_path);
             }
             #endif
 
@@ -140,11 +124,12 @@ namespace libdwarf {
             // dSYM files. We don't utilize the dSYM logic here, we just care about debuglink.
             std::unique_ptr<char[]> buffer(new char[CPPTRACE_MAX_PATH]);
             auto ret = wrap(
-                dwarf_init_path,
+                dwarf_init_path_a,
                 obj_path.c_str(),
                 buffer.get(),
                 CPPTRACE_MAX_PATH,
                 DW_GROUPNUMBER_ANY,
+                universal_number,
                 nullptr,
                 nullptr,
                 &dbg
@@ -674,7 +659,7 @@ namespace libdwarf {
         for(const auto& obj_entry : collate_frames(frames, trace)) {
             try {
                 const auto& obj_name = obj_entry.first;
-                optional<dwarf_resolver> resolver_object;// = nullopt;
+                optional<dwarf_resolver> resolver_object = nullopt;
                 dwarf_resolver* resolver = nullptr;
                 auto it = resolver_map.find(obj_name);
                 if(it != resolver_map.end()) {

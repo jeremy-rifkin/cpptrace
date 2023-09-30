@@ -207,14 +207,9 @@ namespace detail {
         return is_fat_magic(magic);
     }
 
-    struct fat_info {
-        uint32_t offset;
-        uint32_t size;
-    };
-
-    // returns offset, file size
+    // returns index of the appropriate mach-o binary in the universal binary
     // TODO: Code duplication with macho_get_text_vmaddr_fat
-    inline fat_info get_fat_macho_information(const std::string& obj_path) {
+    inline unsigned get_fat_macho_index(const std::string& obj_path) {
         auto file = raii_wrap(fopen(obj_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             throw file_error("Unable to read object file " + obj_path);
@@ -240,12 +235,11 @@ namespace detail {
                 arch.cputype == mhp->cputype &&
                 static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) == arch.cpusubtype
             ) {
-                return { arch.offset, arch.size };
+                return i;
             }
         }
         // If this is reached... something went wrong. The cpu we're on wasn't found.
         PANIC("Couldn't find appropriate architecture in fat Mach-O");
-        return { 0, 0 };
     }
 }
 }
