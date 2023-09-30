@@ -31,6 +31,9 @@ void function_one(int) {
     function_two(0, 0);
 }
 
-int main() {
+int main() try {
+    cpptrace::absorb_trace_exceptions(false);
     function_one(0);
+} catch(cpptrace::exception& e) {
+    std::cerr << e.what();
 }
