@@ -169,11 +169,12 @@ namespace detail {
         typename std::enable_if<!std::is_same<typename std::decay<T>::type, void>::value, int>::type = 0
     >
     class optional {
-        bool holds_value = false;
-
         union {
+            char x;
             T uvalue;
         };
+
+        bool holds_value = false;
 
     public:
         optional() noexcept {}
@@ -201,7 +202,7 @@ namespace detail {
 
         optional& operator=(const optional& other) {
             optional copy(other);
-            swap(*this, copy);
+            swap(copy);
             return *this;
         }
 
@@ -229,12 +230,8 @@ namespace detail {
             typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0
         >
         optional& operator=(U&& value) {
-            if(holds_value) {
-                uvalue = std::forward<U>(value);
-            } else {
-                new (static_cast<void*>(std::addressof(uvalue))) T(std::forward<U>(value));
-                holds_value = true;
-            }
+            optional o(std::move(value));
+            swap(o);
             return *this;
         }
 

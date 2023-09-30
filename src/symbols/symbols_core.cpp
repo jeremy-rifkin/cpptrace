@@ -51,7 +51,7 @@ namespace detail {
     }
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
-        std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, UINT_LEAST32_MAX, "", "" });
+        std::vector<stacktrace_frame> trace(frames.size(), null_frame);
         #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDL) \
             || defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP) \
             || defined(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
@@ -87,7 +87,7 @@ namespace detail {
             || defined(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
          auto dlframes = get_frames_object_info(frames);
         #endif
-        std::vector<stacktrace_frame> trace(frames.size(), stacktrace_frame { 0, 0, UINT_LEAST32_MAX, "", "" });
+        std::vector<stacktrace_frame> trace(frames.size(), null_frame);
         #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
          apply_trace(trace, libdl::resolve_frames(frames));
         #endif
