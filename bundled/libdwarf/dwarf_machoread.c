@@ -106,7 +106,6 @@ dump_bytes(const char *msg,Dwarf_Small * start, long len)
 }
 #endif /*0*/
 
-
 /* MACH-O and dwarf section names */
 static struct macho_sect_names_s {
     char const *ms_moname;
@@ -256,17 +255,12 @@ macho_load_section (void *obj, Dwarf_Unsigned section_index,
     return DW_DLV_NO_ENTRY;
 }
 
-void
-_dwarf_destruct_macho_access(
-    struct Dwarf_Obj_Access_Interface_a_s *aip)
+static void
+_dwarf_destruct_macho_internals(
+    dwarf_macho_object_access_internals_t *mp)
 {
-    dwarf_macho_object_access_internals_t *mp = 0;
     Dwarf_Unsigned i = 0;
 
-    if (!aip) {
-        return;
-    }
-    mp = (dwarf_macho_object_access_internals_t *)aip->ai_object;
     if (mp->mo_destruct_close_fd) {
         close(mp->mo_fd);
         mp->mo_fd = -1;
@@ -294,6 +288,20 @@ _dwarf_destruct_macho_access(
         mp->mo_dwarf_sections = 0;
     }
     free(mp);
+    return;
+}
+void
+_dwarf_destruct_macho_access(
+    struct Dwarf_Obj_Access_Interface_a_s *aip)
+{
+    dwarf_macho_object_access_internals_t *mp = 0;
+
+    if (!aip) {
+        return;
+    }
+    mp = (dwarf_macho_object_access_internals_t *)aip->ai_object;
+    _dwarf_destruct_macho_internals(mp);
+    aip->ai_object = 0;
     free(aip);
     return;
 }
@@ -446,15 +454,6 @@ load_segment_command_content32(
     ASNAR(mfp->mo_copy_word,msp->initprot,sc.initprot);
     ASNAR(mfp->mo_copy_word,msp->nsects,sc.nsects);
     if (msp->nsects >= mfp->mo_filesize) {
-#if 0
-        printf("Reading sections macho32 fails,"
-            " mmp_offset %lu,"
-            " number of sections %lu,"
-            " filesize %lu\n",
-            (unsigned long)segoffset,
-            (unsigned long)msp->nsects,
-            (unsigned long)mfp->mo_filesize);
-#endif
         *errcode = DW_DLE_MACHO_CORRUPT_COMMAND;
         return DW_DLV_ERROR;
     }
@@ -463,8 +462,6 @@ load_segment_command_content32(
     msp->sectionsoffset = afterseghdr;
     return DW_DLV_OK;
 }
-
-void fuck() {}
 
 static int
 load_segment_command_content64(
@@ -484,7 +481,6 @@ load_segment_command_content64(
         mmp->cmdsize > filesize ||
         (mmp->cmdsize + segoffset) > filesize ) {
         *errcode = DW_DLE_MACHO_CORRUPT_COMMAND;
-        fuck();
         return DW_DLV_ERROR;
     }
     res = RRMOA(mfp->mo_fd,&sc,inner+segoffset,
@@ -504,30 +500,18 @@ load_segment_command_content64(
         msp->filesize > filesize) {
         /* corrupt */
         *errcode = DW_DLE_MACHO_CORRUPT_COMMAND;
-        fuck();
         return DW_DLV_ERROR;
     }
     if ((msp->fileoff+msp->filesize ) > filesize) {
         /* corrupt */
         *errcode = DW_DLE_MACHO_CORRUPT_COMMAND;
-        fuck();
         return DW_DLV_ERROR;
     }
     ASNAR(mfp->mo_copy_word,msp->maxprot,sc.maxprot);
     ASNAR(mfp->mo_copy_word,msp->initprot,sc.initprot);
     ASNAR(mfp->mo_copy_word,msp->nsects,sc.nsects);
     if (msp->nsects >= mfp->mo_filesize) {
-#if 0
-        printf("Reading sections macho 64 fails,"
-            " mmp_offset %lu,"
-            " number of sections %lu,"
-            " filesize %lu\n",
-            (unsigned long)segoffset,
-            (unsigned long)msp->nsects,
-            (unsigned long)mfp->mo_filesize);
-#endif
         *errcode = DW_DLE_MACHO_CORRUPT_COMMAND;
-        fuck();
         return DW_DLV_ERROR;
     }
     ASNAR(mfp->mo_copy_word,msp->flags,sc.flags);
@@ -572,6 +556,8 @@ _dwarf_macho_load_segment_commands(
             ++msp;
         } else { /* fall through, not a command of interest */ }
         if (res != DW_DLV_OK) {
+            free(mfp->mo_segment_commands);
+            mfp->mo_segment_commands = 0;
             return res;
         }
     }
@@ -623,19 +609,11 @@ _dwarf_macho_load_dwarf_section_details32(
         endoffset = curoff + sizeof(mosec);
         if (curoff >=  mfp->mo_filesize ||
             endoffset > mfp->mo_filesize) {
-#if 0
-            printf("Reading sections details32 fails,"
-                " fileoffset %lu,"
-                " end-read offset %lu,"
-                " filesize %lu\n",
-                (unsigned long)curoff,
-                (unsigned long)endoffset,
-                (unsigned long)mfp->mo_filesize);
-#endif
             *errcode  = DW_DLE_MACHO_CORRUPT_SECTIONDETAILS;
             return DW_DLV_ERROR;
         }
-        res = RRMOA(mfp->mo_fd, &mosec, (off_t)(inner+curoff), sizeof(mosec),
+        res = RRMOA(mfp->mo_fd, &mosec,
+            (off_t)(inner+curoff), sizeof(mosec),
             (off_t)(inner+mfp->mo_filesize), errcode);
         if (res != DW_DLV_OK) {
             return res;
@@ -712,15 +690,6 @@ _dwarf_macho_load_dwarf_section_details64(
         endoffset = curoff + sizeof(mosec);
         if (curoff >=  mfp->mo_filesize ||
             endoffset > mfp->mo_filesize) {
-#if 0
-            printf("Reading sections details64 fails,"
-                " fileoffset %lu,"
-                " end-read offset %lu,"
-                " filesize %lu\n",
-                (unsigned long)curoff,
-                (unsigned long)endoffset,
-                (unsigned long)mfp->mo_filesize);
-#endif
             *errcode = DW_DLE_MACHO_CORRUPT_SECTIONDETAILS;
             return DW_DLV_ERROR;
         }
@@ -840,6 +809,8 @@ _dwarf_load_macho_commands(
             (off_t)(inner+curoff), sizeof(mc),
             (off_t)(inner+mfp->mo_filesize), errcode);
         if (res != DW_DLV_OK) {
+            free(mfp->mo_commands);
+            mfp->mo_commands = 0;
             return res;
         }
         ASNAR(mfp->mo_copy_word,mcp->cmd,mc.cmd);
@@ -849,6 +820,8 @@ _dwarf_load_macho_commands(
         if (mcp->cmdsize > mfp->mo_filesize ||
             curoff > mfp->mo_filesize) {
             /* corrupt object */
+            free(mfp->mo_commands);
+            mfp->mo_commands = 0;
             *errcode = DW_DLE_FILE_OFFSET_BAD;
             return DW_DLV_ERROR;
         }
@@ -859,9 +832,15 @@ _dwarf_load_macho_commands(
     mfp->mo_segment_count = segment_command_count;
     res = _dwarf_macho_load_segment_commands(mfp,errcode);
     if (res != DW_DLV_OK) {
+        free(mfp->mo_commands);
+        mfp->mo_commands = 0;
         return res;
     }
     res = _dwarf_macho_load_dwarf_sections(mfp,errcode);
+    if (res != DW_DLV_OK) {
+        free(mfp->mo_commands);
+        mfp->mo_commands = 0;
+    }
     return res;
 }
 int
@@ -1008,10 +987,8 @@ _dwarf_macho_object_access_internals_init(
     Dwarf_Unsigned filesize,
     int *errcode)
 {
-    dwarf_macho_object_access_internals_t * intfc = internals;
     Dwarf_Unsigned i  = 0;
     struct generic_macho_section *sp = 0;
-    struct Dwarf_Obj_Access_Interface_a_s *localdoas;
     int res = 0;
     unsigned int   ftypei = ftype;
     unsigned int   endiani = endian;
@@ -1020,17 +997,8 @@ _dwarf_macho_object_access_internals_init(
     Dwarf_Unsigned fileoffseti = 0;
     unsigned int   unibinarycounti = 0;
 
-    /*  Must malloc as _dwarf_destruct_macho_access()
-        forces that due to other uses. */
-    localdoas = (struct Dwarf_Obj_Access_Interface_a_s *)
-        malloc(sizeof(struct Dwarf_Obj_Access_Interface_a_s));
-    if (!localdoas) {
-        free(internals);
-        *errcode = DW_DLE_ALLOC_FAIL;
-        return DW_DLV_ERROR;
-    }
     if (ftype == DW_FTYPE_APPLEUNIVERSAL) {
-         res = _dwarf_macho_inner_object_fd(fd,
+        res = _dwarf_macho_inner_object_fd(fd,
             uninumber,
             filesize,
             &ftypei,&unibinarycounti,&endiani,
@@ -1045,63 +1013,54 @@ _dwarf_macho_object_access_internals_init(
         endian = endiani;
     }
 
-    memset(localdoas,0,
-        sizeof(struct Dwarf_Obj_Access_Interface_a_s));
-    intfc->mo_ident[0]    = 'M';
-    intfc->mo_ident[1]    = '1';
-    intfc->mo_fd          = fd;
-    intfc->mo_offsetsize  = offsetsizei;
-    intfc->mo_pointersize = offsetsizei;
-    intfc->mo_inner_offset  =  fileoffseti;
-    intfc->mo_filesize    = filesizei;
-    intfc->mo_ftype       = ftypei;
-    intfc->mo_uninumber   = uninumber;
-    intfc->mo_universal_count = unibinarycounti;
+    internals->mo_ident[0]    = 'M';
+    internals->mo_ident[1]    = '1';
+    internals->mo_fd          = fd;
+    internals->mo_offsetsize  = offsetsizei;
+    internals->mo_pointersize = offsetsizei;
+    internals->mo_inner_offset  =  fileoffseti;
+    internals->mo_filesize    = filesizei;
+    internals->mo_ftype       = ftypei;
+    internals->mo_uninumber   = uninumber;
+    internals->mo_universal_count = unibinarycounti;
 
 #ifdef WORDS_BIGENDIAN
     if (endian == DW_END_little ) {
-        intfc->mo_copy_word = _dwarf_memcpy_swap_bytes;
-        intfc->mo_endian = DW_END_little;
+        internals->mo_copy_word = _dwarf_memcpy_swap_bytes;
+        internals->mo_endian = DW_END_little;
     } else {
-        intfc->mo_copy_word = _dwarf_memcpy_noswap_bytes;
-        intfc->mo_endian = DW_END_big;
+        internals->mo_copy_word = _dwarf_memcpy_noswap_bytes;
+        internals->mo_endian = DW_END_big;
     }
 #else  /* LITTLE ENDIAN */
     if (endian == DW_END_little ) {
-        intfc->mo_copy_word = _dwarf_memcpy_noswap_bytes;
-        intfc->mo_endian = DW_END_little;
+        internals->mo_copy_word = _dwarf_memcpy_noswap_bytes;
+        internals->mo_endian = DW_END_little;
     } else {
-        intfc->mo_copy_word = _dwarf_memcpy_swap_bytes;
-        intfc->mo_endian = DW_END_big;
+        internals->mo_copy_word = _dwarf_memcpy_swap_bytes;
+        internals->mo_endian = DW_END_big;
     }
 #endif /* LITTLE- BIG-ENDIAN */
-    res = _dwarf_load_macho_header(intfc,errcode);
+    res = _dwarf_load_macho_header(internals,errcode);
     if (res != DW_DLV_OK) {
-        localdoas->ai_object = intfc;
-        localdoas->ai_methods = 0;
-        _dwarf_destruct_macho_access(localdoas);
         return res;
     }
     /* Load sections */
-    res = _dwarf_load_macho_commands(intfc,errcode);
+    res = _dwarf_load_macho_commands(internals,errcode);
     if (res != DW_DLV_OK) {
-        localdoas->ai_object = intfc;
-        localdoas->ai_methods = 0;
-        _dwarf_destruct_macho_access(localdoas);
         return res;
     }
-    if (intfc->mo_dwarf_sections) {
-        sp = intfc->mo_dwarf_sections+1;
+    if (internals->mo_dwarf_sections) {
+        sp = internals->mo_dwarf_sections+1;
     } else {
         /*  There are no dwarf sections,
             count better be zero. */
-        if (intfc->mo_dwarf_sectioncount) {
-            _dwarf_destruct_macho_access(localdoas);
+        if (internals->mo_dwarf_sectioncount) {
             *errcode = DW_DLE_MACHO_CORRUPT_HEADER;
             return DW_DLV_ERROR;
         }
     }
-    for (i = 1; i < intfc->mo_dwarf_sectioncount ; ++i,++sp) {
+    for (i = 1; i < internals->mo_dwarf_sectioncount ; ++i,++sp) {
         int j = 1;
         int lim = sizeof(SectionNames)/sizeof(SectionNames[0]);
         sp->dwarfsectname = "";
@@ -1112,7 +1071,6 @@ _dwarf_macho_object_access_internals_init(
             }
         }
     }
-    free(localdoas);
     return DW_DLV_OK;
 }
 
@@ -1128,7 +1086,6 @@ _dwarf_macho_object_access_init(
     Dwarf_Obj_Access_Interface_a **binary_interface,
     int *localerrnum)
 {
-
     int res = 0;
     dwarf_macho_object_access_internals_t *internals = 0;
     Dwarf_Obj_Access_Interface_a *intfc = 0;
@@ -1149,14 +1106,13 @@ _dwarf_macho_object_access_init(
         filesize,
         localerrnum);
     if (res != DW_DLV_OK){
-        /* *err is already set and the call freed internals. */
+        _dwarf_destruct_macho_internals(internals);
         return DW_DLV_ERROR;
     }
-
     intfc = malloc(sizeof(Dwarf_Obj_Access_Interface_a));
     if (!intfc) {
         /* Impossible case, we hope. Give up. */
-        free(internals);
+        _dwarf_destruct_macho_internals(internals);
         *localerrnum = DW_DLE_ALLOC_FAIL;
         return DW_DLV_ERROR;
     }
@@ -1185,7 +1141,7 @@ static int
 fill_in_uni_arch_32(
     struct fat_arch * fa,
     struct Dwarf_Universal_Head_s *duhd,
-    void (*word_swap) (void *, const void *, size_t))
+    void (*word_swap) (void *, const void *, unsigned long))
 {
     Dwarf_Unsigned i = 0;
     struct Dwarf_Universal_Arch_s * dua = 0;
@@ -1206,7 +1162,7 @@ static int
 fill_in_uni_arch_64(
     struct fat_arch_64 * fa,
     struct Dwarf_Universal_Head_s *duhd,
-    void (*word_swap) (void *, const void *, size_t))
+    void (*word_swap) (void *, const void *, unsigned long))
 {
     Dwarf_Unsigned i = 0;
     struct Dwarf_Universal_Arch_s * dua = 0;
@@ -1238,7 +1194,7 @@ _dwarf_object_detector_universal_head_fd(
     struct Dwarf_Universal_Head_s *duhdp = 0;
     struct  fat_header fh;
     int     res = 0;
-    void (*word_swap) (void *, const void *, size_t);
+    void (*word_swap) (void *, const void *, unsigned long);
     int     locendian = 0;
     int     locoffsetsize = 0;
 
@@ -1247,8 +1203,6 @@ _dwarf_object_detector_universal_head_fd(
     /*  A universal head is always at offset zero. */
     res = RRMOA(fd,&fh,0,sizeof(fh), dw_filesize,errcode);
     if (res != DW_DLV_OK) {
-        printf("Reading struct for universal binary "
-            "header failed\n");
         return res;
     }
     duhd.au_magic = magic_copy((unsigned char *)&fh.magic[0],4);
@@ -1265,7 +1219,6 @@ _dwarf_object_detector_universal_head_fd(
         locendian = DW_END_little;
         locoffsetsize = 64;
     } else {
-printf("Reading magic number universal compare failed " "Inconsistent\n");
         *errcode = DW_DLE_FILE_WRONG_TYPE;
         return DW_DLV_ERROR;
     }
@@ -1306,6 +1259,13 @@ printf("Reading magic number universal compare failed " "Inconsistent\n");
             free(fa);
             return res;
         }
+        if (duhd.au_count*sizeof(*fa) >= dw_filesize) {
+            free(duhd.au_arches);
+            duhd.au_arches = 0;
+            free(fa);
+            *errcode = DW_DLE_FILE_OFFSET_BAD;
+            return DW_DLV_ERROR;
+        }
         res = RRMOA(fd,fa,/*offset=*/sizeof(fh),
             duhd.au_count*sizeof(*fa),
             dw_filesize,errcode);
@@ -1333,6 +1293,13 @@ printf("Reading magic number universal compare failed " "Inconsistent\n");
             free(duhd.au_arches);
             duhd.au_arches = 0;
             return res;
+        }
+        if (duhd.au_count*sizeof(*fa) >= dw_filesize) {
+            free(duhd.au_arches);
+            duhd.au_arches = 0;
+            free(fa);
+            *errcode = DW_DLE_FILE_OFFSET_BAD ;
+            return DW_DLV_ERROR;
         }
         res = RRMOA(fd,fa,/*offset*/sizeof(fh),
             duhd.au_count*sizeof(fa),
@@ -1395,17 +1362,10 @@ _dwarf_object_detector_universal_instance(
     struct  Dwarf_Universal_Arch_s* arch = 0;
 
     if (!dw_head) {
-        printf("Missing argument to "
-            "dwarf_object_detector_universal_instance");
         *errcode = DW_DLE_UNIVERSAL_BINARY_ERROR;
         return DW_DLV_ERROR;
     }
     if (dw_index_of >= dw_head->au_count){
-printf("Requested index 0x%lu"
-" to specific binary "
-"is too larg: valid: 0 to 0x%lu\n",
-(unsigned long)dw_index_of,
-(unsigned long)dw_head->au_count);
         return DW_DLV_NO_ENTRY;
     }
     arch =  dw_head->au_arches +dw_index_of;
@@ -1414,9 +1374,6 @@ printf("Requested index 0x%lu"
     *dw_offset = arch->au_offset;
     *dw_size = arch->au_size;
     *dw_align = arch->au_align;
-#if 0
-    print_arch_item(dw_index_of,arch);
-#endif
     return DW_DLV_OK;
 }
 

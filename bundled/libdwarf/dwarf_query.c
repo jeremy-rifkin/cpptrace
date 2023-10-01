@@ -2107,7 +2107,7 @@ int dwarf_cu_header_basics(Dwarf_Die die,
     return DW_DLV_OK;
 }
 
-int 
+int
 dwarf_get_universalbinary_count(
     Dwarf_Debug dbg,
     Dwarf_Unsigned *current_index,
@@ -2116,7 +2116,7 @@ dwarf_get_universalbinary_count(
     if (!dbg) {
         return DW_DLV_NO_ENTRY;
     }
-    if (!dbg->de_universalbinary_count ) { 
+    if (!dbg->de_universalbinary_count ) {
         return DW_DLV_NO_ENTRY;
     }
     if (current_index) {
@@ -2127,4 +2127,3 @@ dwarf_get_universalbinary_count(
     }
     return DW_DLV_OK;
 }
-

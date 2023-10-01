@@ -2160,7 +2160,7 @@ dwarf_get_fde_for_die(Dwarf_Debug dbg,
     }
     /* DW_DLV_OK */
 
-    /*  This is the only situation this is set. 
+    /*  This is the only situation this is set.
         and is really dangerous. as fde and cie
         are set for dealloc by dwarf_finish(). */
     new_fde->fd_fde_owns_cie = TRUE;

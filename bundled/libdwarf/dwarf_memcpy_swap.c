@@ -58,10 +58,11 @@ _dwarf_memcpy_swap_bytes(void *s1,
     unsigned char       *targ = (unsigned char *) s1;
     const unsigned char *src = (const unsigned char *) s2;
     unsigned long        i = 0;
-    unsigned long        n = len-1;
+    unsigned long        n = (long)(len-1);
 
     if (len > 8) {
-        /*  Not writing an integer, we think, so
+        /*  Really we should not be here!
+            Not writing an integer, we think, so
             best to not swap bytes! */
         memcpy(s1,s2,(size_t)len);
         return;

@@ -464,7 +464,6 @@ is_mach_o_universal(struct elf_header *h,
     return TRUE;
 }
 
-
 static int
 is_mach_o_magic(struct elf_header *h,
     unsigned *endian,
