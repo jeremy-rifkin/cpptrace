@@ -116,7 +116,7 @@ namespace libdwarf {
                 obj_path += ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
             }
             if(macho_is_fat(obj_path)) {
-                universal_number = get_fat_macho_index(obj_path);
+                universal_number = mach_o(obj_path).get_fat_index();
             }
             #endif
 
