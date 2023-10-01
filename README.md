@@ -114,7 +114,7 @@ method to get lightweight raw traces, which are just vectors of program counters
 **Note:** Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`) is generally required for good trace information.
 
 **Note:** Currently on Mac .dSYM files are required, which can be generated with `dsymutil yourbinary`. A cmake snippet
-for generating these is included above.
+for generating these is included [below](#platform-logistics).
 
 All functions are thread-safe unless otherwise noted.
 
@@ -454,6 +454,8 @@ Coming soon
 
 Windows and macos require a little extra work to get everything in the right place
 
+Copying the library .dll on windows:
+
 ```cmake
 # Copy the cpptrace.dll on windows to the same directory as the executable for your_target.
 # Not required if static linking.
@@ -465,7 +467,19 @@ if(WIN32)
     $<TARGET_FILE_DIR:your_target>
   )
 endif()
+```
 
+Generating a .dSYM file on macos:
+
+In xcode cmake this can be done with
+
+```cmake
+set_target_properties(your_target PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+```
+
+And outside xcode this can be done with `dsymutil yourbinary`:
+
+```cmake
 # Create a .dSYM file on macos. Currently required, but hopefully not for long
 if(APPLE)
   add_custom_command(
