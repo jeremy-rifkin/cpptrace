@@ -78,9 +78,7 @@ def output_matches(output: str, params: Tuple[str]):
     expected = [line.strip().split("||") for line in expected.split("\n")]
     output = [line.strip().split("||") for line in output.split("\n")]
 
-    max_line_diff = MAX_LINE_DIFF
-    if "CPPTRACE_UNWIND_WITH_UNWIND" in params or "CPPTRACE_UNWIND_WITH_DBGHELP" in params:
-        max_line_diff = 0
+    max_line_diff = 0
 
     errored = False
 
@@ -136,8 +134,6 @@ def run_test(test_binary, params: Tuple[str]):
         if len(test_stderr) != 0:
             print("stderr:")
             print(test_stderr.decode("utf-8"), end="")
-        print(test_stdout, test_stderr, test.returncode)
-        print(test)
         if output_matches(test_stdout.decode("utf-8"), params):
             print(f"{Fore.GREEN}{Style.BRIGHT}Test succeeded{Style.RESET_ALL}")
             return True
