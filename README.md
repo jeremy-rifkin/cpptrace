@@ -86,7 +86,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.2.0-beta2 # <HASH or TAG>
+  GIT_TAG        v0.2.0 # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace)
@@ -312,16 +312,16 @@ A note about performance: For handling of DWARF symbols there is a lot of room t
 and time-memory tradeoffs. If you find the current implementation is either slow or using too much memory, I'd be happy
 to explore some of these options.
 
-A couple things I'd like to fix in the future:
+A couple things I'd like to improve in the future:
 - On MacOS .dSYM files are required
 - On Windows when collecting symbols with dbghelp (msvc/clang) parameter types are almost perfect but due to limitations
   in dbghelp the library cannot accurately show const and volatile qualifiers or rvalue references (these appear as
   pointers).
-- On Windows unwinding with `CaptureStackBackTrace` (msvc/clang) can sometimes produce program counters that are after
-  the call instruction. Execinfo suffers from the same problem, but libgcc's `_Unwind` provides a means to detect this.
-  I would like to find a solution on windows so stack traces are more accurate.
-- Support for universal binaries on macos (fat mach-o files) is hacky and inefficient at the moment. Libdwarf should be
-  adding proper support for these soon thanks to an awesome maintainer.
+
+A couple features I'd like to add in the future:
+- Tracing from signal handlers
+- Tracing other thread's stacks
+- Showing inlined calls in the stack trace
 
 ### FAQ: What about C++23 `<stacktrace>`?
 
@@ -357,7 +357,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.2.0-beta2 # <HASH or TAG>
+  GIT_TAG        v0.2.0 # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace)
@@ -373,7 +373,7 @@ information.
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.2.0-beta2
+git checkout v0.2.0
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -409,7 +409,7 @@ you when installing new libraries.
 
 ```ps1
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.2.0-beta2
+git checkout v0.2.0
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -427,7 +427,7 @@ To install just for the local user (or any custom prefix):
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.2.0-beta2
+git checkout v0.2.0
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/wherever
