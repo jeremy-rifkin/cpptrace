@@ -78,9 +78,7 @@ def output_matches(output: str, params: Tuple[str]):
     expected = [line.strip().split("||") for line in expected.split("\n")]
     output = [line.strip().split("||") for line in output.split("\n")]
 
-    max_line_diff = MAX_LINE_DIFF
-    if "CPPTRACE_UNWIND_WITH_UNWIND" in params or "CPPTRACE_UNWIND_WITH_DBGHELP" in params:
-        max_line_diff = 0
+    max_line_diff = 0
 
     errored = False
 

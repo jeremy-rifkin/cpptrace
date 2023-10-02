@@ -27,9 +27,13 @@ namespace detail {
             addrs.data(),
             NULL
         );
+        // I hate the copy here but it's the only way that isn't UB
         std::vector<uintptr_t> frames(n_frames, 0);
         for(std::size_t i = 0; i < n_frames; i++) {
-            frames[i] = reinterpret_cast<uintptr_t>(addrs[i]);
+            // On x86/x64/arm, as far as I can tell, the frame return address is always one after the call
+            // So we just decrement to get the pc back inside the `call` / `bl`
+            // This is done with _Unwind too but conditionally based on info from _Unwind_GetIPInfo.
+            frames[i] = reinterpret_cast<uintptr_t>(addrs[i]) - 1;
         }
         return frames;
     }
