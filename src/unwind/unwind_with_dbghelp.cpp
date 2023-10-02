@@ -121,7 +121,7 @@ namespace detail {
                     // On x86/x64/arm, as far as I can tell, the frame return address is always one after the call
                     // So we just decrement to get the pc back inside the `call` / `bl`
                     // This is done with _Unwind too but conditionally based on info from _Unwind_GetIPInfo.
-                    trace.push_back(frame.AddrPC.Offset - 1);
+                    trace.push_back(static_cast<uintptr_t>(frame.AddrPC.Offset) - 1);
                 }
             } else {
                 // base
