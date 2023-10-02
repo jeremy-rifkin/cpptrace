@@ -78,9 +78,6 @@ namespace libdwarf {
         // Vector of ranges and their corresponding CU offsets
         std::vector<cu_entry> cu_cache;
 
-        // Exists only for cleaning up an awful mach-o hack
-        std::string tmp_object_path;
-
         // Error handling helper
         // For some reason R (*f)(Args..., void*)-style deduction isn't possible, seems like a bug in all compilers
         // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56190
@@ -179,10 +176,6 @@ namespace libdwarf {
             }
             cu_cache.clear();
             dwarf_finish(dbg);
-            // cleanup awful mach-o hack
-            if(!tmp_object_path.empty()) {
-                unlink(tmp_object_path.c_str());
-            }
         }
 
         dwarf_resolver(const dwarf_resolver&) = delete;
@@ -196,8 +189,7 @@ namespace libdwarf {
             arange_count(other.arange_count),
             line_contexts(std::move(other.line_contexts)),
             subprograms_cache(std::move(other.subprograms_cache)),
-            cu_cache(std::move(other.cu_cache)),
-            tmp_object_path(std::move(other.tmp_object_path))
+            cu_cache(std::move(other.cu_cache))
         {
             other.dbg = nullptr;
             other.aranges = nullptr;
@@ -212,7 +204,6 @@ namespace libdwarf {
             line_contexts = std::move(other.line_contexts);
             subprograms_cache = std::move(other.subprograms_cache);
             cu_cache = std::move(other.cu_cache);
-            tmp_object_path = std::move(other.tmp_object_path);
             other.dbg = nullptr;
             other.aranges = nullptr;
             return *this;
