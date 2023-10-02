@@ -134,8 +134,6 @@ def run_test(test_binary, params: Tuple[str]):
         if len(test_stderr) != 0:
             print("stderr:")
             print(test_stderr.decode("utf-8"), end="")
-        print(test_stdout, test_stderr, test.returncode)
-        print(test)
         if output_matches(test_stdout.decode("utf-8"), params):
             print(f"{Fore.GREEN}{Style.BRIGHT}Test succeeded{Style.RESET_ALL}")
             return True
