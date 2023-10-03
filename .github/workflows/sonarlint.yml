@@ -6,7 +6,7 @@ on:
       - main
   pull_request:
       types: [opened, synchronize, reopened]
-name: Sonar Lint
+name: sonarlint
 jobs:
   sonarcloud:
     runs-on: ubuntu-latest
@@ -21,9 +21,9 @@ jobs:
       uses: sonarsource/sonarcloud-github-c-cpp@v2
     - name: Run build-wrapper
       run: |
-      mkdir build
-      cmake -S . -B build
-      build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build/ --config Debug
+        mkdir build
+        cmake -S . -B build
+        build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build/ --config Debug
     - name: Run sonar-scanner
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
