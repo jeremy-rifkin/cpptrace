@@ -25,6 +25,7 @@ jobs:
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_BUILD_DEMO=On -DCPPTRACE_BUILD_TEST=On -DCMAKE_EXPORT_COMPILE_COMMANDS=On
         make -j
+        cd ..
     - name: Run sonar-scanner
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
