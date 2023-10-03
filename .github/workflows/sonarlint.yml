@@ -23,8 +23,8 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_BUILD_DEMO=On -DCPPTRACE_BUILD_TEST=On -DCMAKE_EXPORT_COMPILE_COMMANDS=On -GNinja
-        ninja
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_BUILD_DEMO=On -DCPPTRACE_BUILD_TEST=On -DCMAKE_EXPORT_COMPILE_COMMANDS=On
+        make -j
     - name: Debug
       run: cat build_wrapper_output_directory/build-wrapper-dump.json
     - name: Run sonar-scanner
