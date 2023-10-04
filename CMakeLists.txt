@@ -249,9 +249,8 @@ set_target_properties(
 target_compile_options(
   cpptrace
   PRIVATE
-  #  -Wshadow
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
-  $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wnonnull-compare>
+  $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast>
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
 
