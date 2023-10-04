@@ -202,8 +202,6 @@ endif()
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 set(
   sources
   src/cpptrace.cpp
@@ -228,6 +226,7 @@ if(CPPTRACE_STATIC)
   add_library(cpptrace STATIC ${sources} include/cpptrace/cpptrace.hpp)
 else()
   add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
+  set_property(TARGET cpptrace PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
 target_include_directories(

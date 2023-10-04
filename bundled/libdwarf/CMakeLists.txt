@@ -421,12 +421,10 @@ set(
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-### libassert uses relocs, -fpic has to be used to allow shared libs to link libassert as a static library.
-##set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 include(GNUInstallDirs)
 
-add_library(dwarf STATIC ${libdwarf_sources} ${libdwarf_headers})
+add_library(dwarf OBJECT ${libdwarf_sources} ${libdwarf_headers})
+set_property(TARGET dwarf PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_compile_definitions(dwarf PUBLIC LIBDWARF_BUILD)
 
