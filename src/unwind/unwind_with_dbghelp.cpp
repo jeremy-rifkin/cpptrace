@@ -64,7 +64,7 @@ namespace detail {
         STACKFRAME64 frame;
         ZeroMemory(&frame, sizeof(STACKFRAME64));
         DWORD machine_type;
-        #ifdef _M_IX86
+        #if defined(_M_IX86) || defined(__i386__)
         machine_type           = IMAGE_FILE_MACHINE_I386;
         frame.AddrPC.Offset    = context.Eip;
         frame.AddrPC.Mode      = AddrModeFlat;
@@ -72,7 +72,7 @@ namespace detail {
         frame.AddrFrame.Mode   = AddrModeFlat;
         frame.AddrStack.Offset = context.Esp;
         frame.AddrStack.Mode   = AddrModeFlat;
-        #elif _M_X64
+        #elif defined(_M_X64) || defined(__x86_64__)
         machine_type           = IMAGE_FILE_MACHINE_AMD64;
         frame.AddrPC.Offset    = context.Rip;
         frame.AddrPC.Mode      = AddrModeFlat;
@@ -80,7 +80,7 @@ namespace detail {
         frame.AddrFrame.Mode   = AddrModeFlat;
         frame.AddrStack.Offset = context.Rsp;
         frame.AddrStack.Mode   = AddrModeFlat;
-        #elif _M_IA64
+        #elif defined(_M_IA64) || defined(__aarch64__)
         machine_type           = IMAGE_FILE_MACHINE_IA64;
         frame.AddrPC.Offset    = context.StIIP;
         frame.AddrPC.Mode      = AddrModeFlat;
