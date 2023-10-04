@@ -217,74 +217,83 @@ check_c_source_compiles([=[
   }]=] HAVE_STDAFX_H)
 #message(STATUS "Checking have windows stdafx.h... ${HAVE_STDAFX_H}")
 
-set(CMAKE_REQUIRED_LIBRARIES z)
-check_c_source_compiles( [=[
-  #include "zlib.h"
-  int main()
-  {
-      Bytef dest[100];
-      uLongf destlen = 100;
-      Bytef *src = 0;
-      uLong srclen = 3;
-      int res = uncompress(dest,&destlen,src,srclen);
-      if (res == Z_OK) {
-           /* ALL IS WELL */
-      }
-      return 0;
-  } ]=]  HAVE_ZLIB )
-check_c_source_compiles( [=[
-  #include "zlib.h"
-  int main()
-  {
-      Bytef dest[100];
-      uLongf destlen = 100;
-      Bytef *src = 0;
-      uLong srclen = 3;
-      int res = uncompress(dest,&destlen,src,srclen);
-      if (res == Z_OK) {
-           /* ALL IS WELL */
-      }
-      return 0;
-  } ]=]  HAVE_ZLIB_H )
-set(CMAKE_REQUIRED_LIBRARIES)
-if (HAVE_ZLIB)
-  # For linking in libz
-  set(DW_FZLIB "z")
-endif()
+option(CMAKE_DWARF_FINDPACKAGE_Z "" OFF)
 
-set(CMAKE_REQUIRED_LIBRARIES zstd )
-check_c_source_compiles( [=[
-  #include "zstd.h"
-  int main()
-  {
-      char * dest[100];
-      size_t destlen = 100;
-      char *src = 0;
-      size_t srclen = 3;
-      size_t res = ZSTD_decompress(dest,destlen,src,srclen);
-      if (res == destlen) {
-           /* ALL IS WELL */
-      }
-      return 0;
-  } ]=]  HAVE_ZSTD )
-check_c_source_compiles( [=[
-  #include "zstd.h"
-  int main()
-  {
-      char * dest[100];
-      size_t destlen = 100;
-      char *src = 0;
-      size_t srclen = 3;
-      size_t res = ZSTD_decompress(dest,destlen,src,srclen);
-      if (res == destlen) {
-           /* ALL IS WELL */
-      }
-      return 0;
-  } ]=]  HAVE_ZSTD_H )
-set(CMAKE_REQUIRED_LIBRARIES)
-if (HAVE_ZSTD)
-  # For linking in libzstd
-  set(DW_FZSTD "zstd")
+mark_as_advanced(CMAKE_DWARF_FINDPACKAGE_Z)
+
+if(NOT CMAKE_DWARF_FINDPACKAGE_Z)
+  set(CMAKE_REQUIRED_LIBRARIES z)
+  check_c_source_compiles( [=[
+    #include "zlib.h"
+    int main()
+    {
+        Bytef dest[100];
+        uLongf destlen = 100;
+        Bytef *src = 0;
+        uLong srclen = 3;
+        int res = uncompress(dest,&destlen,src,srclen);
+        if (res == Z_OK) {
+            /* ALL IS WELL */
+        }
+        return 0;
+    } ]=]  HAVE_ZLIB )
+  check_c_source_compiles( [=[
+    #include "zlib.h"
+    int main()
+    {
+        Bytef dest[100];
+        uLongf destlen = 100;
+        Bytef *src = 0;
+        uLong srclen = 3;
+        int res = uncompress(dest,&destlen,src,srclen);
+        if (res == Z_OK) {
+            /* ALL IS WELL */
+        }
+        return 0;
+    } ]=]  HAVE_ZLIB_H )
+  set(CMAKE_REQUIRED_LIBRARIES)
+  if (HAVE_ZLIB)
+    # For linking in libz
+    set(DW_FZLIB "z")
+  endif()
+
+  set(CMAKE_REQUIRED_LIBRARIES zstd )
+  check_c_source_compiles( [=[
+    #include "zstd.h"
+    int main()
+    {
+        char * dest[100];
+        size_t destlen = 100;
+        char *src = 0;
+        size_t srclen = 3;
+        size_t res = ZSTD_decompress(dest,destlen,src,srclen);
+        if (res == destlen) {
+            /* ALL IS WELL */
+        }
+        return 0;
+    } ]=]  HAVE_ZSTD )
+  check_c_source_compiles( [=[
+    #include "zstd.h"
+    int main()
+    {
+        char * dest[100];
+        size_t destlen = 100;
+        char *src = 0;
+        size_t srclen = 3;
+        size_t res = ZSTD_decompress(dest,destlen,src,srclen);
+        if (res == destlen) {
+            /* ALL IS WELL */
+        }
+        return 0;
+    } ]=]  HAVE_ZSTD_H )
+  set(CMAKE_REQUIRED_LIBRARIES)
+  if (HAVE_ZSTD)
+    # For linking in libzstd
+    set(DW_FZSTD "zstd")
+  endif()
+else()
+  find_package(z REQUIRED)
+  set(DW_FZLIB "z")
 endif()
 
 check_c_source_compiles([=[
@@ -434,7 +443,7 @@ target_include_directories(
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-target_link_libraries(dwarf PUBLIC ${LIBELF_LIBRARIES} ${DW_FZLIB} ${DW_FZSTD})
+target_link_libraries(dwarf PUBLIC ${DW_FZLIB} ${DW_FZSTD})
 
 # TODO: Something will have to be figured out for dynamic linking, but for now there's nothing to install
 # if(NOT CMAKE_SKIP_INSTALL_RULES)
