@@ -386,9 +386,15 @@ endif()
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(CMakePackageConfigHelpers)
 
+  if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+    set(CPPTRACE_STATIC_EXPORT_TARGETS cpptrace dwarf)
+  else()
+    set(CPPTRACE_STATIC_EXPORT_TARGETS cpptrace)
+  endif()
+
   if(CPPTRACE_STATIC)
     install(
-      TARGETS cpptrace
+      TARGETS ${CPPTRACE_STATIC_EXPORT_TARGETS}
       EXPORT cpptrace_targets
       LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
       INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
