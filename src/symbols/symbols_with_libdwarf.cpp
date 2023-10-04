@@ -675,7 +675,8 @@ namespace libdwarf {
                     }
                 }
                 if(resolver_object.has_value() && get_cache_mode() == cache_mode::prioritize_speed) {
-                    resolver_map.insert({obj_name, std::move(resolver_object).unwrap()});
+                    // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
+                    resolver_map.emplace(obj_name, std::move(resolver_object).unwrap());
                 }
             } catch(...) {
                 if(!should_absorb_trace_exceptions()) {
