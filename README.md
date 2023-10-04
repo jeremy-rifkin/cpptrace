@@ -7,8 +7,8 @@
 <br/>
 [![Community Discord Link](https://img.shields.io/badge/Chat%20on%20(the%20very%20small)-Community%20Discord-blue?labelColor=2C3239&color=7289DA&style=flat&logo=discord&logoColor=959DA5)](https://discord.gg/7kv5AuCndG)
 
-Cpptrace is a lightweight C++ stacktrace library supporting C++11 and greater on Linux, macOS, and Windows including
-MinGW and Cygwin environments. The goal: Make stack traces simple for once.
+Cpptrace is a simple, portable, and self-contained C++ stacktrace library supporting C++11 and greater on Linux, macOS,
+and Windows including MinGW and Cygwin environments. The goal: Make stack traces simple for once.
 
 ## Table of Contents <!-- omit in toc -->
 
