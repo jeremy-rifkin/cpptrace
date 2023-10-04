@@ -21,6 +21,8 @@
 
 namespace cpptrace {
 namespace detail {
+    #pragma warning(push)
+    #pragma warning(disable: 4740) // warning C4740: flow in or out of inline asm code suppresses global optimization
     CPPTRACE_FORCE_NO_INLINE
     std::vector<uintptr_t> capture_frames(size_t skip, size_t max_depth) {
         skip++;
@@ -135,6 +137,7 @@ namespace detail {
         }
         return trace;
     }
+    #pragma warning(pop)
 }
 }
 

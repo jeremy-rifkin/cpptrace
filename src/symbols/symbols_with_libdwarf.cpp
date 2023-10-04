@@ -458,7 +458,8 @@ namespace libdwarf {
                     &table_count,
                     &line_context
                 );
-                VERIFY(table_count >= 0 && table_count <= 2, "Unknown dwarf line table count");
+                static_assert(std::is_unsigned<decltype(table_count)>::value, "Expected unsigned Dwarf_Small");
+                VERIFY(/*table_count >= 0 &&*/ table_count <= 2, "Unknown dwarf line table count");
                 if(ret == DW_DLV_NO_ENTRY) {
                     // TODO: Failing silently for now
                     return;
