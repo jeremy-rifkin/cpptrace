@@ -445,7 +445,11 @@ target_include_directories(
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-target_link_libraries(dwarf PUBLIC ${DW_FZLIB} ${DW_FZSTD})
+if(CMAKE_DWARF_FINDPACKAGE_Z)
+  target_link_libraries(dwarf PUBLIC ZLIB::ZLIB)
+else()
+  target_link_libraries(dwarf PUBLIC ${DW_FZLIB} ${DW_FZSTD})
+endif()
 
 # TODO: Something will have to be figured out for dynamic linking, but for now there's nothing to install
 # if(NOT CMAKE_SKIP_INSTALL_RULES)
