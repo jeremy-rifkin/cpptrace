@@ -95,7 +95,7 @@ namespace libdwarf {
             >::type = 0
         >
         int wrap(int (*f)(Args...), Args2&&... args) const {
-            Dwarf_Error error = 0;
+            Dwarf_Error error = nullptr;
             int ret = f(std::forward<Args2>(args)..., &error);
             if(ret == DW_DLV_ERROR) {
                 handle_dwarf_error(dbg, error);
@@ -211,7 +211,7 @@ namespace libdwarf {
 
         // walk all CU's in a dbg, callback is called on each die and should return true to
         // continue traversal
-        void walk_compilation_units(std::function<bool(const die_object&)> fn) {
+        void walk_compilation_units(const std::function<bool(const die_object&)>& fn) {
             // libdwarf keeps track of where it is in the file, dwarf_next_cu_header_d is statefull
             Dwarf_Unsigned next_cu_header;
             Dwarf_Half header_cu_type;
@@ -467,7 +467,7 @@ namespace libdwarf {
                 VERIFY(ret == DW_DLV_OK);
                 line_contexts.insert({off, {version, line_context}});
             }
-            Dwarf_Line* line_buffer = 0;
+            Dwarf_Line* line_buffer = nullptr;
             Dwarf_Signed line_count = 0;
             Dwarf_Line* linebuf_actuals = nullptr;
             Dwarf_Signed linecount_actuals = 0;
@@ -482,7 +482,7 @@ namespace libdwarf {
                 ) == DW_DLV_OK
             );
             Dwarf_Addr last_lineaddr = 0;
-            Dwarf_Line last_line = 0;
+            Dwarf_Line last_line = nullptr;
             for(int i = 0; i < line_count; i++) {
                 Dwarf_Line line = line_buffer[i];
                 Dwarf_Addr lineaddr = 0;
@@ -519,7 +519,7 @@ namespace libdwarf {
                     VERIFY(wrap(dwarf_lineendsequence, line, &is_line_end) == DW_DLV_OK);
                     if(is_line_end) {
                         last_lineaddr = 0;
-                        last_line = 0;
+                        last_line = nullptr;
                     } else {
                         last_lineaddr = lineaddr;
                         last_line = line;
