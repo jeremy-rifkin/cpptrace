@@ -43,7 +43,7 @@ int main() {
         "label:\n\t"
         "mov{l %%ebp, %[cEbp] | %[cEbp], ebp};\n\t"
         "mov{l %%esp, %[cEsp] | %[cEsp], esp};\n\t"
-        "mov{l $label, %%eax | eax, label};\n\t"
+        "mov{l $label, %%eax | eax, OFFSET label};\n\t"
         "mov{l %%eax, %[cEip] | %[cEip], eax};\n\t"
         : [cEbp] "=r" (context.Ebp),
             [cEsp] "=r" (context.Esp),
