@@ -77,7 +77,7 @@ namespace libbacktrace {
                 );
             }
             return frame;
-        } catch(...) {
+        } catch(...) { // NOSONAR
             if(!should_absorb_trace_exceptions()) {
                 throw;
             }

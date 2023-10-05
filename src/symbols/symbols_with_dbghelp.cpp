@@ -408,7 +408,7 @@ namespace dbghelp {
         for(const auto frame : frames) {
             try {
                 trace.push_back(resolve_frame(proc, frame));
-            } catch(...) {
+            } catch(...) { // NOSONAR
                 if(!detail::should_absorb_trace_exceptions()) {
                     throw;
                 }

@@ -667,7 +667,7 @@ namespace libdwarf {
                             const auto& dlframe = entry.first.get();
                             auto& frame = entry.second.get();
                             frame = resolver->resolve_frame(dlframe);
-                        } catch(...) {
+                        } catch(...) { // NOSONAR
                             if(!should_absorb_trace_exceptions()) {
                                 throw;
                             }
@@ -678,7 +678,7 @@ namespace libdwarf {
                     // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
                     resolver_map.emplace(obj_name, std::move(resolver_object).unwrap());
                 }
-            } catch(...) {
+            } catch(...) { // NOSONAR
                 if(!should_absorb_trace_exceptions()) {
                     throw;
                 }
