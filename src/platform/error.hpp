@@ -47,7 +47,7 @@ namespace detail {
     constexpr const char* assert_actions[] = {"assertion", "verification", "panic"};
     constexpr const char* assert_names[] = {"ASSERT", "VERIFY", "PANIC"};
 
-    inline void assert_fail(
+    [[noreturn]] inline void assert_fail(
         assert_type type,
         const char* expression,
         const char* signature,

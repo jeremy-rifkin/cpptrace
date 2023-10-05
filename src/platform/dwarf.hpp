@@ -18,7 +18,7 @@ namespace libdwarf {
     static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
 
-    void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
+    [[noreturn]] void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
         int ev = dwarf_errno(error);
         char* msg = dwarf_errmsg(error);
         dwarf_dealloc_error(dbg, error);
@@ -46,7 +46,7 @@ namespace libdwarf {
             >::type = 0
         >
         int wrap(int (*f)(Args...), Args2&&... args) const {
-            Dwarf_Error error = 0;
+            Dwarf_Error error = nullptr;
             int ret = f(std::forward<Args2>(args)..., &error);
             if(ret == DW_DLV_ERROR) {
                 handle_dwarf_error(dbg, error);
@@ -85,7 +85,7 @@ namespace libdwarf {
         die_object clone() const {
             Dwarf_Off global_offset = get_global_offset();
             Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
-            Dwarf_Die die_copy = 0;
+            Dwarf_Die die_copy = nullptr;
             VERIFY(wrap(dwarf_offdie_b, dbg, global_offset, is_info, &die_copy) == DW_DLV_OK);
             return {dbg, die_copy};
         }
@@ -96,19 +96,19 @@ namespace libdwarf {
             if(ret == DW_DLV_OK) {
                 return die_object(dbg, child);
             } else if(ret == DW_DLV_NO_ENTRY) {
-                return die_object(dbg, 0);
+                return die_object(dbg, nullptr);
             } else {
                 PANIC();
             }
         }
 
         die_object get_sibling() const {
-            Dwarf_Die sibling = 0;
+            Dwarf_Die sibling = nullptr;
             int ret = wrap(dwarf_siblingof_b, dbg, die, true, &sibling);
             if(ret == DW_DLV_OK) {
                 return die_object(dbg, sibling);
             } else if(ret == DW_DLV_NO_ENTRY) {
-                return die_object(dbg, 0);
+                return die_object(dbg, nullptr);
             } else {
                 PANIC();
             }
@@ -193,7 +193,7 @@ namespace libdwarf {
                         VERIFY(wrap(dwarf_formref, attr, &off, &is_info) == DW_DLV_OK);
                         Dwarf_Off global_offset = 0;
                         VERIFY(wrap(dwarf_convert_to_global_offset, attr, off, &global_offset) == DW_DLV_OK);
-                        Dwarf_Die target = 0;
+                        Dwarf_Die target = nullptr;
                         VERIFY(wrap(dwarf_offdie_b, dbg, global_offset, is_info, &target) == DW_DLV_OK);
                         return die_object(dbg, target);
                     }
@@ -202,7 +202,7 @@ namespace libdwarf {
                         Dwarf_Off off;
                         VERIFY(wrap(dwarf_global_formref, attr, &off) == DW_DLV_OK);
                         int is_info = dwarf_get_die_infotypes_flag(die);
-                        Dwarf_Die target = 0;
+                        Dwarf_Die target = nullptr;
                         VERIFY(wrap(dwarf_offdie_b, dbg, off, is_info, &target) == DW_DLV_OK);
                         return die_object(dbg, target);
                     }
@@ -210,7 +210,7 @@ namespace libdwarf {
                     {
                         Dwarf_Sig8 signature;
                         VERIFY(wrap(dwarf_formsig8, attr, &signature) == DW_DLV_OK);
-                        Dwarf_Die target = 0;
+                        Dwarf_Die target = nullptr;
                         Dwarf_Bool targ_is_info = false;
                         VERIFY(wrap(dwarf_find_die_given_sig8, dbg, &signature, &target, &targ_is_info) == DW_DLV_OK);
                         return die_object(dbg, target);
@@ -234,7 +234,7 @@ namespace libdwarf {
 
         template<typename F>
         void dwarf5_ranges(F callback) const {
-            Dwarf_Attribute attr = 0;
+            Dwarf_Attribute attr = nullptr;
             if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
                 return;
             }
@@ -243,7 +243,7 @@ namespace libdwarf {
             Dwarf_Half form = 0;
             VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
             // get .debug_rnglists info
-            Dwarf_Rnglists_Head head = 0;
+            Dwarf_Rnglists_Head head = nullptr;
             Dwarf_Unsigned rnglists_entries = 0;
             Dwarf_Unsigned dw_global_offset_of_rle_set = 0;
             int res = wrap(
@@ -312,7 +312,7 @@ namespace libdwarf {
 
         template<typename F>
         void dwarf4_ranges(Dwarf_Addr lowpc, F callback) const {
-            Dwarf_Attribute attr = 0;
+            Dwarf_Attribute attr = nullptr;
             if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
                 return;
             }
@@ -325,7 +325,7 @@ namespace libdwarf {
             if(lowpc != std::numeric_limits<Dwarf_Addr>::max()) {
                 baseaddr = lowpc;
             }
-            Dwarf_Ranges* ranges = 0;
+            Dwarf_Ranges* ranges = nullptr;
             Dwarf_Signed count = 0;
             VERIFY(
                 wrap(
@@ -430,7 +430,7 @@ namespace libdwarf {
     // returns true if traversal should continue
     bool walk_die_list(
         const die_object& die,
-        std::function<bool(const die_object&)> fn
+        const std::function<bool(const die_object&)>& fn
     ) {
         // TODO: Refactor so there is only one fn call
         bool continue_traversal = true;
@@ -453,7 +453,7 @@ namespace libdwarf {
     // returns true if traversal should continue
     bool walk_die_list_recursive(
         const die_object& die,
-        std::function<bool(const die_object&)> fn
+        const std::function<bool(const die_object&)>& fn
     ) {
         return walk_die_list(
             die,
