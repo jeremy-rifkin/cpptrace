@@ -140,8 +140,6 @@ namespace cpptrace {
 
     struct stacktrace {
         std::vector<stacktrace_frame> frames;
-        explicit stacktrace();
-        explicit stacktrace(std::vector<stacktrace_frame>&& frames);
         static stacktrace current(std::uint_least32_t skip = 0); // here as a drop-in for std::stacktrace
         static stacktrace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         void print() const;
@@ -175,7 +173,6 @@ namespace cpptrace {
 
     struct object_trace {
         std::vector<object_frame> frames;
-        explicit object_trace(std::vector<object_frame>&& frames);
         static object_trace current(std::uint_least32_t skip = 0);
         static object_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         stacktrace resolve() const;
@@ -200,7 +197,6 @@ Note it is important executables and shared libraries in memory aren't somehow u
 namespace cpptrace {
     struct raw_trace {
         std::vector<uintptr_t> frames;
-        explicit raw_trace(std::vector<uintptr_t>&& frames);
         static raw_trace current(std::uint_least32_t skip = 0);
         static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         object_trace resolve_object_trace() const;

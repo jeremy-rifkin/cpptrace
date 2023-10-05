@@ -29,7 +29,6 @@ namespace cpptrace {
 
     struct raw_trace {
         std::vector<uintptr_t> frames;
-        explicit raw_trace(std::vector<uintptr_t>&& frames_) : frames(frames_) {}
         CPPTRACE_API static raw_trace current(std::uint_least32_t skip = 0);
         CPPTRACE_API static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         CPPTRACE_API object_trace resolve_object_trace() const;
@@ -56,7 +55,6 @@ namespace cpptrace {
 
     struct object_trace {
         std::vector<object_frame> frames;
-        explicit object_trace(std::vector<object_frame>&& frames_) : frames(frames_) {}
         CPPTRACE_API static object_trace current(std::uint_least32_t skip = 0);
         CPPTRACE_API static object_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         CPPTRACE_API stacktrace resolve() const;
@@ -95,8 +93,6 @@ namespace cpptrace {
 
     struct stacktrace {
         std::vector<stacktrace_frame> frames;
-        explicit stacktrace() {}
-        explicit stacktrace(std::vector<stacktrace_frame>&& frames_) : frames(frames_) {}
         CPPTRACE_API static stacktrace current(std::uint_least32_t skip = 0);
         CPPTRACE_API static stacktrace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         CPPTRACE_API void print() const;
@@ -166,7 +162,7 @@ namespace cpptrace {
                             e.what()
                         );
                     }
-                    return raw_trace({});
+                    return raw_trace{};
                 }
             } ()) {}
         explicit exception(std::uint_least32_t skip) noexcept : exception(skip + 1, UINT_LEAST32_MAX) {}
