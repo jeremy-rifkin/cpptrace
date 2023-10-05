@@ -301,7 +301,7 @@ namespace addr2line {
                     for(size_t i = 0; i < output.size(); i++) {
                         update_trace(output[i], i, entries_vec);
                     }
-                } catch(...) {
+                } catch(...) { // NOSONAR
                     if(!should_absorb_trace_exceptions()) {
                         throw;
                     }

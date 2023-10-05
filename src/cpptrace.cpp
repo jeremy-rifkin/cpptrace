@@ -16,14 +16,14 @@
 #include "platform/utils.hpp"
 #include "platform/object.hpp"
 
-#define ESC     "\033["
-#define RESET   ESC "0m"
-#define RED     ESC "31m"
-#define GREEN   ESC "32m"
-#define YELLOW  ESC "33m"
-#define BLUE    ESC "34m"
-#define MAGENTA ESC "35m"
-#define CYAN    ESC "36m"
+#define ESC     "\033[" // NOSONAR
+#define RESET   ESC "0m" // NOSONAR
+#define RED     ESC "31m" // NOSONAR
+#define GREEN   ESC "32m" // NOSONAR
+#define YELLOW  ESC "33m" // NOSONAR
+#define BLUE    ESC "34m" // NOSONAR
+#define MAGENTA ESC "35m" // NOSONAR
+#define CYAN    ESC "36m" // NOSONAR
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
@@ -40,7 +40,7 @@ namespace cpptrace {
     object_trace raw_trace::resolve_object_trace() const {
         try {
             return object_trace(detail::get_frames_object_info(frames));
-        } catch(...) {
+        } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -56,7 +56,7 @@ namespace cpptrace {
                 frame.symbol = detail::demangle(frame.symbol);
             }
             return stacktrace(std::move(trace));
-        } catch(...) {
+        } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -88,7 +88,7 @@ namespace cpptrace {
     stacktrace object_trace::resolve() const {
         try {
             return stacktrace(detail::resolve_frames(frames));
-        } catch(...) {
+        } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -241,7 +241,7 @@ namespace cpptrace {
     raw_trace generate_raw_trace(std::uint_least32_t skip) {
         try {
             return raw_trace(detail::capture_frames(skip + 1, UINT_LEAST32_MAX));
-        } catch(...) {
+        } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -253,7 +253,7 @@ namespace cpptrace {
     raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
         try {
             return raw_trace(detail::capture_frames(skip + 1, max_depth));
-        } catch(...) {
+        } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -265,7 +265,7 @@ namespace cpptrace {
     object_trace generate_object_trace(std::uint_least32_t skip) {
         try {
             return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, UINT_LEAST32_MAX)));
-        } catch(...) {
+        } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -277,7 +277,7 @@ namespace cpptrace {
     object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
         try {
             return object_trace(detail::get_frames_object_info(detail::capture_frames(skip + 1, max_depth)));
-        } catch(...) {
+        } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
@@ -299,7 +299,7 @@ namespace cpptrace {
                 frame.symbol = detail::demangle(frame.symbol);
             }
             return stacktrace(std::move(trace));
-        } catch(...) {
+        } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
