@@ -292,8 +292,8 @@ if(NOT CMAKE_DWARF_FINDPACKAGE_Z)
     set(DW_FZSTD "zstd")
   endif()
 else()
-  find_package(z REQUIRED)
-  set(DW_FZLIB "z")
+  find_package(ZLIB REQUIRED)
+  set(DW_FZLIB "ZLIB")
 endif()
 
 check_c_source_compiles([=[
