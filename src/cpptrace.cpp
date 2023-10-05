@@ -173,12 +173,9 @@ namespace cpptrace {
             return;
         }
         const auto reset   = color ? ESC "0m" : "";
-        const auto red     = color ? ESC "31m" : "";
         const auto green   = color ? ESC "32m" : "";
         const auto yellow  = color ? ESC "33m" : "";
         const auto blue    = color ? ESC "34m" : "";
-        const auto magenta = color ? ESC "35m" : "";
-        const auto cyan    = color ? ESC "36m" : "";
         const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
         for(const auto& frame : frames) {
             stream
