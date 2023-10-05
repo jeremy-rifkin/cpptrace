@@ -16,14 +16,14 @@
 #include "platform/utils.hpp"
 #include "platform/object.hpp"
 
-#define ESC     "\033[" // NOSONAR
-#define RESET   ESC "0m" // NOSONAR
-#define RED     ESC "31m" // NOSONAR
-#define GREEN   ESC "32m" // NOSONAR
-#define YELLOW  ESC "33m" // NOSONAR
-#define BLUE    ESC "34m" // NOSONAR
-#define MAGENTA ESC "35m" // NOSONAR
-#define CYAN    ESC "36m" // NOSONAR
+#define ESC     "\033["
+#define RESET   ESC "0m"
+#define RED     ESC "31m"
+#define GREEN   ESC "32m"
+#define YELLOW  ESC "33m"
+#define BLUE    ESC "34m"
+#define MAGENTA ESC "35m"
+#define CYAN    ESC "36m"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
