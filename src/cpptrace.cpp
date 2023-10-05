@@ -313,8 +313,8 @@ namespace cpptrace {
     }
 
     namespace detail {
-        std::atomic_bool absorb_trace_exceptions(true);
-        std::atomic<enum cache_mode> cache_mode(cache_mode::prioritize_speed);
+        std::atomic_bool absorb_trace_exceptions(true); // NOSONAR
+        std::atomic<enum cache_mode> cache_mode(cache_mode::prioritize_speed); // NOSONAR
     }
 
     CPPTRACE_API void absorb_trace_exceptions(bool absorb) {
