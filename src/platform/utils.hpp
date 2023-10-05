@@ -230,7 +230,7 @@ namespace detail {
             typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0
         >
         optional& operator=(U&& value) {
-            optional o(std::move(value));
+            optional o(std::forward<U>(value));
             swap(o);
             return *this;
         }
