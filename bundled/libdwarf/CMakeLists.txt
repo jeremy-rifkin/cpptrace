@@ -217,74 +217,85 @@ check_c_source_compiles([=[
   }]=] HAVE_STDAFX_H)
 #message(STATUS "Checking have windows stdafx.h... ${HAVE_STDAFX_H}")
 
-set(CMAKE_REQUIRED_LIBRARIES z)
-check_c_source_compiles( [=[
-  #include "zlib.h"
-  int main()
-  {
-      Bytef dest[100];
-      uLongf destlen = 100;
-      Bytef *src = 0;
-      uLong srclen = 3;
-      int res = uncompress(dest,&destlen,src,srclen);
-      if (res == Z_OK) {
-           /* ALL IS WELL */
-      }
-      return 0;
-  } ]=]  HAVE_ZLIB )
-check_c_source_compiles( [=[
-  #include "zlib.h"
-  int main()
-  {
-      Bytef dest[100];
-      uLongf destlen = 100;
-      Bytef *src = 0;
-      uLong srclen = 3;
-      int res = uncompress(dest,&destlen,src,srclen);
-      if (res == Z_OK) {
-           /* ALL IS WELL */
-      }
-      return 0;
-  } ]=]  HAVE_ZLIB_H )
-set(CMAKE_REQUIRED_LIBRARIES)
-if (HAVE_ZLIB)
-  # For linking in libz
-  set(DW_FZLIB "z")
-endif()
+option(CMAKE_DWARF_FINDPACKAGE_Z "" OFF)
 
-set(CMAKE_REQUIRED_LIBRARIES zstd )
-check_c_source_compiles( [=[
-  #include "zstd.h"
-  int main()
-  {
-      char * dest[100];
-      size_t destlen = 100;
-      char *src = 0;
-      size_t srclen = 3;
-      size_t res = ZSTD_decompress(dest,destlen,src,srclen);
-      if (res == destlen) {
-           /* ALL IS WELL */
-      }
-      return 0;
-  } ]=]  HAVE_ZSTD )
-check_c_source_compiles( [=[
-  #include "zstd.h"
-  int main()
-  {
-      char * dest[100];
-      size_t destlen = 100;
-      char *src = 0;
-      size_t srclen = 3;
-      size_t res = ZSTD_decompress(dest,destlen,src,srclen);
-      if (res == destlen) {
-           /* ALL IS WELL */
-      }
-      return 0;
-  } ]=]  HAVE_ZSTD_H )
-set(CMAKE_REQUIRED_LIBRARIES)
-if (HAVE_ZSTD)
-  # For linking in libzstd
-  set(DW_FZSTD "zstd")
+mark_as_advanced(CMAKE_DWARF_FINDPACKAGE_Z)
+
+if(NOT CMAKE_DWARF_FINDPACKAGE_Z)
+  set(CMAKE_REQUIRED_LIBRARIES z)
+  check_c_source_compiles( [=[
+    #include "zlib.h"
+    int main()
+    {
+        Bytef dest[100];
+        uLongf destlen = 100;
+        Bytef *src = 0;
+        uLong srclen = 3;
+        int res = uncompress(dest,&destlen,src,srclen);
+        if (res == Z_OK) {
+            /* ALL IS WELL */
+        }
+        return 0;
+    } ]=]  HAVE_ZLIB )
+  check_c_source_compiles( [=[
+    #include "zlib.h"
+    int main()
+    {
+        Bytef dest[100];
+        uLongf destlen = 100;
+        Bytef *src = 0;
+        uLong srclen = 3;
+        int res = uncompress(dest,&destlen,src,srclen);
+        if (res == Z_OK) {
+            /* ALL IS WELL */
+        }
+        return 0;
+    } ]=]  HAVE_ZLIB_H )
+  set(CMAKE_REQUIRED_LIBRARIES)
+  if (HAVE_ZLIB)
+    # For linking in libz
+    set(DW_FZLIB "z")
+  endif()
+
+  set(CMAKE_REQUIRED_LIBRARIES zstd )
+  check_c_source_compiles( [=[
+    #include "zstd.h"
+    int main()
+    {
+        char * dest[100];
+        size_t destlen = 100;
+        char *src = 0;
+        size_t srclen = 3;
+        size_t res = ZSTD_decompress(dest,destlen,src,srclen);
+        if (res == destlen) {
+            /* ALL IS WELL */
+        }
+        return 0;
+    } ]=]  HAVE_ZSTD )
+  check_c_source_compiles( [=[
+    #include "zstd.h"
+    int main()
+    {
+        char * dest[100];
+        size_t destlen = 100;
+        char *src = 0;
+        size_t srclen = 3;
+        size_t res = ZSTD_decompress(dest,destlen,src,srclen);
+        if (res == destlen) {
+            /* ALL IS WELL */
+        }
+        return 0;
+    } ]=]  HAVE_ZSTD_H )
+  set(CMAKE_REQUIRED_LIBRARIES)
+  if (HAVE_ZSTD)
+    # For linking in libzstd
+    set(DW_FZSTD "zstd")
+  endif()
+else()
+  find_package(ZLIB REQUIRED)
+  set(DW_FZLIB "ZLIB")
+  set(HAVE_ZLIB TRUE)
+  set(HAVE_ZLIB_H TRUE)
 endif()
 
 check_c_source_compiles([=[
@@ -421,12 +432,10 @@ set(
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-### libassert uses relocs, -fpic has to be used to allow shared libs to link libassert as a static library.
-##set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 include(GNUInstallDirs)
 
-add_library(dwarf STATIC ${libdwarf_sources} ${libdwarf_headers})
+add_library(dwarf OBJECT ${libdwarf_sources} ${libdwarf_headers})
+set_property(TARGET dwarf PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_compile_definitions(dwarf PUBLIC LIBDWARF_BUILD)
 
@@ -436,7 +445,11 @@ target_include_directories(
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-target_link_libraries(dwarf PUBLIC ${LIBELF_LIBRARIES} ${DW_FZLIB} ${DW_FZSTD})
+if(CMAKE_DWARF_FINDPACKAGE_Z)
+  target_link_libraries(dwarf PUBLIC ZLIB::ZLIB)
+else()
+  target_link_libraries(dwarf PUBLIC ${DW_FZLIB} ${DW_FZSTD})
+endif()
 
 # TODO: Something will have to be figured out for dynamic linking, but for now there's nothing to install
 # if(NOT CMAKE_SKIP_INSTALL_RULES)

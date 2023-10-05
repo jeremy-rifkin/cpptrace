@@ -458,7 +458,8 @@ namespace libdwarf {
                     &table_count,
                     &line_context
                 );
-                VERIFY(table_count >= 0 && table_count <= 2, "Unknown dwarf line table count");
+                static_assert(std::is_unsigned<decltype(table_count)>::value, "Expected unsigned Dwarf_Small");
+                VERIFY(/*table_count >= 0 &&*/ table_count <= 2, "Unknown dwarf line table count");
                 if(ret == DW_DLV_NO_ENTRY) {
                     // TODO: Failing silently for now
                     return;
@@ -674,7 +675,8 @@ namespace libdwarf {
                     }
                 }
                 if(resolver_object.has_value() && get_cache_mode() == cache_mode::prioritize_speed) {
-                    resolver_map.insert({obj_name, std::move(resolver_object).unwrap()});
+                    // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
+                    resolver_map.emplace(obj_name, std::move(resolver_object).unwrap());
                 }
             } catch(...) {
                 if(!should_absorb_trace_exceptions()) {

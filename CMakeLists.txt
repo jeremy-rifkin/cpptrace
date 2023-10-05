@@ -97,23 +97,13 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
 endif()
 
-if(NOT WIN32) # No need to bother checking in msvc, but do check in minngw
+if(NOT WIN32)
   check_support(HAS_UNWIND has_unwind.cpp "" "" "")
   check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
   check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${CPPTRACE_BACKTRACE_PATH_DEFINITION}")
-  check_support(HAS_DL has_dl.cpp "" "dl" "")
   set(STACKTRACE_LINK_LIB "stdc++_libbacktrace")
-  check_support(HAS_STACKTRACE has_stacktrace.cpp "" "${STACKTRACE_LINK_LIB}" "")
-  if(APPLE)
-    find_program(ADDR2LINE_PATH atos PATHS ENV PATH)
-  else()
-    find_program(ADDR2LINE_PATH addr2line PATHS ENV PATH)
-  endif()
-  if("${ADDR2LINE_PATH}" STREQUAL "ADDR2LINE_PATH-NOTFOUND")
-    set(HAS_ADDR2LINE FALSE)
-  else()
-    set(HAS_ADDR2LINE TRUE)
-  endif()
+else()
+  check_support(HAS_STACKWALK has_stackwalk.cpp "" "dbghelp" "")
 endif()
 
 # =============================================== Autoconfig unwinding ===============================================
@@ -139,12 +129,14 @@ if(
       set(CPPTRACE_UNWIND_WITH_NOTHING On)
       message(FATAL_ERROR "Cpptrace auto config: No unwinding back-end seems to be supported, stack tracing will not work. To compile anyway set CPPTRACE_UNWIND_WITH_NOTHING.")
     endif()
-  elseif(MINGW)
-    set(CPPTRACE_UNWIND_WITH_DBGHELP On)
-    message(STATUS "Cpptrace auto config: Using dbghelp for unwinding")
-  elseif(WIN32)
-    set(CPPTRACE_UNWIND_WITH_DBGHELP On)
-    message(STATUS "Cpptrace auto config: Using dbghelp for unwinding")
+  elseif(MINGW OR WIN32)
+    if(HAS_STACKWALK)
+      set(CPPTRACE_UNWIND_WITH_DBGHELP On)
+      message(STATUS "Cpptrace auto config: Using dbghelp for unwinding")
+    else()
+      set(CPPTRACE_UNWIND_WITH_WINAPI On)
+      message(STATUS "Cpptrace auto config: Using winapi for unwinding")
+    endif()
   endif()
 else()
   #message(STATUS "MANUAL CONFIG SPECIFIED")
@@ -202,8 +194,6 @@ endif()
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 set(
   sources
   src/cpptrace.cpp
@@ -228,6 +218,7 @@ if(CPPTRACE_STATIC)
   add_library(cpptrace STATIC ${sources} include/cpptrace/cpptrace.hpp)
 else()
   add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
+  set_property(TARGET cpptrace PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
 target_include_directories(
@@ -250,9 +241,8 @@ set_target_properties(
 target_compile_options(
   cpptrace
   PRIVATE
-  #  -Wshadow
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
-  $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wnonnull-compare>
+  $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast>
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
 
@@ -347,6 +337,9 @@ if(CPPTRACE_UNWIND_WITH_WINAPI)
 endif()
 
 if(CPPTRACE_UNWIND_WITH_DBGHELP)
+  if(NOT HAS_STACKWALK)
+    message(WARNING "Cpptrace: CPPTRACE_UNWIND_WITH_DBGHELP specified but dbghelp stackwalk64 doesn't seem to be available.")
+  endif()
   target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_DBGHELP)
   target_link_libraries(cpptrace PRIVATE dbghelp)
 endif()
@@ -385,9 +378,15 @@ endif()
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(CMakePackageConfigHelpers)
 
+  if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+    set(CPPTRACE_STATIC_EXPORT_TARGETS cpptrace dwarf)
+  else()
+    set(CPPTRACE_STATIC_EXPORT_TARGETS cpptrace)
+  endif()
+
   if(CPPTRACE_STATIC)
     install(
-      TARGETS cpptrace dwarf
+      TARGETS ${CPPTRACE_STATIC_EXPORT_TARGETS}
       EXPORT cpptrace_targets
       LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
       INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
