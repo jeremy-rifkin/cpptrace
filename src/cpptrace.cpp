@@ -172,47 +172,56 @@ namespace cpptrace {
             stream<<"<empty trace>"<<std::endl;
             return;
         }
+        const auto reset   = color ? ESC "0m" : "";
+        const auto red     = color ? ESC "31m" : "";
+        const auto green   = color ? ESC "32m" : "";
+        const auto yellow  = color ? ESC "33m" : "";
+        const auto blue    = color ? ESC "34m" : "";
+        const auto magenta = color ? ESC "35m" : "";
+        const auto cyan    = color ? ESC "36m" : "";
         const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
         for(const auto& frame : frames) {
             stream
                 << '#'
                 << std::setw(static_cast<int>(frame_number_width))
                 << std::left
-                << counter++
+                << counter
                 << std::right
                 << " "
                 << std::hex
-                << (color ? BLUE : "")
+                << blue
                 << "0x"
                 << std::setw(2 * sizeof(uintptr_t))
                 << std::setfill('0')
                 << frame.address
                 << std::dec
                 << std::setfill(' ')
-                << (color ? RESET : "")
+                << reset
                 << " in "
-                << (color ? YELLOW : "")
+                << yellow
                 << frame.symbol
-                << (color ? RESET : "")
+                << reset
                 << " at "
-                << (color ? GREEN : "")
+                << green
                 << frame.filename
-                << (color ? RESET : "");
+                << reset;
             if(frame.line != 0) {
                 stream
                     << ":"
-                    << (color ? BLUE : "")
+                    << blue
                     << frame.line
-                    << (color ? RESET : "");
+                    << reset;
                 if(frame.column != UINT_LEAST32_MAX) {
-                    stream << (color ? ":" BLUE : ":")
+                    stream << ':'
+                           << blue
                            << std::to_string(frame.column)
-                           << (color ? RESET : "");
+                           << reset;
                 }
             }
             if(newline_at_end || &frame != &frames.back()) {
                 stream << std::endl;
             }
+            counter++;
         }
     }
 
