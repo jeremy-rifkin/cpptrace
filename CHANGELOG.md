@@ -5,6 +5,18 @@
 - [v0.1.1](#v011)
 - [v0.1](#v01)
 
+# v0.2.1
+
+Patches:
+- Fixed uintptr_t implicit conversion issue for msvc
+- Better handling for PIC and static linkage in CMake
+- Added gcc 5 support
+- Various warning fixes
+- Added stackwalk64 support for 32-bit x86 mingw/clang and architecture detection
+- Added check for stackwalk64 support and CaptureStackBacktrace as a fallback
+- Various cmake cleanup and changes to use cpptrace through package managers
+- Added sonarlint and implemented some sonarlint fixes
+
 # v0.2.0
 
 Key changes:
