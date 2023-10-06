@@ -333,6 +333,10 @@ namespace detail {
     unsigned long long to_ull(T t) {
         return static_cast<unsigned long long>(t);
     }
+    template<typename T>
+    unsigned long long to_uintptr(T t) {
+        return static_cast<uintptr_t>(t);
+    }
 
     // A way to cast to U without "warning: useless cast to type"
     template<typename U, typename V>
