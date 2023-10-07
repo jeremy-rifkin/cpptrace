@@ -133,6 +133,8 @@ namespace cpptrace {
     CPPTRACE_API extern const int stderr_fileno;
     CPPTRACE_API extern const int stdout_fileno;
 
+    CPPTRACE_API void register_terminate_handler();
+
     enum class cache_mode {
         // Only minimal lookup tables
         prioritize_memory,

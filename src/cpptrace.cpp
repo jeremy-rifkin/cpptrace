@@ -14,8 +14,9 @@
 #include "unwind/unwind.hpp"
 #include "demangle/demangle.hpp"
 #include "platform/common.hpp"
-#include "platform/utils.hpp"
+#include "platform/exception_type.hpp"
 #include "platform/object.hpp"
+#include "platform/utils.hpp"
 
 #define ESC     "\033["
 #define RESET   ESC "0m"
@@ -327,6 +328,34 @@ namespace cpptrace {
     CPPTRACE_API extern const int stdin_fileno = detail::fileno(stdin);
     CPPTRACE_API extern const int stdout_fileno = detail::fileno(stdout);
     CPPTRACE_API extern const int stderr_fileno = detail::fileno(stderr);
+
+    CPPTRACE_API [[noreturn]] void terminate_handler() {
+        try {
+            std::rethrow_exception(std::current_exception());
+        } catch(cpptrace::exception& e) {
+            std::cerr << "Terminate called after throwing an instance of "
+                      << cpptrace::demangle(typeid(e).name())
+                      << ": "
+                      << e.get_raw_what()
+                      << '\n';
+            e.get_trace().print(std::cerr, cpptrace::isatty(cpptrace::stderr_fileno));
+        } catch(std::exception& e) {
+            std::cerr << "Terminate called after throwing an instance of "
+                      << cpptrace::demangle(typeid(e).name())
+                      << ": "
+                      << e.what()
+                      << '\n';
+        } catch(...) {
+            std::cerr << "Terminate called after throwing an instance of "
+                      << detail::exception_type_name()
+                      << "\n";
+        }
+        abort();
+    }
+
+    CPPTRACE_API void register_terminate_handler() {
+        std::set_terminate(terminate_handler);
+    }
 
     namespace detail {
         std::atomic_bool absorb_trace_exceptions(true); // NOSONAR

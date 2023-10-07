@@ -106,6 +106,10 @@ else()
   check_support(HAS_STACKWALK has_stackwalk.cpp "" "dbghelp" "")
 endif()
 
+if(NOT WIN32 OR MINGW)
+  check_support(HAS_CXX_EXCEPTION_TYPE has_cxx_exception_type.cpp "" "" "")
+endif()
+
 # =============================================== Autoconfig unwinding ===============================================
 # Unwind back-ends
 if(
@@ -247,6 +251,10 @@ target_compile_options(
 )
 
 # =============================================== Apply options to build ===============================================
+
+if(HAS_CXX_EXCEPTION_TYPE)
+  target_compile_definitions(cpptrace PUBLIC CPPTRACE_HAS_CXX_EXCEPTION_TYPE)
+endif()
 
 function(check_backtrace_error)
   if(NOT HAS_BACKTRACE)

@@ -20,6 +20,7 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
     - [Raw Traces](#raw-traces)
     - [Utilities](#utilities)
     - [Traced Exceptions](#traced-exceptions)
+  - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
   - [Notable Library Configurations](#notable-library-configurations)
   - [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
     - [FAQ: What about C++23 `<stacktrace>`?](#faq-what-about-c23-stacktrace)
@@ -226,6 +227,9 @@ performed.
 
 `cpptrace::isatty` and the fileno definitions are useful for deciding whether to use color when printing stack taces.
 
+`cpptrace::register_terminate_handler()` is a helper function to set a custom `std::terminate` handler that prints a
+stack trace from a cpptrace exception (more info below) and otherwise behaves like the normal terminate handler.
+
 ```cpp
 namespace cpptrace {
     std::string demangle(const std::string& name);
@@ -235,6 +239,8 @@ namespace cpptrace {
     extern const int stdin_fileno;
     extern const int stderr_fileno;
     extern const int stdout_fileno;
+
+    void register_terminate_handler();
 
     enum class cache_mode {
         // Only minimal lookup tables
@@ -297,6 +303,29 @@ namespace cpptrace {
     class range_error      : public exception_with_message { ... };
     class overflow_error   : public exception_with_message { ... };
     class underflow_error  : public exception_with_message { ... };
+}
+```
+
+## Exception handling with cpptrace
+
+To register a custom handler for `std::terminate` that prints a stack trace from a cpptrace exception and otherwise
+behaves like the normal terminate handler.
+
+```cpp
+cpptrace::register_terminate_handler();
+```
+
+Working with cpptrace exceptions in your code:
+```cpp
+try {
+    foo();
+} catch(cpptrace::exception& e) {
+    // Prints the exception info and stack trace, conditionally enabling color codes depending on
+    // whether stderr is a terminal
+    std::cerr << "Error: " << e.get_raw_what() << '\n';
+    e.get_trace().print(std::cerr, cpptrace::isatty(cpptrace::stderr_fileno));
+} catch(std::exception& e) {
+    std::cerr << "Error: " << e.what() << '\n';
 }
 ```
 

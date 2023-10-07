@@ -7,7 +7,7 @@
 
 void trace() {
     cpptrace::generate_trace().print();
-    throw cpptrace::exception_with_message("foobar");
+    throw cpptrace::logic_error("foobar");
 }
 
 void foo(int n) {
@@ -31,12 +31,8 @@ void function_one(int) {
     function_two(0, 0);
 }
 
-int main() try {
+int main() {
     cpptrace::absorb_trace_exceptions(false);
+    cpptrace::register_terminate_handler();
     function_one(0);
-} catch(cpptrace::exception& e) {
-    std::cerr << "Error: "
-              << e.get_raw_what()
-              << '\n';
-    e.get_trace().print(std::cerr, cpptrace::isatty(cpptrace::stderr_fileno));
 }
