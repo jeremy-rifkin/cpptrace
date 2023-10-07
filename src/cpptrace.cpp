@@ -329,7 +329,7 @@ namespace cpptrace {
     CPPTRACE_API extern const int stdout_fileno = detail::fileno(stdout);
     CPPTRACE_API extern const int stderr_fileno = detail::fileno(stderr);
 
-    CPPTRACE_API [[noreturn]] void terminate_handler() {
+    [[noreturn]] CPPTRACE_API void terminate_handler() {
         try {
             std::rethrow_exception(std::current_exception());
         } catch(cpptrace::exception& e) {
