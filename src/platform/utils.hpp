@@ -74,7 +74,7 @@ namespace detail {
 
     inline bool is_little_endian() {
         uint16_t num = 0x1;
-        auto* ptr = (uint8_t*)&num;
+        const auto* ptr = (uint8_t*)&num;
         return ptr[0] == 1;
     }
 
@@ -93,31 +93,31 @@ namespace detail {
     template<typename T>
     struct byte_swapper<T, 2> {
         T operator()(T val) {
-            return ((((val) >> 8) & 0xff) | (((val) & 0xff) << 8));
+            return (((val >> 8) & 0xff) | ((val & 0xff) << 8));
         }
     };
 
     template<typename T>
     struct byte_swapper<T, 4> {
         T operator()(T val) {
-            return ((((val) & 0xff000000) >> 24) |
-                    (((val) & 0x00ff0000) >>  8) |
-                    (((val) & 0x0000ff00) <<  8) |
-                    (((val) & 0x000000ff) << 24));
+            return (((val & 0xff000000) >> 24) |
+                    ((val & 0x00ff0000) >>  8) |
+                    ((val & 0x0000ff00) <<  8) |
+                    ((val & 0x000000ff) << 24));
         }
     };
 
     template<typename T>
     struct byte_swapper<T, 8> {
         T operator()(T val) {
-            return ((((val) & 0xff00000000000000ull) >> 56) |
-                    (((val) & 0x00ff000000000000ull) >> 40) |
-                    (((val) & 0x0000ff0000000000ull) >> 24) |
-                    (((val) & 0x000000ff00000000ull) >> 8 ) |
-                    (((val) & 0x00000000ff000000ull) << 8 ) |
-                    (((val) & 0x0000000000ff0000ull) << 24) |
-                    (((val) & 0x000000000000ff00ull) << 40) |
-                    (((val) & 0x00000000000000ffull) << 56));
+            return (((val & 0xff00000000000000ULL) >> 56) |
+                    ((val & 0x00ff000000000000ULL) >> 40) |
+                    ((val & 0x0000ff0000000000ULL) >> 24) |
+                    ((val & 0x000000ff00000000ULL) >> 8 ) |
+                    ((val & 0x00000000ff000000ULL) << 8 ) |
+                    ((val & 0x0000000000ff0000ULL) << 24) |
+                    ((val & 0x000000000000ff00ULL) << 40) |
+                    ((val & 0x00000000000000ffULL) << 56));
         }
     };
 
@@ -142,7 +142,7 @@ namespace detail {
         #endif
     }
 
-    inline constexpr unsigned n_digits(unsigned value) noexcept {
+    constexpr unsigned n_digits(unsigned value) noexcept {
         return value < 10 ? 1 : 1 + n_digits(value / 10);
     }
     static_assert(n_digits(1) == 1, "n_digits utility producing the wrong result");
@@ -354,6 +354,10 @@ namespace detail {
         typename std::enable_if<
             std::is_standard_layout<T>::value && std::is_trivial<T>::value,
             int
+        >::type = 0,
+        typename std::enable_if<
+            std::is_nothrow_move_constructible<T>::value,
+            int
         >::type = 0
     >
     class raii_wrapper {
@@ -361,7 +365,7 @@ namespace detail {
         optional<D> deleter;
     public:
         raii_wrapper(T obj, D deleter) : obj(obj), deleter(deleter) {}
-        raii_wrapper(raii_wrapper&& other) : obj(std::move(other.obj)), deleter(other.deleter) {
+        raii_wrapper(raii_wrapper&& other) noexcept : obj(std::move(other.obj)), deleter(other.deleter) {
             other.deleter = nullopt;
         }
         raii_wrapper(const raii_wrapper&) = delete;

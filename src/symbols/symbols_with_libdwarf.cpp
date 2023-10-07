@@ -181,7 +181,7 @@ namespace libdwarf {
         dwarf_resolver(const dwarf_resolver&) = delete;
         dwarf_resolver& operator=(const dwarf_resolver&) = delete;
 
-        dwarf_resolver(dwarf_resolver&& other) :
+        dwarf_resolver(dwarf_resolver&& other) noexcept :
             obj_path(std::move(other.obj_path)),
             dbg(other.dbg),
             ok(other.ok),
@@ -195,7 +195,7 @@ namespace libdwarf {
             other.aranges = nullptr;
         }
 
-        dwarf_resolver& operator=(dwarf_resolver&& other) {
+        dwarf_resolver& operator=(dwarf_resolver&& other) noexcept {
             obj_path = std::move(other.obj_path);
             dbg = other.dbg;
             ok = other.ok;
