@@ -6,8 +6,8 @@
 #include <string>
 
 void trace() {
-    cpptrace::absorb_trace_exceptions(false);
     cpptrace::generate_trace().print();
+    throw cpptrace::exception_with_message("foobar");
 }
 
 void foo(int n) {
@@ -35,5 +35,8 @@ int main() try {
     cpptrace::absorb_trace_exceptions(false);
     function_one(0);
 } catch(cpptrace::exception& e) {
-    std::cerr << e.what();
+    std::cerr << "Error: "
+              << e.get_raw_what()
+              << '\n';
+    e.get_trace().print(std::cerr, cpptrace::isatty(cpptrace::stderr_fileno));
 }

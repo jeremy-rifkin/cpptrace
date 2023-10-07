@@ -22,12 +22,30 @@
 
 #if IS_WINDOWS
  #include <windows.h>
+ #include <io.h>
 #else
  #include <sys/stat.h>
+ #include <unistd.h>
 #endif
 
 namespace cpptrace {
 namespace detail {
+    inline bool isatty(int fd) {
+        #if IS_WINDOWS
+         return _isatty(fd);
+        #else
+         return ::isatty(fd);
+        #endif
+    }
+
+    inline int fileno(FILE* stream) {
+        #if IS_WINDOWS
+         return _fileno(stream);
+        #else
+         return ::fileno(stream);
+        #endif
+    }
+
     inline std::vector<std::string> split(const std::string& str, const std::string& delims) {
         std::vector<std::string> vec;
         size_t old_pos = 0;

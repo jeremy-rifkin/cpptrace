@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -233,9 +234,9 @@ namespace cpptrace {
     }
 
     CPPTRACE_API
-    std::string stacktrace::to_string() const {
+    std::string stacktrace::to_string(bool color) const {
         std::ostringstream oss;
-        print(oss, false, false);
+        print(oss, color, false);
         return std::move(oss).str();
     }
 
@@ -317,6 +318,15 @@ namespace cpptrace {
     std::string demangle(const std::string& name) {
         return detail::demangle(name);
     }
+
+    CPPTRACE_API
+    bool isatty(int fd) {
+        return detail::isatty(fd);
+    }
+
+    CPPTRACE_API const int stdin_fileno = detail::fileno(stdin);
+    CPPTRACE_API const int stdout_fileno = detail::fileno(stdout);
+    CPPTRACE_API const int stderr_fileno = detail::fileno(stderr);
 
     namespace detail {
         std::atomic_bool absorb_trace_exceptions(true); // NOSONAR

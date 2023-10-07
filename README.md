@@ -145,7 +145,7 @@ namespace cpptrace {
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
-        std::string to_string() const;
+        std::string to_string(bool color = false) const;
         void clear();
         bool empty() const noexcept;
         /* operator<<(ostream, ..), std::format support, and iterators exist for this object */
@@ -224,10 +224,17 @@ or wether they're rethrown to the caller.
 speed is prioritized. If using this function, set the cache mode at the very start of your program before any traces are
 performed.
 
+`cpptrace::isatty` and the fileno definitions are useful for deciding whether to use color when printing stack taces.
+
 ```cpp
 namespace cpptrace {
     std::string demangle(const std::string& name);
     void absorb_trace_exceptions(bool absorb);
+    bool isatty(int fd);
+
+    extern const int stdin_fileno;
+    extern const int stderr_fileno;
+    extern const int stdout_fileno;
 
     enum class cache_mode {
         // Only minimal lookup tables

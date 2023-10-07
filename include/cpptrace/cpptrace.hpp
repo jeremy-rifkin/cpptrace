@@ -2,7 +2,6 @@
 #define CPPTRACE_HPP
 
 #include <cstdint>
-#include <cstdio>
 #include <exception>
 #include <ostream>
 #include <string>
@@ -103,7 +102,7 @@ namespace cpptrace {
         CPPTRACE_API void print(std::ostream& stream, bool color) const;
         CPPTRACE_API void clear();
         CPPTRACE_API bool empty() const noexcept;
-        CPPTRACE_API std::string to_string() const;
+        CPPTRACE_API std::string to_string(bool color = false) const;
         CPPTRACE_API friend std::ostream& operator<<(std::ostream& stream, const stacktrace& trace);
 
         using iterator = std::vector<stacktrace_frame>::iterator;
@@ -127,7 +126,12 @@ namespace cpptrace {
 
     // utilities:
     CPPTRACE_API std::string demangle(const std::string& name);
+    CPPTRACE_API bool isatty(int fd);
     CPPTRACE_API void absorb_trace_exceptions(bool absorb);
+
+    CPPTRACE_API extern const int stdin_fileno;
+    CPPTRACE_API extern const int stderr_fileno;
+    CPPTRACE_API extern const int stdout_fileno;
 
     enum class cache_mode {
         // Only minimal lookup tables
