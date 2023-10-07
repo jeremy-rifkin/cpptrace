@@ -126,8 +126,8 @@ namespace cpptrace {
 
     // utilities:
     CPPTRACE_API std::string demangle(const std::string& name);
-    CPPTRACE_API bool isatty(int fd);
     CPPTRACE_API void absorb_trace_exceptions(bool absorb);
+    CPPTRACE_API bool isatty(int fd);
 
     CPPTRACE_API extern const int stdin_fileno;
     CPPTRACE_API extern const int stderr_fileno;

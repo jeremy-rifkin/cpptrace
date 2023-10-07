@@ -324,9 +324,9 @@ namespace cpptrace {
         return detail::isatty(fd);
     }
 
-    CPPTRACE_API const int stdin_fileno = detail::fileno(stdin);
-    CPPTRACE_API const int stdout_fileno = detail::fileno(stdout);
-    CPPTRACE_API const int stderr_fileno = detail::fileno(stderr);
+    CPPTRACE_API extern const int stdin_fileno = detail::fileno(stdin);
+    CPPTRACE_API extern const int stdout_fileno = detail::fileno(stdout);
+    CPPTRACE_API extern const int stderr_fileno = detail::fileno(stderr);
 
     namespace detail {
         std::atomic_bool absorb_trace_exceptions(true); // NOSONAR
