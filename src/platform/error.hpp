@@ -100,7 +100,9 @@ namespace detail {
     }
 
     template<typename T>
-    void nullfn() {}
+    void nullfn() {
+        // this method doesn't do anything and is never called.
+    }
 
     #define PHONY_USE(E) (nullfn<decltype(E)>())
 

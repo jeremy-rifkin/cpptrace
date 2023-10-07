@@ -19,10 +19,10 @@ namespace libdwarf {
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
 
     [[noreturn]] void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
-        int ev = dwarf_errno(error);
+        unsigned ev = dwarf_errno(error);
         char* msg = dwarf_errmsg(error);
         dwarf_dealloc_error(dbg, error);
-        throw std::runtime_error(stringf("Cpptrace dwarf error %d %s\n", ev, msg));
+        throw std::runtime_error(stringf("Cpptrace dwarf error %u %s\n", ev, msg));
     }
 
     struct die_object {
@@ -68,14 +68,14 @@ namespace libdwarf {
 
         die_object& operator=(const die_object&) = delete;
 
-        die_object(die_object&& other) : dbg(other.dbg), die(other.die) {
+        die_object(die_object&& other) noexcept : dbg(other.dbg), die(other.die) {
             // done for finding mistakes, attempts to use the die_object after this should segfault
             // a valid use otherwise would be moved_from.get_sibling() which would get the next CU
             other.dbg = nullptr;
             other.die = nullptr;
         }
 
-        die_object& operator=(die_object&& other) {
+        die_object& operator=(die_object&& other) noexcept {
             dbg = other.dbg;
             die = other.die;
             other.die = nullptr;

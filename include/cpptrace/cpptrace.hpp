@@ -159,13 +159,14 @@ namespace cpptrace {
     public:
         explicit exception() noexcept : exception(1) {}
         const char* what() const noexcept override;
-        // what(), but not a C-string. Performs lazy computation of the full what string.
+        // what(), but not a C-string. Performs lazy evaluation of the full what string.
         virtual const std::string& get_what() const noexcept;
-        // Just the plain what() value without the stacktrace
+        // Just the plain what() value without the stacktrace. This value is called by get_what() during lazy
+        // evaluation.
         virtual const char* get_raw_what() const noexcept;
-        // returns internal raw_trace
+        // Returns internal raw_trace
         const raw_trace& get_raw_trace() const noexcept;
-        // returns a resolved trace from the raw_trace. Handles lazy evaluation of the resolved trace.
+        // Returns a resolved trace from the raw_trace. Handles lazy evaluation of the resolved trace.
         const stacktrace& get_trace() const noexcept;
     };
 
