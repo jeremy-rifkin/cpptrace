@@ -19,7 +19,7 @@ namespace libdwarf {
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
 
     [[noreturn]] void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
-        unsigned ev = dwarf_errno(error);
+        Dwarf_Unsigned ev = dwarf_errno(error);
         char* msg = dwarf_errmsg(error);
         dwarf_dealloc_error(dbg, error);
         throw std::runtime_error(stringf("Cpptrace dwarf error %u %s\n", ev, msg));
