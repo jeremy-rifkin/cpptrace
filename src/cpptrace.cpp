@@ -341,5 +341,69 @@ namespace cpptrace {
         CPPTRACE_API enum cache_mode get_cache_mode() {
             return cache_mode;
         }
+
+        CPPTRACE_FORCE_NO_INLINE
+        raw_trace get_raw_trace_and_absorb(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept {
+            try {
+                return generate_raw_trace(skip + 1, max_depth);
+            } catch(const std::exception& e) {
+                if(!detail::should_absorb_trace_exceptions()) {
+                    // TODO: Append to message somehow
+                    fprintf(
+                        stderr,
+                        "Cpptrace: Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                        e.what()
+                    );
+                }
+                return raw_trace{};
+            }
+        }
+    }
+
+    exception::exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept
+            : trace(detail::get_raw_trace_and_absorb(skip + 1, max_depth)) {}
+
+    const char* exception::what() const noexcept {
+        return get_what().c_str();
+    }
+
+    const std::string& exception::get_what() const noexcept {
+        if(what_string.empty()) {
+            what_string = get_raw_what() + std::string(":\n") + get_trace().to_string();
+        }
+        return what_string;
+    }
+
+    const char* exception::get_raw_what() const noexcept {
+        return "cpptrace::exception";
+    }
+
+    const raw_trace& exception::get_raw_trace() const noexcept {
+        return trace;
+    }
+
+    const stacktrace& exception::get_trace() const noexcept {
+        // I think a non-empty raw trace can never resolve as empty, so this will accurately prevent resolving more
+        // than once. Either way the raw trace is cleared.
+        try {
+            if(resolved_trace.empty() && !trace.empty()) {
+                resolved_trace = trace.resolve();
+                trace.clear();
+            }
+        } catch(const std::exception& e) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                // TODO: Append to message somehow
+                fprintf(
+                    stderr,
+                    "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                    e.what()
+                );
+            }
+        }
+        return resolved_trace;
+    }
+
+    const char* exception_with_message::get_raw_what() const noexcept {
+        return message.c_str();
     }
 }

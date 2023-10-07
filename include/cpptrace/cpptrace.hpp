@@ -77,6 +77,7 @@ namespace cpptrace {
         std::uint_least32_t column; // UINT_LEAST32_MAX if not present
         std::string filename;
         std::string symbol;
+
         bool operator==(const stacktrace_frame& other) const {
             return address == other.address
                 && line == other.line
@@ -84,9 +85,11 @@ namespace cpptrace {
                 && filename == other.filename
                 && symbol == other.symbol;
         }
+
         bool operator!=(const stacktrace_frame& other) const {
             return !operator==(other);
         }
+
         CPPTRACE_API std::string to_string() const;
         CPPTRACE_API friend std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);
     };
@@ -145,94 +148,47 @@ namespace cpptrace {
     }
 
     class exception : public std::exception {
-    protected:
         mutable raw_trace trace;
         mutable stacktrace resolved_trace;
-        mutable std::string resolved_what;
-        explicit exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept
-            : trace([skip, max_depth] () noexcept {
-                try {
-                    return generate_raw_trace(skip + 2, max_depth);
-                } catch(const std::exception& e) {
-                    if(!detail::should_absorb_trace_exceptions()) {
-                        // TODO: Append to message somehow
-                        fprintf(
-                            stderr,
-                            "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
-                            e.what()
-                        );
-                    }
-                    return raw_trace{};
-                }
-            } ()) {}
+        mutable std::string what_string;
+
+    protected:
+        explicit exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
         explicit exception(std::uint_least32_t skip) noexcept : exception(skip + 1, UINT_LEAST32_MAX) {}
-        const stacktrace& get_resolved_trace() const noexcept {
-            // I think a non-empty raw trace can never resolve as empty, so this will accurately prevent resolving more
-            // than once. Either way the raw trace is cleared.
-            try {
-                if(resolved_trace.empty() && !trace.empty()) {
-                    resolved_trace = trace.resolve();
-                    trace.clear();
-                }
-            } catch(const std::exception& e) {
-                if(!detail::should_absorb_trace_exceptions()) {
-                    // TODO: Append to message somehow
-                    fprintf(
-                        stderr,
-                        "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
-                        e.what()
-                    );
-                }
-            }
-            return resolved_trace;
-        }
-        virtual const std::string& get_resolved_what() const noexcept {
-            if(resolved_what.empty()) {
-                resolved_what = "cpptrace::exception:\n" + get_resolved_trace().to_string();
-            }
-            return resolved_what;
-        }
+
     public:
         explicit exception() noexcept : exception(1) {}
-        const char* what() const noexcept override {
-            return get_resolved_what().c_str();
-        }
-        // what(), but not a C-string
-        const std::string& get_what() const noexcept {
-            return resolved_what;
-        }
-        const raw_trace& get_raw_trace() const noexcept {
-            return trace;
-        }
-        const stacktrace& get_trace() const noexcept {
-            return resolved_trace;
-        }
+        const char* what() const noexcept override;
+        // what(), but not a C-string. Performs lazy computation of the full what string.
+        virtual const std::string& get_what() const noexcept;
+        // Just the plain what() value without the stacktrace
+        virtual const char* get_raw_what() const noexcept;
+        // returns internal raw_trace
+        const raw_trace& get_raw_trace() const noexcept;
+        // returns a resolved trace from the raw_trace. Handles lazy evaluation of the resolved trace.
+        const stacktrace& get_trace() const noexcept;
     };
 
     class exception_with_message : public exception {
-    protected:
         mutable std::string message;
+
+    protected:
         explicit exception_with_message(
             std::string&& message_arg,
             uint32_t skip
         ) noexcept : exception(skip + 1), message(std::move(message_arg)) {}
+
         explicit exception_with_message(
             std::string&& message_arg,
             uint_least32_t skip,
             uint_least32_t max_depth
         ) noexcept : exception(skip + 1, max_depth), message(std::move(message_arg)) {}
-        const std::string& get_resolved_what() const noexcept override {
-            if(resolved_what.empty()) {
-                resolved_what = message + "\n" + get_resolved_trace().to_string();
-            }
-            return resolved_what;
-        }
+
     public:
         explicit exception_with_message(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
-        const std::string& get_message() const noexcept {
-            return message;
-        }
+
+        const char* get_raw_what() const noexcept override;
     };
 
     class logic_error : public exception_with_message {

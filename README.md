@@ -246,7 +246,8 @@ namespace cpptrace {
 
 ### Traced Exceptions
 
-Cpptrace provides a set of exception classes that generate stack traces when thrown and resolve later.
+Cpptrace provides a set of exception classes that that generate stack traces when thrown. These exceptions generate
+relatively lightweight raw traces and resolve symbols and line numbers lazily if and when requested.
 
 ```cpp
 namespace cpptrace {
@@ -254,29 +255,29 @@ namespace cpptrace {
     // Extending classes should call the exception constructor with a skip value of 1.
     class exception : public std::exception {
     protected:
-        mutable raw_trace trace;
-        mutable stacktrace resolved_trace;
-        mutable std::string resolved_what;
-        explicit exception(std::uint_least32_t skip) noexcept;
         explicit exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
-        const stacktrace& get_resolved_trace() const noexcept;
-        virtual const std::string& get_resolved_what() const noexcept;
+        explicit exception(std::uint_least32_t skip) noexcept;
     public:
         explicit exception() noexcept;
-        const char* what() const noexcept override;
-        const std::string& get_what() const noexcept; // what(), but not a C-string
+        virtual const char* what() const noexcept override;
+        // what(), but not a C-string. Performs lazy evaluation of the full what string.
+        virtual const std::string& get_what() const noexcept;
+        // Just the plain what() value without the stacktrace. This value is called by get_what()
+        // during lazy evaluation.
+        virtual const char* get_raw_what() const noexcept;
+        // Returns internal raw_trace
         const raw_trace& get_raw_trace() const noexcept;
+        // Returns a resolved trace. Performs lazy evaluation.
         const stacktrace& get_trace() const noexcept;
     };
 
     class exception_with_message : public exception {
-        mutable std::string message;
+    protected:
         explicit exception_with_message(std::string&& message_arg, std::uint_least32_t skip) noexcept;
         explicit exception_with_message(std::string&& message_arg, std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
-        const std::string& get_resolved_what() const noexcept override;
     public:
-        explicit exception_with_message(std::string&& message_arg);
-        const std::string& get_message() const noexcept;
+        explicit exception_with_message(std::string&& message_arg) noexcept;
+        virtual const char* get_raw_what() const noexcept override;
     };
 
     // All stdexcept errors have analogs here. Same constructor as exception_with_message.
