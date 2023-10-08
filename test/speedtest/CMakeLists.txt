@@ -45,11 +45,3 @@ target_link_libraries(
   GTest::gtest_main
   cpptrace::cpptrace
 )
-
-if(WIN32)
-  add_custom_command(
-      TARGET speedtest POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:speedtest> $<TARGET_FILE_DIR:speedtest>
-      COMMAND_EXPAND_LISTS
-  )
-endif()
