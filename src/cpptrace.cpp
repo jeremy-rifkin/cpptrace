@@ -160,15 +160,15 @@ namespace cpptrace {
 
     CPPTRACE_API
     void stacktrace::print(std::ostream& stream, bool color) const {
-        print(stream, color, true);
+        print(stream, color, true, nullptr);
     }
 
     CPPTRACE_API
-    void stacktrace::print(std::ostream& stream, bool color, bool newline_at_end) const {
+    void stacktrace::print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const {
         if(color) {
             detail::enable_virtual_terminal_processing_if_needed();
         }
-        stream<<"Stack trace (most recent call first):"<<std::endl;
+        stream<<(header ? header : "Stack trace (most recent call first):")<<std::endl;
         std::size_t counter = 0;
         if(frames.empty()) {
             stream<<"<empty trace>"<<std::endl;
@@ -237,7 +237,7 @@ namespace cpptrace {
     CPPTRACE_API
     std::string stacktrace::to_string(bool color) const {
         std::ostringstream oss;
-        print(oss, color, false);
+        print(oss, color, false, nullptr);
         return std::move(oss).str();
     }
 
@@ -329,27 +329,45 @@ namespace cpptrace {
     CPPTRACE_API extern const int stdout_fileno = detail::fileno(stdout);
     CPPTRACE_API extern const int stderr_fileno = detail::fileno(stderr);
 
+    CPPTRACE_FORCE_NO_INLINE void print_terminate_trace() {
+        generate_trace(1).print(
+            std::cerr,
+            isatty(stderr_fileno),
+            true,
+            "Stack trace to reach terminate handler (most recent call first):"
+        );
+    }
+
     [[noreturn]] CPPTRACE_API void terminate_handler() {
         try {
-            std::rethrow_exception(std::current_exception());
+            auto ptr = std::current_exception();
+            if(ptr == nullptr) {
+                std::cerr << "terminate called without an active exception\n";
+                print_terminate_trace();
+            } else {
+                std::rethrow_exception(ptr);
+            }
         } catch(cpptrace::exception& e) {
             std::cerr << "Terminate called after throwing an instance of "
-                      << cpptrace::demangle(typeid(e).name())
+                      << demangle(typeid(e).name())
                       << ": "
                       << e.get_raw_what()
                       << '\n';
-            e.get_trace().print(std::cerr, cpptrace::isatty(cpptrace::stderr_fileno));
+            e.get_trace().print(std::cerr, isatty(stderr_fileno));
         } catch(std::exception& e) {
             std::cerr << "Terminate called after throwing an instance of "
-                      << cpptrace::demangle(typeid(e).name())
+                      << demangle(typeid(e).name())
                       << ": "
                       << e.what()
                       << '\n';
+            print_terminate_trace();
         } catch(...) {
             std::cerr << "Terminate called after throwing an instance of "
                       << detail::exception_type_name()
                       << "\n";
+            print_terminate_trace();
         }
+        std::flush(std::cerr);
         abort();
     }
 

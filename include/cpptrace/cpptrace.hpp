@@ -114,7 +114,8 @@ namespace cpptrace {
         inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline const_iterator cend() const noexcept { return frames.cend(); }
     private:
-        CPPTRACE_API void print(std::ostream& stream, bool color, bool newline_at_end) const;
+        CPPTRACE_API void print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const;
+        friend void print_terminate_trace();
     };
 
     CPPTRACE_API raw_trace generate_raw_trace(std::uint_least32_t skip = 0);
