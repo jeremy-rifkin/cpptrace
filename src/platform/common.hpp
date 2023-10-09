@@ -51,13 +51,13 @@ namespace cpptrace {
 namespace detail {
     // Placed here instead of utils because it's used by error.hpp and utils.hpp
     template<typename... T> std::string stringf(T... args) {
-        int length = snprintf(nullptr, 0, args...);
+        int length = std::snprintf(nullptr, 0, args...);
         if(length < 0) {
             throw std::logic_error("invalid arguments to stringf");
         }
         std::string str(length, 0);
         // .data is const char* in c++11, but &str[0] should be legal
-        snprintf(&str[0], length + 1, args...);
+        std::snprintf(&str[0], length + 1, args...);
         return str;
     }
 

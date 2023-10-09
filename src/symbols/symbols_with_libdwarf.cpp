@@ -233,7 +233,7 @@ namespace libdwarf {
                 );
                 if(ret == DW_DLV_NO_ENTRY) {
                     if(dump_dwarf) {
-                        fprintf(stderr, "End walk_dbg\n");
+                        std::fprintf(stderr, "End walk_dbg\n");
                     }
                     return;
                 }
@@ -253,7 +253,7 @@ namespace libdwarf {
                 }
             }
             if(dump_dwarf) {
-                fprintf(stderr, "End walk_compilation_units\n");
+                std::fprintf(stderr, "End walk_compilation_units\n");
             }
         }
 
@@ -297,7 +297,7 @@ namespace libdwarf {
                 die,
                 [this, pc, dwversion, &frame, &found] (const die_object& die) {
                     if(dump_dwarf) {
-                        fprintf(
+                        std::fprintf(
                             stderr,
                             "-------------> %08llx %s %s\n",
                             to_ull(die.get_global_offset()),
@@ -307,11 +307,11 @@ namespace libdwarf {
                     }
                     if(!(die.get_tag() == DW_TAG_namespace || die.pc_in_die(dwversion, pc))) {
                         if(dump_dwarf) {
-                            fprintf(stderr, "pc not in die\n");
+                            std::fprintf(stderr, "pc not in die\n");
                         }
                     } else {
                         if(trace_dwarf) {
-                            fprintf(
+                            std::fprintf(
                                 stderr,
                                 "%s %08llx %s\n",
                                 die.get_tag() == DW_TAG_namespace ? "pc maybe in die (namespace)" : "pc in die",
@@ -332,7 +332,7 @@ namespace libdwarf {
                             }
                         } else {
                             if(dump_dwarf) {
-                                fprintf(stderr, "(no child)\n");
+                                std::fprintf(stderr, "(no child)\n");
                             }
                         }
                     }
@@ -340,7 +340,7 @@ namespace libdwarf {
                 }
             );
             if(dump_dwarf) {
-                fprintf(stderr, "End walk_die_list\n");
+                std::fprintf(stderr, "End walk_die_list\n");
             }
             return found;
         }
@@ -384,7 +384,7 @@ namespace libdwarf {
                 }
             );
             if(dump_dwarf) {
-                fprintf(stderr, "End walk_die_list\n");
+                std::fprintf(stderr, "End walk_die_list\n");
             }
         }
 
@@ -506,7 +506,7 @@ namespace libdwarf {
                 if(found_line) {
                     Dwarf_Unsigned line_number = 0;
                     VERIFY(wrap(dwarf_lineno, found_line, &line_number) == DW_DLV_OK);
-                    frame.line = static_cast<uint_least32_t>(line_number);
+                    frame.line = static_cast<std::uint_least32_t>(line_number);
                     char* filename = nullptr;
                     VERIFY(wrap(dwarf_linesrc, found_line, &filename) == DW_DLV_OK);
                     auto wrapper = raii_wrap(
@@ -534,8 +534,8 @@ namespace libdwarf {
             stacktrace_frame& frame
         ) {
             if(dump_dwarf) {
-                fprintf(stderr, "%s\n", obj_path.c_str());
-                fprintf(stderr, "%llx\n", to_ull(pc));
+                std::fprintf(stderr, "%s\n", obj_path.c_str());
+                std::fprintf(stderr, "%llx\n", to_ull(pc));
             }
             // Check for .debug_aranges for fast lookup
             if(aranges) {
@@ -553,7 +553,7 @@ namespace libdwarf {
                     Dwarf_Half dwversion = 0;
                     VERIFY(dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size) == DW_DLV_OK);
                     if(trace_dwarf) {
-                        fprintf(stderr, "Found CU in aranges\n");
+                        std::fprintf(stderr, "Found CU in aranges\n");
                         cu_die.print();
                     }
                     retrieve_line_info(cu_die, pc, frame); // no offset for line info
@@ -570,11 +570,11 @@ namespace libdwarf {
                         //cu_die.print();
                         //fprintf(stderr, "        %llx, %llx\n", p.first, p.second);
                         if(trace_dwarf) {
-                            fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
+                            std::fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
                         }
                         if(cu_die.pc_in_die(dwversion, pc)) {
                             if(trace_dwarf) {
-                                fprintf(
+                                std::fprintf(
                                     stderr,
                                     "pc in die %08llx %s (now searching for %08llx)\n",
                                     to_ull(cu_die.get_global_offset()),
@@ -624,7 +624,7 @@ namespace libdwarf {
             frame.symbol = frame_info.symbol;
             frame.address = frame_info.raw_address;
             if(trace_dwarf) {
-                fprintf(
+                std::fprintf(
                     stderr,
                     "Starting resolution for %s %08llx %s\n",
                     obj_path.c_str(),

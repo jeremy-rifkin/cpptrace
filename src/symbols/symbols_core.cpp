@@ -56,7 +56,7 @@ namespace detail {
             || defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP) \
             || defined(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
          // actually need to go backwards to a void*
-         std::vector<uintptr_t> raw_frames(frames.size());
+         std::vector<std::uintptr_t> raw_frames(frames.size());
          for(std::size_t i = 0; i < frames.size(); i++) {
              raw_frames[i] = frames[i].raw_address;
          }
@@ -82,7 +82,7 @@ namespace detail {
         return trace;
     }
 
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<std::uintptr_t>& frames) {
         #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF) \
             || defined(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
          auto dlframes = get_frames_object_info(frames);

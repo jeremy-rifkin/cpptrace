@@ -260,7 +260,7 @@ namespace libdwarf {
                 return;
             }
             VERIFY(res == DW_DLV_OK);
-            for(size_t i = 0 ; i < rnglists_entries; i++) {
+            for(std::size_t i = 0 ; i < rnglists_entries; i++) {
                 unsigned entrylen = 0;
                 unsigned rle_value_out = 0;
                 Dwarf_Unsigned raw1 = 0;
@@ -415,7 +415,7 @@ namespace libdwarf {
         }
 
         void print() const {
-            fprintf(
+            std::fprintf(
                 stderr,
                 "%08llx %s %s\n",
                 to_ull(get_global_offset()),

@@ -27,7 +27,7 @@ namespace cpptrace {
     struct stacktrace;
 
     struct raw_trace {
-        std::vector<uintptr_t> frames;
+        std::vector<std::uintptr_t> frames;
         CPPTRACE_API static raw_trace current(std::uint_least32_t skip = 0);
         CPPTRACE_API static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         CPPTRACE_API object_trace resolve_object_trace() const;
@@ -35,8 +35,8 @@ namespace cpptrace {
         CPPTRACE_API void clear();
         CPPTRACE_API bool empty() const noexcept;
 
-        using iterator = std::vector<uintptr_t>::iterator;
-        using const_iterator = std::vector<uintptr_t>::const_iterator;
+        using iterator = std::vector<std::uintptr_t>::iterator;
+        using const_iterator = std::vector<std::uintptr_t>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
         inline iterator end() noexcept { return frames.end(); }
         inline const_iterator begin() const noexcept { return frames.begin(); }
@@ -48,8 +48,8 @@ namespace cpptrace {
     struct object_frame {
         std::string obj_path;
         std::string symbol;
-        uintptr_t raw_address = 0;
-        uintptr_t obj_address = 0;
+        std::uintptr_t raw_address = 0;
+        std::uintptr_t obj_address = 0;
     };
 
     struct object_trace {
@@ -71,7 +71,7 @@ namespace cpptrace {
     };
 
     struct stacktrace_frame {
-        uintptr_t address;
+        std::uintptr_t address;
         std::uint_least32_t line; // TODO: This should use UINT_LEAST32_MAX as a sentinel
         std::uint_least32_t column; // UINT_LEAST32_MAX if not present
         std::string filename;
@@ -183,13 +183,13 @@ namespace cpptrace {
     protected:
         explicit exception_with_message(
             std::string&& message_arg,
-            uint32_t skip
+            std::uint32_t skip
         ) noexcept : exception(skip + 1), message(std::move(message_arg)) {}
 
         explicit exception_with_message(
             std::string&& message_arg,
-            uint_least32_t skip,
-            uint_least32_t max_depth
+            std::uint_least32_t skip,
+            std::uint_least32_t max_depth
         ) noexcept : exception(skip + 1, max_depth), message(std::move(message_arg)) {}
 
     public:

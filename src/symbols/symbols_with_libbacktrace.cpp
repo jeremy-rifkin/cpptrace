@@ -20,7 +20,7 @@
 namespace cpptrace {
 namespace detail {
 namespace libbacktrace {
-    int full_callback(void* data, uintptr_t address, const char* file, int line, const char* symbol) {
+    int full_callback(void* data, std::uintptr_t address, const char* file, int line, const char* symbol) {
         stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
         frame.address = address;
         frame.line = line;
@@ -29,7 +29,7 @@ namespace libbacktrace {
         return 0;
     }
 
-    void syminfo_callback(void* data, uintptr_t address, const char* symbol, uintptr_t, uintptr_t) {
+    void syminfo_callback(void* data, std::uintptr_t address, const char* symbol, std::uintptr_t, std::uintptr_t) {
         stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
         frame.address = address;
         frame.line = 0;
@@ -55,7 +55,7 @@ namespace libbacktrace {
     }
 
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
-    stacktrace_frame resolve_frame(const uintptr_t addr) {
+    stacktrace_frame resolve_frame(const std::uintptr_t addr) {
         try {
             stacktrace_frame frame;
             frame.column = UINT_LEAST32_MAX;
@@ -85,7 +85,7 @@ namespace libbacktrace {
         }
     }
 
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<std::uintptr_t>& frames) {
         std::vector<stacktrace_frame> trace;
         trace.reserve(frames.size());
         for(const auto frame : frames) {

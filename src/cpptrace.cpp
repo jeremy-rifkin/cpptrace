@@ -118,7 +118,7 @@ namespace cpptrace {
         stream
             << std::hex
             << "0x"
-            << std::setw(2 * sizeof(uintptr_t))
+            << std::setw(2 * sizeof(std::uintptr_t))
             << std::setfill('0')
             << frame.address
             << std::dec
@@ -190,7 +190,7 @@ namespace cpptrace {
                 << std::hex
                 << blue
                 << "0x"
-                << std::setw(2 * sizeof(uintptr_t))
+                << std::setw(2 * sizeof(std::uintptr_t))
                 << std::setfill('0')
                 << frame.address
                 << std::dec
@@ -301,7 +301,7 @@ namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
     stacktrace generate_trace(std::uint32_t skip, std::uint_least32_t max_depth) {
         try {
-            std::vector<uintptr_t> frames = detail::capture_frames(skip + 1, max_depth);
+            std::vector<std::uintptr_t> frames = detail::capture_frames(skip + 1, max_depth);
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
             for(auto& frame : trace) {
                 frame.symbol = detail::demangle(frame.symbol);
@@ -406,7 +406,7 @@ namespace cpptrace {
             } catch(const std::exception& e) {
                 if(!detail::should_absorb_trace_exceptions()) {
                     // TODO: Append to message somehow
-                    fprintf(
+                    std::fprintf(
                         stderr,
                         "Cpptrace: Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
                         e.what()
@@ -450,7 +450,7 @@ namespace cpptrace {
         } catch(const std::exception& e) {
             if(!detail::should_absorb_trace_exceptions()) {
                 // TODO: Append to message somehow
-                fprintf(
+                std::fprintf(
                     stderr,
                     "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
                     e.what()

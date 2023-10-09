@@ -26,7 +26,7 @@ namespace detail {
     #pragma warning(disable: 4740) // warning C4740: flow in or out of inline asm code suppresses global optimization
     #endif
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<uintptr_t> capture_frames(size_t skip, size_t max_depth) {
+    std::vector<std::uintptr_t> capture_frames(std::size_t skip, std::size_t max_depth) {
         skip++;
         // https://jpassing.com/2008/03/12/walking-the-stack-of-the-current-thread/
 
@@ -94,7 +94,7 @@ namespace detail {
         #error "Cpptrace: StackWalk64 not supported for this platform yet"
         #endif
 
-        std::vector<uintptr_t> trace;
+        std::vector<std::uintptr_t> trace;
 
         // Dbghelp is is single-threaded, so acquire a lock.
         static std::mutex mutex;

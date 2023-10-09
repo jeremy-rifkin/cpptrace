@@ -38,7 +38,7 @@ namespace detail {
         #endif
     }
 
-    inline int fileno(FILE* stream) {
+    inline int fileno(std::FILE* stream) {
         #if IS_WINDOWS
          return _fileno(stream);
         #else
@@ -48,8 +48,8 @@ namespace detail {
 
     inline std::vector<std::string> split(const std::string& str, const std::string& delims) {
         std::vector<std::string> vec;
-        size_t old_pos = 0;
-        size_t pos = 0;
+        std::size_t old_pos = 0;
+        std::size_t pos = 0;
         while((pos = str.find_first_of(delims, old_pos)) != std::string::npos) {
             vec.emplace_back(str.substr(old_pos, pos - old_pos));
             old_pos = pos + 1;
@@ -79,26 +79,26 @@ namespace detail {
         if(str.empty()) {
             return "";
         }
-        const size_t left = str.find_first_not_of(whitespace);
-        const size_t right = str.find_last_not_of(whitespace) + 1;
+        const std::size_t left = str.find_first_not_of(whitespace);
+        const std::size_t right = str.find_last_not_of(whitespace) + 1;
         return str.substr(left, right - left);
     }
 
-    inline std::string to_hex(uintptr_t addr) {
+    inline std::string to_hex(std::uintptr_t addr) {
         std::stringstream sstream;
         sstream<<std::hex<<addr;
         return std::move(sstream).str();
     }
 
     inline bool is_little_endian() {
-        uint16_t num = 0x1;
-        const auto* ptr = (uint8_t*)&num;
+        std::uint16_t num = 0x1;
+        const auto* ptr = (std::uint8_t*)&num;
         return ptr[0] == 1;
     }
 
     // Modified from
     // https://stackoverflow.com/questions/105252/how-do-i-convert-between-big-endian-and-little-endian-values-in-c
-    template<typename T, size_t N>
+    template<typename T, std::size_t N>
     struct byte_swapper;
 
     template<typename T>
@@ -171,10 +171,10 @@ namespace detail {
 
     // TODO: Re-evaluate use of off_t
     template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
-    T load_bytes(FILE* obj_file, off_t offset) {
+    T load_bytes(std::FILE* obj_file, off_t offset) {
         T object;
-        VERIFY(fseek(obj_file, offset, SEEK_SET) == 0, "fseek error");
-        VERIFY(fread(&object, sizeof(T), 1, obj_file) == 1, "fread error");
+        VERIFY(std::fseek(obj_file, offset, SEEK_SET) == 0, "fseek error");
+        VERIFY(std::fread(&object, sizeof(T), 1, obj_file) == 1, "fread error");
         return object;
     }
 
@@ -352,8 +352,8 @@ namespace detail {
         return static_cast<unsigned long long>(t);
     }
     template<typename T>
-    uintptr_t to_uintptr(T t) {
-        return static_cast<uintptr_t>(t);
+    std::uintptr_t to_uintptr(T t) {
+        return static_cast<std::uintptr_t>(t);
     }
 
     // A way to cast to U without "warning: useless cast to type"
@@ -424,7 +424,7 @@ namespace detail {
         return raii_wrapper<typename std::remove_reference<T>::type, D>(obj, deleter);
     }
 
-    inline void file_deleter(FILE* ptr) {
+    inline void file_deleter(std::FILE* ptr) {
         fclose(ptr);
     }
 }

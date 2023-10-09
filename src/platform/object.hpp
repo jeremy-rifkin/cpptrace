@@ -26,10 +26,10 @@ namespace cpptrace {
 namespace detail {
     #if IS_LINUX || IS_APPLE
     #if !IS_APPLE
-    inline uintptr_t get_module_image_base(const std::string& obj_path) {
+    inline std::uintptr_t get_module_image_base(const std::string& obj_path) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
-        static std::unordered_map<std::string, uintptr_t> cache;
+        static std::unordered_map<std::string, std::uintptr_t> cache;
         auto it = cache.find(obj_path);
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
@@ -42,13 +42,13 @@ namespace detail {
         }
     }
     #else
-    inline uintptr_t get_module_image_base(const std::string& obj_path) {
+    inline std::uintptr_t get_module_image_base(const std::string& obj_path) {
         // We have to parse the Mach-O to find the offset of the text section.....
         // I don't know how addresses are handled if there is more than one __TEXT load command. I'm assuming for
         // now that there is only one, and I'm using only the first section entry within that load command.
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
-        static std::unordered_map<std::string, uintptr_t> cache;
+        static std::unordered_map<std::string, std::uintptr_t> cache;
         auto it = cache.find(obj_path);
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
@@ -62,11 +62,11 @@ namespace detail {
     }
     #endif
     // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-    inline std::vector<object_frame> get_frames_object_info(const std::vector<uintptr_t>& addrs) {
+    inline std::vector<object_frame> get_frames_object_info(const std::vector<std::uintptr_t>& addrs) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
         std::vector<object_frame> frames;
         frames.reserve(addrs.size());
-        for(const uintptr_t addr : addrs) {
+        for(const std::uintptr_t addr : addrs) {
             Dl_info info;
             object_frame frame;
             frame.raw_address = addr;
@@ -75,7 +75,7 @@ namespace detail {
                 // but we don't really need dli_saddr
                 frame.obj_path = info.dli_fname;
                 frame.obj_address = addr
-                                    - reinterpret_cast<uintptr_t>(info.dli_fbase)
+                                    - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
                                     + get_module_image_base(info.dli_fname);
                 frame.symbol = info.dli_sname ?: "";
             }
@@ -92,11 +92,11 @@ namespace detail {
         if(it == cache.end()) {
             char path[MAX_PATH];
             if(GetModuleFileNameA(handle, path, sizeof(path))) {
-                ///fprintf(stderr, "path: %s base: %p\n", path, handle);
+                ///std::fprintf(stderr, "path: %s base: %p\n", path, handle);
                 cache.insert(it, {handle, path});
                 return path;
             } else {
-                fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
+                std::fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
                 cache.insert(it, {handle, ""});
                 return "";
             }
@@ -105,10 +105,10 @@ namespace detail {
         }
     }
 
-    inline uintptr_t get_module_image_base(const std::string& obj_path) {
+    inline std::uintptr_t get_module_image_base(const std::string& obj_path) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
-        static std::unordered_map<std::string, uintptr_t> cache;
+        static std::unordered_map<std::string, std::uintptr_t> cache;
         auto it = cache.find(obj_path);
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
@@ -122,11 +122,11 @@ namespace detail {
     }
 
     // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-    inline std::vector<object_frame> get_frames_object_info(const std::vector<uintptr_t>& addrs) {
+    inline std::vector<object_frame> get_frames_object_info(const std::vector<std::uintptr_t>& addrs) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
         std::vector<object_frame> frames;
         frames.reserve(addrs.size());
-        for(const uintptr_t addr : addrs) {
+        for(const std::uintptr_t addr : addrs) {
             object_frame frame;
             frame.raw_address = addr;
             HMODULE handle;
@@ -138,10 +138,10 @@ namespace detail {
             )) {
                 frame.obj_path = get_module_name(handle);
                 frame.obj_address = addr
-                                    - reinterpret_cast<uintptr_t>(handle)
+                                    - reinterpret_cast<std::uintptr_t>(handle)
                                     + get_module_image_base(frame.obj_path);
             } else {
-                fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
+                std::fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
             }
             frames.push_back(frame);
         }

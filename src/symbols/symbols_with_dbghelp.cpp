@@ -234,7 +234,7 @@ namespace dbghelp {
                     return {return_type.base, "()" + return_type.extent};
                 } else {
                     // alignment should be fine
-                    size_t sz = sizeof(TI_FINDCHILDREN_PARAMS) +
+                    std::size_t sz = sizeof(TI_FINDCHILDREN_PARAMS) +
                                     (n_children) * sizeof(TI_FINDCHILDREN_PARAMS::ChildId[0]);
                     TI_FINDCHILDREN_PARAMS* children = (TI_FINDCHILDREN_PARAMS*) new char[sz];
                     children->Start = 0;
@@ -325,7 +325,7 @@ namespace dbghelp {
     std::recursive_mutex dbghelp_lock;
 
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
-    stacktrace_frame resolve_frame(HANDLE proc, uintptr_t addr) {
+    stacktrace_frame resolve_frame(HANDLE proc, std::uintptr_t addr) {
         const std::lock_guard<std::recursive_mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
         alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
         SYMBOL_INFO* symbol = (SYMBOL_INFO*)buffer;
@@ -343,7 +343,7 @@ namespace dbghelp {
                 // function fails but GetLastError returns ERROR_SUCCESS."
                 // This is the stupidest fucking api I've ever worked with.
                 if(SymSetContext(proc, &frame, nullptr) == FALSE && GetLastError() != ERROR_SUCCESS) {
-                    fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
+                    std::fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
                     return {
                         addr,
                         static_cast<std::uint_least32_t>(line.LineNumber),
@@ -390,7 +390,7 @@ namespace dbghelp {
         }
     }
 
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<std::uintptr_t>& frames) {
         const std::lock_guard<std::recursive_mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
         std::vector<stacktrace_frame> trace;
         trace.reserve(frames.size());
