@@ -683,7 +683,9 @@ static const char _dwarf_errmsgs[DW_DLE_LAST+1][DW_MAX_MSG_LEN] = {
     "not valid. Corrupt data."},
 {"DW_DLE_ARITHMETIC_OVERFLOW(501) Arithmetic overflow. "
     " Corrupt Dwarf." },
-{" DW_DLE_UNIVERSAL_BINARY_ERROR(502) Error reading Mach-O "
-    "uninversal binary head. Corrupt Mach-O object." }
+{"DW_DLE_UNIVERSAL_BINARY_ERROR(502) Error reading Mach-O "
+    "uninversal binary head. Corrupt Mach-O object." },
+{"DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR(503) Offset/size from "
+    "a Mach-O universal binary has an impossible value"}
 };
 #endif /* DWARF_ERRMSG_LIST_H */

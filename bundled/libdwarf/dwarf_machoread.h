@@ -37,6 +37,7 @@ struct Dwarf_Universal_Arch_s;
 struct Dwarf_Universal_Head_s {
     Dwarf_Unsigned au_magic;
     Dwarf_Unsigned au_count;
+    Dwarf_Unsigned au_filesize; /* physical file size */
     struct Dwarf_Universal_Arch_s * au_arches;
 
 };

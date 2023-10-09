@@ -178,116 +178,6 @@ is_empty_section(Dwarf_Unsigned type)
     return FALSE;
 }
 
-#if 0
-int
-dwarf_construct_elf_access_path(const char *path,
-    dwarf_elf_object_access_internals_t **mp,int *errcode)
-{
-    int fd = -1;
-    int res = 0;
-    dwarf_elf_object_access_internals_t *mymp = 0;
-
-    fd = open(path, O_RDONLY|O_BINARY|O_CLOEXEC);
-    if (fd < 0) {
-        *errcode = DW_DLE_PATH_SIZE_TOO_SMALL;
-        return DW_DLV_ERROR;
-    }
-    res = dwarf_construct_elf_access(fd,
-        path,&mymp,errcode);
-    if (res != DW_DLV_OK) {
-        close(fd);
-        return res;
-    }
-    mymp->f_destruct_close_fd = TRUE;
-    *mp = mymp;
-    return res;
-}
-
-/* Here path is not essential. Pass in with "" if unknown. */
-int
-dwarf_construct_elf_access(int fd,
-    const char *path,
-    dwarf_elf_object_access_internals_t **mp,int *errcode)
-{
-    unsigned ftype = 0;
-    unsigned endian = 0;
-    unsigned offsetsize = 0;
-    Dwarf_Unsigned filesize = 0;
-    dwarf_elf_object_access_internals_t *mfp = 0;
-    int      res = 0;
-
-    res = dwarf_object_detector_fd(fd,
-        &ftype,&endian,&offsetsize, &filesize, errcode);
-    if (res != DW_DLV_OK) {
-        return res;
-    }
-
-    mfp = calloc(1,sizeof(dwarf_elf_object_access_internals_t));
-    if (!mfp) {
-        *errcode = DW_DLE_ALLOC_FAIL;
-        return DW_DLV_ERROR;
-    }
-    /* For non-libelf Elf, call it 'F'. Libelf Elf uses 'E' */
-    mfp->f_ident[0] = 'F';
-    mfp->f_ident[1] = 1;
-    mfp->f_fd = fd;
-    mfp->f_destruct_close_fd = FALSE;
-    mfp->f_is_64bit =  ((offsetsize==64)?TRUE:FALSE);
-    mfp->f_filesize = filesize;
-    mfp->f_offsetsize = offsetsize;
-    mfp->f_pointersize = offsetsize;
-    mfp->f_endian = endian;
-    mfp->f_ftype = ftype;
-    mfp->f_path = strdup(path);
-
-    *mp = mfp;
-    return DW_DLV_OK;
-}
-
-/*  Caller must zero the passed in pointer
-    after this returns to remind
-    the caller to avoid use of the pointer. */
-int
-dwarf_destruct_elf_access(dwarf_elf_object_access_internals_t* ep,
-    int *errcode)
-{
-    struct generic_shdr *shp = 0;
-    Dwarf_Unsigned shcount = 0;
-    Dwarf_Unsigned i = 0;
-
-    (void)errcode;
-    free(ep->f_ehdr);
-    shp = ep->f_shdr;
-    shcount = ep->f_loc_shdr.g_count;
-    for (i = 0; i < shcount; ++i,++shp) {
-        free(shp->gh_rels);
-        shp->gh_rels = 0;
-        free(shp->gh_content);
-        shp->gh_content = 0;
-        free(shp->gh_sht_group_array);
-        shp->gh_sht_group_array = 0;
-        shp->gh_sht_group_array_count = 0;
-    }
-    free(ep->f_shdr);
-    free(ep->f_phdr);
-    free(ep->f_elf_shstrings_data);
-    free(ep->f_dynamic);
-    free(ep->f_symtab_sect_strings);
-    free(ep->f_dynsym_sect_strings);
-    free(ep->f_symtab);
-    free(ep->f_dynsym);
-
-    /* if TRUE close f_fd on destruct.*/
-    if (ep->f_destruct_close_fd) {
-        close(ep->f_fd);
-    }
-    ep->f_ident[0] = 'X';
-    free(ep->f_path);
-    free(ep);
-    return DW_DLV_OK;
-}
-#endif /*0*/
-
 static int
 generic_ehdr_from_32(dwarf_elf_object_access_internals_t *ep,
     struct generic_ehdr *ehdr, dw_elf32_ehdr *e,
@@ -954,7 +844,7 @@ _dwarf_generic_elf_load_symbols(
     }
     return res;
 }
-#if 0
+#if 0 /* not needed */
 int
 dwarf_load_elf_dynsym_symbols(
     dwarf_elf_object_access_internals_t *ep, int*errcode)
@@ -1189,7 +1079,7 @@ generic_rel_from_rel64(
     return DW_DLV_OK;
 }
 
-#if 0
+#if 0 /* not needed */
 int
 dwarf_load_elf_dynstr(
     dwarf_elf_object_access_internals_t *ep, int *errcode)
@@ -1801,6 +1691,7 @@ _dwarf_load_elf_relx(
     gshdr->gh_relcount = count_read;
     return DW_DLV_OK;
 }
+
 static int
 validate_section_name_string(Dwarf_Unsigned section_length,
     Dwarf_Unsigned string_loc_index,
@@ -1925,62 +1816,12 @@ elf_load_elf_header64(
     return res;
 }
 
-static int
-validate_struct_sizes(int*errcode)
-{
-
-    (void)errcode;
-#if 0
-    /*  This is a sanity check when we have an elf.h
-        to check against.
-        As of 0.7.1  we skip this entirely (here). */
-    if (sizeof(Elf32_Ehdr) != sizeof(dw_elf32_ehdr)) {
-        *errcode = DW_DLE_BAD_TYPE_SIZE;
-        return DW_DLV_ERROR;
-    }
-    if (sizeof(Elf64_Ehdr) != sizeof(dw_elf64_ehdr)) {
-        *errcode = DW_DLE_BAD_TYPE_SIZE;
-        return DW_DLV_ERROR;
-    }
-    if (sizeof(Elf32_Shdr) != sizeof(dw_elf32_shdr)) {
-        *errcode = DW_DLE_BAD_TYPE_SIZE;
-        return DW_DLV_ERROR;
-    }
-    if (sizeof(Elf64_Shdr) != sizeof(dw_elf64_shdr)) {
-        *errcode = DW_DLE_BAD_TYPE_SIZE;
-        return DW_DLV_ERROR;
-    }
-    if (sizeof(Elf32_Rel) != sizeof(dw_elf32_rel)) {
-        *errcode = DW_DLE_BAD_TYPE_SIZE;
-        return DW_DLV_ERROR;
-    }
-    if (sizeof(Elf64_Rel) != sizeof(dw_elf64_rel)) {
-        *errcode = DW_DLE_BAD_TYPE_SIZE;
-        return DW_DLV_ERROR;
-    }
-    if (sizeof(Elf32_Rela) != sizeof(dw_elf32_rela)) {
-        *errcode = DW_DLE_BAD_TYPE_SIZE;
-        return DW_DLV_ERROR;
-    }
-    if (sizeof(Elf64_Rela) != sizeof(dw_elf64_rela)) {
-        *errcode = DW_DLE_BAD_TYPE_SIZE;
-        return DW_DLV_ERROR;
-    }
-#endif /* 0 */
-    return DW_DLV_OK;
-}
-
 int
 _dwarf_load_elf_header(
     dwarf_elf_object_access_internals_t *ep,int*errcode)
 {
     unsigned offsetsize = ep->f_offsetsize;
     int res = 0;
-
-    res = validate_struct_sizes(errcode);
-    if (res != DW_DLV_OK) {
-        return res;
-    }
 
     if (offsetsize == 32) {
         res = elf_load_elf_header32(ep,errcode);
@@ -2342,14 +2183,6 @@ _dwarf_elf_find_sym_sections(
             ep->f_loc_dynamic.g_offset = psh->gh_offset;
         }
     }
-
-#if 0
-    res = validate_links(ep,ep->f_dynsym_sect_index,
-        ep->f_dynsym_sect_strings_sect_index,errcode);
-    if (res!= DW_DLV_OK) {
-        return res;
-    }
-#endif /*0*/
     res = validate_links(ep,ep->f_symtab_sect_index,
         ep->f_symtab_sect_strings_sect_index,errcode);
     if (res!= DW_DLV_OK) {

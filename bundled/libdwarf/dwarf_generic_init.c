@@ -124,7 +124,7 @@ set_global_paths_init(Dwarf_Debug dbg, Dwarf_Error* error)
     return res;
 }
 
-/* New in December 2018. */
+/* New in September 2023. */
 int dwarf_init_path_a(const char *path,
     char            * true_path_out_buffer,
     unsigned          true_path_bufferlen,

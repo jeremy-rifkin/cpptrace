@@ -99,10 +99,10 @@ extern "C" {
 */
 
 /* Semantic Version identity for this libdwarf.h */
-#define DW_LIBDWARF_VERSION "0.8.1"
+#define DW_LIBDWARF_VERSION "0.9.0"
 #define DW_LIBDWARF_VERSION_MAJOR 0
-#define DW_LIBDWARF_VERSION_MINOR 8
-#define DW_LIBDWARF_VERSION_MICRO 1
+#define DW_LIBDWARF_VERSION_MINOR 9
+#define DW_LIBDWARF_VERSION_MICRO 0
 
 #define DW_PATHSOURCE_unspecified 0
 #define DW_PATHSOURCE_basic     1
@@ -1387,9 +1387,10 @@ typedef struct Dwarf_Rnglists_Head_s * Dwarf_Rnglists_Head;
 #define DW_DLE_LINE_COUNT_WRONG                500
 #define DW_DLE_ARITHMETIC_OVERFLOW             501
 #define DW_DLE_UNIVERSAL_BINARY_ERROR          502
+#define DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR      503
 
 /*! @note DW_DLE_LAST MUST EQUAL LAST ERROR NUMBER */
-#define DW_DLE_LAST        502
+#define DW_DLE_LAST        503
 #define DW_DLE_LO_USER     0x10000
 /*! @} */
 
@@ -1407,7 +1408,7 @@ typedef struct Dwarf_Rnglists_Head_s * Dwarf_Rnglists_Head;
 
     On a Mach-O universal binary this function can
     only return information about the first (zero index)
-    object in the universal binary. 
+    object in the universal binary.
 
     @param dw_path
     Pass in the path to the object file to open.
@@ -1455,7 +1456,6 @@ typedef struct Dwarf_Rnglists_Head_s * Dwarf_Rnglists_Head;
     @see exampleinit
 */
 
-
 DW_API int dwarf_init_path(const char * dw_path,
     char *            dw_true_path_out_buffer,
     unsigned int      dw_true_path_bufferlen,
@@ -1470,7 +1470,7 @@ DW_API int dwarf_init_path(const char * dw_path,
     This identical to dwarf_init_path() except that it
     adds a new argument, dw_universalnumber,
     with which you can specify which object in
-    a Mach-O universal binary you wish to open. 
+    a Mach-O universal binary you wish to open.
 
     It is always safe and appropriate to pass
     zero as the dw_universalnumber.
@@ -8909,7 +8909,7 @@ DW_API Dwarf_Small dwarf_set_default_address_size(
 /*! @brief Retrieve universal binary index
 
     For Mach-O universal binaries this returns
-    relevant information. 
+    relevant information.
 
     For non-universal binaries (Mach-O, Elf,
     or PE) the values are not meaningful, so
@@ -8935,7 +8935,6 @@ DW_API int dwarf_get_universalbinary_count(
     Dwarf_Debug dw_dbg,
     Dwarf_Unsigned *dw_current_index,
     Dwarf_Unsigned *dw_available_count);
-
 
 /*! @}
 */

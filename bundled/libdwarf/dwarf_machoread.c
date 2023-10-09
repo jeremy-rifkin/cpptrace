@@ -1005,7 +1005,6 @@ _dwarf_macho_object_access_internals_init(
             &offsetsizei,&fileoffseti,&filesizei,errcode);
         if (res != DW_DLV_OK) {
             if (res == DW_DLV_ERROR) {
-                *errcode = DW_DLE_UNIVERSAL_BINARY_ERROR;
             }
             return res;
         }
@@ -1141,7 +1140,8 @@ static int
 fill_in_uni_arch_32(
     struct fat_arch * fa,
     struct Dwarf_Universal_Head_s *duhd,
-    void (*word_swap) (void *, const void *, unsigned long))
+    void (*word_swap) (void *, const void *, unsigned long),
+    int *errcode)
 {
     Dwarf_Unsigned i = 0;
     struct Dwarf_Universal_Arch_s * dua = 0;
@@ -1151,8 +1151,25 @@ fill_in_uni_arch_32(
         ASNAR(word_swap,dua->au_cputype,fa->cputype);
         ASNAR(word_swap,dua->au_cpusubtype,fa->cpusubtype);
         ASNAR(word_swap,dua->au_offset,fa->offset);
+        if (dua->au_offset >= duhd->au_filesize) {
+            *errcode = DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR;
+            return DW_DLV_ERROR;
+        }
         ASNAR(word_swap,dua->au_size,fa->size);
+        if (dua->au_size >= duhd->au_filesize) {
+            *errcode = DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR;
+            return DW_DLV_ERROR;
+        }
+        if ((dua->au_size+dua->au_offset) > duhd->au_filesize) {
+            *errcode = DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR;
+            return DW_DLV_ERROR;
+        }
+
         ASNAR(word_swap,dua->au_align,fa->align);
+        if (dua->au_align >= 32) {
+            *errcode = DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR;
+            return DW_DLV_ERROR;
+        }
         dua->au_reserved = 0;
     }
     return DW_DLV_OK;
@@ -1162,7 +1179,8 @@ static int
 fill_in_uni_arch_64(
     struct fat_arch_64 * fa,
     struct Dwarf_Universal_Head_s *duhd,
-    void (*word_swap) (void *, const void *, unsigned long))
+    void (*word_swap) (void *, const void *, unsigned long),
+    int *errcode)
 {
     Dwarf_Unsigned i = 0;
     struct Dwarf_Universal_Arch_s * dua = 0;
@@ -1172,9 +1190,24 @@ fill_in_uni_arch_64(
         ASNAR(word_swap,dua->au_cputype,fa->cputype);
         ASNAR(word_swap,dua->au_cpusubtype,fa->cpusubtype);
         ASNAR(word_swap,dua->au_offset,fa->offset);
+        if (dua->au_offset >= duhd->au_filesize) {
+            *errcode = DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR;
+            return DW_DLV_ERROR;
+        }
         ASNAR(word_swap,dua->au_size,fa->size);
+        if (dua->au_size >= duhd->au_filesize) {
+            *errcode = DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR;
+            return DW_DLV_ERROR;
+        }
+        if ((dua->au_size+dua->au_offset) > duhd->au_filesize) {
+            *errcode = DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR;
+            return DW_DLV_ERROR;
+        }
         ASNAR(word_swap,dua->au_align,fa->align);
-        ASNAR(word_swap,dua->au_align,fa->align);
+        if (dua->au_align >= 32) {
+            *errcode = DW_DLE_UNIV_BIN_OFFSET_SIZE_ERROR;
+            return DW_DLV_ERROR;
+        }
         ASNAR(word_swap,dua->au_reserved,fa->reserved);
     }
     return DW_DLV_OK;
@@ -1201,6 +1234,11 @@ _dwarf_object_detector_universal_head_fd(
     duhd = duhzero;
     fh = fhzero;
     /*  A universal head is always at offset zero. */
+    duhd.au_filesize = dw_filesize;
+    if (sizeof(fh) >= dw_filesize) {
+        *errcode = DW_DLE_UNIVERSAL_BINARY_ERROR;
+        return DW_DLV_ERROR;
+    }
     res = RRMOA(fd,&fh,0,sizeof(fh), dw_filesize,errcode);
     if (res != DW_DLV_OK) {
         return res;
@@ -1235,7 +1273,6 @@ _dwarf_object_detector_universal_head_fd(
         word_swap = _dwarf_memcpy_swap_bytes;
     }
 #endif /* LITTLE- BIG-ENDIAN */
-
     ASNAR(word_swap,duhd.au_count,fh.nfat_arch);
     /*  The limit is a first-cut safe heuristic. */
     if (duhd.au_count >= (dw_filesize/2) ) {
@@ -1257,9 +1294,9 @@ _dwarf_object_detector_universal_head_fd(
             free(duhd.au_arches);
             duhd.au_arches = 0;
             free(fa);
-            return res;
+            return DW_DLV_ERROR;
         }
-        if (duhd.au_count*sizeof(*fa) >= dw_filesize) {
+        if (sizeof(fh)+duhd.au_count*sizeof(*fa) >= dw_filesize) {
             free(duhd.au_arches);
             duhd.au_arches = 0;
             free(fa);
@@ -1275,26 +1312,26 @@ _dwarf_object_detector_universal_head_fd(
             free(fa);
             return res;
         }
-        res = fill_in_uni_arch_32(fa,&duhd,word_swap);
+        res = fill_in_uni_arch_32(fa,&duhd,word_swap,
+            errcode);
+        free(fa);
+        fa = 0;
         if (res != DW_DLV_OK) {
             free(duhd.au_arches);
             duhd.au_arches = 0;
-            free(fa);
             return res;
         }
-        free(fa);
-        fa = 0;
     } else { /* 64 */
         struct fat_arch_64 * fa = 0;
         fa = (struct fat_arch_64 *)calloc(duhd.au_count,
-            sizeof(struct fat_arch));
+            sizeof(struct fat_arch_64));
         if (!fa) {
             *errcode = DW_DLE_ALLOC_FAIL;
             free(duhd.au_arches);
             duhd.au_arches = 0;
-            return res;
+            return DW_DLV_ERROR;
         }
-        if (duhd.au_count*sizeof(*fa) >= dw_filesize) {
+        if (sizeof(fh)+duhd.au_count*sizeof(*fa) >= dw_filesize) {
             free(duhd.au_arches);
             duhd.au_arches = 0;
             free(fa);
@@ -1310,14 +1347,15 @@ _dwarf_object_detector_universal_head_fd(
             free(fa);
             return res;
         }
-        res = fill_in_uni_arch_64(fa,&duhd,word_swap);
+        res = fill_in_uni_arch_64(fa,&duhd,word_swap,
+            errcode);
+        free(fa);
+        fa = 0;
         if (res != DW_DLV_OK) {
             free(duhd.au_arches);
             duhd.au_arches = 0;
             return res;
         }
-        free(fa);
-        fa = 0;
     }
 
     duhdp = malloc(sizeof(*duhdp));
@@ -1331,7 +1369,7 @@ _dwarf_object_detector_universal_head_fd(
     *dw_contentcount = duhd.au_count;
     duhdp->au_arches = duhd.au_arches;
     *dw_head = duhdp;
-    return res;
+    return DW_DLV_OK;
 }
 
 #if 0

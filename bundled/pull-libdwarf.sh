@@ -3,7 +3,7 @@
 echo "Removing .c and .h files"
 rm -rfv libdwarf/*.c libdwarf/*.h libdwarf/cmake/config.h.cmake
 echo "Fetching current state"
-git clone https://github.com/davea42/libdwarf-code.git
+git clone https://github.com/davea42/libdwarf-code.git --depth=1
 echo "Copying files"
 mv -v libdwarf-code/src/lib/libdwarf/*.c libdwarf
 mv -v libdwarf-code/src/lib/libdwarf/*.h libdwarf
