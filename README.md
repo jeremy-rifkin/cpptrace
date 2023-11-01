@@ -32,6 +32,8 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
     - [System-Wide Installation](#system-wide-installation)
     - [Local User Installation](#local-user-installation)
     - [Package Managers](#package-managers)
+      - [Conan](#conan)
+      - [Vcpkg](#vcpkg)
     - [Platform Logistics](#platform-logistics)
     - [Static Linking](#static-linking)
   - [Library Internals](#library-internals)
@@ -482,6 +484,27 @@ g++ main.cpp -o main -g -Wall -I$HOME/wherever/include -L$HOME/wherever/lib -lcp
 ```
 
 ### Package Managers
+
+#### Conan
+
+Cpptrace is available through conan at https://conan.io/center/recipes/cpptrace.
+```
+[requires]
+cpptrace/0.2.1
+[generators]
+CMakeDeps
+CMakeToolchain
+[layout]
+cmake_layout
+```
+```cmake
+# ...
+find_package(cpptrace REQUIRED)
+# ...
+target_link_libraries(YOUR_TARGET cpptrace::cpptrace)
+```
+
+#### Vcpkg
 
 Coming soon
 
