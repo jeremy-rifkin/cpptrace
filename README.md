@@ -469,7 +469,13 @@ target_link_libraries(YOUR_TARGET cpptrace::cpptrace)
 
 #### Vcpkg
 
-Coming soon
+```
+vcpkg install cpptrace
+```
+```cmake
+find_package(cpptrace CONFIG REQUIRED)
+target_link_libraries(main PRIVATE cpptrace::cpptrace)
+```
 
 ### Platform Logistics
 
