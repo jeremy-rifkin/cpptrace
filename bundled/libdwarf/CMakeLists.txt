@@ -430,11 +430,17 @@ set(
   libdwarf_private.h
 )
 
+set(
+  libdwarf_export_headers
+  dwarf.h
+  libdwarf.h
+)
+
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 include(GNUInstallDirs)
 
-add_library(dwarf OBJECT ${libdwarf_sources} ${libdwarf_headers})
+add_library(dwarf STATIC ${libdwarf_sources} ${libdwarf_headers})
 set_property(TARGET dwarf PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_compile_definitions(dwarf PUBLIC LIBDWARF_BUILD)
@@ -452,53 +458,53 @@ else()
 endif()
 
 # TODO: Something will have to be figured out for dynamic linking, but for now there's nothing to install
-# if(NOT CMAKE_SKIP_INSTALL_RULES)
-#   include(CMakePackageConfigHelpers)
+if(NOT CMAKE_SKIP_INSTALL_RULES)
+  include(CMakePackageConfigHelpers)
 
-#   install(
-#     TARGETS dwarf
-#     EXPORT libdwarf_targets
-#     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-#     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#     RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#   )
+  install(
+    TARGETS dwarf
+    EXPORT libdwarf_targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
 
-#   install(
-#     FILES
-#     ${libdwarf_headers}
-#     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libdwarf
-#   )
+  install(
+    FILES
+    ${libdwarf_export_headers}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libdwarf
+  )
 
-#   export(
-#     EXPORT libdwarf_targets
-#     FILE ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf_targets.cmake
-#     NAMESPACE libdwarf::
-#   )
+  export(
+    EXPORT libdwarf_targets
+    FILE ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf_targets.cmake
+    NAMESPACE libdwarf::
+  )
 
-#   configure_package_config_file(
-#     cmake/libdwarf-config.cmake.in
-#     ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf-config.cmake
-#     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libdwarf
-#   )
+  configure_package_config_file(
+    cmake/libdwarf-config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf-config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libdwarf
+  )
 
-#   write_basic_package_version_file(
-#     ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf-config-version.cmake
-#     VERSION "${VERSION}"
-#     COMPATIBILITY SameMajorVersion
-#   )
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf-config-version.cmake
+    VERSION "${VERSION}"
+    COMPATIBILITY SameMajorVersion
+  )
 
-#   install(
-#     EXPORT libdwarf_targets
-#     FILE libdwarf_targets.cmake
-#     NAMESPACE libdwarf::
-#     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libdwarf
-#   )
+  install(
+    EXPORT libdwarf_targets
+    FILE libdwarf_targets.cmake
+    NAMESPACE libdwarf::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libdwarf
+  )
 
-#   install(
-#     FILES
-#     ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf-config.cmake
-#     ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf-config-version.cmake
-#     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libdwarf
-#   )
-# endif()
+  install(
+    FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf-config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/libdwarf/libdwarf-config-version.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libdwarf
+  )
+endif()
