@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "cpptrace/cpptrace_export.hpp"
+
 #if __cplusplus >= 202002L
  #ifdef __has_include
   #if __has_include(<format>)
@@ -16,24 +18,18 @@
  #endif
 #endif
 
-#if defined(_WIN32) || defined(__CYGWIN__)
- #define CPPTRACE_API __declspec(dllexport)
-#else
- #define CPPTRACE_API
-#endif
-
 namespace cpptrace {
     struct object_trace;
     struct stacktrace;
 
-    struct raw_trace {
+    struct CPPTRACE_EXPORT raw_trace {
         std::vector<std::uintptr_t> frames;
-        CPPTRACE_API static raw_trace current(std::uint_least32_t skip = 0);
-        CPPTRACE_API static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
-        CPPTRACE_API object_trace resolve_object_trace() const;
-        CPPTRACE_API stacktrace resolve() const;
-        CPPTRACE_API void clear();
-        CPPTRACE_API bool empty() const noexcept;
+        static raw_trace current(std::uint_least32_t skip = 0);
+        static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        object_trace resolve_object_trace() const;
+        stacktrace resolve() const;
+        void clear();
+        bool empty() const noexcept;
 
         using iterator = std::vector<std::uintptr_t>::iterator;
         using const_iterator = std::vector<std::uintptr_t>::const_iterator;
@@ -45,20 +41,20 @@ namespace cpptrace {
         inline const_iterator cend() const noexcept { return frames.cend(); }
     };
 
-    struct object_frame {
+    struct CPPTRACE_EXPORT object_frame {
         std::string obj_path;
         std::string symbol;
         std::uintptr_t raw_address = 0;
         std::uintptr_t obj_address = 0;
     };
 
-    struct object_trace {
+    struct CPPTRACE_EXPORT object_trace {
         std::vector<object_frame> frames;
-        CPPTRACE_API static object_trace current(std::uint_least32_t skip = 0);
-        CPPTRACE_API static object_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
-        CPPTRACE_API stacktrace resolve() const;
-        CPPTRACE_API void clear();
-        CPPTRACE_API bool empty() const noexcept;
+        static object_trace current(std::uint_least32_t skip = 0);
+        static object_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        stacktrace resolve() const;
+        void clear();
+        bool empty() const noexcept;
 
         using iterator = std::vector<object_frame>::iterator;
         using const_iterator = std::vector<object_frame>::const_iterator;
@@ -70,7 +66,7 @@ namespace cpptrace {
         inline const_iterator cend() const noexcept { return frames.cend(); }
     };
 
-    struct stacktrace_frame {
+    struct CPPTRACE_EXPORT stacktrace_frame {
         std::uintptr_t address;
         std::uint_least32_t line; // TODO: This should use UINT_LEAST32_MAX as a sentinel
         std::uint_least32_t column; // UINT_LEAST32_MAX if not present
@@ -89,21 +85,21 @@ namespace cpptrace {
             return !operator==(other);
         }
 
-        CPPTRACE_API std::string to_string() const;
-        CPPTRACE_API friend std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);
+        std::string to_string() const;
+        friend std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);
     };
 
-    struct stacktrace {
+    struct CPPTRACE_EXPORT stacktrace {
         std::vector<stacktrace_frame> frames;
-        CPPTRACE_API static stacktrace current(std::uint_least32_t skip = 0);
-        CPPTRACE_API static stacktrace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
-        CPPTRACE_API void print() const;
-        CPPTRACE_API void print(std::ostream& stream) const;
-        CPPTRACE_API void print(std::ostream& stream, bool color) const;
-        CPPTRACE_API void clear();
-        CPPTRACE_API bool empty() const noexcept;
-        CPPTRACE_API std::string to_string(bool color = false) const;
-        CPPTRACE_API friend std::ostream& operator<<(std::ostream& stream, const stacktrace& trace);
+        static stacktrace current(std::uint_least32_t skip = 0);
+        static stacktrace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        void print() const;
+        void print(std::ostream& stream) const;
+        void print(std::ostream& stream, bool color) const;
+        void clear();
+        bool empty() const noexcept;
+        std::string to_string(bool color = false) const;
+        friend std::ostream& operator<<(std::ostream& stream, const stacktrace& trace);
 
         using iterator = std::vector<stacktrace_frame>::iterator;
         using const_iterator = std::vector<stacktrace_frame>::const_iterator;
@@ -114,27 +110,27 @@ namespace cpptrace {
         inline const_iterator cbegin() const noexcept { return frames.cbegin(); }
         inline const_iterator cend() const noexcept { return frames.cend(); }
     private:
-        CPPTRACE_API void print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const;
+        void print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const;
         friend void print_terminate_trace();
     };
 
-    CPPTRACE_API raw_trace generate_raw_trace(std::uint_least32_t skip = 0);
-    CPPTRACE_API raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
-    CPPTRACE_API object_trace generate_object_trace(std::uint_least32_t skip = 0);
-    CPPTRACE_API object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
-    CPPTRACE_API stacktrace generate_trace(std::uint_least32_t skip = 0);
-    CPPTRACE_API stacktrace generate_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    CPPTRACE_EXPORT raw_trace generate_raw_trace(std::uint_least32_t skip = 0);
+    CPPTRACE_EXPORT raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    CPPTRACE_EXPORT object_trace generate_object_trace(std::uint_least32_t skip = 0);
+    CPPTRACE_EXPORT object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    CPPTRACE_EXPORT stacktrace generate_trace(std::uint_least32_t skip = 0);
+    CPPTRACE_EXPORT stacktrace generate_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
 
     // utilities:
-    CPPTRACE_API std::string demangle(const std::string& name);
-    CPPTRACE_API void absorb_trace_exceptions(bool absorb);
-    CPPTRACE_API bool isatty(int fd);
+    CPPTRACE_EXPORT std::string demangle(const std::string& name);
+    CPPTRACE_EXPORT void absorb_trace_exceptions(bool absorb);
+    CPPTRACE_EXPORT bool isatty(int fd);
 
-    CPPTRACE_API extern const int stdin_fileno;
-    CPPTRACE_API extern const int stderr_fileno;
-    CPPTRACE_API extern const int stdout_fileno;
+    CPPTRACE_EXPORT extern const int stdin_fileno;
+    CPPTRACE_EXPORT extern const int stderr_fileno;
+    CPPTRACE_EXPORT extern const int stdout_fileno;
 
-    CPPTRACE_API void register_terminate_handler();
+    CPPTRACE_EXPORT void register_terminate_handler();
 
     enum class cache_mode {
         // Only minimal lookup tables
@@ -146,15 +142,15 @@ namespace cpptrace {
     };
 
     namespace experimental {
-        CPPTRACE_API void set_cache_mode(cache_mode mode);
+        CPPTRACE_EXPORT void set_cache_mode(cache_mode mode);
     }
 
     namespace detail {
-        CPPTRACE_API bool should_absorb_trace_exceptions();
-        CPPTRACE_API enum cache_mode get_cache_mode();
+        CPPTRACE_EXPORT bool should_absorb_trace_exceptions();
+        CPPTRACE_EXPORT enum cache_mode get_cache_mode();
     }
 
-    class exception : public std::exception {
+    class CPPTRACE_EXPORT exception : public std::exception {
         mutable raw_trace trace;
         mutable stacktrace resolved_trace;
         mutable std::string what_string;
@@ -177,7 +173,7 @@ namespace cpptrace {
         const stacktrace& get_trace() const noexcept;
     };
 
-    class exception_with_message : public exception {
+    class CPPTRACE_EXPORT exception_with_message : public exception {
         mutable std::string message;
 
     protected:

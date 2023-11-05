@@ -1,7 +1,6 @@
 # Included further down to avoid interfering with our cache variables
 # include(GNUInstallDirs)
 
-
 # ---- Options Summary ----
 
 # ---------------------------------------------------------------------------------------------------
@@ -15,10 +14,9 @@
 # | ASSERT_BUILD_TESTING            | Always        | ${BUILD_TESTING} AND ${PROJECT_IS_TOP_LEVEL}  |
 # | ASSERT_INCLUDES_WITH_SYSTEM     | Not Top-Level | ON                                            |
 # | ASSERT_INSTALL_CMAKEDIR         | Always        | ${CMAKE_INSTALL_LIBDIR}/cmake/${package_name} |
-# | ASSERT_USE_EXTERNAL_CPPTRACE    | Always        | OFF                                           |
-# | ASSERT_USE_MAGIC_ENUM           | Always        | ON                                            |
+# | CPPTRACE_USE_EXTERNAL_LIBDWARF  | Always        | OFF                                           |
+# | ...                             |               |                                               |
 # ---------------------------------------------------------------------------------------------------
-
 
 # ---- Build Shared ----
 
@@ -148,21 +146,25 @@ set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Def
 set(CPPTRACE_ADDR2LINE_PATH "" CACHE STRING "Absolute path to the addr2line executable you want to use.")
 option(CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH "" OFF)
 
-#
+# ---- Other configurations ----
 
-option(CPPTRACE_BUILD_TEST "" OFF)
-option(CPPTRACE_BUILD_DEMO "" OFF)
-option(CPPTRACE_BUILD_TEST_RDYNAMIC "" OFF)
+if(PROJECT_IS_TOP_LEVEL)
+  option(CPPTRACE_BUILD_TEST "" OFF)
+  option(CPPTRACE_BUILD_DEMO "" OFF)
+  option(CPPTRACE_BUILD_TEST_RDYNAMIC "" OFF)
+  mark_as_advanced(
+    CPPTRACE_BUILD_TEST
+    CPPTRACE_BUILD_DEMO
+    CPPTRACE_BUILD_TEST_RDYNAMIC
+  )
+endif()
 
-option(CPPTRACE_USE_SYSTEM_LIBDWARF "" OFF)
+option(CPPTRACE_USE_EXTERNAL_LIBDWARF "" OFF)
 option(CPPTRACE_SANITIZER_BUILD "" OFF)
 
 mark_as_advanced(
   CPPTRACE_BACKTRACE_PATH
   CPPTRACE_ADDR2LINE_PATH
   CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
-  CPPTRACE_BUILD_TEST
-  CPPTRACE_BUILD_DEMO
-  CPPTRACE_BUILD_TEST_RDYNAMIC
   CPPTRACE_SANITIZER_BUILD
 )

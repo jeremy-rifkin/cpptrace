@@ -309,12 +309,23 @@ endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
-  if(CPPTRACE_USE_SYSTEM_LIBDWARF)
+  if(CPPTRACE_USE_EXTERNAL_LIBDWARF)
     find_package(libdwarf REQUIRED)
-    target_link_libraries(${target_name} PRIVATE libdwarf)
+    target_link_libraries(${target_name} PRIVATE libdwarf::dwarf-static)
   else()
-    add_subdirectory(bundled/libdwarf)
-    target_link_libraries(${target_name} PRIVATE dwarf)
+    # add_subdirectory(bundled/libdwarf)
+    # target_link_libraries(${target_name} PRIVATE dwarf)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+    set(PIC_ALWAYS TRUE)
+    set(BUILD_DWARFDUMP FALSE)
+    include(FetchContent)
+    FetchContent_Declare(
+      libdwarf
+      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+      GIT_TAG 10d661e45a6b2199f75e885c132b1180511fb50b # v0.8.0
+    )
+    FetchContent_MakeAvailable(libdwarf)
+    target_link_libraries(${target_name} PRIVATE dwarf-static)
   endif()
   if(UNIX)
     target_link_libraries(${target_name} PRIVATE dl)
@@ -392,44 +403,46 @@ if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(cmake/InstallRules.cmake)
 endif()
 
-# if(CPPTRACE_BUILD_TEST)
-#   add_executable(test test/test.cpp)
-#   target_compile_features(test PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
-#   target_link_libraries(test PRIVATE cpptrace)
-#   # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
-#   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
-#   if(HAS_DWARF4)
-#     target_compile_options(test PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
-#   endif()
-#   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
-#     set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
-#   endif()
-#   if(APPLE) # TODO: Temporary
-#     add_custom_command(
-#       TARGET test
-#       POST_BUILD
-#       COMMAND dsymutil $<TARGET_FILE:test>
-#     )
-#   endif()
-# endif()
+# =============================================== Demo/test ===============================================
 
-# if(CPPTRACE_BUILD_DEMO)
-#   add_executable(demo test/demo.cpp)
-#   target_compile_features(demo PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
-#   target_link_libraries(demo PRIVATE cpptrace)
-#   # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
-#   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
-#   if(HAS_DWARF4)
-#     target_compile_options(demo PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
-#   endif()
-#   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
-#     set_property(TARGET demo PROPERTY ENABLE_EXPORTS ON)
-#   endif()
-#   if(APPLE) # TODO: Temporary
-#     add_custom_command(
-#       TARGET demo
-#       POST_BUILD
-#       COMMAND dsymutil $<TARGET_FILE:demo>
-#     )
-#   endif()
-# endif()
+if(CPPTRACE_BUILD_TEST)
+  add_executable(test test/test.cpp)
+  target_compile_features(test PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
+  target_link_libraries(test PRIVATE ${target_name})
+  # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
+  check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
+  if(HAS_DWARF4)
+    target_compile_options(test PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+  endif()
+  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
+    set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
+  endif()
+  if(APPLE) # TODO: Temporary
+    add_custom_command(
+      TARGET test
+      POST_BUILD
+      COMMAND dsymutil $<TARGET_FILE:test>
+    )
+  endif()
+endif()
+
+if(CPPTRACE_BUILD_DEMO)
+  add_executable(demo test/demo.cpp)
+  target_compile_features(demo PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
+  target_link_libraries(demo PRIVATE ${target_name})
+  # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
+  check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
+  if(HAS_DWARF4)
+    target_compile_options(demo PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+  endif()
+  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
+    set_property(TARGET demo PROPERTY ENABLE_EXPORTS ON)
+  endif()
+  if(APPLE) # TODO: Temporary
+    add_custom_command(
+      TARGET demo
+      POST_BUILD
+      COMMAND dsymutil $<TARGET_FILE:demo>
+    )
+  endif()
+endif()
