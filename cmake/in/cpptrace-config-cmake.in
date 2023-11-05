@@ -2,7 +2,7 @@
 @PACKAGE_INIT@
 
 # Dependencies
-find_package(libdwarf REQUIRED)
+find_dependency(libdwarf REQUIRED)
 
 # We cannot modify an existing IMPORT target
 if(NOT TARGET assert::assert)
