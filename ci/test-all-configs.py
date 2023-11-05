@@ -316,7 +316,8 @@ def main():
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
             "symbols": [
-                # "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE", Disabled due to libbacktrace bug
+                # Disabled due to libbacktrace bug
+                # "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
