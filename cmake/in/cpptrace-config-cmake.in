@@ -1,7 +1,8 @@
 # Init @ variables before doing anything else
 @PACKAGE_INIT@
 
-# No dependencies or special setup
+# Dependencies
+find_package(libdwarf REQUIRED)
 
 # We cannot modify an existing IMPORT target
 if(NOT TARGET assert::assert)
