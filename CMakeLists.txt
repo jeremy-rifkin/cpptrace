@@ -313,19 +313,19 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     find_package(libdwarf REQUIRED)
     target_link_libraries(${target_name} PRIVATE libdwarf::dwarf-static)
   else()
-    # add_subdirectory(bundled/libdwarf)
-    # target_link_libraries(${target_name} PRIVATE dwarf)
-    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-    set(PIC_ALWAYS TRUE)
-    set(BUILD_DWARFDUMP FALSE)
-    include(FetchContent)
-    FetchContent_Declare(
-      libdwarf
-      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-      GIT_TAG 4ca6a7bc86b27d56741923f03c15b5aa274efc28 # v0.8.0
-    )
-    FetchContent_MakeAvailable(libdwarf)
-    target_link_libraries(${target_name} PRIVATE dwarf-static)
+    add_subdirectory(bundled/libdwarf)
+    target_link_libraries(${target_name} PRIVATE dwarf)
+    # set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+    # set(PIC_ALWAYS TRUE)
+    # set(BUILD_DWARFDUMP FALSE)
+    # include(FetchContent)
+    # FetchContent_Declare(
+    #   libdwarf
+    #   GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+    #   GIT_TAG 4ca6a7bc86b27d56741923f03c15b5aa274efc28 # v0.8.0
+    # )
+    # FetchContent_MakeAvailable(libdwarf)
+    # target_link_libraries(${target_name} PRIVATE dwarf-static)
   endif()
   if(UNIX)
     target_link_libraries(${target_name} PRIVATE dl)
