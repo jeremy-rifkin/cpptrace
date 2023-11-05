@@ -2,6 +2,7 @@
 @PACKAGE_INIT@
 
 # Dependencies
+include(CMakeFindDependencyMacro)
 find_dependency(libdwarf REQUIRED)
 
 # We cannot modify an existing IMPORT target
