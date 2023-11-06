@@ -316,7 +316,7 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     FetchContent_Declare(
       libdwarf
       GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-      GIT_TAG c51a32a893f586de2aae467ffd510e27d7e910e5 # v0.8.0
+      GIT_TAG 2aa060204ff5bdf2a0d8c97257133930edf7ed31 # v0.8.0
       GIT_SHALLOW 1
     )
     FetchContent_MakeAvailable(libdwarf)
