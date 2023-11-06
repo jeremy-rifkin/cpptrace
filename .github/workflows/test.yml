@@ -132,7 +132,7 @@ jobs:
            cd build
            cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE -G"Unix Makefiles"
            make -j
-           sudo make install
+           make install
            cd ../../cpptrace
     - name: build and test
       run: |
