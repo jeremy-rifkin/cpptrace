@@ -267,7 +267,7 @@ def build_and_test(matrix):
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build and test with config {', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
-        shutil.rmtree("build")
+        shutil.rmtree("build", ignore_errors=True)
 
     os.mkdir("build")
     os.chdir("build")
@@ -285,7 +285,7 @@ def build_and_test_full_or_auto(matrix):
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build and test with config {'<auto>' if matrix['config'] == '' else ', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
-        shutil.rmtree("build")
+        shutil.rmtree("build", ignore_errors=True)
 
     os.mkdir("build")
     os.chdir("build")
