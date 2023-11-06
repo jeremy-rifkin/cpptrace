@@ -307,7 +307,6 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   if(CPPTRACE_USE_EXTERNAL_LIBDWARF)
     find_package(libdwarf REQUIRED)
-    target_link_libraries(${target_name} PRIVATE libdwarf::dwarf-static)
   else()
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(PIC_ALWAYS TRUE)
@@ -316,12 +315,12 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     FetchContent_Declare(
       libdwarf
       GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-      GIT_TAG 440ab0d067ff4d29670df381df974f88486e5f85 # v0.8.0
+      GIT_TAG 8b163d80aa30afd37027e826f6e8becd8e62ee2f # v0.8.0
       GIT_SHALLOW 1
     )
     FetchContent_MakeAvailable(libdwarf)
-    target_link_libraries(${target_name} PRIVATE dwarf-static)
   endif()
+  target_link_libraries(${target_name} PRIVATE libdwarf::dwarf-static)
   if(UNIX)
     target_link_libraries(${target_name} PRIVATE dl)
   endif()
