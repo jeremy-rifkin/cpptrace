@@ -22,7 +22,7 @@ jobs:
            cd libdwarf
            git init
            git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
-           git fetch --depth 1 origin 8b163d80aa30afd37027e826f6e8becd8e62ee2f
+           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
            git checkout FETCH_HEAD
            mkdir build
            cd build
@@ -44,7 +44,7 @@ jobs:
            cd libdwarf
            git init
            git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
-           git fetch --depth 1 origin 8b163d80aa30afd37027e826f6e8becd8e62ee2f
+           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
            git checkout FETCH_HEAD
            mkdir build
            cd build
@@ -74,7 +74,7 @@ jobs:
            cd libdwarf
            git init
            git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
-           git fetch --depth 1 origin 8b163d80aa30afd37027e826f6e8becd8e62ee2f
+           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
            git checkout FETCH_HEAD
            mkdir build
            cd build
@@ -100,7 +100,7 @@ jobs:
            cd libdwarf
            git init
            git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
-           git fetch --depth 1 origin 8b163d80aa30afd37027e826f6e8becd8e62ee2f
+           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
            git checkout FETCH_HEAD
            mkdir build
            cd build
@@ -126,7 +126,7 @@ jobs:
            cd libdwarf
            git init
            git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
-           git fetch --depth 1 origin 8b163d80aa30afd37027e826f6e8becd8e62ee2f
+           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
            git checkout FETCH_HEAD
            mkdir build
            cd build
