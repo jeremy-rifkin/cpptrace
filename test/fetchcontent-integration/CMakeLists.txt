@@ -13,7 +13,7 @@ FetchContent_Declare(
   GIT_TAG        ${CPPTRACE_TAG}
 )
 FetchContent_MakeAvailable(cpptrace)
-target_link_libraries(main cpptrace)
+target_link_libraries(main cpptrace::cpptrace)
 target_compile_features(main PRIVATE cxx_std_11)
 
 if(WIN32)
