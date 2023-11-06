@@ -255,6 +255,14 @@ target_compile_features(
     PRIVATE cxx_std_11
 )
 
+if(APPLE)
+  set_property(
+    TARGET ${target_name}
+    APPEND
+    PROPERTY STATIC_LIBRARY_FLAGS "-no_warning_for_no_symbols"
+  )
+endif()
+
 # =============================================== Apply options to build ===============================================
 
 if(HAS_CXX_EXCEPTION_TYPE)
