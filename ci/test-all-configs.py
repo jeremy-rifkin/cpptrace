@@ -269,7 +269,8 @@ def build_and_test(matrix):
     if os.path.exists("build"):
         shutil.rmtree("build", ignore_errors=True)
 
-    os.mkdir("build")
+    if not os.path.exists("build"):
+        os.mkdir("build")
     os.chdir("build")
 
     good = False
@@ -287,7 +288,8 @@ def build_and_test_full_or_auto(matrix):
     if os.path.exists("build"):
         shutil.rmtree("build", ignore_errors=True)
 
-    os.mkdir("build")
+    if not os.path.exists("build"):
+        os.mkdir("build")
     os.chdir("build")
 
     good = False
