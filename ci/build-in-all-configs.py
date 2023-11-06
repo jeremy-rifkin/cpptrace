@@ -53,6 +53,7 @@ def build(matrix):
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
@@ -67,6 +68,7 @@ def build(matrix):
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
@@ -102,6 +104,7 @@ def build_full_or_auto(matrix):
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
         ]
         if matrix["config"] != "":
@@ -115,7 +118,8 @@ def build_full_or_auto(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
-            f"-DCMAKE_CXX_STANDARD={matrix['std']}"
+            f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
