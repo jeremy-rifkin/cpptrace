@@ -643,7 +643,7 @@ Back-end configuration:
 - `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH=On/Off`: Specifies whether cpptrace should let the system search the PATH
   environment variable directories for the binary.
 
-Other userufl configurations:
+Other useful configurations:
 - `CPPTRACE_BUILD_SHARED=On/Off`: Override for `BUILD_SHARED_LIBS`.
 - `CPPTRACE_INCLUDES_WITH_SYSTEM=On/Off`: Marks cpptrace headers as `SYSTEM` which will hide any warnings that aren't
   the fault of your project. Defaults to On.
@@ -670,5 +670,5 @@ unwinding back-end, and the python script will check for an exact or near-match 
 
 This library is under the MIT license.
 
-Libdwarf is bundled as part of this library so the code in `bundled/libdwarf` is LGPL. If this library is statically
-linked with libdwarf then the library's binary will itself be LGPL.
+Cpptrace uses libdwarf on linux, macos, and mingw/cygwin unless configured to use something else. If this library is
+statically linked with libdwarf then the library's binary will itself be LGPL.
