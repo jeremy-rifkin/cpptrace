@@ -9,8 +9,13 @@
 #include <stdexcept>
 #include <type_traits>
 
+#ifdef CPPTRACE_USE_EXTERNAL_LIBDWARF
+#include <libdwarf/libdwarf.h>
+#include <libdwarf/dwarf.h>
+#else
 #include <libdwarf.h>
 #include <dwarf.h>
+#endif
 
 namespace cpptrace {
 namespace detail {
