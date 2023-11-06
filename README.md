@@ -376,9 +376,9 @@ another system (this is theoretically possible currently but untested).
 | ------------------------------------------------ | --------- |
 | DWARF in binary                                  | ✔️      |
 | DWARF in separate binary (binary gnu debug link) | ️️✔️  |
-| DWARF in separate binary (split dwarf)           | Soon  |
+| DWARF in separate binary (split dwarf)           | ✔️      |
 | DWARF in dSYM                                    | ✔️      |
-| DWARF in via Mach-O debug map                    | Soon   |
+| DWARF in via Mach-O debug map                    | Soon      |
 | Windows debug symbols in PDB                     | ✔️      |
 
 DWARF5 added DWARF package files. As far as I can tell no compiler implements these yet.
