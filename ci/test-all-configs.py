@@ -15,6 +15,9 @@ failed = False
 
 expected_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test/expected/")
 
+def get_c_compiler_counterpart(compiler: str) -> str:
+    return compiler.replace("clang++", "clang").replace("g++", "gcc")
+
 MAX_LINE_DIFF = 2
 
 def similarity(name: str, target: List[str]) -> int:
@@ -149,6 +152,7 @@ def build(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
@@ -167,6 +171,7 @@ def build(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
@@ -190,6 +195,7 @@ def build_full_or_auto(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
             "-DCPPTRACE_BUILD_TEST=On"
@@ -205,6 +211,7 @@ def build_full_or_auto(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             "-DCPPTRACE_BUILD_TEST=On"
         ]
@@ -309,7 +316,8 @@ def main():
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
             "symbols": [
-                "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
+                # Disabled due to libbacktrace bug
+                # "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",

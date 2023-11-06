@@ -28,17 +28,16 @@
 #define CYAN    ESC "36m"
 
 namespace cpptrace {
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     raw_trace raw_trace::current(std::uint_least32_t skip) {
         return generate_raw_trace(skip + 1);
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     raw_trace raw_trace::current(std::uint_least32_t skip, std::uint_least32_t max_depth) {
         return generate_raw_trace(skip + 1, max_depth);
     }
 
-    CPPTRACE_API
     object_trace raw_trace::resolve_object_trace() const {
         try {
             return object_trace{detail::get_frames_object_info(frames)};
@@ -50,7 +49,6 @@ namespace cpptrace {
         }
     }
 
-    CPPTRACE_API
     stacktrace raw_trace::resolve() const {
         try {
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
@@ -66,27 +64,24 @@ namespace cpptrace {
         }
     }
 
-    CPPTRACE_API
     void raw_trace::clear() {
         frames.clear();
     }
 
-    CPPTRACE_API
     bool raw_trace::empty() const noexcept {
         return frames.empty();
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     object_trace object_trace::current(std::uint_least32_t skip) {
         return generate_object_trace(skip + 1);
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     object_trace object_trace::current(std::uint_least32_t skip, std::uint_least32_t max_depth) {
         return generate_object_trace(skip + 1, max_depth);
     }
 
-    CPPTRACE_API
     stacktrace object_trace::resolve() const {
         try {
             return stacktrace{detail::resolve_frames(frames)};
@@ -98,23 +93,21 @@ namespace cpptrace {
         }
     }
 
-    CPPTRACE_API
     void object_trace::clear() {
         frames.clear();
     }
 
-    CPPTRACE_API
     bool object_trace::empty() const noexcept {
         return frames.empty();
     }
 
-    CPPTRACE_API std::string stacktrace_frame::to_string() const {
+    std::string stacktrace_frame::to_string() const {
         std::ostringstream oss;
         oss << *this;
         return std::move(oss).str();
     }
 
-    CPPTRACE_API std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame) {
+    std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame) {
         stream
             << std::hex
             << "0x"
@@ -138,32 +131,28 @@ namespace cpptrace {
         return stream;
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     stacktrace stacktrace::current(std::uint32_t skip) {
         return generate_trace(skip + 1);
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     stacktrace stacktrace::current(std::uint_least32_t skip, std::uint_least32_t max_depth) {
         return generate_trace(skip + 1, max_depth);
     }
 
-    CPPTRACE_API
     void stacktrace::print() const {
         print(std::cerr, true);
     }
 
-    CPPTRACE_API
     void stacktrace::print(std::ostream& stream) const {
         print(stream, true);
     }
 
-    CPPTRACE_API
     void stacktrace::print(std::ostream& stream, bool color) const {
         print(stream, color, true, nullptr);
     }
 
-    CPPTRACE_API
     void stacktrace::print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const {
         if(color) {
             detail::enable_virtual_terminal_processing_if_needed();
@@ -224,28 +213,25 @@ namespace cpptrace {
         }
     }
 
-    CPPTRACE_API
     void stacktrace::clear() {
         frames.clear();
     }
 
-    CPPTRACE_API
     bool stacktrace::empty() const noexcept {
         return frames.empty();
     }
 
-    CPPTRACE_API
     std::string stacktrace::to_string(bool color) const {
         std::ostringstream oss;
         print(oss, color, false, nullptr);
         return std::move(oss).str();
     }
 
-    CPPTRACE_API std::ostream& operator<<(std::ostream& stream, const stacktrace& trace) {
+    std::ostream& operator<<(std::ostream& stream, const stacktrace& trace) {
         return stream << trace.to_string();
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     raw_trace generate_raw_trace(std::uint_least32_t skip) {
         try {
             return raw_trace{detail::capture_frames(skip + 1, UINT_LEAST32_MAX)};
@@ -257,7 +243,7 @@ namespace cpptrace {
         }
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
         try {
             return raw_trace{detail::capture_frames(skip + 1, max_depth)};
@@ -269,7 +255,7 @@ namespace cpptrace {
         }
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     object_trace generate_object_trace(std::uint_least32_t skip) {
         try {
             return object_trace{detail::get_frames_object_info(detail::capture_frames(skip + 1, UINT_LEAST32_MAX))};
@@ -281,7 +267,7 @@ namespace cpptrace {
         }
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
         try {
             return object_trace{detail::get_frames_object_info(detail::capture_frames(skip + 1, max_depth))};
@@ -293,12 +279,12 @@ namespace cpptrace {
         }
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     stacktrace generate_trace(std::uint_least32_t skip) {
         return generate_trace(skip + 1, UINT_LEAST32_MAX);
     }
 
-    CPPTRACE_FORCE_NO_INLINE CPPTRACE_API
+    CPPTRACE_FORCE_NO_INLINE
     stacktrace generate_trace(std::uint32_t skip, std::uint_least32_t max_depth) {
         try {
             std::vector<std::uintptr_t> frames = detail::capture_frames(skip + 1, max_depth);
@@ -315,19 +301,17 @@ namespace cpptrace {
         }
     }
 
-    CPPTRACE_API
     std::string demangle(const std::string& name) {
         return detail::demangle(name);
     }
 
-    CPPTRACE_API
     bool isatty(int fd) {
         return detail::isatty(fd);
     }
 
-    CPPTRACE_API extern const int stdin_fileno = detail::fileno(stdin);
-    CPPTRACE_API extern const int stdout_fileno = detail::fileno(stdout);
-    CPPTRACE_API extern const int stderr_fileno = detail::fileno(stderr);
+    extern const int stdin_fileno = detail::fileno(stdin);
+    extern const int stdout_fileno = detail::fileno(stdout);
+    extern const int stderr_fileno = detail::fileno(stderr);
 
     CPPTRACE_FORCE_NO_INLINE void print_terminate_trace() {
         generate_trace(1).print(
@@ -338,7 +322,7 @@ namespace cpptrace {
         );
     }
 
-    [[noreturn]] CPPTRACE_API void terminate_handler() {
+    [[noreturn]]  void terminate_handler() {
         try {
             auto ptr = std::current_exception();
             if(ptr == nullptr) {
@@ -371,7 +355,7 @@ namespace cpptrace {
         abort();
     }
 
-    CPPTRACE_API void register_terminate_handler() {
+    void register_terminate_handler() {
         std::set_terminate(terminate_handler);
     }
 
@@ -380,22 +364,22 @@ namespace cpptrace {
         std::atomic<enum cache_mode> cache_mode(cache_mode::prioritize_speed); // NOSONAR
     }
 
-    CPPTRACE_API void absorb_trace_exceptions(bool absorb) {
+     void absorb_trace_exceptions(bool absorb) {
         detail::absorb_trace_exceptions = absorb;
     }
 
     namespace experimental {
-        CPPTRACE_API void set_cache_mode(cache_mode mode) {
+         void set_cache_mode(cache_mode mode) {
             detail::cache_mode = mode;
         }
     }
 
     namespace detail {
-        CPPTRACE_API bool should_absorb_trace_exceptions() {
+         bool should_absorb_trace_exceptions() {
             return absorb_trace_exceptions;
         }
 
-        CPPTRACE_API enum cache_mode get_cache_mode() {
+         enum cache_mode get_cache_mode() {
             return cache_mode;
         }
 

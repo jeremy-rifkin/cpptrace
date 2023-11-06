@@ -585,7 +585,7 @@ configurable with `CPPTRACE_HARD_MAX_FRAMES`.
 
 | Library      | CMake config                             | Platforms             | Info                                                                                                                                                                                         |
 | ------------ | ---------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| libdwarf     | `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF`     | linux, macos, mingw   | Libdwarf is the preferred method for symbol resolution for cpptrace, and it's bundled in this repository for ease of use.                                                                    |
+| libdwarf     | `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF`     | linux, macos, mingw   | Libdwarf is the preferred method for symbol resolution for cpptrace. Cpptrace will get it via FetchContent or find_package depending on `CPPTRACE_USE_EXTERNAL_LIBDWARF`.                    |
 | dbghelp      | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`      | windows               | Dbghelp.h is the preferred method for symbol resolution on windows under msvc/clang and is supported on all windows machines.                                                                |
 | libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | linux, macos*, mingw* | Libbacktrace is already installed on most systems or available through the compiler directly. For clang you must specify the absolute path to `backtrace.h` using `CPPTRACE_BACKTRACE_PATH`. |
 | addr2line    | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE`    | linux, macos, mingw   | Symbols are resolved by invoking `addr2line` (or `atos` on mac) via `fork()` (on linux/unix, and `popen` under mingw).                                                                       |
@@ -634,7 +634,6 @@ Back-ends:
 - `CPPTRACE_DEMANGLE_WITH_NOTHING=On/Off`
 
 Back-end configuration:
-- `CPPTRACE_STATIC=On/Off`: Create cpptrace as a static library.
 - `CPPTRACE_BACKTRACE_PATH=<string>`: Path to libbacktrace backtrace.h, needed when compiling with clang/
 - `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
   Default is `100`.
@@ -643,7 +642,13 @@ Back-end configuration:
   injection).
 - `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH=On/Off`: Specifies whether cpptrace should let the system search the PATH
   environment variable directories for the binary.
-- `CPPTRACE_USE_SYSTEM_LIBDWARF=On/Off`: Use libdwarf resolved via `find_package` rather than the bundled libdwarf.
+
+Other userufl configurations:
+- `CPPTRACE_BUILD_SHARED=On/Off`: Override for `BUILD_SHARED_LIBS`.
+- `CPPTRACE_INCLUDES_WITH_SYSTEM=On/Off`: Marks cpptrace headers as `SYSTEM` which will hide any warnings that aren't
+  the fault of your project. Defaults to On.
+- `CPPTRACE_INSTALL_CMAKEDIR`: Override for the installation path for the cmake configs.
+- `CPPTRACE_USE_EXTERNAL_LIBDWARF=On/Off`: Get libdwarf from `find_package` rather than `FetchContent`.
 
 Testing:
 - `CPPTRACE_BUILD_TEST` Build a small test program
