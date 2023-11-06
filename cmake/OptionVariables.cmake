@@ -10,10 +10,10 @@
 # | BUILD_TESTING                   | Top-Level     | OFF                                           |
 # | CMAKE_INSTALL_INCLUDEDIR        | Top-Level     | include/${package_name}-${PROJECT_VERSION}    |
 # |---------------------------------|---------------|-----------------------------------------------|
-# | ASSERT_BUILD_SHARED             | Always        | ${BUILD_SHARED_LIBS}                          |
-# | ASSERT_BUILD_TESTING            | Always        | ${BUILD_TESTING} AND ${PROJECT_IS_TOP_LEVEL}  |
-# | ASSERT_INCLUDES_WITH_SYSTEM     | Not Top-Level | ON                                            |
-# | ASSERT_INSTALL_CMAKEDIR         | Always        | ${CMAKE_INSTALL_LIBDIR}/cmake/${package_name} |
+# | CPPTRACE_BUILD_SHARED           | Always        | ${BUILD_SHARED_LIBS}                          |
+# | CPPTRACE_BUILD_TESTING          | Always        | ${BUILD_TESTING} AND ${PROJECT_IS_TOP_LEVEL}  |
+# | CPPTRACE_INCLUDES_WITH_SYSTEM   | Not Top-Level | ON                                            |
+# | CPPTRACE_INSTALL_CMAKEDIR       | Always        | ${CMAKE_INSTALL_LIBDIR}/cmake/${package_name} |
 # | CPPTRACE_USE_EXTERNAL_LIBDWARF  | Always        | OFF                                           |
 # | ...                             |               |                                               |
 # ---------------------------------------------------------------------------------------------------
