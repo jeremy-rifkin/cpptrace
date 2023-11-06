@@ -318,7 +318,8 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     FetchContent_Declare(
       libdwarf
       GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-      GIT_TAG 1c6e1b7073795db14884f93196d8dc0483622445 # v0.8.0
+      GIT_TAG 440ab0d067ff4d29670df381df974f88486e5f85 # v0.8.0
+      GIT_SHALLOW 1
     )
     FetchContent_MakeAvailable(libdwarf)
     target_link_libraries(${target_name} PRIVATE dwarf-static)
