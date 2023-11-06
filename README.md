@@ -634,7 +634,6 @@ Back-ends:
 - `CPPTRACE_DEMANGLE_WITH_NOTHING=On/Off`
 
 Back-end configuration:
-- `CPPTRACE_STATIC=On/Off`: Create cpptrace as a static library.
 - `CPPTRACE_BACKTRACE_PATH=<string>`: Path to libbacktrace backtrace.h, needed when compiling with clang/
 - `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
   Default is `100`.
@@ -643,6 +642,12 @@ Back-end configuration:
   injection).
 - `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH=On/Off`: Specifies whether cpptrace should let the system search the PATH
   environment variable directories for the binary.
+
+Other userufl configurations:
+- `CPPTRACE_BUILD_SHARED=On/Off`: Override for `BUILD_SHARED_LIBS`.
+- `CPPTRACE_INCLUDES_WITH_SYSTEM=On/Off`: Marks cpptrace headers as `SYSTEM` which will hide any warnings that aren't
+  the fault of your project. Defaults to On.
+- `CPPTRACE_INSTALL_CMAKEDIR`: Override for the installation path for the cmake configs.
 - `CPPTRACE_USE_EXTERNAL_LIBDWARF=On/Off`: Get libdwarf from `find_package` rather than `FetchContent`.
 
 Testing:
