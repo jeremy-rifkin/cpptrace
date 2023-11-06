@@ -256,11 +256,8 @@ target_compile_features(
 )
 
 if(APPLE)
-  set_property(
-    TARGET ${target_name}
-    APPEND
-    PROPERTY STATIC_LIBRARY_FLAGS "-no_warning_for_no_symbols"
-  )
+  SET(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+  SET(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
 endif()
 
 # =============================================== Apply options to build ===============================================
