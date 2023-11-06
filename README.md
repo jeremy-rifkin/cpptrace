@@ -585,7 +585,7 @@ configurable with `CPPTRACE_HARD_MAX_FRAMES`.
 
 | Library      | CMake config                             | Platforms             | Info                                                                                                                                                                                         |
 | ------------ | ---------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| libdwarf     | `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF`     | linux, macos, mingw   | Libdwarf is the preferred method for symbol resolution for cpptrace, and it's bundled in this repository for ease of use.                                                                    |
+| libdwarf     | `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF`     | linux, macos, mingw   | Libdwarf is the preferred method for symbol resolution for cpptrace. Cpptrace will get it via FetchContent or find_package depending on `CPPTRACE_USE_EXTERNAL_LIBDWARF`.                    |
 | dbghelp      | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`      | windows               | Dbghelp.h is the preferred method for symbol resolution on windows under msvc/clang and is supported on all windows machines.                                                                |
 | libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | linux, macos*, mingw* | Libbacktrace is already installed on most systems or available through the compiler directly. For clang you must specify the absolute path to `backtrace.h` using `CPPTRACE_BACKTRACE_PATH`. |
 | addr2line    | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE`    | linux, macos, mingw   | Symbols are resolved by invoking `addr2line` (or `atos` on mac) via `fork()` (on linux/unix, and `popen` under mingw).                                                                       |
@@ -643,7 +643,7 @@ Back-end configuration:
   injection).
 - `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH=On/Off`: Specifies whether cpptrace should let the system search the PATH
   environment variable directories for the binary.
-- `CPPTRACE_USE_SYSTEM_LIBDWARF=On/Off`: Use libdwarf resolved via `find_package` rather than the bundled libdwarf.
+- `CPPTRACE_USE_EXTERNAL_LIBDWARF=On/Off`: Get libdwarf from `find_package` rather than `FetchContent`.
 
 Testing:
 - `CPPTRACE_BUILD_TEST` Build a small test program
@@ -665,5 +665,5 @@ unwinding back-end, and the python script will check for an exact or near-match 
 
 This library is under the MIT license.
 
-Libdwarf is bundled as part of this library so the code in `bundled/libdwarf` is LGPL. If this library is statically
-linked with libdwarf then the library's binary will itself be LGPL.
+Cpptrace uses libdwarf on linux, macos, and mingw/cygwin unless configured to use something else. If this library is
+statically linked with libdwarf then the library's binary will itself be LGPL.
