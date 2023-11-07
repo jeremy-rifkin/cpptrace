@@ -571,16 +571,22 @@ namespace libdwarf {
                 // If the vector has been empty this can happen
                 if(table_it != line_entries.end()) {
                     Dwarf_Line line = table_it->line;
-                    Dwarf_Unsigned line_number = 0;
-                    VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
-                    frame.line = static_cast<std::uint_least32_t>(line_number);
-                    char* filename = nullptr;
-                    VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
-                    auto wrapper = raii_wrap(
-                        filename,
-                        [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
-                    );
-                    frame.filename = filename;
+                    if(!table_it->line_number) {
+                        Dwarf_Unsigned line_number = 0;
+                        VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
+                        table_it->line_number = static_cast<std::uint_least32_t>(line_number);
+                    }
+                    frame.line = table_it->line_number.unwrap();
+                    if(!table_it->path) {
+                        char* filename = nullptr;
+                        VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
+                        auto wrapper = raii_wrap(
+                            filename,
+                            [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
+                        );
+                        table_it->path = filename;
+                    }
+                    frame.filename = table_it->path.unwrap();
                 }
             } else {
                 Dwarf_Line_Context line_context = table_info.line_context;
