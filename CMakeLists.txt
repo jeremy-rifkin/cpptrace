@@ -407,7 +407,7 @@ endif()
 
 if(CPPTRACE_BUILD_TEST)
   add_executable(test test/test.cpp)
-  target_compile_features(test PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
+  target_compile_features(test PRIVATE cxx_std_11)
   target_link_libraries(test PRIVATE ${target_name})
   # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
@@ -428,7 +428,7 @@ endif()
 
 if(CPPTRACE_BUILD_DEMO)
   add_executable(demo test/demo.cpp)
-  target_compile_features(demo PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
+  target_compile_features(demo PRIVATE cxx_std_11)
   target_link_libraries(demo PRIVATE ${target_name})
   # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
