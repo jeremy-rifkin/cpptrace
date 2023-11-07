@@ -322,7 +322,7 @@ namespace cpptrace {
         );
     }
 
-    [[noreturn]]  void terminate_handler() {
+    [[noreturn]] void terminate_handler() {
         try {
             auto ptr = std::current_exception();
             if(ptr == nullptr) {
