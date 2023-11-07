@@ -482,7 +482,109 @@ namespace libdwarf {
                 }
                 VERIFY(ret == DW_DLV_OK);
 
-                // build lookup table
+                std::vector<line_entry> line_entries;
+
+                if(get_cache_mode() == cache_mode::prioritize_speed) {
+                    // build lookup table
+                    Dwarf_Line* line_buffer = nullptr;
+                    Dwarf_Signed line_count = 0;
+                    Dwarf_Line* linebuf_actuals = nullptr;
+                    Dwarf_Signed linecount_actuals = 0;
+                    VERIFY(
+                        wrap(
+                            dwarf_srclines_two_level_from_linecontext,
+                            line_context,
+                            &line_buffer,
+                            &line_count,
+                            &linebuf_actuals,
+                            &linecount_actuals
+                        ) == DW_DLV_OK
+                    );
+
+                    Dwarf_Addr last_pc = 0;
+                    // TODO: Make any attempt to note PC ranges? Handle line end sequence?
+                    for(int i = 0; i < line_count; i++) {
+                        Dwarf_Line line = line_buffer[i];
+                        Dwarf_Addr low_addr = 0;
+                        VERIFY(wrap(dwarf_lineaddr, line, &low_addr) == DW_DLV_OK);
+                        // scan ahead for the last line entry matching this pc
+                        int j;
+                        for(j = i + 1; j < line_count; j++) {
+                            Dwarf_Addr addr = 0;
+                            VERIFY(wrap(dwarf_lineaddr, line_buffer[j], &addr) == DW_DLV_OK);
+                            if(addr != low_addr) {
+                                break;
+                            }
+                        }
+                        line = line_buffer[j - 1];
+                        // {
+                        //     Dwarf_Unsigned line_number = 0;
+                        //     VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
+                        //     frame.line = static_cast<std::uint_least32_t>(line_number);
+                        //     char* filename = nullptr;
+                        //     VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
+                        //     auto wrapper = raii_wrap(
+                        //         filename,
+                        //         [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
+                        //     );
+                        //     frame.filename = filename;
+                        //     printf("%s : %d\n", filename, line_number);
+                        //     Dwarf_Bool is_line_end;
+                        //     VERIFY(wrap(dwarf_lineendsequence, line, &is_line_end) == DW_DLV_OK);
+                        //     if(is_line_end) {
+                        //         puts("Line end");
+                        //     }
+                        // }
+                        line_entries.push_back({
+                            low_addr,
+                            line // j - 1
+                        });
+                        i = j - 1;
+                    }
+                    // sort lines
+                    std::sort(line_entries.begin(), line_entries.end(), [] (const line_entry& a, const line_entry& b) {
+                        return a.low < b.low;
+                    });
+                }
+
+                it = line_contexts.insert({off, {version, line_context, std::move(line_entries)}}).first;
+            }
+
+            auto& table_info = it->second;
+
+            if(get_cache_mode() == cache_mode::prioritize_speed) {
+                // Lookup in the table
+                auto& line_entries = table_info.line_entries;
+                auto table_it = std::lower_bound(
+                    line_entries.begin(),
+                    line_entries.end(),
+                    pc,
+                    [] (const line_entry& entry, Dwarf_Addr pc) {
+                        return entry.low < pc;
+                    }
+                );
+                // vec_it is first >= pc
+                // we want first <= pc
+                if(table_it != line_entries.begin()) {
+                    table_it--;
+                }
+                // If the vector has been empty this can happen
+                if(table_it != line_entries.end()) {
+                    Dwarf_Line line = table_it->line;
+                    Dwarf_Unsigned line_number = 0;
+                    VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
+                    frame.line = static_cast<std::uint_least32_t>(line_number);
+                    char* filename = nullptr;
+                    VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
+                    auto wrapper = raii_wrap(
+                        filename,
+                        [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
+                    );
+                    frame.filename = filename;
+                }
+            } else {
+                Dwarf_Line_Context line_context = table_info.line_context;
+                // walk for it
                 Dwarf_Line* line_buffer = nullptr;
                 Dwarf_Signed line_count = 0;
                 Dwarf_Line* linebuf_actuals = nullptr;
@@ -497,86 +599,51 @@ namespace libdwarf {
                         &linecount_actuals
                     ) == DW_DLV_OK
                 );
-
-                std::vector<line_entry> line_entries;
-                Dwarf_Addr last_pc = 0;
-                // TODO: Make any attempt to note PC ranges? Handle line end sequence?
+                Dwarf_Addr last_lineaddr = 0;
+                Dwarf_Line last_line = nullptr;
                 for(int i = 0; i < line_count; i++) {
                     Dwarf_Line line = line_buffer[i];
-                    Dwarf_Addr low_addr = 0;
-                    VERIFY(wrap(dwarf_lineaddr, line, &low_addr) == DW_DLV_OK);
-                    // scan ahead for the last line entry matching this pc
-                    int j;
-                    for(j = i + 1; j < line_count; j++) {
-                        Dwarf_Addr addr = 0;
-                        VERIFY(wrap(dwarf_lineaddr, line_buffer[j], &addr) == DW_DLV_OK);
-                        if(addr != low_addr) {
-                            break;
+                    Dwarf_Addr lineaddr = 0;
+                    VERIFY(wrap(dwarf_lineaddr, line, &lineaddr) == DW_DLV_OK);
+                    Dwarf_Line found_line = nullptr;
+                    if(pc == lineaddr) {
+                        // Multiple PCs may correspond to a line, find the last one
+                        found_line = line;
+                        for(int j = i + 1; j < line_count; j++) {
+                            Dwarf_Line line = line_buffer[j];
+                            Dwarf_Addr lineaddr = 0;
+                            VERIFY(wrap(dwarf_lineaddr, line, &lineaddr) == DW_DLV_OK);
+                            if(pc == lineaddr) {
+                                found_line = line;
+                            }
+                        }
+                    } else if(last_line && pc > last_lineaddr && pc < lineaddr) {
+                        // Guess that the last line had it
+                        found_line = last_line;
+                    }
+                    if(found_line) {
+                        Dwarf_Unsigned line_number = 0;
+                        VERIFY(wrap(dwarf_lineno, found_line, &line_number) == DW_DLV_OK);
+                        frame.line = static_cast<std::uint_least32_t>(line_number);
+                        char* filename = nullptr;
+                        VERIFY(wrap(dwarf_linesrc, found_line, &filename) == DW_DLV_OK);
+                        auto wrapper = raii_wrap(
+                            filename,
+                            [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
+                        );
+                        frame.filename = filename;
+                    } else {
+                        Dwarf_Bool is_line_end;
+                        VERIFY(wrap(dwarf_lineendsequence, line, &is_line_end) == DW_DLV_OK);
+                        if(is_line_end) {
+                            last_lineaddr = 0;
+                            last_line = nullptr;
+                        } else {
+                            last_lineaddr = lineaddr;
+                            last_line = line;
                         }
                     }
-                    line = line_buffer[j - 1];
-                    // {
-                    //     Dwarf_Unsigned line_number = 0;
-                    //     VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
-                    //     frame.line = static_cast<std::uint_least32_t>(line_number);
-                    //     char* filename = nullptr;
-                    //     VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
-                    //     auto wrapper = raii_wrap(
-                    //         filename,
-                    //         [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
-                    //     );
-                    //     frame.filename = filename;
-                    //     printf("%s : %d\n", filename, line_number);
-                    //     Dwarf_Bool is_line_end;
-                    //     VERIFY(wrap(dwarf_lineendsequence, line, &is_line_end) == DW_DLV_OK);
-                    //     if(is_line_end) {
-                    //         puts("Line end");
-                    //     }
-                    // }
-                    line_entries.push_back({
-                        low_addr,
-                        line // j - 1
-                    });
-                    i = j - 1;
                 }
-                // sort lines
-                std::sort(line_entries.begin(), line_entries.end(), [] (const line_entry& a, const line_entry& b) {
-                    return a.low < b.low;
-                });
-
-                it = line_contexts.insert({off, {version, line_context, std::move(line_entries)}}).first;
-            }
-
-            auto& table_info = it->second;
-            auto& line_entries = table_info.line_entries;
-            Dwarf_Line_Context line_context = table_info.line_context;
-
-            auto table_it = std::lower_bound(
-                line_entries.begin(),
-                line_entries.end(),
-                pc,
-                [] (const line_entry& entry, Dwarf_Addr pc) {
-                    return entry.low < pc;
-                }
-            );
-            // vec_it is first >= pc
-            // we want first <= pc
-            if(table_it != line_entries.begin()) {
-                table_it--;
-            }
-            // If the vector has been empty this can happen
-            if(table_it != line_entries.end()) {
-                Dwarf_Line line = table_it->line;
-                Dwarf_Unsigned line_number = 0;
-                VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
-                frame.line = static_cast<std::uint_least32_t>(line_number);
-                char* filename = nullptr;
-                VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
-                auto wrapper = raii_wrap(
-                    filename,
-                    [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
-                );
-                frame.filename = filename;
             }
         }
 
