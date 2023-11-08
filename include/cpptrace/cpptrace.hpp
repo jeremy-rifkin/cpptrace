@@ -72,6 +72,7 @@ namespace cpptrace {
         std::uint_least32_t column; // UINT_LEAST32_MAX if not present
         std::string filename;
         std::string symbol;
+        bool is_inline;
 
         bool operator==(const stacktrace_frame& other) const {
             return address == other.address

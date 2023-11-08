@@ -13,10 +13,21 @@ namespace detail {
     using collated_vec = std::vector<
         std::pair<std::reference_wrapper<const object_frame>, std::reference_wrapper<stacktrace_frame>>
     >;
+    struct frame_with_inlines {
+        stacktrace_frame frame;
+        std::vector<stacktrace_frame> inlines;
+    };
+    using collated_vec_with_inlines = std::vector<
+        std::pair<std::reference_wrapper<const object_frame>, std::reference_wrapper<frame_with_inlines>>
+    >;
 
     std::unordered_map<std::string, collated_vec> collate_frames(
         const std::vector<object_frame>& frames,
         std::vector<stacktrace_frame>& trace
+    );
+    std::unordered_map<std::string, collated_vec_with_inlines> collate_frames(
+        const std::vector<object_frame>& frames,
+        std::vector<frame_with_inlines>& trace
     );
 
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE

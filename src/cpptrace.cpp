@@ -175,16 +175,24 @@ namespace cpptrace {
                 << std::left
                 << counter
                 << std::right
-                << " "
-                << std::hex
-                << blue
-                << "0x"
-                << std::setw(2 * sizeof(std::uintptr_t))
-                << std::setfill('0')
-                << frame.address
-                << std::dec
-                << std::setfill(' ')
-                << reset
+                << " ";
+            if(frame.is_inline) {
+                stream
+                    << std::setw(2 * sizeof(std::uintptr_t) + 2)
+                    << "(inlined)";
+            } else {
+                stream
+                    << std::hex
+                    << blue
+                    << "0x"
+                    << std::setw(2 * sizeof(std::uintptr_t))
+                    << std::setfill('0')
+                    << frame.address
+                    << std::dec
+                    << std::setfill(' ')
+                    << reset;
+            }
+            stream
                 << " in "
                 << yellow
                 << frame.symbol

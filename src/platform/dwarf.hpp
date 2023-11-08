@@ -26,7 +26,7 @@ namespace libdwarf {
     [[noreturn]] void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
         Dwarf_Unsigned ev = dwarf_errno(error);
         char* msg = dwarf_errmsg(error);
-        dwarf_dealloc_error(dbg, error);
+        // dwarf_dealloc_error(dbg, error);
         throw std::runtime_error(stringf("Cpptrace dwarf error %u %s\n", ev, msg));
     }
 
@@ -148,6 +148,20 @@ namespace libdwarf {
                 auto strwrapper = raii_wrap(raw_str, [this] (char* str) { dwarf_dealloc(dbg, str, DW_DLA_STRING); });
                 std::string str = raw_str;
                 return str;
+            } else {
+                return nullopt;
+            }
+        }
+
+        optional<uint64_t> get_unsigned_attribute(Dwarf_Half attr_num) const {
+            Dwarf_Attribute attr;
+            if(wrap(dwarf_attr, die, attr_num, &attr) == DW_DLV_OK) {
+                auto attwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
+                // Dwarf_Half form = 0;
+                // VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
+                Dwarf_Unsigned val;
+                VERIFY(wrap(dwarf_formudata, attr, &val) == DW_DLV_OK);
+                return val;
             } else {
                 return nullopt;
             }

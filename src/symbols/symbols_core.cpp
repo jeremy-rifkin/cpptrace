@@ -26,6 +26,34 @@ namespace detail {
         }
         return entries;
     }
+    // TODO: Refactor to eliminate the code duplication
+    std::unordered_map<std::string, collated_vec_with_inlines> collate_frames(
+        const std::vector<object_frame>& frames,
+        std::vector<frame_with_inlines>& trace
+    ) {
+        std::unordered_map<std::string, collated_vec_with_inlines> entries;
+        for(std::size_t i = 0; i < frames.size(); i++) {
+            const auto& entry = frames[i];
+            // If libdl fails to find the shared object for a frame, the path will be empty. I've observed this
+            // on macos when looking up the shared object containing `start`.
+            if(!entry.obj_path.empty()) {
+                entries[entry.obj_path].emplace_back(
+                    entry,
+                    trace[i]
+                );
+            }
+        }
+        return entries;
+    }
+
+    /*
+     *
+     *
+     * All the code here is awful and I'm not proud of it.
+     *
+     *
+     *
+     */
 
     void apply_trace(
         std::vector<stacktrace_frame>& result,
