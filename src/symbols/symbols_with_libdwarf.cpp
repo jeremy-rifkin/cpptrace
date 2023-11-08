@@ -298,6 +298,7 @@ namespace libdwarf {
                     return subprogram_symbol(spec, 0, dwversion);
                 }
             }
+            return "";
         }
 
         void get_inlines_info(
@@ -317,7 +318,7 @@ namespace libdwarf {
                             const auto file = ""; // die.get_string_attribute(DW_AT_call_file);
                             const auto line = die.get_unsigned_attribute(DW_AT_call_line);
                             const auto col = die.get_unsigned_attribute(DW_AT_call_column);
-                            printf("  %s %s:%u:%u\n", name.c_str(), file, line.value_or(0), col.value_or(0));
+                            printf("  %s %s:%u:%u\n", name.c_str(), file, (unsigned)line.value_or(0), (unsigned)col.value_or(0));
                             inlines.push_back(stacktrace_frame{
                                 0,
                                 (unsigned int)line.value_or(0),

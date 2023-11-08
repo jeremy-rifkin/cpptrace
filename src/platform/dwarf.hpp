@@ -153,7 +153,7 @@ namespace libdwarf {
             }
         }
 
-        optional<uint64_t> get_unsigned_attribute(Dwarf_Half attr_num) const {
+        optional<Dwarf_Unsigned> get_unsigned_attribute(Dwarf_Half attr_num) const {
             Dwarf_Attribute attr;
             if(wrap(dwarf_attr, die, attr_num, &attr) == DW_DLV_OK) {
                 auto attwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
