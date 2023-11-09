@@ -208,6 +208,14 @@ target_include_directories(
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/>
 )
 
+target_compile_options(
+  ${target_name}
+  PRIVATE
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
+  $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast>
+  $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
+)
+
 # ---- Generate Build Info Headers ----
 
 # used in export header generated below

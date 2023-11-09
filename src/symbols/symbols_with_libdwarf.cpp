@@ -71,6 +71,7 @@ namespace libdwarf {
         Dwarf_Line line;
         optional<std::string> path;
         optional<unsigned> line_number;
+        line_entry(Dwarf_Addr low, Dwarf_Line line) : low(low), line(line) {}
     };
 
     struct line_table_info {
@@ -282,7 +283,6 @@ namespace libdwarf {
 
         std::string subprogram_symbol(
             const die_object& die,
-            Dwarf_Addr pc,
             Dwarf_Half dwversion
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
@@ -299,10 +299,10 @@ namespace libdwarf {
             } else {
                 if(die.has_attr(DW_AT_specification)) {
                     die_object spec = die.resolve_reference_attribute(DW_AT_specification);
-                    return subprogram_symbol(spec, 0, dwversion);
+                    return subprogram_symbol(spec, dwversion);
                 } else if(die.has_attr(DW_AT_abstract_origin)) {
                     die_object spec = die.resolve_reference_attribute(DW_AT_abstract_origin);
-                    return subprogram_symbol(spec, 0, dwversion);
+                    return subprogram_symbol(spec, dwversion);
                 }
             }
             return "";
@@ -314,7 +314,7 @@ namespace libdwarf {
                 char** dw_srcfiles;
                 Dwarf_Signed dw_filecount;
                 VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
-                if(file_i < dw_filecount) {
+                if(Dwarf_Signed(file_i) < dw_filecount) {
                     filename = dw_srcfiles[file_i - 1];
                 }
                 dwarf_dealloc(cu_die.dbg, dw_srcfiles, DW_DLA_LIST);
@@ -329,7 +329,7 @@ namespace libdwarf {
                 }
                 char** dw_srcfiles = it->second.first;
                 Dwarf_Signed dw_filecount = it->second.second;
-                if(file_i < dw_filecount) {
+                if(Dwarf_Signed(file_i) < dw_filecount) {
                     filename = dw_srcfiles[file_i - 1];
                 }
             }
@@ -346,11 +346,11 @@ namespace libdwarf {
             ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
             auto child = die.get_child();
             if(child) {
-                if(pc) walk_die_list(
+                walk_die_list(
                     child,
                     [this, &cu_die, pc, dwversion, &inlines] (const die_object& die) {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
-                            const auto name = subprogram_symbol(die, pc, dwversion);
+                            const auto name = subprogram_symbol(die, dwversion);
                             const auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
                             std::string file = file_i ? resolve_filename(cu_die, file_i.unwrap()) : "";
                             const auto line = die.get_unsigned_attribute(DW_AT_call_line);
@@ -379,7 +379,7 @@ namespace libdwarf {
             std::vector<stacktrace_frame>& inlines
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram);
-            const auto name = subprogram_symbol(die, pc, dwversion);
+            const auto name = subprogram_symbol(die, dwversion);
             get_inlines_info(cu_die, die, pc, dwversion, inlines);
             return name;
         }
@@ -588,7 +588,6 @@ namespace libdwarf {
                         ) == DW_DLV_OK
                     );
 
-                    Dwarf_Addr last_pc = 0;
                     // TODO: Make any attempt to note PC ranges? Handle line end sequence?
                     for(int i = 0; i < line_count; i++) {
                         Dwarf_Line line = line_buffer[i];
@@ -624,7 +623,7 @@ namespace libdwarf {
                         // }
                         line_entries.push_back({
                             low_addr,
-                            line // j - 1
+                            line
                         });
                         i = j - 1;
                     }

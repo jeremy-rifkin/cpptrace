@@ -26,6 +26,7 @@ namespace libdwarf {
     [[noreturn]] void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
         Dwarf_Unsigned ev = dwarf_errno(error);
         char* msg = dwarf_errmsg(error);
+        (void)dbg;
         // dwarf_dealloc_error(dbg, error);
         throw std::runtime_error(stringf("Cpptrace dwarf error %u %s\n", ev, msg));
     }
