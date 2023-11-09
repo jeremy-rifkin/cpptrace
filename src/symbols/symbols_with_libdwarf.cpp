@@ -302,6 +302,7 @@ namespace libdwarf {
         }
 
         void get_inlines_info(
+            const die_object& cu_die,
             const die_object& die,
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
@@ -312,13 +313,22 @@ namespace libdwarf {
             if(child) {
                 if(pc) walk_die_list(
                     child,
-                    [this, pc, dwversion, &inlines] (const die_object& die) {
+                    [this, &cu_die, pc, dwversion, &inlines] (const die_object& die) {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
                             const auto name = subprogram_symbol(die, pc, dwversion);
-                            const auto file = ""; // die.get_string_attribute(DW_AT_call_file);
+                            const auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
+                            std::string file;
+                            if(file_i) {
+                                char** dw_srcfiles;
+                                Dwarf_Signed dw_filecount;
+                                VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
+                                if(file_i.unwrap() < dw_filecount) {
+                                    file = dw_srcfiles[file_i.unwrap() - 1];
+                                }
+                                dwarf_dealloc(die.dbg, dw_srcfiles, DW_DLA_LIST);
+                            }
                             const auto line = die.get_unsigned_attribute(DW_AT_call_line);
                             const auto col = die.get_unsigned_attribute(DW_AT_call_column);
-                            // printf("  %s %s:%u:%u\n", name.c_str(), file, (unsigned)line.value_or(0), (unsigned)col.value_or(0));
                             inlines.push_back(stacktrace_frame{
                                 0,
                                 (unsigned int)line.value_or(0),
@@ -327,7 +337,7 @@ namespace libdwarf {
                                 name,
                                 true
                             });
-                            get_inlines_info(die, pc, dwversion, inlines);
+                            get_inlines_info(cu_die, die, pc, dwversion, inlines);
                         }
                         return true;
                     }
@@ -336,22 +346,22 @@ namespace libdwarf {
         }
 
         std::string retrieve_symbol_for_subprogram(
+            const die_object& cu_die,
             const die_object& die,
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
             std::vector<stacktrace_frame>& inlines
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram);
-            // if(pc) printf("============================\n");
             const auto name = subprogram_symbol(die, pc, dwversion);
-            // if(pc) printf("%s\n", name.c_str());
-            get_inlines_info(die, pc, dwversion, inlines);
+            get_inlines_info(cu_die, die, pc, dwversion, inlines);
             return name;
         }
 
         // returns true if this call found the symbol
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         bool retrieve_symbol_walk(
+            const die_object& cu_die,
             const die_object& die,
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
@@ -361,7 +371,7 @@ namespace libdwarf {
             bool found = false;
             walk_die_list(
                 die,
-                [this, pc, dwversion, &frame, &inlines, &found] (const die_object& die) {
+                [this, &cu_die, pc, dwversion, &frame, &inlines, &found] (const die_object& die) {
                     if(dump_dwarf) {
                         std::fprintf(
                             stderr,
@@ -386,13 +396,13 @@ namespace libdwarf {
                             );
                         }
                         if(die.get_tag() == DW_TAG_subprogram) {
-                            frame.symbol = retrieve_symbol_for_subprogram(die, pc, dwversion, inlines);
+                            frame.symbol = retrieve_symbol_for_subprogram(cu_die, die, pc, dwversion, inlines);
                             found = true;
                             return false;
                         }
                         auto child = die.get_child();
                         if(child) {
-                            if(retrieve_symbol_walk(child, pc, dwversion, frame, inlines)) {
+                            if(retrieve_symbol_walk(cu_die, child, pc, dwversion, frame, inlines)) {
                                 found = true;
                                 return false;
                             }
@@ -463,7 +473,7 @@ namespace libdwarf {
             std::vector<stacktrace_frame>& inlines
         ) {
             if(get_cache_mode() == cache_mode::prioritize_memory) {
-                retrieve_symbol_walk(cu_die, pc, dwversion, frame, inlines);
+                retrieve_symbol_walk(cu_die, cu_die, pc, dwversion, frame, inlines);
             } else {
                 auto off = cu_die.get_global_offset();
                 auto it = subprograms_cache.find(off);
@@ -495,7 +505,7 @@ namespace libdwarf {
                 if(vec_it != vec.end()) {
                     //vec_it->die.print();
                     if(vec_it->die.pc_in_die(dwversion, pc)) {
-                        frame.symbol = retrieve_symbol_for_subprogram(vec_it->die, pc, dwversion, inlines);
+                        frame.symbol = retrieve_symbol_for_subprogram(cu_die, vec_it->die, pc, dwversion, inlines);
                     }
                 } else {
                     ASSERT(vec.size() == 0, "Vec should be empty?");
@@ -815,7 +825,6 @@ namespace libdwarf {
                 frame,
                 inlines
             );
-            std::reverse(inlines.begin(), inlines.end());
             return {std::move(frame), std::move(inlines)};
         }
     };
@@ -868,8 +877,28 @@ namespace libdwarf {
         std::vector<stacktrace_frame> final_trace;
         for(const auto& entry : trace) {
             // most recent call first
-            final_trace.insert(final_trace.end(), entry.inlines.begin(), entry.inlines.end());
+            if(!entry.inlines.empty()) {
+                // insert in reverse order
+                final_trace.insert(final_trace.end(), entry.inlines.rbegin(), entry.inlines.rend());
+            }
             final_trace.push_back(entry.frame);
+            if(!entry.inlines.empty()) {
+                // rotate line info due to quirk of how dwarf stores this stuff
+                // inclusive range
+                auto begin = final_trace.end() - (1 + entry.inlines.size());
+                auto end = final_trace.end() - 1;
+                std::uint_least32_t carry_line = end->line;
+                std::uint_least32_t carry_column = end->column;
+                std::string carry_filename = std::move(end->filename);
+                for(auto it = end; it != begin; it--) {
+                    it->line = (it - 1)->line;
+                    it->column = (it - 1)->column;
+                    it->filename = std::move((it - 1)->filename);
+                }
+                begin->line = carry_line;
+                begin->column = carry_column;
+                begin->filename = std::move(carry_filename);
+            }
         }
         return final_trace;
     }
