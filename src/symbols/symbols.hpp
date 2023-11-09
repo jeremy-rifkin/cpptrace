@@ -32,7 +32,7 @@ namespace detail {
 
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
     namespace libbacktrace {
-        std::vector<stacktrace_frame> resolve_frames(const std::vector<std::uintptr_t>& frames);
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
     }
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
@@ -42,7 +42,7 @@ namespace detail {
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
     namespace libdl {
-        std::vector<stacktrace_frame> resolve_frames(const std::vector<std::uintptr_t>& frames);
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
     }
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
@@ -52,18 +52,18 @@ namespace detail {
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
     namespace dbghelp {
-        std::vector<stacktrace_frame> resolve_frames(const std::vector<std::uintptr_t>& frames);
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
     }
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_NOTHING
     namespace nothing {
         std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames);
-        std::vector<stacktrace_frame> resolve_frames(const std::vector<std::uintptr_t>& frames);
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
     }
     #endif
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames);
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<std::uintptr_t>& frames);
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
 }
 }
 

@@ -22,8 +22,10 @@ namespace cpptrace {
     struct object_trace;
     struct stacktrace;
 
+    using frame_ptr = std::uintptr_t;
+
     struct CPPTRACE_EXPORT raw_trace {
-        std::vector<std::uintptr_t> frames;
+        std::vector<frame_ptr> frames;
         static raw_trace current(std::uint_least32_t skip = 0);
         static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         object_trace resolve_object_trace() const;
@@ -31,8 +33,8 @@ namespace cpptrace {
         void clear();
         bool empty() const noexcept;
 
-        using iterator = std::vector<std::uintptr_t>::iterator;
-        using const_iterator = std::vector<std::uintptr_t>::const_iterator;
+        using iterator = std::vector<frame_ptr>::iterator;
+        using const_iterator = std::vector<frame_ptr>::const_iterator;
         inline iterator begin() noexcept { return frames.begin(); }
         inline iterator end() noexcept { return frames.end(); }
         inline const_iterator begin() const noexcept { return frames.begin(); }
@@ -44,8 +46,8 @@ namespace cpptrace {
     struct CPPTRACE_EXPORT object_frame {
         std::string obj_path;
         std::string symbol;
-        std::uintptr_t raw_address = 0;
-        std::uintptr_t obj_address = 0;
+        frame_ptr raw_address = 0;
+        frame_ptr obj_address = 0;
     };
 
     struct CPPTRACE_EXPORT object_trace {
@@ -67,7 +69,7 @@ namespace cpptrace {
     };
 
     struct CPPTRACE_EXPORT stacktrace_frame {
-        std::uintptr_t address;
+        frame_ptr address;
         std::uint_least32_t line; // TODO: This should use UINT_LEAST32_MAX as a sentinel
         std::uint_least32_t column; // UINT_LEAST32_MAX if not present
         std::string filename;

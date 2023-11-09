@@ -15,7 +15,7 @@ namespace detail {
     constexpr std::size_t hard_max_frames = 100;
     #endif
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<std::uintptr_t> capture_frames(std::size_t skip, std::size_t max_depth);
+    std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth);
 }
 }
 

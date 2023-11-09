@@ -352,8 +352,8 @@ namespace detail {
         return static_cast<unsigned long long>(t);
     }
     template<typename T>
-    std::uintptr_t to_uintptr(T t) {
-        return static_cast<std::uintptr_t>(t);
+    frame_ptr to_frame_ptr(T t) {
+        return static_cast<frame_ptr>(t);
     }
 
     // A way to cast to U without "warning: useless cast to type"

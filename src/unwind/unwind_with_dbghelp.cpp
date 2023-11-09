@@ -26,7 +26,7 @@ namespace detail {
     #pragma warning(disable: 4740) // warning C4740: flow in or out of inline asm code suppresses global optimization
     #endif
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<std::uintptr_t> capture_frames(std::size_t skip, std::size_t max_depth) {
+    std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth) {
         skip++;
         // https://jpassing.com/2008/03/12/walking-the-stack-of-the-current-thread/
 
@@ -94,7 +94,7 @@ namespace detail {
         #error "Cpptrace: StackWalk64 not supported for this platform yet"
         #endif
 
-        std::vector<std::uintptr_t> trace;
+        std::vector<frame_ptr> trace;
 
         // Dbghelp is is single-threaded, so acquire a lock.
         static std::mutex mutex;
@@ -138,7 +138,7 @@ namespace detail {
                     // On x86/x64/arm, as far as I can tell, the frame return address is always one after the call
                     // So we just decrement to get the pc back inside the `call` / `bl`
                     // This is done with _Unwind too but conditionally based on info from _Unwind_GetIPInfo.
-                    trace.push_back(to_uintptr(frame.AddrPC.Offset) - 1);
+                    trace.push_back(to_frame_ptr(frame.AddrPC.Offset) - 1);
                 }
             } else {
                 // base

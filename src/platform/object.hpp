@@ -62,11 +62,11 @@ namespace detail {
     }
     #endif
     // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-    inline std::vector<object_frame> get_frames_object_info(const std::vector<std::uintptr_t>& addrs) {
+    inline std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addrs) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
         std::vector<object_frame> frames;
         frames.reserve(addrs.size());
-        for(const std::uintptr_t addr : addrs) {
+        for(const frame_ptr addr : addrs) {
             Dl_info info;
             object_frame frame;
             frame.raw_address = addr;
@@ -122,11 +122,11 @@ namespace detail {
     }
 
     // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-    inline std::vector<object_frame> get_frames_object_info(const std::vector<std::uintptr_t>& addrs) {
+    inline std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addrs) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
         std::vector<object_frame> frames;
         frames.reserve(addrs.size());
-        for(const std::uintptr_t addr : addrs) {
+        for(const frame_ptr addr : addrs) {
             object_frame frame;
             frame.raw_address = addr;
             HMODULE handle;

@@ -55,7 +55,7 @@ namespace libbacktrace {
     }
 
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
-    stacktrace_frame resolve_frame(const std::uintptr_t addr) {
+    stacktrace_frame resolve_frame(const frame_ptr addr) {
         try {
             stacktrace_frame frame;
             frame.column = UINT_LEAST32_MAX;
@@ -85,7 +85,7 @@ namespace libbacktrace {
         }
     }
 
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<std::uintptr_t>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames) {
         std::vector<stacktrace_frame> trace;
         trace.reserve(frames.size());
         for(const auto frame : frames) {

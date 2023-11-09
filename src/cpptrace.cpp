@@ -111,7 +111,7 @@ namespace cpptrace {
         stream
             << std::hex
             << "0x"
-            << std::setw(2 * sizeof(std::uintptr_t))
+            << std::setw(2 * sizeof(frame_ptr))
             << std::setfill('0')
             << frame.address
             << std::dec
@@ -178,14 +178,14 @@ namespace cpptrace {
                 << " ";
             if(frame.is_inline) {
                 stream
-                    << std::setw(2 * sizeof(std::uintptr_t) + 2)
+                    << std::setw(2 * sizeof(frame_ptr) + 2)
                     << "(inlined)";
             } else {
                 stream
                     << std::hex
                     << blue
                     << "0x"
-                    << std::setw(2 * sizeof(std::uintptr_t))
+                    << std::setw(2 * sizeof(frame_ptr))
                     << std::setfill('0')
                     << frame.address
                     << std::dec
@@ -295,7 +295,7 @@ namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
     stacktrace generate_trace(std::uint32_t skip, std::uint_least32_t max_depth) {
         try {
-            std::vector<std::uintptr_t> frames = detail::capture_frames(skip + 1, max_depth);
+            std::vector<frame_ptr> frames = detail::capture_frames(skip + 1, max_depth);
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
             for(auto& frame : trace) {
                 frame.symbol = detail::demangle(frame.symbol);
