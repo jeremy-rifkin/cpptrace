@@ -81,9 +81,8 @@ namespace libdwarf {
         }
 
         die_object& operator=(die_object&& other) noexcept {
-            dbg = other.dbg;
-            die = other.die;
-            other.die = nullptr;
+            std::swap(dbg, other.dbg);
+            std::swap(die, other.die);
             return *this;
         }
 
@@ -252,6 +251,7 @@ namespace libdwarf {
         }
 
         template<typename F>
+        // callback should return true to keep going
         void dwarf5_ranges(F callback) const {
             Dwarf_Attribute attr = nullptr;
             if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
@@ -330,6 +330,7 @@ namespace libdwarf {
         }
 
         template<typename F>
+        // callback should return true to keep going
         void dwarf4_ranges(Dwarf_Addr lowpc, F callback) const {
             Dwarf_Attribute attr = nullptr;
             if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
@@ -377,6 +378,7 @@ namespace libdwarf {
         }
 
         template<typename F>
+        // callback should return true to keep going
         void dwarf_ranges(int version, optional<Dwarf_Addr> pc, F callback) const {
             Dwarf_Addr lowpc = std::numeric_limits<Dwarf_Addr>::max();
             if(wrap(dwarf_lowpc, die, &lowpc) == DW_DLV_OK) {
