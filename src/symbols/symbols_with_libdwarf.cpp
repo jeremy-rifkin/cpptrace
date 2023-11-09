@@ -93,6 +93,8 @@ namespace libdwarf {
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
         // Vector of ranges and their corresponding CU offsets
         std::vector<cu_entry> cu_cache;
+        // Map from CU -> {srcfiles, count}
+        std::unordered_map<Dwarf_Off, std::pair<char**, Dwarf_Signed>> srcfiles_cache;
 
         // Error handling helper
         // For some reason R (*f)(Args..., void*)-style deduction isn't possible, seems like a bug in all compilers
@@ -185,6 +187,9 @@ namespace libdwarf {
             for(auto& entry : line_contexts) {
                 dwarf_srclines_dealloc_b(entry.second.line_context);
             }
+            for(auto& entry : srcfiles_cache) {
+                dwarf_dealloc(dbg, entry.second.first, DW_DLA_LIST);
+            }
             // subprograms_cache needs to be destroyed before dbg otherwise there will be another use after free
             subprograms_cache.clear();
             if(aranges) {
@@ -205,7 +210,8 @@ namespace libdwarf {
             arange_count(other.arange_count),
             line_contexts(std::move(other.line_contexts)),
             subprograms_cache(std::move(other.subprograms_cache)),
-            cu_cache(std::move(other.cu_cache))
+            cu_cache(std::move(other.cu_cache)),
+            srcfiles_cache(std::move(other.srcfiles_cache))
         {
             other.dbg = nullptr;
             other.aranges = nullptr;
@@ -220,6 +226,7 @@ namespace libdwarf {
             line_contexts = std::move(other.line_contexts);
             subprograms_cache = std::move(other.subprograms_cache);
             cu_cache = std::move(other.cu_cache);
+            srcfiles_cache = std::move(other.srcfiles_cache);
             other.dbg = nullptr;
             other.aranges = nullptr;
             return *this;
@@ -301,6 +308,34 @@ namespace libdwarf {
             return "";
         }
 
+        std::string resolve_filename(const die_object& cu_die, Dwarf_Unsigned file_i) {
+            std::string filename;
+            if(get_cache_mode() == cache_mode::prioritize_memory) {
+                char** dw_srcfiles;
+                Dwarf_Signed dw_filecount;
+                VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
+                if(file_i < dw_filecount) {
+                    filename = dw_srcfiles[file_i - 1];
+                }
+                dwarf_dealloc(cu_die.dbg, dw_srcfiles, DW_DLA_LIST);
+            } else {
+                auto off = cu_die.get_global_offset();
+                auto it = srcfiles_cache.find(off);
+                if(it == srcfiles_cache.end()) {
+                    char** dw_srcfiles;
+                    Dwarf_Signed dw_filecount;
+                    VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
+                    it = srcfiles_cache.insert(it, {off, {dw_srcfiles, dw_filecount}});
+                }
+                char** dw_srcfiles = it->second.first;
+                Dwarf_Signed dw_filecount = it->second.second;
+                if(file_i < dw_filecount) {
+                    filename = dw_srcfiles[file_i - 1];
+                }
+            }
+            return filename;
+        }
+
         void get_inlines_info(
             const die_object& cu_die,
             const die_object& die,
@@ -317,16 +352,7 @@ namespace libdwarf {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
                             const auto name = subprogram_symbol(die, pc, dwversion);
                             const auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
-                            std::string file;
-                            if(file_i) {
-                                char** dw_srcfiles;
-                                Dwarf_Signed dw_filecount;
-                                VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
-                                if(file_i.unwrap() < dw_filecount) {
-                                    file = dw_srcfiles[file_i.unwrap() - 1];
-                                }
-                                dwarf_dealloc(die.dbg, dw_srcfiles, DW_DLA_LIST);
-                            }
+                            std::string file = file_i ? resolve_filename(cu_die, file_i.unwrap()) : "";
                             const auto line = die.get_unsigned_attribute(DW_AT_call_line);
                             const auto col = die.get_unsigned_attribute(DW_AT_call_column);
                             inlines.push_back(stacktrace_frame{
