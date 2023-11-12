@@ -30,7 +30,8 @@ namespace detail {
             if(skip) {
                 skip--;
             } else {
-                frames.push_back(to_frame_ptr(pc));
+                // pc is the instruction after the `call`, adjust back to the previous instruction
+                frames.push_back(to_frame_ptr(pc) - 1);
             }
         } while(unw_step(&cursor) > 0 && frames.size() < max_depth);
         return frames;
