@@ -7,6 +7,10 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
     steps:
     - uses: actions/checkout@v2
     - name: dependencies
@@ -30,9 +34,13 @@ jobs:
            cd ../../cpptrace
     - name: build
       run: |
-           python3 ci/build-in-all-configs.py
+           python3 ci/build-in-all-configs.py --${{matrix.compiler}}
   build-macos:
     runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
     steps:
     - uses: actions/checkout@v2
     - name: dependencies
@@ -55,9 +63,13 @@ jobs:
            cd ../../cpptrace
     - name: build
       run: |
-           python3 ci/build-in-all-configs.py
-  build-windows-msvc:
+           python3 ci/build-in-all-configs.py --${{matrix.compiler}}
+  build-windows:
     runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, clang, gcc]
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
@@ -76,62 +88,15 @@ jobs:
            git checkout FETCH_HEAD
            mkdir build
            cd build
-           cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
-           msbuild INSTALL.vcxproj
+           if("${{matrix.compiler}}" -eq "gcc") {
+            cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE -G"Unix Makefiles"
+            make -j
+            make install
+           } else {
+            cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
+            msbuild INSTALL.vcxproj
+           }
            cd ../../cpptrace
     - name: build
       run: |
-           python3 ci/build-in-all-configs.py --msvc-only
-  build-windows-clang:
-    runs-on: windows-2019
-    steps:
-    - uses: actions/checkout@v2
-    - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.10.0
-    - name: dependencies
-      run: |
-           pip3 install colorama
-    - name: libdwarf
-      run: |
-           cd ..
-           mkdir libdwarf
-           cd libdwarf
-           git init
-           git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
-           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
-           git checkout FETCH_HEAD
-           mkdir build
-           cd build
-           cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
-           msbuild INSTALL.vcxproj
-           cd ../../cpptrace
-    - name: build
-      run: |
-           python3 ci/build-in-all-configs.py --clang-only
-  build-windows-mingw:
-    runs-on: windows-2019
-    steps:
-    - uses: actions/checkout@v2
-    - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.10.0
-    - name: dependencies
-      run: |
-           pip3 install colorama
-    - name: libdwarf
-      run: |
-           cd ..
-           mkdir libdwarf
-           cd libdwarf
-           git init
-           git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
-           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
-           git checkout FETCH_HEAD
-           mkdir build
-           cd build
-           cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE -G"Unix Makefiles"
-           make -j
-           make install
-           cd ../../cpptrace
-    - name: build
-      run: |
-           python3 ci/build-in-all-configs.py --mingw-only
+           python3 ci/build-in-all-configs.py --${{matrix.compiler}}
