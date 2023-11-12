@@ -83,6 +83,7 @@ endif()
 if(
   NOT (
     CPPTRACE_UNWIND_WITH_UNWIND OR
+    CPPTRACE_UNWIND_WITH_LIBUNWIND OR
     CPPTRACE_UNWIND_WITH_EXECINFO OR
     CPPTRACE_UNWIND_WITH_WINAPI OR
     CPPTRACE_UNWIND_WITH_DBGHELP OR
@@ -195,6 +196,7 @@ target_sources(
     src/symbols/symbols_with_nothing.cpp
     src/symbols/symbols_core.cpp
     src/unwind/unwind_with_execinfo.cpp
+    src/unwind/unwind_with_libunwind.cpp
     src/unwind/unwind_with_nothing.cpp
     src/unwind/unwind_with_unwind.cpp
     src/unwind/unwind_with_winapi.cpp
@@ -355,6 +357,34 @@ if(CPPTRACE_UNWIND_WITH_UNWIND)
     message(WARNING "Cpptrace: CPPTRACE_UNWIND_WITH_UNWIND specified but libgcc unwind doesn't seem to be available.")
   endif()
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_UNWIND)
+endif()
+
+if(CPPTRACE_UNWIND_WITH_LIBUNWIND)
+  find_package(PkgConfig)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(LIBUNWIND QUIET libunwind)
+    if(libunwind_FOUND)
+      target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
+      target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
+      target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
+    endif()
+  endif()
+  if(NOT libunwind_FOUND)
+    # set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
+    # set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB32_PATHS ON)
+		find_path(LIBUNWIND_INCLUDE_DIR NAMES "libunwind.h")
+    find_library(LIBUNWIND NAMES unwind libunwind libunwind8 libunwind.so.8 REQUIRED PATHS "/usr/lib/x86_64-linux-gnu/")
+    if(LIBUNWIND)
+      target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
+      target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
+      target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
+      set(libunwind_FOUND TRUE)
+    endif()
+  endif()
+  if(NOT libunwind_FOUND)
+    message(FATAL_ERROR "Unable to locate libunwind")
+  endif()
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_LIBUNWIND UNW_LOCAL_ONLY)
 endif()
 
 if(CPPTRACE_UNWIND_WITH_EXECINFO)

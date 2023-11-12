@@ -13,7 +13,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: dependencies
       run: |
-           sudo apt install gcc-10 g++-10 libgcc-10-dev
+           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev
            pip3 install colorama
     - name: libdwarf
       run: |

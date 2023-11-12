@@ -578,13 +578,14 @@ back-end such as addr2line, for example, you can configure the library to do so.
 
 **Unwinding**
 
-| Library       | CMake config                    | Platforms           | Info                                                                                                                                                                                                     |
-| ------------- | ------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| libgcc unwind | `CPPTRACE_UNWIND_WITH_UNWIND`   | linux, macos, mingw | Frames are captured with libgcc's `_Unwind_Backtrace`, which currently produces the most accurate stack traces on gcc/clang/mingw. Libgcc is often linked by default, and llvm has something equivalent. |
-| execinfo.h    | `CPPTRACE_UNWIND_WITH_EXECINFO` | linux, macos        | Frames are captured with `execinfo.h`'s `backtrace`, part of libc on linux/unix systems.                                                                                                                 |
-| winapi        | `CPPTRACE_UNWIND_WITH_WINAPI`   | windows, mingw      | Frames are captured with `CaptureStackBackTrace`.                                                                                                                                                        |
-| dbghelp       | `CPPTRACE_UNWIND_WITH_DBGHELP`  | windows, mingw      | Frames are captured with `StackWalk64`.                                                                                                                                                                  |
-| N/A           | `CPPTRACE_UNWIND_WITH_NOTHING`  | all                 | Unwinding is not done, stack traces will be empty.                                                                                                                                                       |
+| Library       | CMake config                     | Platforms                    | Info                                                                                                                                                                                                                 |
+| ------------- | -------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| libgcc unwind | `CPPTRACE_UNWIND_WITH_UNWIND`    | linux, macos, mingw          | Frames are captured with libgcc's `_Unwind_Backtrace`, which currently produces the most accurate stack traces on gcc/clang/mingw. Libgcc is often linked by default, and llvm has something equivalent.             |
+| execinfo.h    | `CPPTRACE_UNWIND_WITH_EXECINFO`  | linux, macos                 | Frames are captured with `execinfo.h`'s `backtrace`, part of libc on linux/unix systems.                                                                                                                             |
+| winapi        | `CPPTRACE_UNWIND_WITH_WINAPI`    | windows, mingw               | Frames are captured with `CaptureStackBackTrace`.                                                                                                                                                                    |
+| dbghelp       | `CPPTRACE_UNWIND_WITH_DBGHELP`   | windows, mingw               | Frames are captured with `StackWalk64`.                                                                                                                                                                              |
+| dbghelp       | `CPPTRACE_UNWIND_WITH_LIBUNWIND` | linux, macos, windows, mingw | Frames are captured with [libunwind](https://github.com/libunwind/libunwind). **Note:** This is the only back-end that requires a library to be installed by the user, and a `CMAKE_PREFIX_PATH` may also be needed. |
+| N/A           | `CPPTRACE_UNWIND_WITH_NOTHING`   | all                          | Unwinding is not done, stack traces will be empty.                                                                                                                                                                   |
 
 Some back-ends (execinfo and `CaptureStackBackTrace`) require a fixed buffer has to be created to read addresses into
 while unwinding. By default the buffer can hold addresses for 100 frames (beyond the `skip` frames). This is
@@ -634,6 +635,7 @@ Back-ends:
 - `CPPTRACE_GET_SYMBOLS_WITH_LIBDL=On/Off`
 - `CPPTRACE_GET_SYMBOLS_WITH_NOTHING=On/Off`
 - `CPPTRACE_UNWIND_WITH_UNWIND=On/Off`
+- `CPPTRACE_UNWIND_WITH_LIBUNWIND=On/Off`
 - `CPPTRACE_UNWIND_WITH_EXECINFO=On/Off`
 - `CPPTRACE_UNWIND_WITH_WINAPI=On/Off`
 - `CPPTRACE_UNWIND_WITH_DBGHELP=On/Off`
