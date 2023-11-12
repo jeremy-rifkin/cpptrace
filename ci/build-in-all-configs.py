@@ -151,6 +151,7 @@ def main():
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_UNWIND",
                 "CPPTRACE_UNWIND_WITH_EXECINFO",
+                "CPPTRACE_UNWIND_WITH_LIBUNWIND",
                 "CPPTRACE_UNWIND_WITH_NOTHING",
             ],
             "symbols": [
