@@ -310,10 +310,32 @@ def main():
         prog="Build in all configs",
         description="Try building the library in all possible configurations for the current host"
     )
+    parser.add_argument(
+        "--clang",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--gcc",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--msvc",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true"
+    )
+    args = parser.parse_args()
 
     if platform.system() == "Linux":
+        compilers = []
+        if args.clang or args.all:
+            compilers.append("clang++-14")
+        if args.gcc or args.all:
+            compilers.append("g++-10")
         matrix = {
-            "compiler": ["g++-10", "clang++-14"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": ["11", "20"],
             "unwind": [
@@ -338,7 +360,7 @@ def main():
         exclude = []
         run_matrix(matrix, exclude, build_and_test)
         matrix = {
-            "compiler": ["g++-10", "clang++-14"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": ["11", "20"],
             "config": [""]
@@ -346,8 +368,13 @@ def main():
         exclude = []
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
     if platform.system() == "Darwin":
+        compilers = []
+        if args.clang or args.all:
+            compilers.append("clang++")
+        if args.gcc or args.all:
+            compilers.append("g++-12")
         matrix = {
-            "compiler": ["g++-12", "clang++"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": ["11", "20"],
             "unwind": [
@@ -370,7 +397,7 @@ def main():
         exclude = []
         run_matrix(matrix, exclude, build_and_test)
         matrix = {
-            "compiler": ["g++-12", "clang++"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": ["11", "20"],
             "config": [""]
@@ -378,28 +405,13 @@ def main():
         exclude = []
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
     if platform.system() == "Windows":
-        parser.add_argument(
-            "--clang-only",
-            action="store_true"
-        )
-        parser.add_argument(
-            "--msvc-only",
-            action="store_true"
-        )
-        parser.add_argument(
-            "--mingw-only",
-            action="store_true"
-        )
-        args = parser.parse_args()
-
-        compilers = ["cl", "clang++", "g++"]
-        if args.clang_only:
-            compilers = ["clang++"]
-        if args.msvc_only:
-            compilers = ["cl"]
-        if args.mingw_only:
-            compilers = ["g++"]
-
+        compilers = []
+        if args.clang or args.all:
+            compilers.append("clang++")
+        if args.msvc or args.all:
+            compilers.append("cl")
+        if args.gcc or args.all:
+            compilers.append("g++")
         matrix = {
             "compiler": compilers,
             "target": ["Debug"],
