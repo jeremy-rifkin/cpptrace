@@ -443,7 +443,7 @@ endif()
 
 # =============================================== Demo/test ===============================================
 
-if(CPPTRACE_BUILD_TEST)
+if(CPPTRACE_BUILD_TESTING)
   add_executable(test test/test.cpp)
   target_compile_features(test PRIVATE cxx_std_11)
   target_link_libraries(test PRIVATE ${target_name})
@@ -462,9 +462,7 @@ if(CPPTRACE_BUILD_TEST)
       COMMAND dsymutil $<TARGET_FILE:test>
     )
   endif()
-endif()
 
-if(CPPTRACE_BUILD_DEMO)
   add_executable(demo test/demo.cpp)
   target_compile_features(demo PRIVATE cxx_std_11)
   target_link_libraries(demo PRIVATE ${target_name})

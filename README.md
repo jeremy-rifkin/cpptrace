@@ -662,8 +662,7 @@ Other useful configurations:
 - `CPPTRACE_USE_EXTERNAL_LIBDWARF=On/Off`: Get libdwarf from `find_package` rather than `FetchContent`.
 
 Testing:
-- `CPPTRACE_BUILD_TEST` Build a small test program
-- `CPPTRACE_BUILD_DEMO` Build a small demo program
+- `CPPTRACE_BUILD_TESTING` Build small demo and test program
 - `CPPTRACE_BUILD_TEST_RDYNAMIC` Use `-rdynamic` when compiling the test program
 
 ## Testing Methodology
