@@ -26,6 +26,7 @@ namespace cpptrace {
 
     struct CPPTRACE_EXPORT raw_trace {
         std::vector<frame_ptr> frames;
+        static raw_trace from_buffer(frame_ptr* buffer, std::size_t size);
         static raw_trace current(std::uint_least32_t skip = 0);
         static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
         object_trace resolve_object_trace() const;
@@ -123,6 +124,18 @@ namespace cpptrace {
     CPPTRACE_EXPORT object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
     CPPTRACE_EXPORT stacktrace generate_trace(std::uint_least32_t skip = 0);
     CPPTRACE_EXPORT stacktrace generate_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+
+    CPPTRACE_EXPORT std::size_t safe_generate_raw_trace(
+        frame_ptr* buffer,
+        std::size_t size,
+        std::uint_least32_t skip = 0
+    );
+    CPPTRACE_EXPORT std::size_t safe_generate_raw_trace(
+        frame_ptr* buffer,
+        std::size_t size,
+        std::uint_least32_t skip,
+        std::uint_least32_t max_depth
+    );
 
     // utilities:
     CPPTRACE_EXPORT std::string demangle(const std::string& name);

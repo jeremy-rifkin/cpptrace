@@ -29,6 +29,11 @@
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
+    raw_trace raw_trace::from_buffer(frame_ptr* buffer, std::size_t size) {
+        return raw_trace{std::vector<cpptrace::frame_ptr>(buffer, buffer + size)};
+    }
+
+    CPPTRACE_FORCE_NO_INLINE
     raw_trace raw_trace::current(std::uint_least32_t skip) {
         return generate_raw_trace(skip + 1);
     }
@@ -261,6 +266,21 @@ namespace cpptrace {
             }
             return raw_trace{};
         }
+    }
+
+    CPPTRACE_FORCE_NO_INLINE
+    std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::uint_least32_t skip) {
+        return detail::safe_capture_frames(buffer, size, skip + 1, UINT_LEAST32_MAX);
+    }
+
+    CPPTRACE_FORCE_NO_INLINE
+    std::size_t safe_generate_raw_trace(
+         frame_ptr* buffer,
+         std::size_t size,
+         std::uint_least32_t skip,
+         std::uint_least32_t max_depth
+    ) {
+        return detail::safe_capture_frames(buffer, size, skip + 1, max_depth);
     }
 
     CPPTRACE_FORCE_NO_INLINE
