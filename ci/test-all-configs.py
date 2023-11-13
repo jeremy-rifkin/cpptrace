@@ -159,7 +159,7 @@ def build(matrix):
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
-            "-DCPPTRACE_BUILD_TEST=On"
+            "-DCPPTRACE_BUILD_TESTING=On"
         ]
         if matrix['symbols'] == "CPPTRACE_GET_SYMBOLS_WITH_LIBDL":
            args.append("-DCPPTRACE_BUILD_TEST_RDYNAMIC=On")
@@ -178,7 +178,7 @@ def build(matrix):
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
-            "-DCPPTRACE_BUILD_TEST=On"
+            "-DCPPTRACE_BUILD_TESTING=On"
         ]
         if matrix["compiler"] == "g++":
             args.append("-GUnix Makefiles")
@@ -201,7 +201,7 @@ def build_full_or_auto(matrix):
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
-            "-DCPPTRACE_BUILD_TEST=On"
+            "-DCPPTRACE_BUILD_TESTING=On"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
@@ -217,7 +217,7 @@ def build_full_or_auto(matrix):
             f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
-            "-DCPPTRACE_BUILD_TEST=On"
+            "-DCPPTRACE_BUILD_TESTING=On"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")

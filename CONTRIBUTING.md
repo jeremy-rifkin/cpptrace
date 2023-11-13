@@ -24,8 +24,7 @@ Some useful configurations:
 - `-DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo`: Build in debug / release / etc.
 - `-DBUILD_SHARED_LIBS=On`: Build shared library
 - `-DCPPTRACE_SANITIZER_BUILD=On`: Turn on sanitizers
-- `-DCPPTRACE_BUILD_TEST=On`: Build a small test program
-- `-DCPPTRACE_BUILD_DEMO=On`: Build a small demo program
+- `-DCPPTRACE_BUILD_TESTING=On`: Build small test and demo program
 
 ## Testing
 
