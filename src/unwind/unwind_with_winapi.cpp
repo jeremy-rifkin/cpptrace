@@ -39,7 +39,7 @@ namespace detail {
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    std::size_t safe_capture_frames(frame_ptr* buffer, std::size_t size, std::size_t skip, std::size_t max_depth) {
+    std::size_t safe_capture_frames(frame_ptr*, std::size_t, std::size_t, std::size_t) {
         // Can't safe trace with winapi
         return 0;
     }
