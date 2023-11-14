@@ -67,7 +67,7 @@ jobs:
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}}
   test-windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:

@@ -103,7 +103,7 @@ jobs:
            ./main
 
   test-mingw-fetchcontent:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v2
     - name: test
@@ -118,7 +118,7 @@ jobs:
            make
            .\main.exe
   test-mingw-add_subdirectory:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v2
     - name: test
@@ -132,7 +132,7 @@ jobs:
            make
            .\main.exe
   test-windows-fetchcontent:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
@@ -149,7 +149,7 @@ jobs:
            msbuild demo_project.sln
            .\Debug\main.exe
   test-windows-add_subdirectory:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
