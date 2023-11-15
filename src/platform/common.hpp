@@ -1,12 +1,6 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
-#ifdef _MSC_VER
- #define CPPTRACE_FORCE_NO_INLINE __declspec(noinline)
-#else
- #define CPPTRACE_FORCE_NO_INLINE __attribute__((noinline))
-#endif
-
 #define IS_WINDOWS 0
 #define IS_LINUX 0
 #define IS_APPLE 0
