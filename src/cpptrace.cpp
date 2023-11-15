@@ -120,17 +120,23 @@ namespace cpptrace {
             << std::setfill('0')
             << frame.address
             << std::dec
-            << std::setfill(' ')
-            << " in "
-            << frame.symbol
-            << " at "
-            << frame.filename;
-        if(frame.line.has_value()) {
+            << std::setfill(' ');
+        if(!frame.symbol.empty()) {
             stream
-                << ":"
-                << frame.line.value();
-            if(frame.column.has_value()) {
-                stream << frame.column.value();
+                << " in "
+                << frame.symbol;
+        }
+        if(!frame.filename.empty()) {
+            stream
+                << " at "
+                << frame.filename;
+            if(frame.line.has_value()) {
+                stream
+                    << ":"
+                    << frame.line.value();
+                if(frame.column.has_value()) {
+                    stream << frame.column.value();
+                }
             }
         }
         return stream;
@@ -197,26 +203,31 @@ namespace cpptrace {
                     << std::setfill(' ')
                     << reset;
             }
-            stream
-                << " in "
-                << yellow
-                << frame.symbol
-                << reset
-                << " at "
-                << green
-                << frame.filename
-                << reset;
-            if(frame.line.has_value()) {
+            if(!frame.symbol.empty()) {
                 stream
-                    << ":"
-                    << blue
-                    << frame.line.value()
+                    << " in "
+                    << yellow
+                    << frame.symbol
                     << reset;
-                if(frame.column.has_value()) {
-                    stream << ':'
-                           << blue
-                           << std::to_string(frame.column.value())
-                           << reset;
+            }
+            if(!frame.filename.empty()) {
+                stream
+                    << " at "
+                    << green
+                    << frame.filename
+                    << reset;
+                if(frame.line.has_value()) {
+                    stream
+                        << ":"
+                        << blue
+                        << frame.line.value()
+                        << reset;
+                    if(frame.column.has_value()) {
+                        stream << ':'
+                            << blue
+                            << std::to_string(frame.column.value())
+                            << reset;
+                    }
                 }
             }
             if(newline_at_end || &frame != &frames.back()) {
