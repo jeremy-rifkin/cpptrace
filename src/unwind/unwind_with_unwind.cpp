@@ -32,7 +32,7 @@ namespace detail {
         }
 
         ASSERT(
-            state.vec.size() < state.max_frames,
+            state.vec.size() < state.max_depth,
             "Somehow cpptrace::detail::unwind_callback is being called beyond the max_depth"
         );
         int is_before_instruction = 0;
@@ -44,7 +44,7 @@ namespace detail {
             return _URC_END_OF_STACK;
         } else {
             state.vec.push_back(ip);
-            if(state.vec.size() >= state.max_frames) {
+            if(state.vec.size() >= state.max_depth) {
                 return _URC_END_OF_STACK;
             } else {
                 return _URC_NO_REASON;
@@ -57,8 +57,6 @@ namespace detail {
         std::vector<frame_ptr> frames;
         unwind_state state{skip + 1, max_depth, frames};
         _Unwind_Backtrace(unwind_callback, &state); // presumably thread-safe
-        frames.resize(state.count);
-        frames.shrink_to_fit();
         return frames;
     }
 
