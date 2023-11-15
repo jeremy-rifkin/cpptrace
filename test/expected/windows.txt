@@ -37,5 +37,5 @@ D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl||79||invoke_
 D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl||288||__scrt_common_main_seh()
 D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl||331||__scrt_common_main()
 D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp||17||mainCRTStartup(void*)
-||0||BaseThreadInitThunk
-||0||RtlUserThreadStart
+||4294967295||BaseThreadInitThunk
+||4294967295||RtlUserThreadStart
