@@ -421,7 +421,9 @@ namespace dbghelp {
                 if(!detail::should_absorb_trace_exceptions()) {
                     throw;
                 }
-                trace.push_back(null_frame);
+                auto entry = null_frame;
+                entry.address = frame;
+                trace.push_back(entry);
             }
         }
         if(get_cache_mode() != cache_mode::prioritize_speed) {

@@ -604,6 +604,9 @@ configurable with `CPPTRACE_HARD_MAX_FRAMES`.
 
 *: Requires installation
 
+One back-end should be used. For MinGW `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF` and `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP` can
+be used in conjunction.
+
 Note for addr2line: By default cmake will resolve an absolute path to addr2line to bake into the library. This path can
 be configured with `CPPTRACE_ADDR2LINE_PATH`, or `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH` can be used to have the library
 search the system path for `addr2line` at runtime. This is not the default to prevent against path injection attacks.

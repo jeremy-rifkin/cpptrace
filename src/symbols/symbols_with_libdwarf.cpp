@@ -881,11 +881,18 @@ namespace libdwarf {
                             const auto& dlframe = entry.first.get();
                             auto& frame = entry.second.get();
                             frame = resolver->resolve_frame(dlframe);
-                        } catch(...) { // NOSONAR
+                        } catch(...) {
                             if(!should_absorb_trace_exceptions()) {
                                 throw;
                             }
                         }
+                    }
+                } else {
+                    // at least copy the addresses
+                    for(const auto& entry : obj_entry.second) {
+                        const auto& dlframe = entry.first.get();
+                        auto& frame = entry.second.get();
+                        frame.frame.address = dlframe.raw_address;
                     }
                 }
                 if(resolver_object.has_value() && get_cache_mode() == cache_mode::prioritize_speed) {

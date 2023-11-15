@@ -55,59 +55,71 @@ namespace detail {
      *
      */
 
-    void apply_trace(
-        std::vector<stacktrace_frame>& result,
-        std::vector<stacktrace_frame>&& trace
+    // Resolver must not support walking inlines
+    void fill_blanks(
+        std::vector<stacktrace_frame>& vec,
+        std::vector<stacktrace_frame> (*resolver)(const std::vector<frame_ptr>&)
     ) {
-        for(std::size_t i = 0; i < result.size(); i++) {
-            if(result[i].address == 0) {
-                result[i].address = trace[i].address;
+        std::vector<frame_ptr> addresses;
+        for(const auto& frame : vec) {
+            if(frame.symbol.empty() || frame.filename.empty()) {
+                addresses.push_back(frame.address);
             }
-            if(!result[i].line.has_value()) {
-                result[i].line = trace[i].line;
-            }
-            if(!result[i].column.has_value()) {
-                result[i].column = trace[i].column;
-            }
-            if(result[i].filename.empty()) {
-                result[i].filename = std::move(trace[i].filename);
-            }
-            if(result[i].symbol.empty()) {
-                result[i].symbol = std::move(trace[i].symbol);
+        }
+        std::vector<stacktrace_frame> new_frames = resolver(addresses);
+        std::size_t i = 0;
+        for(auto& frame : vec) {
+            if(frame.symbol.empty() || frame.filename.empty()) {
+                // three cases to handle, either partially overwrite or fully overwrite
+                if(frame.symbol.empty() && frame.filename.empty()) {
+                    frame = new_frames[i];
+                } else if(frame.symbol.empty() && !frame.filename.empty()) {
+                    frame.symbol = new_frames[i].symbol;
+                } else {
+                    ASSERT(!frame.symbol.empty() && frame.filename.empty());
+                    frame.filename = new_frames[i].filename;
+                    frame.line = new_frames[i].line;
+                    frame.column = new_frames[i].column;
+                }
+                i++;
             }
         }
     }
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
-        std::vector<stacktrace_frame> trace(frames.size(), null_frame);
-        #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDL) \
-            || defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP) \
-            || defined(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
-         // actually need to go backwards to a void*
-         std::vector<frame_ptr> raw_frames(frames.size());
-         for(std::size_t i = 0; i < frames.size(); i++) {
-             raw_frames[i] = frames[i].raw_address;
-         }
+        #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF) && defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+         std::vector<stacktrace_frame> trace = libdwarf::resolve_frames(frames);
+         fill_blanks(trace, dbghelp::resolve_frames);
+         return trace;
+        #else
+         #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDL) \
+             || defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP) \
+             || defined(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
+          // actually need to go backwards to a void*
+          std::vector<frame_ptr> raw_frames(frames.size());
+          for(std::size_t i = 0; i < frames.size(); i++) {
+              raw_frames[i] = frames[i].raw_address;
+          }
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
+          return libdl::resolve_frames(raw_frames);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
+          return libdwarf::resolve_frames(frames);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
+          return dbghelp::resolve_frames(raw_frames);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
+          return addr2line::resolve_frames(frames);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
+          return libbacktrace::resolve_frames(raw_frames);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_NOTHING
+          return nothing::resolve_frames(frames);
+         #endif
         #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
-         apply_trace(trace, libdl::resolve_frames(raw_frames));
-        #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
-         apply_trace(trace, libdwarf::resolve_frames(frames));
-        #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
-         apply_trace(trace, dbghelp::resolve_frames(raw_frames));
-        #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
-         apply_trace(trace, addr2line::resolve_frames(frames));
-        #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
-         apply_trace(trace, libbacktrace::resolve_frames(raw_frames));
-        #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_NOTHING
-         apply_trace(trace, nothing::resolve_frames(frames));
-        #endif
-        return trace;
     }
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames) {
@@ -115,26 +127,30 @@ namespace detail {
             || defined(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
          auto dlframes = get_frames_object_info(frames);
         #endif
-        std::vector<stacktrace_frame> trace(frames.size(), null_frame);
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
-         apply_trace(trace, libdl::resolve_frames(frames));
+        #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF) && defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+         std::vector<stacktrace_frame> trace = libdwarf::resolve_frames(dlframes);
+         fill_blanks(trace, dbghelp::resolve_frames);
+         return trace;
+        #else
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
+          return libdl::resolve_frames(frames);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
+          return libdwarf::resolve_frames(dlframes);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
+          return dbghelp::resolve_frames(frames);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
+          return addr2line::resolve_frames(dlframes);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
+          return libbacktrace::resolve_frames(frames);
+         #endif
+         #ifdef CPPTRACE_GET_SYMBOLS_WITH_NOTHING
+          return nothing::resolve_frames(frames);
+         #endif
         #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
-         apply_trace(trace, libdwarf::resolve_frames(dlframes));
-        #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
-         apply_trace(trace, dbghelp::resolve_frames(frames));
-        #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
-         apply_trace(trace, addr2line::resolve_frames(dlframes));
-        #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
-         apply_trace(trace, libbacktrace::resolve_frames(frames));
-        #endif
-        #ifdef CPPTRACE_GET_SYMBOLS_WITH_NOTHING
-         apply_trace(trace, nothing::resolve_frames(frames));
-        #endif
-        return trace;
     }
 }
 }
