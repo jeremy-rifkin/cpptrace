@@ -20,7 +20,8 @@ namespace libdl {
                 nullable<std::uint32_t>::null(),
                 nullable<std::uint32_t>::null(),
                 info.dli_fname ? info.dli_fname : "",
-                info.dli_sname ? info.dli_sname : ""
+                info.dli_sname ? info.dli_sname : "",
+                false
             };
         } else {
             return {
@@ -28,7 +29,8 @@ namespace libdl {
                 nullable<std::uint32_t>::null(),
                 nullable<std::uint32_t>::null(),
                 "",
-                ""
+                "",
+                false
             };
         }
     }

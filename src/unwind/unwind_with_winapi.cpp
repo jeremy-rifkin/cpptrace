@@ -20,7 +20,7 @@ namespace cpptrace {
 namespace detail {
     CPPTRACE_FORCE_NO_INLINE
     std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth) {
-        std::vector<void*> addrs(std::min(hard_max_frames, max_depth), nullptr);
+        std::vector<void*> addrs(skip + std::min(hard_max_frames, max_depth), nullptr);
         int n_frames = CaptureStackBackTrace(
             static_cast<ULONG>(skip + 1),
             static_cast<ULONG>(addrs.size()),

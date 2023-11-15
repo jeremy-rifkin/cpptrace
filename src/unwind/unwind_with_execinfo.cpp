@@ -5,6 +5,7 @@
 #include "../platform/utils.hpp"
 
 #include <algorithm>
+#include <climits>
 #include <cstddef>
 #include <vector>
 
@@ -15,8 +16,9 @@ namespace detail {
     CPPTRACE_FORCE_NO_INLINE
     std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth) {
         skip++;
-        std::vector<void*> addrs(std::min(hard_max_frames, skip + max_depth), nullptr);
-        const int n_frames = backtrace(addrs.data(), static_cast<int>(addrs.size())); // thread safe
+        std::vector<void*> addrs(skip + std::min(hard_max_frames, max_depth), nullptr);
+        // thread safe
+        const int n_frames = backtrace(addrs.data(), static_cast<int>(addrs.size()));
         // I hate the copy here but it's the only way that isn't UB
         std::vector<frame_ptr> frames(n_frames - skip, 0);
         for(int i = skip; i < n_frames; i++) {

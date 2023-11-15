@@ -55,7 +55,7 @@ namespace detail {
 
     CPPTRACE_FORCE_NO_INLINE
     std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth) {
-        std::vector<frame_ptr> frames(std::min(hard_max_frames, max_depth), 0);
+        std::vector<frame_ptr> frames(skip + std::min(hard_max_frames, max_depth), 0);
         unwind_state state{skip + 1, 0, frames};
         _Unwind_Backtrace(unwind_callback, &state); // presumably thread-safe
         frames.resize(state.count);
