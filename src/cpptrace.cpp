@@ -34,12 +34,12 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    raw_trace raw_trace::current(std::uint_least32_t skip) {
+    raw_trace raw_trace::current(std::size_t skip) {
         return generate_raw_trace(skip + 1);
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    raw_trace raw_trace::current(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+    raw_trace raw_trace::current(std::size_t skip, std::size_t max_depth) {
         return generate_raw_trace(skip + 1, max_depth);
     }
 
@@ -78,12 +78,12 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    object_trace object_trace::current(std::uint_least32_t skip) {
+    object_trace object_trace::current(std::size_t skip) {
         return generate_object_trace(skip + 1);
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    object_trace object_trace::current(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+    object_trace object_trace::current(std::size_t skip, std::size_t max_depth) {
         return generate_object_trace(skip + 1, max_depth);
     }
 
@@ -125,24 +125,24 @@ namespace cpptrace {
             << frame.symbol
             << " at "
             << frame.filename;
-        if(frame.line != 0) {
+        if(frame.line.has_value()) {
             stream
                 << ":"
-                << frame.line;
-            if(frame.column != UINT_LEAST32_MAX) {
-                stream << frame.column;
+                << frame.line.value();
+            if(frame.column.has_value()) {
+                stream << frame.column.value();
             }
         }
         return stream;
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    stacktrace stacktrace::current(std::uint32_t skip) {
+    stacktrace stacktrace::current(std::size_t skip) {
         return generate_trace(skip + 1);
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    stacktrace stacktrace::current(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+    stacktrace stacktrace::current(std::size_t skip, std::size_t max_depth) {
         return generate_trace(skip + 1, max_depth);
     }
 
@@ -206,16 +206,16 @@ namespace cpptrace {
                 << green
                 << frame.filename
                 << reset;
-            if(frame.line != 0) {
+            if(frame.line.has_value()) {
                 stream
                     << ":"
                     << blue
-                    << frame.line
+                    << frame.line.value()
                     << reset;
-                if(frame.column != UINT_LEAST32_MAX) {
+                if(frame.column.has_value()) {
                     stream << ':'
                            << blue
-                           << std::to_string(frame.column)
+                           << std::to_string(frame.column.value())
                            << reset;
                 }
             }
@@ -245,9 +245,9 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    raw_trace generate_raw_trace(std::uint_least32_t skip) {
+    raw_trace generate_raw_trace(std::size_t skip) {
         try {
-            return raw_trace{detail::capture_frames(skip + 1, UINT_LEAST32_MAX)};
+            return raw_trace{detail::capture_frames(skip + 1, SIZE_MAX)};
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
@@ -257,7 +257,7 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+    raw_trace generate_raw_trace(std::size_t skip, std::size_t max_depth) {
         try {
             return raw_trace{detail::capture_frames(skip + 1, max_depth)};
         } catch(...) { // NOSONAR
@@ -269,24 +269,24 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::uint_least32_t skip) {
-        return detail::safe_capture_frames(buffer, size, skip + 1, UINT_LEAST32_MAX);
+    std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip) {
+        return detail::safe_capture_frames(buffer, size, skip + 1, SIZE_MAX);
     }
 
     CPPTRACE_FORCE_NO_INLINE
     std::size_t safe_generate_raw_trace(
          frame_ptr* buffer,
          std::size_t size,
-         std::uint_least32_t skip,
-         std::uint_least32_t max_depth
+         std::size_t skip,
+         std::size_t max_depth
     ) {
         return detail::safe_capture_frames(buffer, size, skip + 1, max_depth);
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    object_trace generate_object_trace(std::uint_least32_t skip) {
+    object_trace generate_object_trace(std::size_t skip) {
         try {
-            return object_trace{detail::get_frames_object_info(detail::capture_frames(skip + 1, UINT_LEAST32_MAX))};
+            return object_trace{detail::get_frames_object_info(detail::capture_frames(skip + 1, SIZE_MAX))};
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
@@ -296,7 +296,7 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth) {
+    object_trace generate_object_trace(std::size_t skip, std::size_t max_depth) {
         try {
             return object_trace{detail::get_frames_object_info(detail::capture_frames(skip + 1, max_depth))};
         } catch(...) { // NOSONAR
@@ -308,12 +308,12 @@ namespace cpptrace {
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    stacktrace generate_trace(std::uint_least32_t skip) {
-        return generate_trace(skip + 1, UINT_LEAST32_MAX);
+    stacktrace generate_trace(std::size_t skip) {
+        return generate_trace(skip + 1, SIZE_MAX);
     }
 
     CPPTRACE_FORCE_NO_INLINE
-    stacktrace generate_trace(std::uint32_t skip, std::uint_least32_t max_depth) {
+    stacktrace generate_trace(std::size_t skip, std::size_t max_depth) {
         try {
             std::vector<frame_ptr> frames = detail::capture_frames(skip + 1, max_depth);
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
@@ -412,7 +412,7 @@ namespace cpptrace {
         }
 
         CPPTRACE_FORCE_NO_INLINE
-        raw_trace get_raw_trace_and_absorb(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept {
+        raw_trace get_raw_trace_and_absorb(std::size_t skip, std::size_t max_depth) noexcept {
             try {
                 return generate_raw_trace(skip + 1, max_depth);
             } catch(const std::exception& e) {
@@ -429,7 +429,7 @@ namespace cpptrace {
         }
     }
 
-    exception::exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept
+    exception::exception(std::size_t skip, std::size_t max_depth) noexcept
             : trace(detail::get_raw_trace_and_absorb(skip + 1, max_depth)) {}
 
     const char* exception::what() const noexcept {

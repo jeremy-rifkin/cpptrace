@@ -58,7 +58,7 @@ namespace libbacktrace {
     stacktrace_frame resolve_frame(const frame_ptr addr) {
         try {
             stacktrace_frame frame;
-            frame.column = UINT_LEAST32_MAX;
+            frame.column = nullable<std::uint32_t>::null();
             backtrace_pcinfo(
                 get_backtrace_state(),
                 addr,

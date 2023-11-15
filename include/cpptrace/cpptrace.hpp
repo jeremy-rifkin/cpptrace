@@ -3,8 +3,11 @@
 
 #include <cstdint>
 #include <exception>
+#include <limits>
 #include <ostream>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "cpptrace/cpptrace_export.hpp"
@@ -27,8 +30,8 @@ namespace cpptrace {
     struct CPPTRACE_EXPORT raw_trace {
         std::vector<frame_ptr> frames;
         static raw_trace from_buffer(frame_ptr* buffer, std::size_t size);
-        static raw_trace current(std::uint_least32_t skip = 0);
-        static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        static raw_trace current(std::size_t skip = 0);
+        static raw_trace current(std::size_t skip, std::size_t max_depth);
         object_trace resolve_object_trace() const;
         stacktrace resolve() const;
         void clear();
@@ -53,8 +56,8 @@ namespace cpptrace {
 
     struct CPPTRACE_EXPORT object_trace {
         std::vector<object_frame> frames;
-        static object_trace current(std::uint_least32_t skip = 0);
-        static object_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        static object_trace current(std::size_t skip = 0);
+        static object_trace current(std::size_t skip, std::size_t max_depth);
         stacktrace resolve() const;
         void clear();
         bool empty() const noexcept;
@@ -69,10 +72,50 @@ namespace cpptrace {
         inline const_iterator cend() const noexcept { return frames.cend(); }
     };
 
+    // This represents a nullable integer type
+    // The max value of the type is used as a sentinel
+    // This is used over std::optional because the library is C++11 and also std::optional is a bit heavy-duty for this
+    // use.
+    template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+    struct CPPTRACE_EXPORT nullable {
+        T raw_value;
+        nullable& operator=(T value) {
+            raw_value = value;
+            return *this;
+        }
+        bool has_value() const noexcept {
+            return raw_value != std::numeric_limits<T>::max();
+        }
+        T& value() noexcept {
+            return raw_value;
+        }
+        const T& value() const noexcept {
+            return raw_value;
+        }
+        T value_or(T alternative) const noexcept {
+            return has_value() ? raw_value : alternative;
+        }
+        void swap(nullable& other) noexcept {
+            std::swap(raw_value, other.raw_value);
+        }
+        void reset() noexcept {
+            raw_value = std::numeric_limits<T>::max();
+        }
+        bool operator==(const nullable& other) const noexcept {
+            return raw_value == other.raw_value;
+        }
+        bool operator!=(const nullable& other) const noexcept {
+            return raw_value != other.raw_value;
+        }
+        constexpr static nullable null() noexcept {
+            return { std::numeric_limits<T>::max() };
+        }
+    };
+
     struct CPPTRACE_EXPORT stacktrace_frame {
         frame_ptr address;
-        std::uint_least32_t line; // TODO: This should use UINT_LEAST32_MAX as a sentinel
-        std::uint_least32_t column; // UINT_LEAST32_MAX if not present
+        nullable<std::uint32_t> line;
+        nullable<std::uint32_t> column;
         std::string filename;
         std::string symbol;
         bool is_inline;
@@ -95,8 +138,8 @@ namespace cpptrace {
 
     struct CPPTRACE_EXPORT stacktrace {
         std::vector<stacktrace_frame> frames;
-        static stacktrace current(std::uint_least32_t skip = 0);
-        static stacktrace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        static stacktrace current(std::size_t skip = 0);
+        static stacktrace current(std::size_t skip, std::size_t max_depth);
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
@@ -118,23 +161,23 @@ namespace cpptrace {
         friend void print_terminate_trace();
     };
 
-    CPPTRACE_EXPORT raw_trace generate_raw_trace(std::uint_least32_t skip = 0);
-    CPPTRACE_EXPORT raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
-    CPPTRACE_EXPORT object_trace generate_object_trace(std::uint_least32_t skip = 0);
-    CPPTRACE_EXPORT object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
-    CPPTRACE_EXPORT stacktrace generate_trace(std::uint_least32_t skip = 0);
-    CPPTRACE_EXPORT stacktrace generate_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    CPPTRACE_EXPORT raw_trace generate_raw_trace(std::size_t skip = 0);
+    CPPTRACE_EXPORT raw_trace generate_raw_trace(std::size_t skip, std::size_t max_depth);
+    CPPTRACE_EXPORT object_trace generate_object_trace(std::size_t skip = 0);
+    CPPTRACE_EXPORT object_trace generate_object_trace(std::size_t skip, std::size_t max_depth);
+    CPPTRACE_EXPORT stacktrace generate_trace(std::size_t skip = 0);
+    CPPTRACE_EXPORT stacktrace generate_trace(std::size_t skip, std::size_t max_depth);
 
     CPPTRACE_EXPORT std::size_t safe_generate_raw_trace(
         frame_ptr* buffer,
         std::size_t size,
-        std::uint_least32_t skip = 0
+        std::size_t skip = 0
     );
     CPPTRACE_EXPORT std::size_t safe_generate_raw_trace(
         frame_ptr* buffer,
         std::size_t size,
-        std::uint_least32_t skip,
-        std::uint_least32_t max_depth
+        std::size_t skip,
+        std::size_t max_depth
     );
 
     // utilities:
@@ -172,8 +215,8 @@ namespace cpptrace {
         mutable std::string what_string;
 
     protected:
-        explicit exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
-        explicit exception(std::uint_least32_t skip) noexcept : exception(skip + 1, UINT_LEAST32_MAX) {}
+        explicit exception(std::size_t skip, std::size_t max_depth) noexcept;
+        explicit exception(std::size_t skip) noexcept : exception(skip + 1, SIZE_MAX) {}
 
     public:
         explicit exception() noexcept : exception(1) {}
@@ -200,8 +243,8 @@ namespace cpptrace {
 
         explicit exception_with_message(
             std::string&& message_arg,
-            std::uint_least32_t skip,
-            std::uint_least32_t max_depth
+            std::size_t skip,
+            std::size_t max_depth
         ) noexcept : exception(skip + 1, max_depth), message(std::move(message_arg)) {}
 
     public:

@@ -606,7 +606,7 @@ namespace libdwarf {
                         // {
                         //     Dwarf_Unsigned line_number = 0;
                         //     VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
-                        //     frame.line = static_cast<std::uint_least32_t>(line_number);
+                        //     frame.line = static_cast<std::uint32_t>(line_number);
                         //     char* filename = nullptr;
                         //     VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
                         //     auto wrapper = raii_wrap(
@@ -660,7 +660,7 @@ namespace libdwarf {
                     if(!table_it->line_number) {
                         Dwarf_Unsigned line_number = 0;
                         VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
-                        table_it->line_number = static_cast<std::uint_least32_t>(line_number);
+                        table_it->line_number = static_cast<std::uint32_t>(line_number);
                     }
                     frame.line = table_it->line_number.unwrap();
                     if(!table_it->path) {
@@ -716,7 +716,7 @@ namespace libdwarf {
                     if(found_line) {
                         Dwarf_Unsigned line_number = 0;
                         VERIFY(wrap(dwarf_lineno, found_line, &line_number) == DW_DLV_OK);
-                        frame.line = static_cast<std::uint_least32_t>(line_number);
+                        frame.line = static_cast<std::uint32_t>(line_number);
                         char* filename = nullptr;
                         VERIFY(wrap(dwarf_linesrc, found_line, &filename) == DW_DLV_OK);
                         auto wrapper = raii_wrap(
@@ -912,8 +912,8 @@ namespace libdwarf {
                 // inclusive range
                 auto begin = final_trace.end() - (1 + entry.inlines.size());
                 auto end = final_trace.end() - 1;
-                std::uint_least32_t carry_line = end->line;
-                std::uint_least32_t carry_column = end->column;
+                auto carry_line = end->line;
+                auto carry_column = end->column;
                 std::string carry_filename = std::move(end->filename);
                 for(auto it = end; it != begin; it--) {
                     it->line = (it - 1)->line;

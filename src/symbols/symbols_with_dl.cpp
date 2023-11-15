@@ -17,16 +17,16 @@ namespace libdl {
         if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread-safe
             return {
                 addr,
-                0,
-                UINT_LEAST32_MAX,
+                nullable<std::uint32_t>::null(),
+                nullable<std::uint32_t>::null(),
                 info.dli_fname ? info.dli_fname : "",
                 info.dli_sname ? info.dli_sname : ""
             };
         } else {
             return {
                 addr,
-                0,
-                UINT_LEAST32_MAX,
+                nullable<std::uint32_t>::null(),
+                nullable<std::uint32_t>::null(),
                 "",
                 ""
             };

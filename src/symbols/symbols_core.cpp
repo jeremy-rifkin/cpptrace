@@ -63,10 +63,10 @@ namespace detail {
             if(result[i].address == 0) {
                 result[i].address = trace[i].address;
             }
-            if(result[i].line == 0) {
+            if(!result[i].line.has_value()) {
                 result[i].line = trace[i].line;
             }
-            if(result[i].column == UINT_LEAST32_MAX) {
+            if(!result[i].column.has_value()) {
                 result[i].column = trace[i].column;
             }
             if(result[i].filename.empty()) {

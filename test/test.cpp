@@ -131,7 +131,7 @@ void custom_print(const cpptrace::stacktrace& trace) {
         std::cout
             << normalize_filename(frame.filename)
             << "||"
-            << frame.line
+            << frame.line.value()
             << "||"
             << frame.symbol
             << std::endl;

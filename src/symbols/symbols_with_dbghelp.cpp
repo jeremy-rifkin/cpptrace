@@ -346,8 +346,8 @@ namespace dbghelp {
                     std::fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
                     return {
                         addr,
-                        static_cast<std::uint_least32_t>(line.LineNumber),
-                        UINT_LEAST32_MAX,
+                        static_cast<std::uint32_t>(line.LineNumber),
+                        nullable<std::uint32_t>::null(),
                         line.FileName,
                         symbol->Name,
                         false
@@ -378,17 +378,24 @@ namespace dbghelp {
                 signature = std::regex_replace(signature, comma_re, ", ");
                 return {
                     addr,
-                    static_cast<std::uint_least32_t>(line.LineNumber),
-                    UINT_LEAST32_MAX,
+                    static_cast<std::int32_t>(line.LineNumber),
+                    nullable<std::uint32_t>::null(),
                     line.FileName,
                     signature,
                     false,
                 };
             } else {
-                return { addr, 0, UINT_LEAST32_MAX, "", symbol->Name, false };
+                return {
+                    addr,
+                    nullable<std::uint32_t>::null(),
+                    nullable<std::uint32_t>::null(),
+                    "",
+                    symbol->Name,
+                    false
+                };
             }
         } else {
-            return { addr, 0, UINT_LEAST32_MAX, "", "", false };
+            return { addr, nullable<std::uint32_t>::null(), nullable<std::uint32_t>::null(), "", "", false };
         }
     }
 
