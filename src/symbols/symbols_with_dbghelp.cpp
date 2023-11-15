@@ -349,7 +349,8 @@ namespace dbghelp {
                         static_cast<std::uint_least32_t>(line.LineNumber),
                         UINT_LEAST32_MAX,
                         line.FileName,
-                        symbol->Name
+                        symbol->Name,
+                        false
                     };
                 }
                 DWORD n_children = get_info<DWORD, IMAGEHLP_SYMBOL_TYPE_INFO::TI_GET_COUNT, true>(
@@ -380,13 +381,14 @@ namespace dbghelp {
                     static_cast<std::uint_least32_t>(line.LineNumber),
                     UINT_LEAST32_MAX,
                     line.FileName,
-                    signature
+                    signature,
+                    false,
                 };
             } else {
-                return { addr, 0, UINT_LEAST32_MAX, "", symbol->Name };
+                return { addr, 0, UINT_LEAST32_MAX, "", symbol->Name, false };
             }
         } else {
-            return { addr, 0, UINT_LEAST32_MAX, "", "" };
+            return { addr, 0, UINT_LEAST32_MAX, "", "", false };
         }
     }
 
