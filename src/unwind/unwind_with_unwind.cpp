@@ -16,7 +16,7 @@ namespace cpptrace {
 namespace detail {
     struct unwind_state {
         std::size_t skip;
-        std::size_t count;
+        std::size_t max_depth;
         std::vector<frame_ptr>& vec;
     };
 
@@ -31,9 +31,9 @@ namespace detail {
             }
         }
 
-        VERIFY(
-            state.count < state.vec.size(),
-            "Somehow cpptrace::detail::unwind_callback is overflowing a vector"
+        ASSERT(
+            state.vec.size() < state.max_frames,
+            "Somehow cpptrace::detail::unwind_callback is being called beyond the max_depth"
         );
         int is_before_instruction = 0;
         frame_ptr ip = _Unwind_GetIPInfo(context, &is_before_instruction);
@@ -43,9 +43,8 @@ namespace detail {
         if (ip == frame_ptr(0)) {
             return _URC_END_OF_STACK;
         } else {
-            // TODO: push_back?...
-            state.vec[state.count++] = ip;
-            if(state.count == state.vec.size()) {
+            state.vec.push_back(ip);
+            if(state.vec.size() >= state.max_frames) {
                 return _URC_END_OF_STACK;
             } else {
                 return _URC_NO_REASON;
@@ -55,8 +54,8 @@ namespace detail {
 
     CPPTRACE_FORCE_NO_INLINE
     std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth) {
-        std::vector<frame_ptr> frames(skip + std::min(hard_max_frames, max_depth), 0);
-        unwind_state state{skip + 1, 0, frames};
+        std::vector<frame_ptr> frames;
+        unwind_state state{skip + 1, max_depth, frames};
         _Unwind_Backtrace(unwind_callback, &state); // presumably thread-safe
         frames.resize(state.count);
         frames.shrink_to_fit();
