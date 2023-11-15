@@ -44,15 +44,15 @@ endif()
 # add_subdirectory or FetchContent is used to consume this project.
 set(warning_guard )
 if(NOT PROJECT_IS_TOP_LEVEL)
-    option(
-        CPPTRACE_INCLUDES_WITH_SYSTEM
-        "Use SYSTEM modifier for ${package_name}'s includes, disabling warnings"
-        ON
-    )
-    mark_as_advanced(CPPTRACE_INCLUDES_WITH_SYSTEM)
-    if(CPPTRACE_INCLUDES_WITH_SYSTEM)
-        set(warning_guard SYSTEM)
-    endif()
+  option(
+    CPPTRACE_INCLUDES_WITH_SYSTEM
+    "Use SYSTEM modifier for ${package_name}'s includes, disabling warnings"
+    ON
+  )
+  mark_as_advanced(CPPTRACE_INCLUDES_WITH_SYSTEM)
+  if(CPPTRACE_INCLUDES_WITH_SYSTEM)
+    set(warning_guard SYSTEM)
+  endif()
 endif()
 
 # ---- Enable Testing ----
@@ -89,8 +89,8 @@ mark_as_advanced(CPPTRACE_BUILD_TESTING)
 # unexpected errors.
 if(PROJECT_IS_TOP_LEVEL)
   set(
-      CMAKE_INSTALL_INCLUDEDIR "include/${package_name}-${PROJECT_VERSION}"
-      CACHE STRING ""
+    CMAKE_INSTALL_INCLUDEDIR "include/${package_name}-${PROJECT_VERSION}"
+    CACHE STRING ""
   )
   # marked as advanced in GNUInstallDirs version, so we follow their lead
   mark_as_advanced(CMAKE_INSTALL_INCLUDEDIR)
