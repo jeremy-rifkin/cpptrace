@@ -357,8 +357,8 @@ namespace libdwarf {
                             const auto col = die.get_unsigned_attribute(DW_AT_call_column);
                             inlines.push_back(stacktrace_frame{
                                 0,
-                                (unsigned int)line.value_or(0),
-                                (unsigned int)col.value_or(0),
+                                {static_cast<std::uint32_t>(line.value_or(0))},
+                                {static_cast<std::uint32_t>(col.value_or(0))},
                                 file,
                                 name,
                                 true
@@ -463,6 +463,13 @@ namespace libdwarf {
                                 // TODO: Feels super inefficient and some day should maybe use an interval tree.
                                 for(auto range : ranges_vec) {
                                     vec.push_back({ die.clone(), range.first, range.second });
+                                }
+                                // Walk children to get things like lambdas
+                                // TODO: Somehow find a way to get better names here? For gcc it's just "operator()"
+                                // On clang it's better
+                                auto child = die.get_child();
+                                if(child) {
+                                    preprocess_subprograms(child, dwversion, vec);
                                 }
                             }
                             break;
