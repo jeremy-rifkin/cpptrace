@@ -70,7 +70,8 @@ namespace libdwarf {
         // int i;
         Dwarf_Line line;
         optional<std::string> path;
-        optional<unsigned> line_number;
+        optional<std::uint32_t> line_number;
+        optional<std::uint32_t> column_number;
         line_entry(Dwarf_Addr low, Dwarf_Line line) : low(low), line(line) {}
     };
 
@@ -664,12 +665,21 @@ namespace libdwarf {
                 // If the vector has been empty this can happen
                 if(table_it != line_entries.end()) {
                     Dwarf_Line line = table_it->line;
+                    // line number
                     if(!table_it->line_number) {
                         Dwarf_Unsigned line_number = 0;
                         VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
                         table_it->line_number = static_cast<std::uint32_t>(line_number);
                     }
                     frame.line = table_it->line_number.unwrap();
+                    // column number
+                    if(!table_it->column_number) {
+                        Dwarf_Unsigned column_number = 0;
+                        VERIFY(wrap(dwarf_lineoff_b, line, &column_number) == DW_DLV_OK);
+                        table_it->column_number = static_cast<std::uint32_t>(column_number);
+                    }
+                    frame.column = table_it->column_number.unwrap();
+                    // filename
                     if(!table_it->path) {
                         char* filename = nullptr;
                         VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
