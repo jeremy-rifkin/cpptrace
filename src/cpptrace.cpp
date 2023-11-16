@@ -493,10 +493,9 @@ namespace cpptrace {
             try {
                 std::rethrow_exception(ptr);
             } catch(std::exception& e) {
-                // what_value = std::string("cpptrace::nested_exception: ") + e.what();
-                what_value = e.what();
+                what_value = std::string("Nested exception: ") + e.what();
             } catch(...) {
-                what_value = "<cpptrace::nested_exception holding instance of " + detail::exception_type_name() + ">";
+                what_value = "Nested exception holding instance of " + detail::exception_type_name();
             }
         }
         return what_value.c_str();
