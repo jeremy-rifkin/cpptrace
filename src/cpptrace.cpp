@@ -362,6 +362,7 @@ namespace cpptrace {
     }
 
     [[noreturn]] void terminate_handler() {
+        // TODO: Support std::nested_exception?
         try {
             auto ptr = std::current_exception();
             if(ptr == nullptr) {
@@ -485,5 +486,33 @@ namespace cpptrace {
 
     const char* exception_with_message::get_raw_what() const noexcept {
         return message.c_str();
+    }
+
+    const char* nested_exception::get_raw_what() const noexcept {
+        if(what_value.empty()) {
+            try {
+                std::rethrow_exception(ptr);
+            } catch(std::exception& e) {
+                // what_value = std::string("cpptrace::nested_exception: ") + e.what();
+                what_value = e.what();
+            } catch(...) {
+                what_value = "<cpptrace::nested_exception holding instance of " + detail::exception_type_name() + ">";
+            }
+        }
+        return what_value.c_str();
+    }
+
+    std::exception_ptr nested_exception::nested_ptr() const noexcept {
+        return ptr;
+    }
+
+    void rethrow_and_wrap_if_needed(std::size_t skip) {
+        try {
+            std::rethrow_exception(std::current_exception());
+        } catch(cpptrace::exception&) {
+            throw; // already a cpptrace::exception
+        } catch(...) {
+            throw nested_exception(std::current_exception(), skip + 1);
+        }
     }
 }

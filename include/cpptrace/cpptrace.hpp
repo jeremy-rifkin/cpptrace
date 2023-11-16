@@ -244,7 +244,7 @@ namespace cpptrace {
     protected:
         explicit exception_with_message(
             std::string&& message_arg,
-            std::uint32_t skip
+            std::size_t skip
         ) noexcept : exception(skip + 1), message(std::move(message_arg)) {}
 
         explicit exception_with_message(
@@ -313,6 +313,21 @@ namespace cpptrace {
         explicit underflow_error(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
     };
+
+    class CPPTRACE_EXPORT nested_exception : public exception {
+        std::exception_ptr ptr;
+        mutable std::string what_value;
+    public:
+        explicit nested_exception(std::exception_ptr exception_ptr) noexcept
+            : exception(1), ptr(exception_ptr) {}
+        explicit nested_exception(std::exception_ptr exception_ptr, std::size_t skip) noexcept
+            : exception(skip + 1), ptr(exception_ptr) {}
+
+        const char* get_raw_what() const noexcept override;
+        std::exception_ptr nested_ptr() const noexcept;
+    };
+
+    CPPTRACE_EXPORT [[noreturn]] void rethrow_and_wrap_if_needed(std::size_t skip = 0);
 }
 
 #if defined(CPPTRACE_STD_FORMAT) && defined(__cpp_lib_format)
@@ -330,5 +345,22 @@ namespace cpptrace {
      }
  };
 #endif
+
+// Exception wrapper utilities
+#define CPPTRACE_WRAP_BLOCK(statements) do { \
+        try { \
+            statements \
+        } catch(...) { \
+            ::cpptrace::rethrow_and_wrap_if_needed(); \
+        } \
+    } while(0);
+
+#define CPPTRACE_WRAP(expression) [&] () -> decltype((expression)) { \
+        try { \
+            return expression; \
+        } catch(...) { \
+            ::cpptrace::rethrow_and_wrap_if_needed(1); \
+        } \
+    } ()
 
 #endif
