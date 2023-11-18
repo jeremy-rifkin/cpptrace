@@ -213,51 +213,80 @@ namespace cpptrace {
     namespace detail {
         CPPTRACE_EXPORT bool should_absorb_trace_exceptions();
         CPPTRACE_EXPORT enum cache_mode get_cache_mode();
+
+        // This is a helper utility, if the library weren't C++11 an std::variant would be used
+        class CPPTRACE_EXPORT lazy_trace_holder {
+            bool resolved;
+            union {
+                raw_trace trace;
+                stacktrace resolved_trace;
+            };
+        public:
+            // constructors
+            lazy_trace_holder() : trace() {}
+            explicit lazy_trace_holder(raw_trace&& _trace) : resolved(false), trace(std::move(_trace)) {}
+            explicit lazy_trace_holder(stacktrace&& _resolved_trace) : resolved(true), resolved_trace(std::move(_resolved_trace)) {}
+            // logistics
+            lazy_trace_holder(const lazy_trace_holder& other);
+            lazy_trace_holder(lazy_trace_holder&& other) noexcept;
+            lazy_trace_holder& operator=(const lazy_trace_holder& other);
+            lazy_trace_holder& operator=(lazy_trace_holder&& other) noexcept;
+            ~lazy_trace_holder();
+            // access
+            stacktrace& get_resolved_trace();
+            const stacktrace& get_resolved_trace() const;
+        private:
+            void clear();
+        };
     }
 
+    // Interface for a traced exception object
     class CPPTRACE_EXPORT exception : public std::exception {
-        mutable raw_trace trace;
-        mutable stacktrace resolved_trace;
+    public:
+        virtual const char* message() const noexcept = 0;
+        virtual const stacktrace& trace() const noexcept = 0;
+    };
+
+    // Cpptrace traced exception object
+    // I hate to have to expose anything about implementation detail but the idea here is that
+    // TODO: CPPTRACE_FORCE_NO_INLINE annotations
+    class CPPTRACE_EXPORT lazy_exception : public exception {
+        mutable detail::lazy_trace_holder trace_holder;
         mutable std::string what_string;
 
     protected:
-        explicit exception(std::size_t skip, std::size_t max_depth) noexcept;
-        explicit exception(std::size_t skip) noexcept : exception(skip + 1, SIZE_MAX) {}
+        explicit lazy_exception(std::size_t skip, std::size_t max_depth) noexcept;
+        explicit lazy_exception(std::size_t skip) noexcept : lazy_exception(skip + 1, SIZE_MAX) {}
 
     public:
-        explicit exception() noexcept : exception(1) {}
+        explicit lazy_exception() noexcept : lazy_exception(1) {}
+        // std::exception
         const char* what() const noexcept override;
-        // what(), but not a C-string. Performs lazy evaluation of the full what string.
-        virtual const std::string& get_what() const noexcept;
-        // Just the plain what() value without the stacktrace. This value is called by get_what() during lazy
-        // evaluation.
-        virtual const char* get_raw_what() const noexcept;
-        // Returns internal raw_trace
-        const raw_trace& get_raw_trace() const noexcept;
-        // Returns a resolved trace from the raw_trace. Handles lazy evaluation of the resolved trace.
-        const stacktrace& get_trace() const noexcept;
+        // cpptrace::exception
+        const char* message() const noexcept override;
+        const stacktrace& trace() const noexcept override;
     };
 
-    class CPPTRACE_EXPORT exception_with_message : public exception {
-        mutable std::string message;
+    class CPPTRACE_EXPORT exception_with_message : public lazy_exception {
+        mutable std::string user_message;
 
     protected:
         explicit exception_with_message(
             std::string&& message_arg,
             std::size_t skip
-        ) noexcept : exception(skip + 1), message(std::move(message_arg)) {}
+        ) noexcept : lazy_exception(skip + 1), user_message(std::move(message_arg)) {}
 
         explicit exception_with_message(
             std::string&& message_arg,
             std::size_t skip,
             std::size_t max_depth
-        ) noexcept : exception(skip + 1, max_depth), message(std::move(message_arg)) {}
+        ) noexcept : lazy_exception(skip + 1, max_depth), user_message(std::move(message_arg)) {}
 
     public:
         explicit exception_with_message(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
 
-        const char* get_raw_what() const noexcept override;
+        const char* message() const noexcept override;
     };
 
     class logic_error : public exception_with_message {
@@ -314,16 +343,16 @@ namespace cpptrace {
             : exception_with_message(std::move(message_arg), 1) {}
     };
 
-    class CPPTRACE_EXPORT nested_exception : public exception {
+    class CPPTRACE_EXPORT nested_exception : public lazy_exception {
         std::exception_ptr ptr;
-        mutable std::string what_value;
+        mutable std::string message_value;
     public:
         explicit nested_exception(std::exception_ptr exception_ptr) noexcept
-            : exception(1), ptr(exception_ptr) {}
+            : lazy_exception(1), ptr(exception_ptr) {}
         explicit nested_exception(std::exception_ptr exception_ptr, std::size_t skip) noexcept
-            : exception(skip + 1), ptr(exception_ptr) {}
+            : lazy_exception(skip + 1), ptr(exception_ptr) {}
 
-        const char* get_raw_what() const noexcept override;
+        const char* message() const noexcept override;
         std::exception_ptr nested_ptr() const noexcept;
     };
 

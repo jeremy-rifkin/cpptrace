@@ -6,7 +6,9 @@
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
+#include <new>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -375,9 +377,9 @@ namespace cpptrace {
             std::cerr << "Terminate called after throwing an instance of "
                       << demangle(typeid(e).name())
                       << ": "
-                      << e.get_raw_what()
+                      << e.message()
                       << '\n';
-            e.get_trace().print(std::cerr, isatty(stderr_fileno));
+            e.trace().print(std::cerr, isatty(stderr_fileno));
         } catch(std::exception& e) {
             std::cerr << "Terminate called after throwing an instance of "
                       << demangle(typeid(e).name())
@@ -439,72 +441,127 @@ namespace cpptrace {
                 return raw_trace{};
             }
         }
-    }
 
-    exception::exception(std::size_t skip, std::size_t max_depth) noexcept
-            : trace(detail::get_raw_trace_and_absorb(skip + 1, max_depth)) {}
-
-    const char* exception::what() const noexcept {
-        return get_what().c_str();
-    }
-
-    const std::string& exception::get_what() const noexcept {
-        if(what_string.empty()) {
-            what_string = get_raw_what() + std::string(":\n") + get_trace().to_string();
-        }
-        return what_string;
-    }
-
-    const char* exception::get_raw_what() const noexcept {
-        return "cpptrace::exception";
-    }
-
-    const raw_trace& exception::get_raw_trace() const noexcept {
-        return trace;
-    }
-
-    const stacktrace& exception::get_trace() const noexcept {
-        // I think a non-empty raw trace can never resolve as empty, so this will accurately prevent resolving more
-        // than once. Either way the raw trace is cleared.
-        try {
-            if(resolved_trace.empty() && !trace.empty()) {
-                resolved_trace = trace.resolve();
-                trace.clear();
+        lazy_trace_holder::lazy_trace_holder(const lazy_trace_holder& other) : resolved(other.resolved) {
+            if(other.resolved) {
+                new (&resolved_trace) stacktrace(other.resolved_trace);
+            } else {
+                new (&trace) raw_trace(other.trace);
             }
-        } catch(const std::exception& e) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                // TODO: Append to message somehow
-                std::fprintf(
-                    stderr,
-                    "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
-                    e.what()
+        }
+        lazy_trace_holder::lazy_trace_holder(lazy_trace_holder&& other) noexcept : resolved(other.resolved) {
+            if(other.resolved) {
+                new (&resolved_trace) stacktrace(std::move(other.resolved_trace));
+            } else {
+                new (&trace) raw_trace(std::move(other.trace));
+            }
+        }
+        lazy_trace_holder& lazy_trace_holder::operator=(const lazy_trace_holder& other) {
+            clear();
+            resolved = other.resolved;
+            if(other.resolved) {
+                new (&resolved_trace) stacktrace(other.resolved_trace);
+            } else {
+                new (&trace) raw_trace(other.trace);
+            }
+            return *this;
+        }
+        lazy_trace_holder& lazy_trace_holder::operator=(lazy_trace_holder&& other) noexcept {
+            clear();
+            resolved = other.resolved;
+            if(other.resolved) {
+                new (&resolved_trace) stacktrace(std::move(other.resolved_trace));
+            } else {
+                new (&trace) raw_trace(std::move(other.trace));
+            }
+            return *this;
+        }
+        lazy_trace_holder::~lazy_trace_holder() {
+            clear();
+        }
+        // access
+        stacktrace& lazy_trace_holder::get_resolved_trace() {
+            if(!resolved) {
+                stacktrace new_trace;
+                try {
+                    if(resolved_trace.empty() && !trace.empty()) {
+                        resolved_trace = trace.resolve();
+                        trace.clear();
+                    }
+                    new_trace = trace.resolve();
+                } catch(const std::exception& e) {
+                    if(!detail::should_absorb_trace_exceptions()) {
+                        // TODO: Append to message somehow?
+                        std::fprintf(
+                            stderr,
+                            "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                            e.what()
+                        );
+                    }
+                }
+                trace.~raw_trace();
+                new (&resolved_trace) stacktrace(std::move(new_trace));
+                resolved = true;
+            }
+            return resolved_trace;
+        }
+        const stacktrace& lazy_trace_holder::get_resolved_trace() const {
+            if(!resolved) {
+                throw std::logic_error(
+                    "cpptrace::detaillazy_trace_holder::get_resolved_trace called on unresolved const object"
                 );
             }
+            return resolved_trace;
         }
-        return resolved_trace;
+        void lazy_trace_holder::clear() {
+            if(resolved) {
+                resolved_trace.~stacktrace();
+            } else {
+                trace.~raw_trace();
+            }
+        }
     }
 
-    const char* exception_with_message::get_raw_what() const noexcept {
-        return message.c_str();
+    lazy_exception::lazy_exception(std::size_t skip, std::size_t max_depth) noexcept
+            : trace_holder(detail::get_raw_trace_and_absorb(skip + 1, max_depth)) {}
+
+    const char* lazy_exception::what() const noexcept {
+        if(what_string.empty()) {
+            what_string = message() + std::string(":\n") + trace_holder.get_resolved_trace().to_string();
+        }
+        return what_string.c_str();
     }
 
-    const char* nested_exception::get_raw_what() const noexcept {
-        if(what_value.empty()) {
+    const char* lazy_exception::message() const noexcept {
+        return "cpptrace::lazy_exception";
+    }
+
+    const stacktrace& lazy_exception::trace() const noexcept {
+        return trace_holder.get_resolved_trace();
+    }
+
+    const char* exception_with_message::message() const noexcept {
+        return user_message.c_str();
+    }
+
+    const char* nested_exception::message() const noexcept {
+        if(message_value.empty()) {
             try {
                 std::rethrow_exception(ptr);
             } catch(std::exception& e) {
-                what_value = std::string("Nested exception: ") + e.what();
+                message_value = std::string("Nested exception: ") + e.what();
             } catch(...) {
-                what_value = "Nested exception holding instance of " + detail::exception_type_name();
+                message_value = "Nested exception holding instance of " + detail::exception_type_name();
             }
         }
-        return what_value.c_str();
+        return message_value.c_str();
     }
 
     std::exception_ptr nested_exception::nested_ptr() const noexcept {
         return ptr;
     }
 
+    CPPTRACE_FORCE_NO_INLINE
     void rethrow_and_wrap_if_needed(std::size_t skip) {
         try {
             std::rethrow_exception(std::current_exception());
