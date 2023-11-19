@@ -4,7 +4,7 @@
 #include "unwind.hpp"
 #include "../utils/common.hpp"
 #include "../utils/utils.hpp"
-#include "../platform/dbghelp_syminit_manager.hpp"
+#include "../utils/dbghelp_syminit_manager.hpp"
 
 #include <algorithm>
 #include <cstdint>

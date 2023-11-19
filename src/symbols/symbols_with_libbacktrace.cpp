@@ -2,7 +2,7 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
-#include "../platform/program_name.hpp"
+#include "../utils/program_name.hpp"
 
 #include <cstdint>
 #include <cstdio>

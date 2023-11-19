@@ -2,7 +2,7 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
-#include "../platform/dbghelp_syminit_manager.hpp"
+#include "../utils/dbghelp_syminit_manager.hpp"
 
 #include <memory>
 #include <regex>
