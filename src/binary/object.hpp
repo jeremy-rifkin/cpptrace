@@ -1,8 +1,8 @@
 #ifndef OBJECT_HPP
 #define OBJECT_HPP
 
-#include "common.hpp"
-#include "utils.hpp"
+#include "../utils/common.hpp"
+#include "../utils/utils.hpp"
 
 #include <string>
 #include <vector>

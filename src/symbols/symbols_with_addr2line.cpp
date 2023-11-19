@@ -2,8 +2,8 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
-#include "../platform/common.hpp"
-#include "../platform/utils.hpp"
+#include "../utils/common.hpp"
+#include "../utils/utils.hpp"
 
 #include <cstdint>
 #include <cstdio>

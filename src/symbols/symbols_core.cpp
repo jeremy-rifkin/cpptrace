@@ -3,8 +3,8 @@
 #include <vector>
 #include <unordered_map>
 
-#include "../platform/common.hpp"
-#include "../platform/object.hpp"
+#include "../utils/common.hpp"
+#include "../binary/object.hpp"
 
 namespace cpptrace {
 namespace detail {

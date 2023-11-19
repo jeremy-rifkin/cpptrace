@@ -1,8 +1,8 @@
 #ifdef CPPTRACE_UNWIND_WITH_EXECINFO
 
 #include "unwind.hpp"
-#include "../platform/common.hpp"
-#include "../platform/utils.hpp"
+#include "../utils/common.hpp"
+#include "../utils/utils.hpp"
 
 #include <algorithm>
 #include <climits>

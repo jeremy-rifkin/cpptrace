@@ -2,12 +2,12 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
-#include "../platform/common.hpp"
-#include "../platform/dwarf.hpp"
-#include "../platform/error.hpp"
-#include "../platform/object.hpp"
-#include "../platform/program_name.hpp"
-#include "../platform/utils.hpp"
+#include "../utils/common.hpp"
+#include "../utils/dwarf.hpp"
+#include "../utils/error.hpp"
+#include "../binary/object.hpp"
+#include "../utils/program_name.hpp"
+#include "../utils/utils.hpp"
 
 #include <algorithm>
 #include <cstdint>

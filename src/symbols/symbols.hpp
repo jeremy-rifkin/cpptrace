@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-#include "../platform/object.hpp"
+#include "../binary/object.hpp"
 
 namespace cpptrace {
 namespace detail {

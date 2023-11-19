@@ -1,9 +1,9 @@
 #ifndef PE_HPP
 #define PE_HPP
 
-#include "common.hpp"
-#include "error.hpp"
-#include "utils.hpp"
+#include "../utils/common.hpp"
+#include "../utils/error.hpp"
+#include "../utils/utils.hpp"
 
 #if IS_WINDOWS
 #include <array>

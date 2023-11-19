@@ -1,8 +1,8 @@
 #ifndef ELF_HPP
 #define ELF_HPP
 
-#include "common.hpp"
-#include "utils.hpp"
+#include "../utils/common.hpp"
+#include "../utils/utils.hpp"
 
 #if IS_LINUX
 #include <array>

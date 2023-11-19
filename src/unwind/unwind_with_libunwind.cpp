@@ -1,9 +1,9 @@
 #ifdef CPPTRACE_UNWIND_WITH_LIBUNWIND
 
 #include "unwind.hpp"
-#include "../platform/common.hpp"
-#include "../platform/error.hpp"
-#include "../platform/utils.hpp"
+#include "../utils/common.hpp"
+#include "../error.hpp"
+#include "../utils/utils.hpp"
 
 #include <algorithm>
 #include <cassert>

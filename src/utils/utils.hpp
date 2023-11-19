@@ -18,7 +18,6 @@
 
 #include "common.hpp"
 #include "error.hpp"
-#include "utils.hpp"
 
 #if IS_WINDOWS
  #include <windows.h>

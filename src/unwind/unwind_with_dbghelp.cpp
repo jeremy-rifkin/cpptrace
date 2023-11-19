@@ -2,8 +2,8 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "unwind.hpp"
-#include "../platform/common.hpp"
-#include "../platform/utils.hpp"
+#include "../utils/common.hpp"
+#include "../utils/utils.hpp"
 #include "../platform/dbghelp_syminit_manager.hpp"
 
 #include <algorithm>
