@@ -2,7 +2,7 @@
 
 #include "unwind.hpp"
 #include "../utils/common.hpp"
-#include "../error.hpp"
+#include "../utils/error.hpp"
 #include "../utils/utils.hpp"
 
 #include <algorithm>

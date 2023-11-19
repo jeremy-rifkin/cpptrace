@@ -20,7 +20,7 @@
  #include <sys/wait.h>
 #endif
 
-#include "../platform/object.hpp"
+#include "../binary/object.hpp"
 
 namespace cpptrace {
 namespace detail {
