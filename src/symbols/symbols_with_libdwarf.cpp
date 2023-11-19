@@ -7,6 +7,7 @@
 #include "../utils/error.hpp"
 #include "../binary/object.hpp"
 #include "../utils/utils.hpp"
+#include "../utils/program_name.hpp" // For CPPTRACE_MAX_PATH
 
 #include <algorithm>
 #include <cstdint>
