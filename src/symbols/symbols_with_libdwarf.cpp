@@ -6,7 +6,6 @@
 #include "../utils/dwarf.hpp"
 #include "../utils/error.hpp"
 #include "../binary/object.hpp"
-#include "../utils/program_name.hpp"
 #include "../utils/utils.hpp"
 
 #include <algorithm>
