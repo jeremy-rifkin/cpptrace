@@ -12,6 +12,7 @@
 #include <cstring>
 #include <iostream>
 
+#if CPPTRACE_HAS_DL_FIND_OBJECT
 #if IS_LINUX || IS_APPLE
  #include <unistd.h>
  #include <dlfcn.h>
@@ -55,5 +56,16 @@ namespace detail {
     }
 }
 }
+#else
+namespace cpptrace {
+namespace detail {
+    inline void get_minimal_object_frame(frame_ptr address, minimal_object_frame* out) {
+        out->raw_address = 0;
+        out->address_relative_to_object_base_in_memory = 0;
+        out->object_path[0] = 0;
+    }
+}
+}
+#endif
 
 #endif

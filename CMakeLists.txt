@@ -78,6 +78,10 @@ if(NOT WIN32 OR MINGW)
   check_support(HAS_CXX_EXCEPTION_TYPE has_cxx_exception_type.cpp "" "" "")
 endif()
 
+if(UNIX AND NOT APPLE)
+  check_support(HAS_DL_FIND_OBJECT has_dl_find_object.cpp "" "" "")
+endif()
+
 # =============================================== Autoconfig unwinding ===============================================
 # Unwind back-ends
 if(
@@ -274,6 +278,10 @@ endif()
 
 if(HAS_CXX_EXCEPTION_TYPE)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_HAS_CXX_EXCEPTION_TYPE)
+endif()
+
+if(HAS_DL_FIND_OBJECT)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_HAS_DL_FIND_OBJECT)
 endif()
 
 # Symbols
