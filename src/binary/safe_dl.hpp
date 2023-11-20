@@ -60,7 +60,7 @@ namespace detail {
 namespace cpptrace {
 namespace detail {
     inline void get_minimal_object_frame(frame_ptr address, minimal_object_frame* out) {
-        out->raw_address = 0;
+        out->raw_address = address;
         out->address_relative_to_object_base_in_memory = 0;
         out->object_path[0] = 0;
     }
