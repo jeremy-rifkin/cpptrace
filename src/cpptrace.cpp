@@ -92,7 +92,11 @@ namespace cpptrace {
 
     stacktrace object_trace::resolve() const {
         try {
-            return stacktrace{detail::resolve_frames(frames)};
+            std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
+            for(auto& frame : trace) {
+                frame.symbol = detail::demangle(frame.symbol);
+            }
+            return stacktrace{std::move(trace)};
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
