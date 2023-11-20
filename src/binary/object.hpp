@@ -70,6 +70,7 @@ namespace detail {
             Dl_info info;
             object_frame frame;
             frame.raw_address = addr;
+            frame.obj_address = 0;
             if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread safe
                 // dli_sname and dli_saddr are only present with -rdynamic, sname will be included
                 // but we don't really need dli_saddr
@@ -129,6 +130,7 @@ namespace detail {
         for(const frame_ptr addr : addrs) {
             object_frame frame;
             frame.raw_address = addr;
+            frame.obj_address = 0;
             HMODULE handle;
             // Multithread safe as long as another thread doesn't come along and free the module
             if(GetModuleHandleExA(
@@ -150,7 +152,7 @@ namespace detail {
     #endif
 
     inline object_frame resolve_minimal_object_frame(const minimal_object_frame& frame) {
-        return object_frame {
+        return {
             frame.object_path,
             "",
             frame.raw_address,
