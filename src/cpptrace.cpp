@@ -32,11 +32,6 @@
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
-    raw_trace raw_trace::from_buffer(frame_ptr* buffer, std::size_t size) {
-        return raw_trace{std::vector<cpptrace::frame_ptr>(buffer, buffer + size)};
-    }
-
-    CPPTRACE_FORCE_NO_INLINE
     raw_trace raw_trace::current(std::size_t skip) {
         return generate_raw_trace(skip + 1);
     }

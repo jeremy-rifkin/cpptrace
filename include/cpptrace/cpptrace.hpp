@@ -35,7 +35,6 @@ namespace cpptrace {
 
     struct CPPTRACE_EXPORT raw_trace {
         std::vector<frame_ptr> frames;
-        static raw_trace from_buffer(frame_ptr* buffer, std::size_t size);
         static raw_trace current(std::size_t skip = 0);
         static raw_trace current(std::size_t skip, std::size_t max_depth);
         object_trace resolve_object_trace() const;
