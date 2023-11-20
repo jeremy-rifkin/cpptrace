@@ -150,7 +150,7 @@ namespace detail {
     #endif
 
     inline object_frame resolve_minimal_object_frame(const minimal_object_frame& frame) {
-        return {
+        return object_frame {
             frame.object_path,
             "",
             frame.raw_address,
