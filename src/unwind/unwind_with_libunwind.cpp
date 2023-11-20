@@ -41,7 +41,6 @@ namespace detail {
     std::size_t safe_capture_frames(frame_ptr* buffer, std::size_t size, std::size_t skip, std::size_t max_depth) {
         // some code duplication, but whatever
         skip++;
-        std::vector<frame_ptr> frames;
         unw_context_t context;
         unw_cursor_t cursor;
         // thread and signal-safe https://www.nongnu.org/libunwind/man/unw_getcontext(3).html

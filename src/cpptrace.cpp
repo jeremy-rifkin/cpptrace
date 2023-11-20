@@ -19,6 +19,7 @@
 #include "utils/common.hpp"
 #include "utils/utils.hpp"
 #include "binary/object.hpp"
+#include "binary/safe_dl.hpp"
 
 #define ESC     "\033["
 #define RESET   ESC "0m"
@@ -340,6 +341,14 @@ namespace cpptrace {
             }
             return stacktrace();
         }
+    }
+
+    object_frame minimal_object_frame::resolve() const {
+        return detail::resolve_minimal_object_frame(*this);
+    }
+
+    void get_minimal_object_frame(frame_ptr address, minimal_object_frame* out) {
+        detail::get_minimal_object_frame(address, out);
     }
 
     std::string demangle(const std::string& name) {

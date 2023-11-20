@@ -484,4 +484,8 @@ if(CPPTRACE_BUILD_TESTING)
       COMMAND dsymutil $<TARGET_FILE:demo>
     )
   endif()
+
+  add_executable(signal_tracer test/signal_tracer.cpp)
+  target_compile_features(signal_tracer PRIVATE cxx_std_11)
+  target_link_libraries(signal_tracer PRIVATE ${target_name})
 endif()

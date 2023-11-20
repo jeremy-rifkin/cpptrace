@@ -148,6 +148,15 @@ namespace detail {
         return frames;
     }
     #endif
+
+    inline object_frame resolve_minimal_object_frame(const minimal_object_frame& frame) {
+        return {
+            frame.object_path,
+            "",
+            frame.raw_address,
+            frame.address_relative_to_object_base_in_memory + get_module_image_base(frame.object_path)
+        };
+    }
 }
 }
 
