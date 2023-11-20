@@ -494,6 +494,10 @@ if(CPPTRACE_BUILD_TESTING)
   endif()
 
   if(UNIX)
+    add_executable(signal_demo test/signal_demo.cpp)
+    target_compile_features(signal_demo PRIVATE cxx_std_11)
+    target_link_libraries(signal_demo PRIVATE ${target_name})
+
     add_executable(signal_tracer test/signal_tracer.cpp)
     target_compile_features(signal_tracer PRIVATE cxx_std_11)
     target_link_libraries(signal_tracer PRIVATE ${target_name})
