@@ -272,7 +272,6 @@ namespace addr2line {
             trace[i].address = frames[i].raw_address;
             // Set what is known for now, and resolutions from addr2line should overwrite
             trace[i].filename = frames[i].obj_path;
-            trace[i].symbol = frames[i].symbol;
         }
         if(has_addr2line()) {
             const auto entries = collate_frames(frames, trace);

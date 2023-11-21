@@ -55,8 +55,8 @@ void handler(int signo, siginfo_t* info, void* context) {
         _exit(1);
     }
     for(std::size_t i = 0; i < count; i++) {
-        cpptrace::minimal_object_frame frame;
-        cpptrace::get_minimal_object_frame(buffer[i], &frame);
+        cpptrace::safe_object_frame frame;
+        cpptrace::get_safe_object_frame(buffer[i], &frame);
         write(input_pipe.write_end, &frame, sizeof(frame));
     }
     close(input_pipe.read_end);
@@ -68,8 +68,8 @@ void handler(int signo, siginfo_t* info, void* context) {
 void warmup_cpptrace() {
     cpptrace::frame_ptr buffer[10];
     std::size_t count = cpptrace::safe_generate_raw_trace(buffer, 10);
-    cpptrace::minimal_object_frame frame;
-    cpptrace::get_minimal_object_frame(buffer[0], &frame);
+    cpptrace::safe_object_frame frame;
+    cpptrace::get_safe_object_frame(buffer[0], &frame);
 }
 
 int main() {

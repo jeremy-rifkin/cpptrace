@@ -44,7 +44,7 @@ namespace cpptrace {
     // signal-safe
     std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip, std::size_t max_depth);
 
-    struct minimal_object_frame {
+    struct safe_object_frame {
         frame_ptr raw_address;
         frame_ptr address_relative_to_object_base_in_memory;
         char object_path[CPPTRACE_PATH_MAX + 1];
@@ -52,7 +52,7 @@ namespace cpptrace {
     };
 
     // signal-safe
-    void get_minimal_object_frame(frame_ptr address, minimal_object_frame* out);
+    void get_safe_object_frame(frame_ptr address, safe_object_frame* out);
 }
 ```
 
@@ -61,7 +61,7 @@ information to resolve a stack trace in the currently running process after a si
 sufficient for resolving outside of the currently running process, unless there is no position-independent code or
 shared-library code.
 
-To resolve outside the current process `minimal_object_frame` information is needed. This contains the path to the
+To resolve outside the current process `safe_object_frame` information is needed. This contains the path to the
 object where the address is located as well as the address before address randomization.
 
 # Strategy
@@ -69,10 +69,10 @@ object where the address is located as well as the address before address random
 Signal-safe tracing can be done three ways:
 - In a signal handler, call `safe_generate_raw_trace` and then outside a signal handler
   construct a `cpptrace:raw_trace` and resolve.
-- In a signal handler, call `safe_generate_raw_trace`, then write `cpptrace::minimal_object_frame`
+- In a signal handler, call `safe_generate_raw_trace`, then write `cpptrace::safe_object_frame`
   information to a file to be resolved later.
 - In a signal handler, call `safe_generate_raw_trace`, `fork()` and `exec()` a process to handle the
-  resolution, pass `cpptrace::minimal_object_frame` information to that child through a pipe, and
+  resolution, pass `cpptrace::safe_object_frame` information to that child through a pipe, and
   wait for the child to exit.
 
 It's not as simple as calling `cpptrace::generate_trace().print()`, I know, but these are truly the
@@ -82,7 +82,7 @@ only ways to do this safely as far as I can tell.
 
 **Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported
 `safe_generate_raw_trace` will just produce an empty trace and if object information can't be resolved in a signal-safe
-way then `get_minimal_object_frame` will not populate fields beyond the `raw_address`.
+way then `get_safe_object_frame` will not populate fields beyond the `raw_address`.
 
 Currently the only back-end that can unwind safely is libunwind. Currently, the only way I know to get `dladdr`'s
 information in a signal-safe manner is `_dl_find_object`, which doesn't exist on macos (or windows of course). If anyone
@@ -146,10 +146,10 @@ void do_signal_safe_trace(cpptrace::frame_ptr* buffer, std::size_t size) {
         execl("signal_tracer", "signal_tracer", nullptr);
         _exit(1);
     }
-    // Resolve to minimal_object_frames and write those to the pipe
+    // Resolve to safe_object_frames and write those to the pipe
     for(std::size_t i = 0; i < count; i++) {
-        cpptrace::minimal_object_frame frame;
-        cpptrace::get_minimal_object_frame(buffer[i], &frame);
+        cpptrace::safe_object_frame frame;
+        cpptrace::get_safe_object_frame(buffer[i], &frame);
         write(input_pipe.write_end, &frame, sizeof(frame));
     }
     close(input_pipe.read_end);
@@ -175,8 +175,8 @@ void warmup_cpptrace() {
     // This is done for any dynamic-loading shenanigans
     cpptrace::frame_ptr buffer[10];
     std::size_t count = cpptrace::safe_generate_raw_trace(buffer, 10);
-    cpptrace::minimal_object_frame frame;
-    cpptrace::get_minimal_object_frame(buffer[0], &frame);
+    cpptrace::safe_object_frame frame;
+    cpptrace::get_safe_object_frame(buffer[0], &frame);
 }
 
 int main() {
@@ -195,7 +195,7 @@ int main() {
 
 ## In the tracer program
 
-The tracer program is quite simple. It just has to read `cpptrace::minimal_object_frame`s from the pipe, resolve to
+The tracer program is quite simple. It just has to read `cpptrace::safe_object_frame`s from the pipe, resolve to
 `cpptrace::object_frame`s, and resolve an `object_trace`.
 
 ```cpp
@@ -208,7 +208,7 @@ The tracer program is quite simple. It just has to read `cpptrace::minimal_objec
 int main() {
     cpptrace::object_trace trace;
     while(true) {
-        cpptrace::minimal_object_frame frame;
+        cpptrace::safe_object_frame frame;
         // fread used over read because a read() from a pipe might not read the full frame
         std::size_t res = fread(&frame, sizeof(frame), 1, stdin);
         if(res == 0) {

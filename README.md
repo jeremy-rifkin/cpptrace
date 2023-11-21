@@ -178,15 +178,14 @@ namespace cpptrace {
 
 ### Object Traces
 
-Object traces are somewhat minimal stack traces with basic information on which binary a frame corresponds to, any
-symbol name libdl (in linux/macos) was able to resolve, the raw program counter and the program counter translated to
-the corresponding object file's memory space.
+Object traces contain the most basic information needed to construct a stack trace outside the currently running
+executable. It contains the raw address, the address in the binary (ASLR and the object file's memory space and whatnot
+is resolved), and the path to the object the instruction pointer is located in.
 
 ```cpp
 namespace cpptrace {
     struct object_frame {
         std::string obj_path;
-        std::string symbol;
         frame_ptr raw_address;
         frame_ptr obj_address;
     };
@@ -409,19 +408,19 @@ The safe API is as follows:
 namespace cpptrace {
     std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip = 0);
     std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip, std::size_t max_depth);
-    struct minimal_object_frame {
+    struct safe_object_frame {
         frame_ptr raw_address;
         frame_ptr address_relative_to_object_base_in_memory;
         char object_path[CPPTRACE_PATH_MAX + 1];
         object_frame resolve() const; // To be called outside a signal handler. Not signal safe.
     };
-    void get_minimal_object_frame(frame_ptr address, minimal_object_frame* out);
+    void get_safe_object_frame(frame_ptr address, safe_object_frame* out);
 }
 ```
 
 **Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported
 `safe_generate_raw_trace` will just produce an empty trace and if object information can't be resolved in a signal-safe
-way then `get_minimal_object_frame` will not populate fields beyond the `raw_address`.
+way then `get_safe_object_frame` will not populate fields beyond the `raw_address`.
 
 **Another big note:** Calls to shared objects can be lazy-loaded where the first call to the shared object invokes
 non-signal-safe functions such as `malloc()`. To avoid this, call these routines in `main()` ahead of a signal handler

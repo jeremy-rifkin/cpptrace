@@ -850,15 +850,13 @@ namespace libdwarf {
         frame_with_inlines resolve_frame(const object_frame& frame_info) {
             stacktrace_frame frame = null_frame;
             frame.filename = frame_info.obj_path;
-            frame.symbol = frame_info.symbol;
             frame.address = frame_info.raw_address;
             if(trace_dwarf) {
                 std::fprintf(
                     stderr,
-                    "Starting resolution for %s %08llx %s\n",
+                    "Starting resolution for %s %08llx\n",
                     obj_path.c_str(),
-                    to_ull(frame_info.obj_address),
-                    frame_info.symbol.c_str()
+                    to_ull(frame_info.obj_address)
                 );
             }
             std::vector<stacktrace_frame> inlines;

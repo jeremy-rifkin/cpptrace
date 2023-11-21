@@ -78,7 +78,6 @@ namespace detail {
                 frame.obj_address = addr
                                     - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
                                     + get_module_image_base(info.dli_fname);
-                frame.symbol = info.dli_sname ?: "";
             }
             frames.push_back(frame);
         }
@@ -151,10 +150,9 @@ namespace detail {
     }
     #endif
 
-    inline object_frame resolve_minimal_object_frame(const minimal_object_frame& frame) {
+    inline object_frame resolve_safe_object_frame(const safe_object_frame& frame) {
         return {
             frame.object_path,
-            "",
             frame.raw_address,
             frame.address_relative_to_object_base_in_memory + get_module_image_base(frame.object_path)
         };

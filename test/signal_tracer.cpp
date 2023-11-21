@@ -8,7 +8,7 @@
 int main() {
     cpptrace::object_trace trace;
     while(true) {
-        cpptrace::minimal_object_frame frame;
+        cpptrace::safe_object_frame frame;
         // std::size_t res = read(STDIN_FILENO, &frame, sizeof(frame));
         std::size_t res = fread(&frame, sizeof(frame), 1, stdin);
         if(res == 0) {

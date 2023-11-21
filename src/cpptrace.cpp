@@ -342,12 +342,12 @@ namespace cpptrace {
         }
     }
 
-    object_frame minimal_object_frame::resolve() const {
-        return detail::resolve_minimal_object_frame(*this);
+    object_frame safe_object_frame::resolve() const {
+        return detail::resolve_safe_object_frame(*this);
     }
 
-    void get_minimal_object_frame(frame_ptr address, minimal_object_frame* out) {
-        detail::get_minimal_object_frame(address, out);
+    void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
+        detail::get_safe_object_frame(address, out);
     }
 
     std::string demangle(const std::string& name) {

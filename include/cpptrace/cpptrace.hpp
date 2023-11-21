@@ -55,7 +55,6 @@ namespace cpptrace {
 
     struct CPPTRACE_EXPORT object_frame {
         std::string obj_path;
-        std::string symbol;
         frame_ptr raw_address;
         frame_ptr obj_address;
     };
@@ -194,7 +193,7 @@ namespace cpptrace {
         std::size_t skip,
         std::size_t max_depth
     );
-    struct CPPTRACE_EXPORT minimal_object_frame {
+    struct CPPTRACE_EXPORT safe_object_frame {
         frame_ptr raw_address;
         frame_ptr address_relative_to_object_base_in_memory;
         char object_path[CPPTRACE_PATH_MAX + 1];
@@ -202,7 +201,7 @@ namespace cpptrace {
         object_frame resolve() const;
     };
     // signal-safe
-    CPPTRACE_EXPORT void get_minimal_object_frame(frame_ptr address, minimal_object_frame* out);
+    CPPTRACE_EXPORT void get_safe_object_frame(frame_ptr address, safe_object_frame* out);
 
     // utilities:
     CPPTRACE_EXPORT std::string demangle(const std::string& name);
