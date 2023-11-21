@@ -37,7 +37,7 @@ namespace detail {
 #include <mach-o/dyld.h>
 #include <sys/syslimits.h>
 
-#define CPPTRACE_MAX_PATH PATH_MAX
+#define CPPTRACE_MAX_PATH CPPTRACE_PATH_MAX
 
 namespace cpptrace {
 namespace detail {
@@ -49,7 +49,7 @@ namespace detail {
         static bool valid = false;
         if(!did_init) {
             did_init = true;
-            std::uint32_t bufferSize = PATH_MAX + 1;
+            std::uint32_t bufferSize = CPPTRACE_PATH_MAX + 1;
             char buffer[bufferSize];
             if(_NSGetExecutablePath(buffer, &bufferSize) == 0) {
                 name.assign(buffer, bufferSize);
@@ -67,7 +67,7 @@ namespace detail {
 #include <sys/types.h>
 #include <unistd.h>
 
-#define CPPTRACE_MAX_PATH PATH_MAX
+#define CPPTRACE_MAX_PATH CPPTRACE_PATH_MAX
 
 namespace cpptrace {
 namespace detail {
@@ -79,8 +79,8 @@ namespace detail {
         static bool valid = false;
         if(!did_init) {
             did_init = true;
-            char buffer[PATH_MAX + 1];
-            const ssize_t size = readlink("/proc/self/exe", buffer, PATH_MAX);
+            char buffer[CPPTRACE_PATH_MAX + 1];
+            const ssize_t size = readlink("/proc/self/exe", buffer, CPPTRACE_PATH_MAX);
             if(size == -1) {
                 return nullptr;
             }
