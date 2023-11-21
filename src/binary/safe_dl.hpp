@@ -25,7 +25,7 @@ namespace detail {
         out->raw_address = address;
         dl_find_object result;
         if(_dl_find_object(reinterpret_cast<void*>(address), &result) == 0) {
-            out->address_relative_to_object_start = address - reinterpret_cast<frame_ptr>(result.dlfo_link_map->l_addr);
+            out->address_relative_to_object_start = address - to_frame_ptr(result.dlfo_link_map->l_addr);
             if(result.dlfo_link_map->l_name != nullptr && result.dlfo_link_map->l_name[0] != 0) {
                 std::size_t path_length = std::strlen(result.dlfo_link_map->l_name);
                 std::memcpy(
