@@ -89,7 +89,7 @@ namespace detail {
                     }
                 }
                 frame.object_address = addr
-                                     - reinterpret_cast<std::uintptr_t>(result.dlfo_map_start)
+                                     - reinterpret_cast<std::uintptr_t>(result.dlfo_link_map->l_addr)
                                      + get_module_image_base(frame.object_path);
             }
             frames.push_back(frame);
