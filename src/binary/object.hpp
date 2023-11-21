@@ -26,35 +26,35 @@ namespace cpptrace {
 namespace detail {
     #if IS_LINUX || IS_APPLE
     #if !IS_APPLE
-    inline std::uintptr_t get_module_image_base(const std::string& obj_path) {
+    inline std::uintptr_t get_module_image_base(const std::string& object_path) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
         static std::unordered_map<std::string, std::uintptr_t> cache;
-        auto it = cache.find(obj_path);
+        auto it = cache.find(object_path);
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
-            auto base = elf_get_module_image_base(obj_path);
-            cache.insert(it, {obj_path, base});
+            auto base = elf_get_module_image_base(object_path);
+            cache.insert(it, {object_path, base});
             return base;
         } else {
             return it->second;
         }
     }
     #else
-    inline std::uintptr_t get_module_image_base(const std::string& obj_path) {
+    inline std::uintptr_t get_module_image_base(const std::string& object_path) {
         // We have to parse the Mach-O to find the offset of the text section.....
         // I don't know how addresses are handled if there is more than one __TEXT load command. I'm assuming for
         // now that there is only one, and I'm using only the first section entry within that load command.
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
         static std::unordered_map<std::string, std::uintptr_t> cache;
-        auto it = cache.find(obj_path);
+        auto it = cache.find(object_path);
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
-            auto base = macho_get_text_vmaddr(obj_path);
-            cache.insert(it, {obj_path, base});
+            auto base = macho_get_text_vmaddr(object_path);
+            cache.insert(it, {object_path, base});
             return base;
         } else {
             return it->second;
@@ -70,12 +70,12 @@ namespace detail {
             Dl_info info;
             object_frame frame;
             frame.raw_address = addr;
-            frame.obj_address = 0;
+            frame.object_address = 0;
             if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread safe
                 // dli_sname and dli_saddr are only present with -rdynamic, sname will be included
                 // but we don't really need dli_saddr
-                frame.obj_path = info.dli_fname;
-                frame.obj_address = addr
+                frame.object_path = info.dli_fname;
+                frame.object_address = addr
                                     - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
                                     + get_module_image_base(info.dli_fname);
             }
@@ -105,16 +105,16 @@ namespace detail {
         }
     }
 
-    inline std::uintptr_t get_module_image_base(const std::string& obj_path) {
+    inline std::uintptr_t get_module_image_base(const std::string& object_path) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
         static std::unordered_map<std::string, std::uintptr_t> cache;
-        auto it = cache.find(obj_path);
+        auto it = cache.find(object_path);
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
-            auto base = pe_get_module_image_base(obj_path);
-            cache.insert(it, {obj_path, base});
+            auto base = pe_get_module_image_base(object_path);
+            cache.insert(it, {object_path, base});
             return base;
         } else {
             return it->second;
@@ -129,7 +129,7 @@ namespace detail {
         for(const frame_ptr addr : addrs) {
             object_frame frame;
             frame.raw_address = addr;
-            frame.obj_address = 0;
+            frame.object_address = 0;
             HMODULE handle;
             // Multithread safe as long as another thread doesn't come along and free the module
             if(GetModuleHandleExA(
@@ -137,10 +137,10 @@ namespace detail {
                 reinterpret_cast<const char*>(addr),
                 &handle
             )) {
-                frame.obj_path = get_module_name(handle);
-                frame.obj_address = addr
+                frame.object_path = get_module_name(handle);
+                frame.object_address = addr
                                     - reinterpret_cast<std::uintptr_t>(handle)
-                                    + get_module_image_base(frame.obj_path);
+                                    + get_module_image_base(frame.object_path);
             } else {
                 std::fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
             }
@@ -152,9 +152,9 @@ namespace detail {
 
     inline object_frame resolve_safe_object_frame(const safe_object_frame& frame) {
         return {
-            frame.object_path,
             frame.raw_address,
-            frame.address_relative_to_object_base_in_memory + get_module_image_base(frame.object_path)
+            frame.address_relative_to_object_start + get_module_image_base(frame.object_path),
+            frame.object_path
         };
     }
 }

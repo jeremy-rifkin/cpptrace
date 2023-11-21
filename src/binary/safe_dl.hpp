@@ -25,7 +25,7 @@ namespace detail {
         dl_find_object result;
         if(_dl_find_object(reinterpret_cast<void*>(address), &result) == 0) {
             out->raw_address = address;
-            out->address_relative_to_object_base_in_memory = address - reinterpret_cast<frame_ptr>(result.dlfo_map_start);
+            out->address_relative_to_object_start = address - reinterpret_cast<frame_ptr>(result.dlfo_map_start);
             if(result.dlfo_link_map->l_name != nullptr && result.dlfo_link_map->l_name[0] != 0) {
                 std::size_t path_length = std::strlen(result.dlfo_link_map->l_name);
                 std::memcpy(
@@ -45,7 +45,7 @@ namespace detail {
         } else {
             // std::cout<<"error"<<std::endl;
             out->raw_address = address;
-            out->address_relative_to_object_base_in_memory = 0;
+            out->address_relative_to_object_start = 0;
             out->object_path[0] = 0;
         }
         // TODO: Handle this part of the documentation?
@@ -61,7 +61,7 @@ namespace cpptrace {
 namespace detail {
     inline void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
         out->raw_address = address;
-        out->address_relative_to_object_base_in_memory = 0;
+        out->address_relative_to_object_start = 0;
         out->object_path[0] = 0;
     }
 }

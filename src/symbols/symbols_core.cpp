@@ -17,8 +17,8 @@ namespace detail {
             const auto& entry = frames[i];
             // If libdl fails to find the shared object for a frame, the path will be empty. I've observed this
             // on macos when looking up the shared object containing `start`.
-            if(!entry.obj_path.empty()) {
-                entries[entry.obj_path].emplace_back(
+            if(!entry.object_path.empty()) {
+                entries[entry.object_path].emplace_back(
                     entry,
                     trace[i]
                 );
@@ -36,8 +36,8 @@ namespace detail {
             const auto& entry = frames[i];
             // If libdl fails to find the shared object for a frame, the path will be empty. I've observed this
             // on macos when looking up the shared object containing `start`.
-            if(!entry.obj_path.empty()) {
-                entries[entry.obj_path].emplace_back(
+            if(!entry.object_path.empty()) {
+                entries[entry.object_path].emplace_back(
                     entry,
                     trace[i]
                 );

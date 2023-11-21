@@ -46,7 +46,7 @@ namespace cpptrace {
 
     struct safe_object_frame {
         frame_ptr raw_address;
-        frame_ptr address_relative_to_object_base_in_memory;
+        frame_ptr address_relative_to_object_start; // object base address must yet be added
         char object_path[CPPTRACE_PATH_MAX + 1];
         object_frame resolve() const; // To be called outside a signal handler. Not signal safe.
     };

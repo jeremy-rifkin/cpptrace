@@ -75,8 +75,8 @@ namespace detail {
 
     template<std::size_t Bits>
     static optional<std::uintptr_t> macho_get_text_vmaddr_mach(
-        std::FILE* obj_file,
-        const std::string& obj_path,
+        std::FILE* object_file,
+        const std::string& object_path,
         off_t offset,
         bool should_swap,
         bool allow_arch_mismatch
@@ -87,7 +87,7 @@ namespace detail {
         std::uint32_t ncmds;
         off_t load_commands_offset = offset;
         std::size_t header_size = sizeof(Mach_Header);
-        Mach_Header header = load_bytes<Mach_Header>(obj_file, offset);
+        Mach_Header header = load_bytes<Mach_Header>(object_file, offset);
         if(should_swap) {
             swap_mach_header(header);
         }
@@ -107,7 +107,7 @@ namespace detail {
             if(allow_arch_mismatch) {
                 return nullopt;
             } else {
-                PANIC("Mach-O file cpu type and subtype do not match current machine " + obj_path);
+                PANIC("Mach-O file cpu type and subtype do not match current machine " + object_path);
             }
         }
         ncmds = header.ncmds;
@@ -115,12 +115,12 @@ namespace detail {
         // iterate load commands
         off_t actual_offset = load_commands_offset;
         for(std::uint32_t i = 0; i < ncmds; i++) {
-            load_command cmd = load_bytes<load_command>(obj_file, actual_offset);
+            load_command cmd = load_bytes<load_command>(object_file, actual_offset);
             if(should_swap) {
                 swap_load_command(&cmd, NX_UnknownByteOrder);
             }
             // TODO: This is a mistake? Need to check cmd.cmd == LC_SEGMENT_64 / cmd.cmd == LC_SEGMENT
-            Segment_Command segment = load_bytes<Segment_Command>(obj_file, actual_offset);
+            Segment_Command segment = load_bytes<Segment_Command>(object_file, actual_offset);
             if(should_swap) {
                 swap_segment_command(segment);
             }
@@ -135,38 +135,38 @@ namespace detail {
     }
 
     static std::uintptr_t macho_get_text_vmaddr_fat(
-        std::FILE* obj_file,
-        const std::string& obj_path,
+        std::FILE* object_file,
+        const std::string& object_path,
         bool should_swap
     ) {
         std::size_t header_size = sizeof(fat_header);
         std::size_t arch_size = sizeof(fat_arch);
-        fat_header header = load_bytes<fat_header>(obj_file, 0);
+        fat_header header = load_bytes<fat_header>(object_file, 0);
         if(should_swap) {
             swap_fat_header(&header, NX_UnknownByteOrder);
         }
         off_t arch_offset = (off_t)header_size;
         optional<std::uintptr_t> text_vmaddr;
         for(std::uint32_t i = 0; i < header.nfat_arch; i++) {
-            fat_arch arch = load_bytes<fat_arch>(obj_file, arch_offset);
+            fat_arch arch = load_bytes<fat_arch>(object_file, arch_offset);
             if(should_swap) {
                 swap_fat_arch(&arch, 1, NX_UnknownByteOrder);
             }
             off_t mach_header_offset = (off_t)arch.offset;
             arch_offset += arch_size;
-            std::uint32_t magic = load_bytes<std::uint32_t>(obj_file, mach_header_offset);
+            std::uint32_t magic = load_bytes<std::uint32_t>(object_file, mach_header_offset);
             if(is_magic_64(magic)) {
                 text_vmaddr = macho_get_text_vmaddr_mach<64>(
-                    obj_file,
-                    obj_path,
+                    object_file,
+                    object_path,
                     mach_header_offset,
                     should_swap_bytes(magic),
                     true
                 );
             } else {
                 text_vmaddr = macho_get_text_vmaddr_mach<32>(
-                    obj_file,
-                    obj_path,
+                    object_file,
+                    object_path,
                     mach_header_offset,
                     should_swap_bytes(magic),
                     true
@@ -181,31 +181,31 @@ namespace detail {
         return 0;
     }
 
-    static std::uintptr_t macho_get_text_vmaddr(const std::string& obj_path) {
-        //std::fprintf(stderr, "--%s--\n", obj_path.c_str());
-        auto file = raii_wrap(std::fopen(obj_path.c_str(), "rb"), file_deleter);
+    static std::uintptr_t macho_get_text_vmaddr(const std::string& object_path) {
+        //std::fprintf(stderr, "--%s--\n", object_path.c_str());
+        auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
-            throw file_error("Unable to read object file " + obj_path);
+            throw file_error("Unable to read object file " + object_path);
         }
         std::uint32_t magic = load_bytes<std::uint32_t>(file, 0);
-        VERIFY(is_mach_o(magic), "File is not Mach-O " + obj_path);
+        VERIFY(is_mach_o(magic), "File is not Mach-O " + object_path);
         bool is_64 = is_magic_64(magic);
         bool should_swap = should_swap_bytes(magic);
         if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
-            return macho_get_text_vmaddr_fat(file, obj_path, should_swap);
+            return macho_get_text_vmaddr_fat(file, object_path, should_swap);
         } else {
             if(is_64) {
-                return macho_get_text_vmaddr_mach<64>(file, obj_path, 0, should_swap, false).unwrap();
+                return macho_get_text_vmaddr_mach<64>(file, object_path, 0, should_swap, false).unwrap();
             } else {
-                return macho_get_text_vmaddr_mach<32>(file, obj_path, 0, should_swap, false).unwrap();
+                return macho_get_text_vmaddr_mach<32>(file, object_path, 0, should_swap, false).unwrap();
             }
         }
     }
 
-    inline bool macho_is_fat(const std::string& obj_path) {
-        auto file = raii_wrap(std::fopen(obj_path.c_str(), "rb"), file_deleter);
+    inline bool macho_is_fat(const std::string& object_path) {
+        auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
-            throw file_error("Unable to read object file " + obj_path);
+            throw file_error("Unable to read object file " + object_path);
         }
         std::uint32_t magic = load_bytes<std::uint32_t>(file, 0);
         return is_fat_magic(magic);
@@ -213,10 +213,10 @@ namespace detail {
 
     // returns index of the appropriate mach-o binary in the universal binary
     // TODO: Code duplication with macho_get_text_vmaddr_fat
-    inline unsigned get_fat_macho_index(const std::string& obj_path) {
-        auto file = raii_wrap(std::fopen(obj_path.c_str(), "rb"), file_deleter);
+    inline unsigned get_fat_macho_index(const std::string& object_path) {
+        auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
-            throw file_error("Unable to read object file " + obj_path);
+            throw file_error("Unable to read object file " + object_path);
         }
         std::uint32_t magic = load_bytes<std::uint32_t>(file, 0);
         VERIFY(is_fat_magic(magic));

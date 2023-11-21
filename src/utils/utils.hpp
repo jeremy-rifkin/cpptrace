@@ -170,10 +170,10 @@ namespace detail {
 
     // TODO: Re-evaluate use of off_t
     template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
-    T load_bytes(std::FILE* obj_file, off_t offset) {
+    T load_bytes(std::FILE* object_file, off_t offset) {
         T object;
-        VERIFY(std::fseek(obj_file, offset, SEEK_SET) == 0, "fseek error");
-        VERIFY(std::fread(&object, sizeof(T), 1, obj_file) == 1, "fread error");
+        VERIFY(std::fseek(object_file, offset, SEEK_SET) == 0, "fseek error");
+        VERIFY(std::fread(&object, sizeof(T), 1, object_file) == 1, "fread error");
         return object;
     }
 

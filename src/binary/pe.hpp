@@ -26,22 +26,22 @@ namespace detail {
         }
     }
 
-    inline std::uintptr_t pe_get_module_image_base(const std::string& obj_path) {
+    inline std::uintptr_t pe_get_module_image_base(const std::string& object_path) {
         // https://drive.google.com/file/d/0B3_wGJkuWLytbnIxY1J5WUs4MEk/view?pli=1&resourcekey=0-n5zZ2UW39xVTH8ZSu6C2aQ
         // https://0xrick.github.io/win-internals/pe3/
         // Endianness should always be little for dos and pe headers
         std::FILE* file_ptr;
-        errno_t ret = fopen_s(&file_ptr, obj_path.c_str(), "rb");
+        errno_t ret = fopen_s(&file_ptr, object_path.c_str(), "rb");
         auto file = raii_wrap(std::move(file_ptr), file_deleter);
         if(ret != 0 || file == nullptr) {
-            throw file_error("Unable to read object file " + obj_path);
+            throw file_error("Unable to read object file " + object_path);
         }
         auto magic = load_bytes<std::array<char, 2>>(file, 0);
-        VERIFY(std::memcmp(magic.data(), "MZ", 2) == 0, "File is not a PE file " + obj_path);
+        VERIFY(std::memcmp(magic.data(), "MZ", 2) == 0, "File is not a PE file " + object_path);
         DWORD e_lfanew = pe_byteswap_if_needed(load_bytes<DWORD>(file, 0x3c)); // dos header + 0x3c
         DWORD nt_header_offset = e_lfanew;
         auto signature = load_bytes<std::array<char, 4>>(file, nt_header_offset); // nt header + 0
-        VERIFY(std::memcmp(signature.data(), "PE\0\0", 4) == 0, "File is not a PE file " + obj_path);
+        VERIFY(std::memcmp(signature.data(), "PE\0\0", 4) == 0, "File is not a PE file " + object_path);
         WORD size_of_optional_header = pe_byteswap_if_needed(
             load_bytes<WORD>(file, nt_header_offset + 4 + 0x10) // file header + 0x10
         );
@@ -51,7 +51,7 @@ namespace detail {
         );
         VERIFY(
             optional_header_magic == IMAGE_NT_OPTIONAL_HDR_MAGIC,
-            "PE file does not match expected bit-mode " + obj_path
+            "PE file does not match expected bit-mode " + object_path
         );
         // finally get image base
         if(optional_header_magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {

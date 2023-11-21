@@ -185,9 +185,9 @@ is resolved), and the path to the object the instruction pointer is located in.
 ```cpp
 namespace cpptrace {
     struct object_frame {
-        std::string obj_path;
+        std::string object_path;
         frame_ptr raw_address;
-        frame_ptr obj_address;
+        frame_ptr object_address;
     };
 
     struct object_trace {
@@ -410,7 +410,7 @@ namespace cpptrace {
     std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip, std::size_t max_depth);
     struct safe_object_frame {
         frame_ptr raw_address;
-        frame_ptr address_relative_to_object_base_in_memory;
+        frame_ptr address_relative_to_object_start; // object base address must yet be added
         char object_path[CPPTRACE_PATH_MAX + 1];
         object_frame resolve() const; // To be called outside a signal handler. Not signal safe.
     };

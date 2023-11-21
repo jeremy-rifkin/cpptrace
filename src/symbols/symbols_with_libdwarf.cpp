@@ -83,7 +83,7 @@ namespace libdwarf {
     };
 
     struct dwarf_resolver {
-        std::string obj_path;
+        std::string object_path;
         Dwarf_Debug dbg = nullptr;
         bool ok = false;
         // .debug_aranges cache
@@ -124,16 +124,16 @@ namespace libdwarf {
         }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        dwarf_resolver(const std::string& object_path) {
-            obj_path = object_path;
+        dwarf_resolver(const std::string& _object_path) {
+            object_path = _object_path;
             // for universal / fat mach-o files
             unsigned universal_number = 0;
             #if IS_APPLE
-            if(directory_exists(obj_path + ".dSYM")) {
-                obj_path += ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
+            if(directory_exists(object_path + ".dSYM")) {
+                object_path += ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
             }
-            if(macho_is_fat(obj_path)) {
-                universal_number = get_fat_macho_index(obj_path);
+            if(macho_is_fat(object_path)) {
+                universal_number = get_fat_macho_index(object_path);
             }
             #endif
 
@@ -142,7 +142,7 @@ namespace libdwarf {
             std::unique_ptr<char[]> buffer(new char[CPPTRACE_MAX_PATH]);
             auto ret = wrap(
                 dwarf_init_path_a,
-                obj_path.c_str(),
+                object_path.c_str(),
                 buffer.get(),
                 CPPTRACE_MAX_PATH,
                 DW_GROUPNUMBER_ANY,
@@ -205,7 +205,7 @@ namespace libdwarf {
         dwarf_resolver& operator=(const dwarf_resolver&) = delete;
 
         dwarf_resolver(dwarf_resolver&& other) noexcept :
-            obj_path(std::move(other.obj_path)),
+            object_path(std::move(other.object_path)),
             dbg(other.dbg),
             ok(other.ok),
             aranges(other.aranges),
@@ -220,7 +220,7 @@ namespace libdwarf {
         }
 
         dwarf_resolver& operator=(dwarf_resolver&& other) noexcept {
-            obj_path = std::move(other.obj_path);
+            object_path = std::move(other.object_path);
             dbg = other.dbg;
             ok = other.ok;
             aranges = other.aranges;
@@ -763,7 +763,7 @@ namespace libdwarf {
             std::vector<stacktrace_frame>& inlines
         ) {
             if(dump_dwarf) {
-                std::fprintf(stderr, "%s\n", obj_path.c_str());
+                std::fprintf(stderr, "%s\n", object_path.c_str());
                 std::fprintf(stderr, "%llx\n", to_ull(pc));
             }
             // Check for .debug_aranges for fast lookup
@@ -849,19 +849,19 @@ namespace libdwarf {
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         frame_with_inlines resolve_frame(const object_frame& frame_info) {
             stacktrace_frame frame = null_frame;
-            frame.filename = frame_info.obj_path;
+            frame.filename = frame_info.object_path;
             frame.address = frame_info.raw_address;
             if(trace_dwarf) {
                 std::fprintf(
                     stderr,
                     "Starting resolution for %s %08llx\n",
-                    obj_path.c_str(),
-                    to_ull(frame_info.obj_address)
+                    object_path.c_str(),
+                    to_ull(frame_info.object_address)
                 );
             }
             std::vector<stacktrace_frame> inlines;
             lookup_pc(
-                frame_info.obj_address,
+                frame_info.object_address,
                 frame,
                 inlines
             );
@@ -877,21 +877,21 @@ namespace libdwarf {
         static std::unordered_map<std::string, dwarf_resolver> resolver_map;
         // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
         const std::lock_guard<std::mutex> lock(mutex);
-        for(const auto& obj_entry : collate_frames(frames, trace)) {
+        for(const auto& object_entry : collate_frames(frames, trace)) {
             try {
-                const auto& obj_name = obj_entry.first;
+                const auto& object_name = object_entry.first;
                 optional<dwarf_resolver> resolver_object = nullopt;
                 dwarf_resolver* resolver = nullptr;
-                auto it = resolver_map.find(obj_name);
+                auto it = resolver_map.find(object_name);
                 if(it != resolver_map.end()) {
                     resolver = &it->second;
                 } else {
-                    resolver_object = dwarf_resolver(obj_name);
+                    resolver_object = dwarf_resolver(object_name);
                     resolver = &resolver_object.unwrap();
                 }
                 // If there's no debug information it'll mark itself as not ok
                 if(resolver->ok) {
-                    for(const auto& entry : obj_entry.second) {
+                    for(const auto& entry : object_entry.second) {
                         try {
                             const auto& dlframe = entry.first.get();
                             auto& frame = entry.second.get();
@@ -904,7 +904,7 @@ namespace libdwarf {
                     }
                 } else {
                     // at least copy the addresses
-                    for(const auto& entry : obj_entry.second) {
+                    for(const auto& entry : object_entry.second) {
                         const auto& dlframe = entry.first.get();
                         auto& frame = entry.second.get();
                         frame.frame.address = dlframe.raw_address;
@@ -912,7 +912,7 @@ namespace libdwarf {
                 }
                 if(resolver_object.has_value() && get_cache_mode() == cache_mode::prioritize_speed) {
                     // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
-                    resolver_map.emplace(obj_name, std::move(resolver_object).unwrap());
+                    resolver_map.emplace(object_name, std::move(resolver_object).unwrap());
                 }
             } catch(...) { // NOSONAR
                 if(!should_absorb_trace_exceptions()) {

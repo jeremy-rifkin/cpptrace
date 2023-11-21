@@ -54,9 +54,9 @@ namespace cpptrace {
     };
 
     struct CPPTRACE_EXPORT object_frame {
-        std::string obj_path;
         frame_ptr raw_address;
-        frame_ptr obj_address;
+        frame_ptr object_address;
+        std::string object_path;
     };
 
     struct CPPTRACE_EXPORT object_trace {
@@ -195,7 +195,7 @@ namespace cpptrace {
     );
     struct CPPTRACE_EXPORT safe_object_frame {
         frame_ptr raw_address;
-        frame_ptr address_relative_to_object_base_in_memory;
+        frame_ptr address_relative_to_object_start; // base must still be added
         char object_path[CPPTRACE_PATH_MAX + 1];
         // To be called outside a signal handler. Not signal safe.
         object_frame resolve() const;
