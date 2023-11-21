@@ -423,6 +423,10 @@ namespace cpptrace {
 `safe_generate_raw_trace` will just produce an empty trace and if object information can't be resolved in a signal-safe
 way then `get_minimal_object_frame` will not populate fields beyond the `raw_address`.
 
+**Another big note:** Calls to shared objects can be lazy-loaded where the first call to the shared object invokes
+non-signal-safe functions such as `malloc()`. To avoid this, call these routines in `main()` ahead of a signal handler
+to "warm up" the library.
+
 Because signal-safe tracing is an involved process, I have written up a comprehensive overview of
 what is involved at [signal-safe-tracing.md](signal-safe-tracing.md).
 

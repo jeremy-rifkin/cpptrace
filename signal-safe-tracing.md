@@ -80,6 +80,12 @@ Currently the only back-end that can unwind safely is libunwind. Currently, the 
 information in a signal-safe manner is `_dl_find_object`, which doesn't exist on macos (or windows of course). If anyone
 knows ways to do these safely on other platforms, I'd be much appreciative.
 
+# A pitfall to be aware of
+
+Calls to functions in shared objects can be lazy-loaded where the first call to the shared object invokes
+non-signal-safe functions such as `malloc()`. To avoid this, call these safe cpptrace routines in `main()` ahead of a
+signal handler to "warm up" the library.
+
 # Signal-Safe Tracing With `fork()` + `exec()`
 
 Of the three strategies, `fork()` + `exec()`, is the most technically involved and the only way to resolve while the
@@ -95,6 +101,8 @@ The main program handles most of the complexity for tracing from signal handlers
 - Spawning a child process
 - Resolving raw frame pointers to minimal object frames
 - Sending that info to the other process
+
+Also note: A warmup for the library is done in main.
 
 A basic implementation is as follows:
 
@@ -155,7 +163,16 @@ void handler(int signo, siginfo_t* info, void* context) {
     _exit(1);
 }
 
+void warmup_cpptrace() {
+    // This is done for any dynamic-loading shenanigans
+    cpptrace::frame_ptr buffer[10];
+    std::size_t count = cpptrace::safe_generate_raw_trace(buffer, 10);
+    cpptrace::minimal_object_frame frame;
+    cpptrace::get_minimal_object_frame(buffer[0], &frame);
+}
+
 int main() {
+    warmup_cpptrace();
     // Setup signal handler
     struct sigaction action = { 0 };
     action.sa_flags = 0;
