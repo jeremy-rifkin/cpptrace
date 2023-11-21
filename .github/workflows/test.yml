@@ -13,6 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [gcc, clang]
+        shared: [--shared, ""]
     steps:
     - uses: actions/checkout@v2
     - name: dependencies
@@ -43,6 +44,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [gcc, clang]
+        shared: [--shared, ""]
     steps:
     - uses: actions/checkout@v2
     - name: libdwarf
@@ -72,6 +74,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [msvc, clang, gcc]
+        shared: [--shared, ""]
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
