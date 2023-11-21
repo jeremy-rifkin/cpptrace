@@ -419,7 +419,7 @@ def main():
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_WINAPI",
                 "CPPTRACE_UNWIND_WITH_DBGHELP",
-                #"CPPTRACE_UNWIND_WITH_UNWIND", # Broken on github actions for some reason
+                "CPPTRACE_UNWIND_WITH_UNWIND", # Broken on github actions for some reason
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
             "symbols": [
@@ -487,8 +487,7 @@ def main():
             "config": [""]
         }
         exclude = []
-        # TODO: Disabled for now due to unwind
-        #run_matrix(matrix, exclude, build_and_test_full_or_auto)
+        run_matrix(matrix, exclude, build_and_test_full_or_auto)
 
     global failed
     if failed:
