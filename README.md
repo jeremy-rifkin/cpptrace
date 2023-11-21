@@ -22,7 +22,10 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
     - [Raw Traces](#raw-traces)
     - [Utilities](#utilities)
     - [Traced Exceptions](#traced-exceptions)
+  - [Wrapping std::exceptions](#wrapping-stdexceptions)
   - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
+  - [Signal-Safe Tracing](#signal-safe-tracing)
+  - [Utility Types](#utility-types)
   - [Notable Library Configurations](#notable-library-configurations)
   - [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
     - [FAQ: What about C++23 `<stacktrace>`?](#faq-what-about-c23-stacktrace)
@@ -71,17 +74,23 @@ Cpptrace also provides exception types that store stack traces:
 #include <cpptrace/cpptrace.hpp>
 
 void trace() {
-    throw cpptrace::exception();
+    throw cpptrace::logic_error("This wasn't supposed to happen!");
 }
 
 /* other stuff */
-// terminate called after throwing an instance of 'cpptrace::exception'
-//   what():  cpptrace::exception:
+// terminate called after throwing an instance of 'cpptrace::logic_error'
+//   what():  This wasn't supposed to happen!:
 // Stack trace (most recent call first):
 // #0 0x00005641c715a1b6 in trace() at demo.cpp:9
 // #1 0x00005641c715a229 in foo(int) at demo.cpp:16
 // #2 0x00005641c715a2ba in main at demo.cpp:34
 ```
+
+Additional notable features:
+
+- Utilities for demangling
+- Utilities for catching `std::exception`s and wrapping them in traced exceptions
+- Signal-safe stack tracing
 
 ## CMake FetchContent Usage
 
@@ -131,12 +140,17 @@ direct access to frames as well as iterators.
 
 ```cpp
 namespace cpptrace {
+    // Some type sufficient for an instruction pointer, currently always an alias to std::uintptr_t
+    using frame_ptr = std::uintptr_t;
+
     struct stacktrace_frame {
-        uintptr_t address;
-        std::uint_least32_t line;
-        std::uint_least32_t column; // Unknown column is represented with UINT_LEAST32_MAX
+        frame_ptr address;
+        // nullable<T> represents a nullable integer. More docs later.
+        nullable<std::uint32_t> line;
+        nullable<std::uint32_t> column;
         std::string filename;
         std::string symbol;
+        bool is_inline;
         bool operator==(const stacktrace_frame& other) const;
         bool operator!=(const stacktrace_frame& other) const;
         std::string to_string() const;
@@ -145,8 +159,9 @@ namespace cpptrace {
 
     struct stacktrace {
         std::vector<stacktrace_frame> frames;
-        static stacktrace current(std::uint_least32_t skip = 0); // here as a drop-in for std::stacktrace
-        static stacktrace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        // here as a drop-in for std::stacktrace
+        static stacktrace current(std::size_t skip = 0);
+        static stacktrace current(std::size_t skip, std::size_t max_depth);
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
@@ -156,8 +171,8 @@ namespace cpptrace {
         /* operator<<(ostream, ..), std::format support, and iterators exist for this object */
     };
 
-    stacktrace generate_trace(std::uint_least32_t skip = 0);
-    stacktrace generate_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    stacktrace generate_trace(std::size_t skip = 0);
+    stacktrace generate_trace(std::size_t skip, std::size_t max_depth);
 }
 ```
 
@@ -172,22 +187,22 @@ namespace cpptrace {
     struct object_frame {
         std::string obj_path;
         std::string symbol;
-        uintptr_t raw_address = 0;
-        uintptr_t obj_address = 0;
+        frame_ptr raw_address;
+        frame_ptr obj_address;
     };
 
     struct object_trace {
         std::vector<object_frame> frames;
-        static object_trace current(std::uint_least32_t skip = 0);
-        static object_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        static object_trace current(std::size_t skip = 0);
+        static object_trace current(std::size_t skip, std::size_t max_depth);
         stacktrace resolve() const;
         void clear();
         bool empty() const noexcept;
         /* iterators exist for this object */
     };
 
-    object_trace generate_object_trace(std::uint_least32_t skip = 0);
-    object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    object_trace generate_object_trace(std::size_t skip = 0);
+    object_trace generate_object_trace(std::size_t skip, std::size_t max_depth);
 }
 ```
 
@@ -201,9 +216,9 @@ Note it is important executables and shared libraries in memory aren't somehow u
 ```cpp
 namespace cpptrace {
     struct raw_trace {
-        std::vector<uintptr_t> frames;
-        static raw_trace current(std::uint_least32_t skip = 0);
-        static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        std::vector<frame_ptr> frames;
+        static raw_trace current(std::size_t skip = 0);
+        static raw_trace current(std::size_t skip, std::size_t max_depth);
         object_trace resolve_object_trace() const;
         stacktrace resolve() const;
         void clear();
@@ -211,8 +226,8 @@ namespace cpptrace {
         /* iterators exist for this object */
     };
 
-    raw_trace generate_raw_trace(std::uint_least32_t skip = 0);
-    raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    raw_trace generate_raw_trace(std::size_t skip = 0);
+    raw_trace generate_raw_trace(std::size_t skip, std::size_t max_depth);
 }
 ```
 
@@ -263,38 +278,60 @@ namespace cpptrace {
 
 ### Traced Exceptions
 
-Cpptrace provides a set of exception classes that that generate stack traces when thrown. These exceptions generate
-relatively lightweight raw traces and resolve symbols and line numbers lazily if and when requested.
+Cpptrace provides an interface for a traced exceptions, `cpptrace::exception`, as well as a set of exception classes
+that that generate stack traces when thrown. These exceptions generate relatively lightweight raw traces and resolve
+symbols and line numbers lazily if and when requested.
+
+The basic interface is:
+```cpp
+namespace cpptrace {
+    class exception : public std::exception {
+    public:
+        virtual const char* what() const noexcept = 0; // The what string both the message and trace
+        virtual const char* message() const noexcept = 0;
+        virtual const stacktrace& trace() const noexcept = 0;
+    };
+}
+```
+
+There are two ways to go about traced exception objects: Traces can be resolved eagerly or lazily. Cpptrace provides the
+basic implementation of exceptions as lazy exceptions. I hate to have anything about the implementation exposed in the
+interface or type system but this seems to be the best way to do this.
 
 ```cpp
 namespace cpptrace {
-    // Traced exception class
-    // Extending classes should call the exception constructor with a skip value of 1.
-    class exception : public std::exception {
+    class lazy_exception : public exception {
+        mutable detail::lazy_trace_holder trace_holder; // basically std::variant<raw_trace, stacktrace>, more docs later
+        mutable std::string what_string;
     protected:
-        explicit exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
-        explicit exception(std::uint_least32_t skip) noexcept;
+        explicit lazy_exception(std::size_t skip, std::size_t max_depth) noexcept;
+        explicit lazy_exception(std::size_t skip) noexcept;
     public:
-        explicit exception() noexcept;
-        virtual const char* what() const noexcept override;
-        // what(), but not a C-string. Performs lazy evaluation of the full what string.
-        virtual const std::string& get_what() const noexcept;
-        // Just the plain what() value without the stacktrace. This value is called by get_what()
-        // during lazy evaluation.
-        virtual const char* get_raw_what() const noexcept;
-        // Returns internal raw_trace
-        const raw_trace& get_raw_trace() const noexcept;
-        // Returns a resolved trace. Performs lazy evaluation.
-        const stacktrace& get_trace() const noexcept;
+        explicit lazy_exception() noexcept : lazy_exception(1) {}
+        const char* what() const noexcept override;
+        const char* message() const noexcept override;
+        const stacktrace& trace() const noexcept override;
     };
+}
+```
 
-    class exception_with_message : public exception {
+`cpptrace::lazy_exception` can be freely thrown or overridden. Generally `message()` is the only field to override.
+
+Lastly cpptrace provides an exception class that takes a user-provided message, `cpptrace::exception_with_message`, as
+well as a number of traced exception classes resembling `<stdexcept>`:
+
+```cpp
+namespace cpptrace {
+    class CPPTRACE_EXPORT exception_with_message : public lazy_exception {
+        mutable std::string user_message;
     protected:
-        explicit exception_with_message(std::string&& message_arg, std::uint_least32_t skip) noexcept;
-        explicit exception_with_message(std::string&& message_arg, std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
+        explicit exception_with_message(std::string&& message_arg, std::size_t skip) noexcept;
+        explicit exception_with_message(std::string&& message_arg, std::size_t skip, std::size_t max_depth) noexcept;
     public:
-        explicit exception_with_message(std::string&& message_arg) noexcept;
-        virtual const char* get_raw_what() const noexcept override;
+        explicit exception_with_message(std::string&& message_arg) noexcept
+            : exception_with_message(std::move(message_arg), 1) {}
+
+        const char* message() const noexcept override;
     };
 
     // All stdexcept errors have analogs here. Same constructor as exception_with_message.
@@ -310,14 +347,24 @@ namespace cpptrace {
 }
 ```
 
-## Exception handling with cpptrace
+## Wrapping std::exceptions
 
-To register a custom handler for `std::terminate` that prints a stack trace from a cpptrace exception and otherwise
-behaves like the normal terminate handler.
+Cpptrace exceptions can provide great information for user-controlled exceptions. For non-cpptrace::exceptions that may
+originate outside of code you control, e.g. the standard library, cpptrace provides some wrapper utilities that can
+rethrow these exceptions nested in traced cpptrace exceptions. The trace won't be perfect, the trace will start where
+the rapper caught it, but these utilities can provide good diagnostic information. Unfortunately this is the best
+solution for this problem, as far as I know.
 
 ```cpp
-cpptrace::register_terminate_handler();
+std::vector<int> foo = {1, 2, 3};
+CPPTRACE_WRAP_BLOCK(
+    foo.at(4) = 2;
+    foo.at(5)++;
+);
+std::cout<<CPPTRACE_WRAP(foo.at(12))<<std::endl;
 ```
+
+## Exception handling with cpptrace
 
 Working with cpptrace exceptions in your code:
 ```cpp
@@ -326,10 +373,112 @@ try {
 } catch(cpptrace::exception& e) {
     // Prints the exception info and stack trace, conditionally enabling color codes depending on
     // whether stderr is a terminal
-    std::cerr << "Error: " << e.get_raw_what() << '\n';
-    e.get_trace().print(std::cerr, cpptrace::isatty(cpptrace::stderr_fileno));
+    std::cerr << "Error: " << e.message() << '\n';
+    e.trace().print(std::cerr, cpptrace::isatty(cpptrace::stderr_fileno));
 } catch(std::exception& e) {
     std::cerr << "Error: " << e.what() << '\n';
+}
+```
+
+Additionally cpptrace provides a custom `std::terminate` handler that prints a stack trace from a cpptrace exception and otherwise behaves like the normal terminate handler and prints the stack trace involved in reaching `std::terminate`.
+The stack trace to `std::terminate` may be helpful or it may not, it depends on the implementation, but often if an
+implementation can't find an appropriate `catch` while unwinding it will jump directly to `std::terminate` giving
+good information.
+
+To register this custom handler:
+
+```cpp
+cpptrace::register_terminate_handler();
+```
+
+## Signal-Safe Tracing
+
+Signal-safe stack tracing is very useful for debugging application crashes, e.g. SIGSEGVs or
+SIGTRAPs, but it's very difficult to do correctly and most implementations I see online do this
+incorrectly.
+
+In order to do this full process safely the way to go is collecting basic information in the signal
+handler and then either resolving later or handing that information to another process to resolve.
+
+It's not as simple as calling `cpptrace::generate_trace().print()`, though you might be able to get
+away with that, but this is what is needed to really do this safely.
+
+The safe API is as follows:
+
+```cpp
+namespace cpptrace {
+    std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip = 0);
+    std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip, std::size_t max_depth);
+    struct minimal_object_frame {
+        frame_ptr raw_address;
+        frame_ptr address_relative_to_object_base_in_memory;
+        char object_path[CPPTRACE_PATH_MAX + 1];
+        object_frame resolve() const; // To be called outside a signal handler. Not signal safe.
+    };
+    void get_minimal_object_frame(frame_ptr address, minimal_object_frame* out);
+}
+```
+
+**Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported
+`safe_generate_raw_trace` will just produce an empty trace and if object information can't be resolved in a signal-safe
+way then `get_minimal_object_frame` will not populate fields beyond the `raw_address`.
+
+Because signal-safe tracing is an involved process, I have written up a comprehensive overview of
+what is involved at [signal-safe-tracing.md](signal-safe-tracing.md).
+
+## Utility Types
+
+A couple utility types are used to provide the library with a good interface.
+
+`nullable<T>` is used for a nullable integer type. Internally the maximum value for `T` is used as a
+sentinel. `std::optional` would be used if this library weren't c++11. But, `nullable<T>` provides
+an `std::optional`-like interface and it's less heavy-duty for this use than an `std::optional`.
+
+`detail::lazy_trace_holder` is a utility type for `lazy_exception` used in place of an
+`std::variant<raw_trace, stacktrace>`.
+
+```cpp
+namespace cpptrace {
+    template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+    struct nullable {
+        T raw_value;
+        nullable& operator=(T value)
+        bool has_value() const noexcept;
+        T& value() noexcept;
+        const T& value() const noexcept;
+        T value_or(T alternative) const noexcept;
+        void swap(nullable& other) noexcept;
+        void reset() noexcept;
+        bool operator==(const nullable& other) const noexcept;
+        bool operator!=(const nullable& other) const noexcept;
+        constexpr static nullable null() noexcept; // returns a null instance
+    };
+
+    namespace detail {
+        class lazy_trace_holder {
+            bool resolved;
+            union {
+                raw_trace trace;
+                stacktrace resolved_trace;
+            };
+        public:
+            // constructors
+            lazy_trace_holder() : trace() {}
+            explicit lazy_trace_holder(raw_trace&& _trace);
+            explicit lazy_trace_holder(stacktrace&& _resolved_trace);
+            // logistics
+            lazy_trace_holder(const lazy_trace_holder& other);
+            lazy_trace_holder(lazy_trace_holder&& other) noexcept;
+            lazy_trace_holder& operator=(const lazy_trace_holder& other);
+            lazy_trace_holder& operator=(lazy_trace_holder&& other) noexcept;
+            ~lazy_trace_holder();
+            // access
+            stacktrace& get_resolved_trace();
+            const stacktrace& get_resolved_trace() const; // throws if not already resolved
+        private:
+            void clear();
+        };
+    }
 }
 ```
 

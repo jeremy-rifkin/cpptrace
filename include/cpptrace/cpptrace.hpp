@@ -31,6 +31,7 @@ namespace cpptrace {
     struct object_trace;
     struct stacktrace;
 
+    // Some type sufficient for an instruction pointer, currently always an alias to std::uintptr_t
     using frame_ptr = std::uintptr_t;
 
     struct CPPTRACE_EXPORT raw_trace {
@@ -180,11 +181,13 @@ namespace cpptrace {
     #define CPPTRACE_PATH_MAX 4096
 
     // safe tracing interface
+    // signal-safe
     CPPTRACE_EXPORT std::size_t safe_generate_raw_trace(
         frame_ptr* buffer,
         std::size_t size,
         std::size_t skip = 0
     );
+    // signal-safe
     CPPTRACE_EXPORT std::size_t safe_generate_raw_trace(
         frame_ptr* buffer,
         std::size_t size,
@@ -198,6 +201,7 @@ namespace cpptrace {
         // To be called outside a signal handler. Not signal safe.
         object_frame resolve() const;
     };
+    // signal-safe
     CPPTRACE_EXPORT void get_minimal_object_frame(frame_ptr address, minimal_object_frame* out);
 
     // utilities:
@@ -225,9 +229,6 @@ namespace cpptrace {
     }
 
     namespace detail {
-        CPPTRACE_EXPORT bool should_absorb_trace_exceptions();
-        CPPTRACE_EXPORT enum cache_mode get_cache_mode();
-
         // This is a helper utility, if the library weren't C++11 an std::variant would be used
         class CPPTRACE_EXPORT lazy_trace_holder {
             bool resolved;
@@ -257,6 +258,7 @@ namespace cpptrace {
     // Interface for a traced exception object
     class CPPTRACE_EXPORT exception : public std::exception {
     public:
+        virtual const char* what() const noexcept = 0;
         virtual const char* message() const noexcept = 0;
         virtual const stacktrace& trace() const noexcept = 0;
     };
