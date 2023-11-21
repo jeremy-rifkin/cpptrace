@@ -56,6 +56,14 @@ namespace cpptrace {
 }
 ```
 
+`safe_generate_raw_trace` produces instruction pointers found while unwinding the stack. These addresses are sufficient
+information to resolve a stack trace in the currently running process after a signal handler exits, but they aren't
+sufficient for resolving outside of the currently running process, unless there is no position-independent code or
+shared-library code.
+
+To resolve outside the current process `minimal_object_frame` information is needed. This contains the path to the
+object where the address is located as well as the address before address randomization.
+
 # Strategy
 
 Signal-safe tracing can be done three ways:
