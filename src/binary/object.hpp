@@ -17,6 +17,9 @@
  #else
   #include "elf.hpp"
  #endif
+ #if CPPTRACE_HAS_DL_FIND_OBJECT
+  #include <link.h>
+ #endif
 #elif IS_WINDOWS
  #include <windows.h>
  #include "pe.hpp"
@@ -61,6 +64,39 @@ namespace detail {
         }
     }
     #endif
+    #if CPPTRACE_HAS_DL_FIND_OBJECT
+    inline std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addrs) {
+        // Use _dl_find_object when we can, it's orders of magnitude faster
+        std::vector<object_frame> frames;
+        frames.reserve(addrs.size());
+        for(const frame_ptr addr : addrs) {
+            object_frame frame;
+            frame.raw_address = addr;
+            frame.object_address = 0;
+            dl_find_object result;
+            if(_dl_find_object(reinterpret_cast<void*>(addr), &result) == 0) { // thread safe
+                if(result.dlfo_link_map->l_name != nullptr && result.dlfo_link_map->l_name[0] != 0) {
+                    frame.object_path = result.dlfo_link_map->l_name;
+                } else {
+                    // empty l_name, this means it's the currently running executable
+                    // TODO: Caching and proper handling
+                    char buffer[CPPTRACE_PATH_MAX + 1]{};
+                    auto res = readlink("/proc/self/exe", buffer, CPPTRACE_PATH_MAX);
+                    if(res == -1) {
+                        // error handling?
+                    } else {
+                        frame.object_path = buffer;
+                    }
+                }
+                frame.object_address = addr
+                                     - reinterpret_cast<std::uintptr_t>(result.dlfo_map_start)
+                                     + get_module_image_base(frame.object_path);
+            }
+            frames.push_back(frame);
+        }
+        return frames;
+    }
+    #else
     // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
     inline std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addrs) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
@@ -72,17 +108,16 @@ namespace detail {
             frame.raw_address = addr;
             frame.object_address = 0;
             if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread safe
-                // dli_sname and dli_saddr are only present with -rdynamic, sname will be included
-                // but we don't really need dli_saddr
                 frame.object_path = info.dli_fname;
                 frame.object_address = addr
-                                    - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
-                                    + get_module_image_base(info.dli_fname);
+                                     - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
+                                     + get_module_image_base(info.dli_fname);
             }
             frames.push_back(frame);
         }
         return frames;
     }
+    #endif
     #else
     inline std::string get_module_name(HMODULE handle) {
         static std::mutex mutex;
