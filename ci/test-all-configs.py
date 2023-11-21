@@ -160,7 +160,7 @@ def build(matrix):
             f"-D{matrix['demangle']}=On",
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
             "-DCPPTRACE_BUILD_TESTING=On",
-            f"-DBUILD_SHARED_LIBS={'On' if matrix['shared'] else 'Off'}"
+            f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix['symbols'] == "CPPTRACE_GET_SYMBOLS_WITH_LIBDL":
            args.append("-DCPPTRACE_BUILD_TEST_RDYNAMIC=On")
@@ -180,7 +180,7 @@ def build(matrix):
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
             "-DCPPTRACE_BUILD_TESTING=On",
-            f"-DBUILD_SHARED_LIBS={'On' if matrix['shared'] else 'Off'}"
+            f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["compiler"] == "g++":
             args.append("-GUnix Makefiles")
@@ -204,7 +204,7 @@ def build_full_or_auto(matrix):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
             "-DCPPTRACE_BUILD_TESTING=On",
-            f"-DBUILD_SHARED_LIBS={'On' if matrix['shared'] else 'Off'}"
+            f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
@@ -221,7 +221,7 @@ def build_full_or_auto(matrix):
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             "-DCPPTRACE_BUILD_TESTING=On",
-            f"-DBUILD_SHARED_LIBS={'On' if matrix['shared'] else 'Off'}"
+            f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
@@ -364,7 +364,7 @@ def main():
                 "CPPTRACE_DEMANGLE_WITH_CXXABI",
                 #"CPPTRACE_DEMANGLE_WITH_NOTHING",
             ],
-            "shared": [args.shared]
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test)
@@ -373,7 +373,7 @@ def main():
             "target": ["Debug"],
             "std": ["11", "20"],
             "config": [""],
-            "shared": [args.shared]
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
@@ -403,7 +403,7 @@ def main():
                 "CPPTRACE_DEMANGLE_WITH_CXXABI",
                 #"CPPTRACE_DEMANGLE_WITH_NOTHING",
             ],
-            "shared": [args.shared]
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test)
@@ -412,7 +412,7 @@ def main():
             "target": ["Debug"],
             "std": ["11", "20"],
             "config": [""],
-            "shared": [args.shared]
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
@@ -444,7 +444,7 @@ def main():
                 "CPPTRACE_DEMANGLE_WITH_CXXABI",
                 "CPPTRACE_DEMANGLE_WITH_NOTHING",
             ],
-            "shared": [args.shared]
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = [
             {
@@ -498,7 +498,7 @@ def main():
             "target": ["Debug"],
             "std": ["11", "20"],
             "config": [""],
-            "shared": [args.shared]
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
