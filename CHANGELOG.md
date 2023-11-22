@@ -1,9 +1,50 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.3.0](#v030)
+- [v0.2.1](#v021)
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.3.0
+
+Interface Changes:
+- Overhauled the API for traced `cpptrace::exception` objects
+- Added `cpptrace::isatty` utility
+- Added specialized `std::terminate` handler and `cpptrace::register_terminate_handler` utility
+- Added `cpptrace::frame_ptr` as an alias for the appropriate type capable of representing an instruction pointer
+- Added signal-safe tracing support and a guide for [how to trace safely](signal-safe-tracing.md)
+- Added `cpptrace::nullable<T>` utility for better indicating when line / column information is not present
+- Added `CPPTRACE_FORCE_NO_INLINE` utility macro to cpptrace.hpp
+- Added `CPPTRACE_WRAP` and `CPPTRACE_WRAP_BLOCK` utilities to catch non-`cpptrace::exception`s and rethrow wrapped in a
+  traced exception.
+- Updated `cpptrace::stacktrace::to_string` to take a `bool color` parameter
+- Eliminated uses of `std::uint_least32_t` in favor of other types
+- Updated `object_frame` data member names
+
+Other changes:
+- Added object resolution with `_dl_find_object` which is much faster than `dladdr`
+- Added column support for dwarf
+- Added inlined call resolution
+  - Added `cpptrace::stacktrace_frame::is_inline`
+- Added libunwind as a back-end
+- Unbundled libdwarf
+- Increased hard max frame count, used by some back-end requiring fixed buffers, from 100 to 200
+- Improved libgcc unwind backend
+- Improved trace output when information is missing
+- Added a lookup table for faster dwarf line information lookup
+
+News:
+- The library is now on conan and vcpkg
+
+Minor changes:
+- Assorted bug fixes
+- Various code quality improvements
+- CI improvements
+- Documentation improvements
+- CMake improvements
+- Internal refactoring
 
 # v0.2.1
 
