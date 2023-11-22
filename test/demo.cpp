@@ -6,8 +6,8 @@
 #include <string>
 
 void trace() {
-    cpptrace::absorb_trace_exceptions(false);
     cpptrace::generate_trace().print();
+    throw cpptrace::logic_error("foobar");
 }
 
 void foo(int n) {
@@ -31,9 +31,8 @@ void function_one(int) {
     function_two(0, 0);
 }
 
-int main() try {
+int main() {
     cpptrace::absorb_trace_exceptions(false);
+    cpptrace::register_terminate_handler();
     function_one(0);
-} catch(cpptrace::exception& e) {
-    std::cerr << e.what();
 }

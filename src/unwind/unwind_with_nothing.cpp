@@ -7,8 +7,13 @@
 
 namespace cpptrace {
 namespace detail {
-    std::vector<uintptr_t> capture_frames(size_t, size_t) {
+    std::vector<frame_ptr> capture_frames(std::size_t, std::size_t) {
         return {};
+    }
+
+    CPPTRACE_FORCE_NO_INLINE
+    std::size_t safe_capture_frames(frame_ptr*, std::size_t, std::size_t, std::size_t) {
+        return 0;
     }
 }
 }

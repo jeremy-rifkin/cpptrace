@@ -1,14 +1,23 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.14)
 
-if(${CMAKE_VERSION} VERSION_LESS 3.12)
-  cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-endif()
+include(cmake/PreventInSourceBuilds.cmake)
+
+# ---- Initialize Project ----
+
+# Used to support find_package
+set(package_name "cpptrace")
 
 project(
   cpptrace
   VERSION 0.2.1
+  DESCRIPTION "Simple, portable, and self-contained stacktrace library for C++11 and newer "
+  HOMEPAGE_URL "https://github.com/jeremy-rifkin/cpptrace"
   LANGUAGES C CXX
 )
+
+# Don't change include order, OptionVariables checks if project is top level
+include(cmake/ProjectIsTopLevel.cmake)
+include(cmake/OptionVariables.cmake)
 
 include(GNUInstallDirs)
 include(CheckCXXSourceCompiles)
@@ -21,48 +30,6 @@ if(CMAKE_GENERATOR STREQUAL "Ninja")
     add_compile_options(-fcolor-diagnostics)
   endif()
 endif()
-
-option(CPPTRACE_STATIC "" OFF)
-
-option(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE "" OFF)
-option(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF "" OFF)
-option(CPPTRACE_GET_SYMBOLS_WITH_LIBDL "" OFF)
-option(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE "" OFF)
-option(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP "" OFF)
-option(CPPTRACE_GET_SYMBOLS_WITH_NOTHING "" OFF)
-
-option(CPPTRACE_UNWIND_WITH_UNWIND "" OFF)
-option(CPPTRACE_UNWIND_WITH_EXECINFO "" OFF)
-option(CPPTRACE_UNWIND_WITH_WINAPI "" OFF)
-option(CPPTRACE_UNWIND_WITH_DBGHELP "" OFF)
-option(CPPTRACE_UNWIND_WITH_NOTHING "" OFF)
-
-option(CPPTRACE_DEMANGLE_WITH_CXXABI "" OFF)
-option(CPPTRACE_DEMANGLE_WITH_WINAPI "" OFF)
-option(CPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
-
-set(CPPTRACE_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
-set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 100.")
-set(CPPTRACE_ADDR2LINE_PATH "" CACHE STRING "Absolute path to the addr2line executable you want to use.")
-option(CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH "" OFF)
-
-option(CPPTRACE_BUILD_TEST "" OFF)
-option(CPPTRACE_BUILD_DEMO "" OFF)
-option(CPPTRACE_BUILD_TEST_RDYNAMIC "" OFF)
-
-option(CPPTRACE_USE_SYSTEM_LIBDWARF "" OFF)
-option(CPPTRACE_SANITIZER_BUILD "" OFF)
-
-mark_as_advanced(
-  CPPTRACE_BACKTRACE_PATH
-  CPPTRACE_ADDR2LINE_PATH
-  CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
-  CPPTRACE_BUILD_TEST
-  CPPTRACE_BUILD_DEMO
-  CPPTRACE_BUILD_TEST_RDYNAMIC
-  CPPTRACE_USE_SYSTEM_LIBDWARF
-  CPPTRACE_SANITIZER_BUILD
-)
 
 if(CPPTRACE_SANITIZER_BUILD)
   add_compile_options(-fsanitize=address)
@@ -83,6 +50,7 @@ else()
   set(CPPTRACE_BACKTRACE_PATH_DEFINITION "")
 endif()
 
+# =============================================== Platform Support ===============================================
 function(check_support var source includes libraries definitions)
   set(CMAKE_REQUIRED_INCLUDES "${includes}")
   list(APPEND CMAKE_REQUIRED_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -106,11 +74,20 @@ else()
   check_support(HAS_STACKWALK has_stackwalk.cpp "" "dbghelp" "")
 endif()
 
+if(NOT WIN32 OR MINGW)
+  check_support(HAS_CXX_EXCEPTION_TYPE has_cxx_exception_type.cpp "" "" "")
+endif()
+
+if(UNIX AND NOT APPLE)
+  check_support(HAS_DL_FIND_OBJECT has_dl_find_object.cpp "" "" "")
+endif()
+
 # =============================================== Autoconfig unwinding ===============================================
 # Unwind back-ends
 if(
   NOT (
     CPPTRACE_UNWIND_WITH_UNWIND OR
+    CPPTRACE_UNWIND_WITH_LIBUNWIND OR
     CPPTRACE_UNWIND_WITH_EXECINFO OR
     CPPTRACE_UNWIND_WITH_WINAPI OR
     CPPTRACE_UNWIND_WITH_DBGHELP OR
@@ -192,89 +169,144 @@ endif()
 
 # =============================================== Now define the library ===============================================
 
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+# Target that we can modify (can't modify ALIAS targets)
+# Target name should not be the same as ${PROJECT_NAME}, causes add_subdirectory issues
+set(target_name "cpptrace-lib")
+add_library(${target_name} ${build_type})
 
-set(
-  sources
-  src/cpptrace.cpp
-  src/demangle/demangle_with_cxxabi.cpp
-  src/demangle/demangle_with_winapi.cpp
-  src/demangle/demangle_with_nothing.cpp
-  src/symbols/symbols_with_addr2line.cpp
-  src/symbols/symbols_with_dbghelp.cpp
-  src/symbols/symbols_with_dl.cpp
-  src/symbols/symbols_with_libbacktrace.cpp
-  src/symbols/symbols_with_libdwarf.cpp
-  src/symbols/symbols_with_nothing.cpp
-  src/symbols/symbols_core.cpp
-  src/unwind/unwind_with_execinfo.cpp
-  src/unwind/unwind_with_nothing.cpp
-  src/unwind/unwind_with_unwind.cpp
-  src/unwind/unwind_with_winapi.cpp
-  src/unwind/unwind_with_dbghelp.cpp
+# Alias to cause error at configuration time instead of link time if target is missing
+add_library(cpptrace::cpptrace ALIAS ${target_name})
+
+# Add /include files to target
+# This is solely for IDE benefit, doesn't affect building
+target_sources(
+    ${target_name} PRIVATE
+    include/cpptrace/cpptrace.hpp
 )
 
-if(CPPTRACE_STATIC)
-  add_library(cpptrace STATIC ${sources} include/cpptrace/cpptrace.hpp)
-else()
-  add_library(cpptrace SHARED ${sources} include/cpptrace/cpptrace.hpp)
-  set_property(TARGET cpptrace PROPERTY POSITION_INDEPENDENT_CODE ON)
-endif()
+# add /src files to target
+target_sources(
+    ${target_name} PRIVATE
+    # src
+    src/cpptrace.cpp
+    src/demangle/demangle_with_cxxabi.cpp
+    src/demangle/demangle_with_winapi.cpp
+    src/demangle/demangle_with_nothing.cpp
+    src/symbols/symbols_with_addr2line.cpp
+    src/symbols/symbols_with_dbghelp.cpp
+    src/symbols/symbols_with_dl.cpp
+    src/symbols/symbols_with_libbacktrace.cpp
+    src/symbols/symbols_with_libdwarf.cpp
+    src/symbols/symbols_with_nothing.cpp
+    src/symbols/symbols_core.cpp
+    src/unwind/unwind_with_execinfo.cpp
+    src/unwind/unwind_with_libunwind.cpp
+    src/unwind/unwind_with_nothing.cpp
+    src/unwind/unwind_with_unwind.cpp
+    src/unwind/unwind_with_winapi.cpp
+    src/unwind/unwind_with_dbghelp.cpp
+)
 
 target_include_directories(
-  cpptrace
+  ${target_name}
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/>
 )
 
-# TODO
-target_compile_features(cpptrace PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
-
-set_target_properties(
-  cpptrace
-  PROPERTIES
-  CXX_STANDARD_REQUIRED TRUE
-  CXX_EXTENSIONS OFF
-)
-
 target_compile_options(
-  cpptrace
+  ${target_name}
   PRIVATE
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
   $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast>
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
 
+# ---- Generate Build Info Headers ----
+
+# used in export header generated below
+if(NOT CPPTRACE_BUILD_SHARED)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_STATIC_DEFINE)
+endif()
+
+# generate header file with export macros prefixed with BASE_NAME
+include(GenerateExportHeader)
+generate_export_header(
+  ${target_name}
+  BASE_NAME cpptrace
+  EXPORT_FILE_NAME include/cpptrace/cpptrace_export.hpp
+)
+
+# ---- Library Properties ----
+
+# Hide all symbols by default
+# Use SameMajorVersion versioning for shared library runtime linker lookup
+set_target_properties(
+    ${target_name} PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+    VERSION "${PROJECT_VERSION}"
+    SOVERSION "${PROJECT_VERSION_MAJOR}"
+    EXPORT_NAME "cpptrace"
+    OUTPUT_NAME "cpptrace"
+)
+
+# Header files generated by CMake
+target_include_directories(
+    ${target_name} SYSTEM PUBLIC
+    "$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>"
+)
+
+# Header files from /include
+target_include_directories(
+    ${target_name} ${warning_guard} PUBLIC
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+)
+
+# Require C++11 support
+target_compile_features(
+    ${target_name}
+    PRIVATE cxx_std_11
+)
+
+if(APPLE)
+  SET(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+  SET(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+endif()
+
 # =============================================== Apply options to build ===============================================
 
-function(check_backtrace_error)
-  if(NOT HAS_BACKTRACE)
-    if(NOT "${CPPTRACE_BACKTRACE_PATH}" STREQUAL "")
-      message(WARNING "Cpptrace: CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE specified but libbacktrace doesn't appear installed or configured properly.")
-    else()
-      message(WARNING "Cpptrace: CPPTRACE_FULL_TRACE_WITH_LIBBACKTRACE specified but libbacktrace doesn't appear installed or configured properly. You may need to specify CPPTRACE_BACKTRACE_PATH.")
-    endif()
-  endif()
-endfunction()
+if(HAS_CXX_EXCEPTION_TYPE)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_HAS_CXX_EXCEPTION_TYPE)
+endif()
+
+if(HAS_DL_FIND_OBJECT)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_HAS_DL_FIND_OBJECT)
+endif()
 
 # Symbols
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
-  check_backtrace_error()
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
-  target_link_libraries(cpptrace PRIVATE backtrace)
+  if(NOT HAS_BACKTRACE)
+    if(NOT "${CPPTRACE_BACKTRACE_PATH}" STREQUAL "")
+      message(WARNING "Cpptrace: Using libbacktrace for symbols but libbacktrace doesn't appear installed or configured properly.")
+    else()
+      message(WARNING "Cpptrace: Using libbacktrace for symbols but libbacktrace doesn't appear installed or configured properly. You may need to specify CPPTRACE_BACKTRACE_PATH.")
+    endif()
+  endif()
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
+  target_link_libraries(${target_name} PRIVATE backtrace ${CMAKE_DL_LIBS})
 endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBDL)
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDL)
-  target_link_libraries(cpptrace PRIVATE dl)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDL)
+  target_link_libraries(${target_name} PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
   # set(CPPTRACE_ADDR2LINE_PATH "" CACHE STRING "Absolute path to the addr2line executable you want to use.")
   # option(CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH "" OFF)
   if(CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH)
-    target_compile_definitions(cpptrace PUBLIC CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH)
+    target_compile_definitions(${target_name} PUBLIC CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH)
   else()
     if("${CPPTRACE_ADDR2LINE_PATH}" STREQUAL "")
       if(APPLE)
@@ -286,35 +318,54 @@ if(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
       set(CPPTRACE_ADDR2LINE_PATH_FINAL "${CPPTRACE_ADDR2LINE_PATH}")
     endif()
     message(STATUS "Cpptrace: Using ${CPPTRACE_ADDR2LINE_PATH_FINAL} for addr2line path")
-    target_compile_definitions(cpptrace PUBLIC CPPTRACE_ADDR2LINE_PATH="${CPPTRACE_ADDR2LINE_PATH_FINAL}")
+    target_compile_definitions(${target_name} PUBLIC CPPTRACE_ADDR2LINE_PATH="${CPPTRACE_ADDR2LINE_PATH_FINAL}")
   endif()
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
   if(UNIX)
-    target_link_libraries(cpptrace PRIVATE dl)
+    target_link_libraries(${target_name} PRIVATE ${CMAKE_DL_LIBS})
   endif()
 endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
-  if(CPPTRACE_USE_SYSTEM_LIBDWARF)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+  if(CPPTRACE_USE_EXTERNAL_LIBDWARF)
     find_package(libdwarf REQUIRED)
-    target_link_libraries(cpptrace PRIVATE libdwarf)
+    target_compile_definitions(${target_name} PRIVATE CPPTRACE_USE_EXTERNAL_LIBDWARF)
   else()
-    add_subdirectory(bundled/libdwarf)
-    target_link_libraries(cpptrace PRIVATE dwarf)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+    set(PIC_ALWAYS TRUE)
+    set(BUILD_DWARFDUMP FALSE)
+    include(FetchContent)
+    FetchContent_Declare(
+      libdwarf
+      # GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+      # GIT_TAG 6216e185863f41d6f19ab850caabfff7326020d7 # v0.8.0
+      # Using a lightweight mirror that's optimized for clone + configure speed
+      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-lite.git
+      GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65
+      GIT_SHALLOW 1
+    )
+    FetchContent_MakeAvailable(libdwarf)
+  endif()
+  if(CPPTRACE_CONAN)
+    target_link_libraries(${target_name} PRIVATE libdwarf::libdwarf)
+  elseif(CPPTRACE_VCPKG)
+    target_link_libraries(${target_name} PRIVATE $<IF:$<TARGET_EXISTS:libdwarf::dwarf-static>,libdwarf::dwarf-static,libdwarf::dwarf-shared>)
+  else()
+    target_link_libraries(${target_name} PRIVATE libdwarf::dwarf-static)
   endif()
   if(UNIX)
-    target_link_libraries(cpptrace PRIVATE dl)
+    target_link_libraries(${target_name} PRIVATE ${CMAKE_DL_LIBS})
   endif()
 endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
-  target_link_libraries(cpptrace PRIVATE dbghelp)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+  target_link_libraries(${target_name} PRIVATE dbghelp)
 endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_NOTHING)
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_GET_SYMBOLS_WITH_NOTHING)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_NOTHING)
 endif()
 
 # Unwinding
@@ -322,30 +373,62 @@ if(CPPTRACE_UNWIND_WITH_UNWIND)
   if(NOT HAS_UNWIND)
     message(WARNING "Cpptrace: CPPTRACE_UNWIND_WITH_UNWIND specified but libgcc unwind doesn't seem to be available.")
   endif()
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_UNWIND)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_UNWIND)
+endif()
+
+if(CPPTRACE_UNWIND_WITH_LIBUNWIND)
+  find_package(PkgConfig)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(LIBUNWIND QUIET libunwind)
+    if(libunwind_FOUND)
+      target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
+      target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
+      target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
+    endif()
+  endif()
+  if(NOT libunwind_FOUND)
+    # set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
+    # set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB32_PATHS ON)
+		find_path(LIBUNWIND_INCLUDE_DIR NAMES "libunwind.h")
+    find_library(LIBUNWIND NAMES unwind libunwind libunwind8 libunwind.so.8 REQUIRED PATHS "/usr/lib/x86_64-linux-gnu/")
+    if(LIBUNWIND)
+      set(libunwind_FOUND TRUE)
+    endif()
+  endif()
+  if(NOT libunwind_FOUND)
+    # message(FATAL_ERROR "Unable to locate libunwind")
+    # Try to link with it if it's where it should be
+    # This path can be entered if libunwind was installed via the system package manager, sometimes. I probably messed
+    # up the find_library above.
+    set(LIBUNWIND_LDFLAGS "-lunwind")
+  endif()
+  target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
+  target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
+  target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_LIBUNWIND UNW_LOCAL_ONLY)
 endif()
 
 if(CPPTRACE_UNWIND_WITH_EXECINFO)
   if(NOT HAS_EXECINFO)
     message(WARNING "Cpptrace: CPPTRACE_UNWIND_WITH_EXECINFO specified but execinfo.h doesn't seem to be available.")
   endif()
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_EXECINFO)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_EXECINFO)
 endif()
 
 if(CPPTRACE_UNWIND_WITH_WINAPI)
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_WINAPI)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_WINAPI)
 endif()
 
 if(CPPTRACE_UNWIND_WITH_DBGHELP)
   if(NOT HAS_STACKWALK)
     message(WARNING "Cpptrace: CPPTRACE_UNWIND_WITH_DBGHELP specified but dbghelp stackwalk64 doesn't seem to be available.")
   endif()
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_DBGHELP)
-  target_link_libraries(cpptrace PRIVATE dbghelp)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_DBGHELP)
+  target_link_libraries(${target_name} PRIVATE dbghelp)
 endif()
 
 if(CPPTRACE_UNWIND_WITH_NOTHING)
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_UNWIND_WITH_NOTHING)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_NOTHING)
 endif()
 
 # Demangling
@@ -353,100 +436,38 @@ if(CPPTRACE_DEMANGLE_WITH_CXXABI)
   if(NOT HAS_CXXABI)
     message(WARNING "Cpptrace: CPPTRACE_DEMANGLE_WITH_CXXABI specified but cxxabi.h doesn't seem to be available.")
   endif()
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_DEMANGLE_WITH_CXXABI)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_DEMANGLE_WITH_CXXABI)
 endif()
 
 if(CPPTRACE_DEMANGLE_WITH_WINAPI)
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_DEMANGLE_WITH_WINAPI)
-  target_link_libraries(cpptrace PRIVATE dbghelp)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_DEMANGLE_WITH_WINAPI)
+  target_link_libraries(${target_name} PRIVATE dbghelp)
 endif()
 
 if(CPPTRACE_DEMANGLE_WITH_NOTHING)
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_DEMANGLE_WITH_NOTHING)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_DEMANGLE_WITH_NOTHING)
 endif()
 
 if(NOT "${CPPTRACE_BACKTRACE_PATH}" STREQUAL "")
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_BACKTRACE_PATH=${CPPTRACE_BACKTRACE_PATH})
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_BACKTRACE_PATH=${CPPTRACE_BACKTRACE_PATH})
 endif()
 
 if(NOT "${CPPTRACE_HARD_MAX_FRAMES}" STREQUAL "")
-  target_compile_definitions(cpptrace PUBLIC CPPTRACE_HARD_MAX_FRAMES=${CPPTRACE_HARD_MAX_FRAMES})
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_HARD_MAX_FRAMES=${CPPTRACE_HARD_MAX_FRAMES})
 endif()
 
-# ======================================================================================================================
+# =============================================== Install ===============================================
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)
-  include(CMakePackageConfigHelpers)
-
-  if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
-    set(CPPTRACE_STATIC_EXPORT_TARGETS cpptrace dwarf)
-  else()
-    set(CPPTRACE_STATIC_EXPORT_TARGETS cpptrace)
-  endif()
-
-  if(CPPTRACE_STATIC)
-    install(
-      TARGETS ${CPPTRACE_STATIC_EXPORT_TARGETS}
-      EXPORT cpptrace_targets
-      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
-  else()
-    install(
-      TARGETS cpptrace
-      EXPORT cpptrace_targets
-      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
-  endif()
-
-  install(
-    FILES
-    include/cpptrace/cpptrace.hpp
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cpptrace
-  )
-
-  export(
-    EXPORT cpptrace_targets
-    FILE ${CMAKE_CURRENT_BINARY_DIR}/cpptrace/cpptrace_targets.cmake
-    NAMESPACE cpptrace::
-  )
-
-  configure_package_config_file(
-    cmake/cpptrace-config.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/cpptrace/cpptrace-config.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cpptrace
-  )
-
-  write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/cpptrace/cpptrace-config-version.cmake
-    VERSION ${PACKAGE_VERSION}
-    COMPATIBILITY SameMajorVersion
-  )
-
-  install(
-    EXPORT cpptrace_targets
-    FILE cpptrace_targets.cmake
-    NAMESPACE cpptrace::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cpptrace
-  )
-
-  install(
-    FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/cpptrace/cpptrace-config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/cpptrace/cpptrace-config-version.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cpptrace
-  )
+  include(cmake/InstallRules.cmake)
 endif()
 
-if(CPPTRACE_BUILD_TEST)
+# =============================================== Demo/test ===============================================
+
+if(CPPTRACE_BUILD_TESTING)
   add_executable(test test/test.cpp)
-  target_compile_features(test PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
-  target_link_libraries(test PRIVATE cpptrace)
+  target_compile_features(test PRIVATE cxx_std_11)
+  target_link_libraries(test PRIVATE ${target_name})
   # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
   if(HAS_DWARF4)
@@ -462,12 +483,10 @@ if(CPPTRACE_BUILD_TEST)
       COMMAND dsymutil $<TARGET_FILE:test>
     )
   endif()
-endif()
 
-if(CPPTRACE_BUILD_DEMO)
   add_executable(demo test/demo.cpp)
-  target_compile_features(demo PRIVATE cxx_range_for cxx_constexpr cxx_nullptr cxx_static_assert)
-  target_link_libraries(demo PRIVATE cpptrace)
+  target_compile_features(demo PRIVATE cxx_std_11)
+  target_link_libraries(demo PRIVATE ${target_name})
   # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
   if(HAS_DWARF4)
@@ -482,5 +501,15 @@ if(CPPTRACE_BUILD_DEMO)
       POST_BUILD
       COMMAND dsymutil $<TARGET_FILE:demo>
     )
+  endif()
+
+  if(UNIX)
+    add_executable(signal_demo test/signal_demo.cpp)
+    target_compile_features(signal_demo PRIVATE cxx_std_11)
+    target_link_libraries(signal_demo PRIVATE ${target_name})
+
+    add_executable(signal_tracer test/signal_tracer.cpp)
+    target_compile_features(signal_tracer PRIVATE cxx_std_11)
+    target_link_libraries(signal_tracer PRIVATE ${target_name})
   endif()
 endif()

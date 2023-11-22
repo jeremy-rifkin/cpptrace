@@ -40,7 +40,7 @@ jobs:
   # I give up. For some reason SymInitialize is super slow on github's windows runner and it alone takes hundreds of ms.
   # Nothing I can do about that.
   #performancetest-windows:
-  # runs-on: windows-2019
+  # runs-on: windows-2022
   # strategy:
   #   fail-fast: false
   #   matrix:

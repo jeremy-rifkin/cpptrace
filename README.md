@@ -22,6 +22,10 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
     - [Raw Traces](#raw-traces)
     - [Utilities](#utilities)
     - [Traced Exceptions](#traced-exceptions)
+  - [Wrapping std::exceptions](#wrapping-stdexceptions)
+  - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
+  - [Signal-Safe Tracing](#signal-safe-tracing)
+  - [Utility Types](#utility-types)
   - [Notable Library Configurations](#notable-library-configurations)
   - [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
     - [FAQ: What about C++23 `<stacktrace>`?](#faq-what-about-c23-stacktrace)
@@ -70,17 +74,23 @@ Cpptrace also provides exception types that store stack traces:
 #include <cpptrace/cpptrace.hpp>
 
 void trace() {
-    throw cpptrace::exception();
+    throw cpptrace::logic_error("This wasn't supposed to happen!");
 }
 
 /* other stuff */
-// terminate called after throwing an instance of 'cpptrace::exception'
-//   what():  cpptrace::exception:
+// terminate called after throwing an instance of 'cpptrace::logic_error'
+//   what():  This wasn't supposed to happen!:
 // Stack trace (most recent call first):
 // #0 0x00005641c715a1b6 in trace() at demo.cpp:9
 // #1 0x00005641c715a229 in foo(int) at demo.cpp:16
 // #2 0x00005641c715a2ba in main at demo.cpp:34
 ```
+
+Additional notable features:
+
+- Utilities for demangling
+- Utilities for catching `std::exception`s and wrapping them in traced exceptions
+- Signal-safe stack tracing
 
 ## CMake FetchContent Usage
 
@@ -130,12 +140,17 @@ direct access to frames as well as iterators.
 
 ```cpp
 namespace cpptrace {
+    // Some type sufficient for an instruction pointer, currently always an alias to std::uintptr_t
+    using frame_ptr = std::uintptr_t;
+
     struct stacktrace_frame {
-        uintptr_t address;
-        std::uint_least32_t line;
-        std::uint_least32_t column; // Unknown column is represented with UINT_LEAST32_MAX
+        frame_ptr address;
+        // nullable<T> represents a nullable integer. More docs later.
+        nullable<std::uint32_t> line;
+        nullable<std::uint32_t> column;
         std::string filename;
         std::string symbol;
+        bool is_inline;
         bool operator==(const stacktrace_frame& other) const;
         bool operator!=(const stacktrace_frame& other) const;
         std::string to_string() const;
@@ -144,49 +159,49 @@ namespace cpptrace {
 
     struct stacktrace {
         std::vector<stacktrace_frame> frames;
-        static stacktrace current(std::uint_least32_t skip = 0); // here as a drop-in for std::stacktrace
-        static stacktrace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        // here as a drop-in for std::stacktrace
+        static stacktrace current(std::size_t skip = 0);
+        static stacktrace current(std::size_t skip, std::size_t max_depth);
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
-        std::string to_string() const;
+        std::string to_string(bool color = false) const;
         void clear();
         bool empty() const noexcept;
         /* operator<<(ostream, ..), std::format support, and iterators exist for this object */
     };
 
-    stacktrace generate_trace(std::uint_least32_t skip = 0);
-    stacktrace generate_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    stacktrace generate_trace(std::size_t skip = 0);
+    stacktrace generate_trace(std::size_t skip, std::size_t max_depth);
 }
 ```
 
 ### Object Traces
 
-Object traces are somewhat minimal stack traces with basic information on which binary a frame corresponds to, any
-symbol name libdl (in linux/macos) was able to resolve, the raw program counter and the program counter translated to
-the corresponding object file's memory space.
+Object traces contain the most basic information needed to construct a stack trace outside the currently running
+executable. It contains the raw address, the address in the binary (ASLR and the object file's memory space and whatnot
+is resolved), and the path to the object the instruction pointer is located in.
 
 ```cpp
 namespace cpptrace {
     struct object_frame {
-        std::string obj_path;
-        std::string symbol;
-        uintptr_t raw_address = 0;
-        uintptr_t obj_address = 0;
+        std::string object_path;
+        frame_ptr raw_address;
+        frame_ptr object_address;
     };
 
     struct object_trace {
         std::vector<object_frame> frames;
-        static object_trace current(std::uint_least32_t skip = 0);
-        static object_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        static object_trace current(std::size_t skip = 0);
+        static object_trace current(std::size_t skip, std::size_t max_depth);
         stacktrace resolve() const;
         void clear();
         bool empty() const noexcept;
         /* iterators exist for this object */
     };
 
-    object_trace generate_object_trace(std::uint_least32_t skip = 0);
-    object_trace generate_object_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    object_trace generate_object_trace(std::size_t skip = 0);
+    object_trace generate_object_trace(std::size_t skip, std::size_t max_depth);
 }
 ```
 
@@ -200,9 +215,9 @@ Note it is important executables and shared libraries in memory aren't somehow u
 ```cpp
 namespace cpptrace {
     struct raw_trace {
-        std::vector<uintptr_t> frames;
-        static raw_trace current(std::uint_least32_t skip = 0);
-        static raw_trace current(std::uint_least32_t skip, std::uint_least32_t max_depth);
+        std::vector<frame_ptr> frames;
+        static raw_trace current(std::size_t skip = 0);
+        static raw_trace current(std::size_t skip, std::size_t max_depth);
         object_trace resolve_object_trace() const;
         stacktrace resolve() const;
         void clear();
@@ -210,8 +225,8 @@ namespace cpptrace {
         /* iterators exist for this object */
     };
 
-    raw_trace generate_raw_trace(std::uint_least32_t skip = 0);
-    raw_trace generate_raw_trace(std::uint_least32_t skip, std::uint_least32_t max_depth);
+    raw_trace generate_raw_trace(std::size_t skip = 0);
+    raw_trace generate_raw_trace(std::size_t skip, std::size_t max_depth);
 }
 ```
 
@@ -228,10 +243,22 @@ or wether they're rethrown to the caller.
 speed is prioritized. If using this function, set the cache mode at the very start of your program before any traces are
 performed.
 
+`cpptrace::isatty` and the fileno definitions are useful for deciding whether to use color when printing stack taces.
+
+`cpptrace::register_terminate_handler()` is a helper function to set a custom `std::terminate` handler that prints a
+stack trace from a cpptrace exception (more info below) and otherwise behaves like the normal terminate handler.
+
 ```cpp
 namespace cpptrace {
     std::string demangle(const std::string& name);
     void absorb_trace_exceptions(bool absorb);
+    bool isatty(int fd);
+
+    extern const int stdin_fileno;
+    extern const int stderr_fileno;
+    extern const int stdout_fileno;
+
+    void register_terminate_handler();
 
     enum class cache_mode {
         // Only minimal lookup tables
@@ -250,37 +277,60 @@ namespace cpptrace {
 
 ### Traced Exceptions
 
-Cpptrace provides a set of exception classes that generate stack traces when thrown and resolve later.
+Cpptrace provides an interface for a traced exceptions, `cpptrace::exception`, as well as a set of exception classes
+that that generate stack traces when thrown. These exceptions generate relatively lightweight raw traces and resolve
+symbols and line numbers lazily if and when requested.
+
+The basic interface is:
+```cpp
+namespace cpptrace {
+    class exception : public std::exception {
+    public:
+        virtual const char* what() const noexcept = 0; // The what string both the message and trace
+        virtual const char* message() const noexcept = 0;
+        virtual const stacktrace& trace() const noexcept = 0;
+    };
+}
+```
+
+There are two ways to go about traced exception objects: Traces can be resolved eagerly or lazily. Cpptrace provides the
+basic implementation of exceptions as lazy exceptions. I hate to have anything about the implementation exposed in the
+interface or type system but this seems to be the best way to do this.
 
 ```cpp
 namespace cpptrace {
-    // Traced exception class
-    // Extending classes should call the exception constructor with a skip value of 1.
-    class exception : public std::exception {
+    class lazy_exception : public exception {
+        mutable detail::lazy_trace_holder trace_holder; // basically std::variant<raw_trace, stacktrace>, more docs later
+        mutable std::string what_string;
     protected:
-        mutable raw_trace trace;
-        mutable stacktrace resolved_trace;
-        mutable std::string resolved_what;
-        explicit exception(std::uint_least32_t skip) noexcept;
-        explicit exception(std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
-        const stacktrace& get_resolved_trace() const noexcept;
-        virtual const std::string& get_resolved_what() const noexcept;
+        explicit lazy_exception(std::size_t skip, std::size_t max_depth) noexcept;
+        explicit lazy_exception(std::size_t skip) noexcept;
     public:
-        explicit exception() noexcept;
+        explicit lazy_exception() noexcept : lazy_exception(1) {}
         const char* what() const noexcept override;
-        const std::string& get_what() const noexcept; // what(), but not a C-string
-        const raw_trace& get_raw_trace() const noexcept;
-        const stacktrace& get_trace() const noexcept;
+        const char* message() const noexcept override;
+        const stacktrace& trace() const noexcept override;
     };
+}
+```
 
-    class exception_with_message : public exception {
-        mutable std::string message;
-        explicit exception_with_message(std::string&& message_arg, std::uint_least32_t skip) noexcept;
-        explicit exception_with_message(std::string&& message_arg, std::uint_least32_t skip, std::uint_least32_t max_depth) noexcept;
-        const std::string& get_resolved_what() const noexcept override;
+`cpptrace::lazy_exception` can be freely thrown or overridden. Generally `message()` is the only field to override.
+
+Lastly cpptrace provides an exception class that takes a user-provided message, `cpptrace::exception_with_message`, as
+well as a number of traced exception classes resembling `<stdexcept>`:
+
+```cpp
+namespace cpptrace {
+    class CPPTRACE_EXPORT exception_with_message : public lazy_exception {
+        mutable std::string user_message;
+    protected:
+        explicit exception_with_message(std::string&& message_arg, std::size_t skip) noexcept;
+        explicit exception_with_message(std::string&& message_arg, std::size_t skip, std::size_t max_depth) noexcept;
     public:
-        explicit exception_with_message(std::string&& message_arg);
-        const std::string& get_message() const noexcept;
+        explicit exception_with_message(std::string&& message_arg) noexcept
+            : exception_with_message(std::move(message_arg), 1) {}
+
+        const char* message() const noexcept override;
     };
 
     // All stdexcept errors have analogs here. Same constructor as exception_with_message.
@@ -296,11 +346,150 @@ namespace cpptrace {
 }
 ```
 
+## Wrapping std::exceptions
+
+Cpptrace exceptions can provide great information for user-controlled exceptions. For non-cpptrace::exceptions that may
+originate outside of code you control, e.g. the standard library, cpptrace provides some wrapper utilities that can
+rethrow these exceptions nested in traced cpptrace exceptions. The trace won't be perfect, the trace will start where
+the rapper caught it, but these utilities can provide good diagnostic information. Unfortunately this is the best
+solution for this problem, as far as I know.
+
+```cpp
+std::vector<int> foo = {1, 2, 3};
+CPPTRACE_WRAP_BLOCK(
+    foo.at(4) = 2;
+    foo.at(5)++;
+);
+std::cout<<CPPTRACE_WRAP(foo.at(12))<<std::endl;
+```
+
+## Exception handling with cpptrace
+
+Working with cpptrace exceptions in your code:
+```cpp
+try {
+    foo();
+} catch(cpptrace::exception& e) {
+    // Prints the exception info and stack trace, conditionally enabling color codes depending on
+    // whether stderr is a terminal
+    std::cerr << "Error: " << e.message() << '\n';
+    e.trace().print(std::cerr, cpptrace::isatty(cpptrace::stderr_fileno));
+} catch(std::exception& e) {
+    std::cerr << "Error: " << e.what() << '\n';
+}
+```
+
+Additionally cpptrace provides a custom `std::terminate` handler that prints a stack trace from a cpptrace exception and otherwise behaves like the normal terminate handler and prints the stack trace involved in reaching `std::terminate`.
+The stack trace to `std::terminate` may be helpful or it may not, it depends on the implementation, but often if an
+implementation can't find an appropriate `catch` while unwinding it will jump directly to `std::terminate` giving
+good information.
+
+To register this custom handler:
+
+```cpp
+cpptrace::register_terminate_handler();
+```
+
+## Signal-Safe Tracing
+
+Signal-safe stack tracing is very useful for debugging application crashes, e.g. SIGSEGVs or
+SIGTRAPs, but it's very difficult to do correctly and most implementations I see online do this
+incorrectly.
+
+In order to do this full process safely the way to go is collecting basic information in the signal
+handler and then either resolving later or handing that information to another process to resolve.
+
+It's not as simple as calling `cpptrace::generate_trace().print()`, though you might be able to get
+away with that, but this is what is needed to really do this safely.
+
+The safe API is as follows:
+
+```cpp
+namespace cpptrace {
+    std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip = 0);
+    std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip, std::size_t max_depth);
+    struct safe_object_frame {
+        frame_ptr raw_address;
+        frame_ptr address_relative_to_object_start; // object base address must yet be added
+        char object_path[CPPTRACE_PATH_MAX + 1];
+        object_frame resolve() const; // To be called outside a signal handler. Not signal safe.
+    };
+    void get_safe_object_frame(frame_ptr address, safe_object_frame* out);
+}
+```
+
+**Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported
+`safe_generate_raw_trace` will just produce an empty trace and if object information can't be resolved in a signal-safe
+way then `get_safe_object_frame` will not populate fields beyond the `raw_address`.
+
+**Another big note:** Calls to shared objects can be lazy-loaded where the first call to the shared object invokes
+non-signal-safe functions such as `malloc()`. To avoid this, call these routines in `main()` ahead of a signal handler
+to "warm up" the library.
+
+Because signal-safe tracing is an involved process, I have written up a comprehensive overview of
+what is involved at [signal-safe-tracing.md](signal-safe-tracing.md).
+
+## Utility Types
+
+A couple utility types are used to provide the library with a good interface.
+
+`nullable<T>` is used for a nullable integer type. Internally the maximum value for `T` is used as a
+sentinel. `std::optional` would be used if this library weren't c++11. But, `nullable<T>` provides
+an `std::optional`-like interface and it's less heavy-duty for this use than an `std::optional`.
+
+`detail::lazy_trace_holder` is a utility type for `lazy_exception` used in place of an
+`std::variant<raw_trace, stacktrace>`.
+
+```cpp
+namespace cpptrace {
+    template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+    struct nullable {
+        T raw_value;
+        nullable& operator=(T value)
+        bool has_value() const noexcept;
+        T& value() noexcept;
+        const T& value() const noexcept;
+        T value_or(T alternative) const noexcept;
+        void swap(nullable& other) noexcept;
+        void reset() noexcept;
+        bool operator==(const nullable& other) const noexcept;
+        bool operator!=(const nullable& other) const noexcept;
+        constexpr static nullable null() noexcept; // returns a null instance
+    };
+
+    namespace detail {
+        class lazy_trace_holder {
+            bool resolved;
+            union {
+                raw_trace trace;
+                stacktrace resolved_trace;
+            };
+        public:
+            // constructors
+            lazy_trace_holder() : trace() {}
+            explicit lazy_trace_holder(raw_trace&& _trace);
+            explicit lazy_trace_holder(stacktrace&& _resolved_trace);
+            // logistics
+            lazy_trace_holder(const lazy_trace_holder& other);
+            lazy_trace_holder(lazy_trace_holder&& other) noexcept;
+            lazy_trace_holder& operator=(const lazy_trace_holder& other);
+            lazy_trace_holder& operator=(lazy_trace_holder&& other) noexcept;
+            ~lazy_trace_holder();
+            // access
+            stacktrace& get_resolved_trace();
+            const stacktrace& get_resolved_trace() const; // throws if not already resolved
+        private:
+            void clear();
+        };
+    }
+}
+```
+
 ## Notable Library Configurations
 
 - `CPPTRACE_STATIC=On/Off`: Create cpptrace as a static library.
 - `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
-  Default is `100`.
+  Default is `200`.
 
 ## Notes About the Library and Future Work
 
@@ -339,9 +528,9 @@ another system (this is theoretically possible currently but untested).
 | ------------------------------------------------ | --------- |
 | DWARF in binary                                  | ✔️      |
 | DWARF in separate binary (binary gnu debug link) | ️️✔️  |
-| DWARF in separate binary (split dwarf)           | Soon  |
+| DWARF in separate binary (split dwarf)           | ✔️      |
 | DWARF in dSYM                                    | ✔️      |
-| DWARF in via Mach-O debug map                    | Soon   |
+| DWARF in via Mach-O debug map                    | Soon      |
 | Windows debug symbols in PDB                     | ✔️      |
 
 DWARF5 added DWARF package files. As far as I can tell no compiler implements these yet.
@@ -523,32 +712,42 @@ To static link the library set `-DCPPTRACE_STATIC=On`.
 
 ## Library Internals
 
-Cpptrace supports a number of back-ends and middle-ends to produce stack traces. Stack traces are produced in roughly
-three steps: Unwinding, symbol resolution, and demangling. Cpptrace by default on linux / macos will generate traces
-with `_Unwind_Backtrace`, libdwarf, and `__cxa_demangle`. On windows traces are generated by default with
-`StackWalk64` and dbghelp.h (no demangling is needed with dbghelp). Under mingw libdwarf and dbghelp.h are
-used, along with `__cxa_demangle`. Support for these is the main focus of cpptrace and they should work well. If you
-want to use a different back-end such as addr2line, however, you can configure the library to do so.
+Cpptrace supports a number of back-ends to produce stack traces. Stack traces are produced in roughly three steps:
+Unwinding, symbol resolution, and demangling.
+
+The library's CMake automatically configures itself for what your system supports. The ideal configuration is as
+follows:
+
+| Platform | Unwinding     | Symbols            | Demangling           |
+| -------- | ------------- | ------------------ | -------------------- |
+| Linux    | `_Unwind`     | libdwarf           | cxxabi.h             |
+| MacOS    | `_Unwind`     | libdwarf           | cxxabi.h             |
+| Windows  | `StackWalk64` | dbghelp            | No demangling needed |
+| MinGW    | `StackWalk64` | libdwarf + dbghelp | cxxabi.h             |
+
+Support for these back-ends is the main development focus and they should work well. If you want to use a different
+back-end such as addr2line, for example, you can configure the library to do so.
 
 **Unwinding**
 
-| Library       | CMake config                    | Platforms           | Info                                                                                                                                                                                                     |
-| ------------- | ------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| libgcc unwind | `CPPTRACE_UNWIND_WITH_UNWIND`   | linux, macos, mingw | Frames are captured with libgcc's `_Unwind_Backtrace`, which currently produces the most accurate stack traces on gcc/clang/mingw. Libgcc is often linked by default, and llvm has something equivalent. |
-| execinfo.h    | `CPPTRACE_UNWIND_WITH_EXECINFO` | linux, macos        | Frames are captured with `execinfo.h`'s `backtrace`, part of libc on linux/unix systems.                                                                                                                 |
-| winapi        | `CPPTRACE_UNWIND_WITH_WINAPI`   | windows, mingw      | Frames are captured with `CaptureStackBackTrace`.                                                                                                                                                        |
-| dbghelp       | `CPPTRACE_UNWIND_WITH_DBGHELP`  | windows, mingw      | Frames are captured with `StackWalk64`.                                                                                                                                                        |
-| N/A           | `CPPTRACE_UNWIND_WITH_NOTHING`  | all                 | Unwinding is not done, stack traces will be empty.                                                                                                                                                       |
+| Library       | CMake config                     | Platforms                    | Info                                                                                                                                                                                                                 |
+| ------------- | -------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| libgcc unwind | `CPPTRACE_UNWIND_WITH_UNWIND`    | linux, macos, mingw          | Frames are captured with libgcc's `_Unwind_Backtrace`, which currently produces the most accurate stack traces on gcc/clang/mingw. Libgcc is often linked by default, and llvm has something equivalent.             |
+| execinfo.h    | `CPPTRACE_UNWIND_WITH_EXECINFO`  | linux, macos                 | Frames are captured with `execinfo.h`'s `backtrace`, part of libc on linux/unix systems.                                                                                                                             |
+| winapi        | `CPPTRACE_UNWIND_WITH_WINAPI`    | windows, mingw               | Frames are captured with `CaptureStackBackTrace`.                                                                                                                                                                    |
+| dbghelp       | `CPPTRACE_UNWIND_WITH_DBGHELP`   | windows, mingw               | Frames are captured with `StackWalk64`.                                                                                                                                                                              |
+| dbghelp       | `CPPTRACE_UNWIND_WITH_LIBUNWIND` | linux, macos, windows, mingw | Frames are captured with [libunwind](https://github.com/libunwind/libunwind). **Note:** This is the only back-end that requires a library to be installed by the user, and a `CMAKE_PREFIX_PATH` may also be needed. |
+| N/A           | `CPPTRACE_UNWIND_WITH_NOTHING`   | all                          | Unwinding is not done, stack traces will be empty.                                                                                                                                                                   |
 
 Some back-ends (execinfo and `CaptureStackBackTrace`) require a fixed buffer has to be created to read addresses into
-while unwinding. By default the buffer can hold addresses for 100 frames (beyond the `skip` frames). This is
+while unwinding. By default the buffer can hold addresses for 200 frames (beyond the `skip` frames). This is
 configurable with `CPPTRACE_HARD_MAX_FRAMES`.
 
 **Symbol resolution**
 
 | Library      | CMake config                             | Platforms             | Info                                                                                                                                                                                         |
 | ------------ | ---------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| libdwarf     | `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF`     | linux, macos, mingw   | Libdwarf is the preferred method for symbol resolution for cpptrace, and it's bundled in this repository for ease of use.                                                                    |
+| libdwarf     | `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF`     | linux, macos, mingw   | Libdwarf is the preferred method for symbol resolution for cpptrace. Cpptrace will get it via FetchContent or find_package depending on `CPPTRACE_USE_EXTERNAL_LIBDWARF`.                    |
 | dbghelp      | `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`      | windows               | Dbghelp.h is the preferred method for symbol resolution on windows under msvc/clang and is supported on all windows machines.                                                                |
 | libbacktrace | `CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE` | linux, macos*, mingw* | Libbacktrace is already installed on most systems or available through the compiler directly. For clang you must specify the absolute path to `backtrace.h` using `CPPTRACE_BACKTRACE_PATH`. |
 | addr2line    | `CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE`    | linux, macos, mingw   | Symbols are resolved by invoking `addr2line` (or `atos` on mac) via `fork()` (on linux/unix, and `popen` under mingw).                                                                       |
@@ -556,6 +755,9 @@ configurable with `CPPTRACE_HARD_MAX_FRAMES`.
 | N/A          | `CPPTRACE_GET_SYMBOLS_WITH_NOTHING`      | all                   | No attempt is made to resolve symbols.                                                                                                                                                       |
 
 *: Requires installation
+
+One back-end should be used. For MinGW `CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF` and `CPPTRACE_GET_SYMBOLS_WITH_DBGHELP` can
+be used in conjunction.
 
 Note for addr2line: By default cmake will resolve an absolute path to addr2line to bake into the library. This path can
 be configured with `CPPTRACE_ADDR2LINE_PATH`, or `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH` can be used to have the library
@@ -568,7 +770,7 @@ Lastly, depending on other back-ends used a demangler back-end may be needed.
 | Library   | CMake config                     | Platforms           | Info                                                                               |
 | --------- | -------------------------------- | ------------------- | ---------------------------------------------------------------------------------- |
 | cxxabi.h  | `CPPTRACE_DEMANGLE_WITH_CXXABI`  | Linux, macos, mingw | Should be available everywhere other than [msvc](https://godbolt.org/z/93ca9rcdz). |
-| dbghelp.h | `CPPTRACE_DEMANGLE_WITH_WINAPI`  | Windows             | Demangle with `UnDecorateSymbolName`. |
+| dbghelp.h | `CPPTRACE_DEMANGLE_WITH_WINAPI`  | Windows             | Demangle with `UnDecorateSymbolName`.                                              |
 | N/A       | `CPPTRACE_DEMANGLE_WITH_NOTHING` | all                 | Don't attempt to do anything beyond what the symbol resolution back-end does.      |
 
 **More?**
@@ -588,6 +790,7 @@ Back-ends:
 - `CPPTRACE_GET_SYMBOLS_WITH_LIBDL=On/Off`
 - `CPPTRACE_GET_SYMBOLS_WITH_NOTHING=On/Off`
 - `CPPTRACE_UNWIND_WITH_UNWIND=On/Off`
+- `CPPTRACE_UNWIND_WITH_LIBUNWIND=On/Off`
 - `CPPTRACE_UNWIND_WITH_EXECINFO=On/Off`
 - `CPPTRACE_UNWIND_WITH_WINAPI=On/Off`
 - `CPPTRACE_UNWIND_WITH_DBGHELP=On/Off`
@@ -597,20 +800,24 @@ Back-ends:
 - `CPPTRACE_DEMANGLE_WITH_NOTHING=On/Off`
 
 Back-end configuration:
-- `CPPTRACE_STATIC=On/Off`: Create cpptrace as a static library.
 - `CPPTRACE_BACKTRACE_PATH=<string>`: Path to libbacktrace backtrace.h, needed when compiling with clang/
 - `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
-  Default is `100`.
+  Default is `200`.
 - `CPPTRACE_ADDR2LINE_PATH=<string>`: Specify the absolute path to the addr2line binary for cpptrace to invoke. By
   default the config script will search for a binary and use that absolute path (this is to prevent against path
   injection).
 - `CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH=On/Off`: Specifies whether cpptrace should let the system search the PATH
   environment variable directories for the binary.
-- `CPPTRACE_USE_SYSTEM_LIBDWARF=On/Off`: Use libdwarf resolved via `find_package` rather than the bundled libdwarf.
+
+Other useful configurations:
+- `CPPTRACE_BUILD_SHARED=On/Off`: Override for `BUILD_SHARED_LIBS`.
+- `CPPTRACE_INCLUDES_WITH_SYSTEM=On/Off`: Marks cpptrace headers as `SYSTEM` which will hide any warnings that aren't
+  the fault of your project. Defaults to On.
+- `CPPTRACE_INSTALL_CMAKEDIR`: Override for the installation path for the cmake configs.
+- `CPPTRACE_USE_EXTERNAL_LIBDWARF=On/Off`: Get libdwarf from `find_package` rather than `FetchContent`.
 
 Testing:
-- `CPPTRACE_BUILD_TEST` Build a small test program
-- `CPPTRACE_BUILD_DEMO` Build a small demo program
+- `CPPTRACE_BUILD_TESTING` Build small demo and test program
 - `CPPTRACE_BUILD_TEST_RDYNAMIC` Use `-rdynamic` when compiling the test program
 
 ## Testing Methodology
@@ -628,5 +835,5 @@ unwinding back-end, and the python script will check for an exact or near-match 
 
 This library is under the MIT license.
 
-Libdwarf is bundled as part of this library so the code in `bundled/libdwarf` is LGPL. If this library is statically
-linked with libdwarf then the library's binary will itself be LGPL.
+Cpptrace uses libdwarf on linux, macos, and mingw/cygwin unless configured to use something else. If this library is
+statically linked with libdwarf then the library's binary will itself be LGPL.

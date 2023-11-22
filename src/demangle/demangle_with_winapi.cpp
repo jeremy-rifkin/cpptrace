@@ -2,7 +2,6 @@
 
 #include "demangle.hpp"
 
-#include <cstdlib>
 #include <string>
 
 #include <windows.h>

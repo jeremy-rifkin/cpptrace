@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request:
       types: [opened, synchronize, reopened]
 name: sonarlint
@@ -21,7 +22,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_BUILD_DEMO=On -DCPPTRACE_BUILD_TEST=On -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCMAKE_CXX_STANDARD=11
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_BUILD_TESTING=On -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCMAKE_CXX_STANDARD=11
         make -j
         cd ..
     - name: Run sonar-scanner

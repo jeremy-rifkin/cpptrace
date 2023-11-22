@@ -6,22 +6,33 @@
 #include <memory>
 #include <vector>
 
-#include "../platform/object.hpp"
+#include "../binary/object.hpp"
 
 namespace cpptrace {
 namespace detail {
     using collated_vec = std::vector<
         std::pair<std::reference_wrapper<const object_frame>, std::reference_wrapper<stacktrace_frame>>
     >;
+    struct frame_with_inlines {
+        stacktrace_frame frame;
+        std::vector<stacktrace_frame> inlines;
+    };
+    using collated_vec_with_inlines = std::vector<
+        std::pair<std::reference_wrapper<const object_frame>, std::reference_wrapper<frame_with_inlines>>
+    >;
 
     std::unordered_map<std::string, collated_vec> collate_frames(
         const std::vector<object_frame>& frames,
         std::vector<stacktrace_frame>& trace
     );
+    std::unordered_map<std::string, collated_vec_with_inlines> collate_frames(
+        const std::vector<object_frame>& frames,
+        std::vector<frame_with_inlines>& trace
+    );
 
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE
     namespace libbacktrace {
-        std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames);
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
     }
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
@@ -31,7 +42,7 @@ namespace detail {
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
     namespace libdl {
-        std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames);
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
     }
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
@@ -41,18 +52,18 @@ namespace detail {
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
     namespace dbghelp {
-        std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames);
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
     }
     #endif
     #ifdef CPPTRACE_GET_SYMBOLS_WITH_NOTHING
     namespace nothing {
         std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames);
-        std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames);
+        std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
     }
     #endif
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames);
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames);
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
 }
 }
 

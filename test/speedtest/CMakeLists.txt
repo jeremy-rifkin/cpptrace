@@ -35,6 +35,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 set(cpptrace_DIR "../../build/foo/lib/cmake/cpptrace")
+set(libdwarf_DIR "../../build/foo/lib/cmake/libdwarf")
 find_package(cpptrace REQUIRED)
 
 add_executable(speedtest speedtest.cpp)

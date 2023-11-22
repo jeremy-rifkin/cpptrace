@@ -12,6 +12,7 @@ jobs:
     - name: test
       run: |
            tag=$(git rev-parse --abbrev-ref HEAD)
+           echo $tag
            cd ..
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
@@ -59,6 +60,7 @@ jobs:
     - name: test
       run: |
            tag=$(git rev-parse --abbrev-ref HEAD)
+           echo $tag
            cd ..
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
@@ -73,6 +75,7 @@ jobs:
     - name: test
       run: |
            tag=$(git rev-parse --abbrev-ref HEAD)
+           echo $tag
            mkdir build
            cd build
            cmake .. -DCMAKE_BUILD_TYPE=Debug
@@ -100,12 +103,13 @@ jobs:
            ./main
 
   test-mingw-fetchcontent:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v2
     - name: test
       run: |
            $tag=$(git rev-parse --abbrev-ref HEAD)
+           echo $tag
            cd ..
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
@@ -114,7 +118,7 @@ jobs:
            make
            .\main.exe
   test-mingw-add_subdirectory:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v2
     - name: test
@@ -128,7 +132,7 @@ jobs:
            make
            .\main.exe
   test-windows-fetchcontent:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
@@ -136,6 +140,7 @@ jobs:
     - name: test
       run: |
            $tag=$(git rev-parse --abbrev-ref HEAD)
+           echo $tag
            cd ..
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
@@ -144,7 +149,7 @@ jobs:
            msbuild demo_project.sln
            .\Debug\main.exe
   test-windows-add_subdirectory:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v2
     - name: Enable Developer Command Prompt
