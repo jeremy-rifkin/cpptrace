@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include "cpptrace/cpptrace_export.hpp"
+#include <cpptrace/cpptrace_export.hpp>
 
 #if __cplusplus >= 202002L
  #ifdef __has_include
