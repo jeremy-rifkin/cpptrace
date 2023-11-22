@@ -27,6 +27,13 @@
  #define CPPTRACE_FORCE_NO_INLINE __attribute__((noinline))
 #endif
 
+#if _MSC_VER
+#pragma warning(push)
+// warning C4251: using non-dll-exported type in dll-exported type, firing on std::vector<frame_ptr> and others for some
+// reason
+#pragma warning(disable: 4251)
+#endif
+
 namespace cpptrace {
     struct object_trace;
     struct stacktrace;
@@ -407,5 +414,9 @@ namespace cpptrace {
             ::cpptrace::rethrow_and_wrap_if_needed(1); \
         } \
     } ()
+
+#if _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif
