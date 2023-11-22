@@ -371,7 +371,8 @@ namespace cpptrace {
         std::exception_ptr nested_ptr() const noexcept;
     };
 
-    CPPTRACE_EXPORT [[noreturn]] void rethrow_and_wrap_if_needed(std::size_t skip = 0);
+    // [[noreturn]] must come first due to old clang
+    [[noreturn]] CPPTRACE_EXPORT void rethrow_and_wrap_if_needed(std::size_t skip = 0);
 }
 
 #if defined(CPPTRACE_STD_FORMAT) && defined(__cpp_lib_format)

@@ -17,7 +17,7 @@
  #else
   #include "elf.hpp"
  #endif
- #if CPPTRACE_HAS_DL_FIND_OBJECT
+ #ifdef CPPTRACE_HAS_DL_FIND_OBJECT
   #include <link.h>
  #endif
 #elif IS_WINDOWS
@@ -64,7 +64,7 @@ namespace detail {
         }
     }
     #endif
-    #if CPPTRACE_HAS_DL_FIND_OBJECT
+    #ifdef CPPTRACE_HAS_DL_FIND_OBJECT
     inline std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addrs) {
         // Use _dl_find_object when we can, it's orders of magnitude faster
         std::vector<object_frame> frames;

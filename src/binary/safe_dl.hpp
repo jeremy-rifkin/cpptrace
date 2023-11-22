@@ -12,7 +12,7 @@
 #include <cstring>
 #include <iostream>
 
-#if CPPTRACE_HAS_DL_FIND_OBJECT
+#ifdef CPPTRACE_HAS_DL_FIND_OBJECT
 #if IS_LINUX || IS_APPLE
  #include <unistd.h>
  #include <dlfcn.h>
