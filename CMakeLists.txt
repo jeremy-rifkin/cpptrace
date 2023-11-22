@@ -392,15 +392,19 @@ if(CPPTRACE_UNWIND_WITH_LIBUNWIND)
 		find_path(LIBUNWIND_INCLUDE_DIR NAMES "libunwind.h")
     find_library(LIBUNWIND NAMES unwind libunwind libunwind8 libunwind.so.8 REQUIRED PATHS "/usr/lib/x86_64-linux-gnu/")
     if(LIBUNWIND)
-      target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
-      target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
-      target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
       set(libunwind_FOUND TRUE)
     endif()
   endif()
   if(NOT libunwind_FOUND)
-    message(FATAL_ERROR "Unable to locate libunwind")
+    # message(FATAL_ERROR "Unable to locate libunwind")
+    # Try to link with it if it's where it should be
+    # This path can be entered if libunwind was installed via the system package manager, sometimes. I probably messed
+    # up the find_library above.
+    set(LIBUNWIND_LDFLAGS "-lunwind")
   endif()
+  target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
+  target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
+  target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_LIBUNWIND UNW_LOCAL_ONLY)
 endif()
 
