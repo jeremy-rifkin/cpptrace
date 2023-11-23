@@ -58,7 +58,11 @@ void trace() {
 /* other stuff */
 ```
 
-![Screenshot](res/screenshot.png)
+![Demo](res/demo.png)
+
+It even supports function inlining information on release builds:
+
+![Inlining](res/inlining.png)
 
 Cpptrace provides access to resolved stack traces as well as lightweight raw traces (just addresses) that can be
 resolved later:
