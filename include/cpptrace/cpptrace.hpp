@@ -90,7 +90,7 @@ namespace cpptrace {
     // This is used over std::optional because the library is C++11 and also std::optional is a bit heavy-duty for this
     // use.
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
-    struct CPPTRACE_EXPORT nullable {
+    struct nullable {
         T raw_value;
         nullable& operator=(T value) {
             raw_value = value;
