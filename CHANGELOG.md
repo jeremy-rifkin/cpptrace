@@ -1,11 +1,17 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.3.1](#v031)
 - [v0.3.0](#v030)
 - [v0.2.1](#v021)
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.3.1
+
+Tiny patch:
+- Fix `CPPTRACE_EXPORT` annotations
 
 # v0.3.0
 
