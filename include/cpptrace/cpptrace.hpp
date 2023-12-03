@@ -312,55 +312,55 @@ namespace cpptrace {
         const char* message() const noexcept override;
     };
 
-    class logic_error : public exception_with_message {
+    class CPPTRACE_EXPORT logic_error : public exception_with_message {
     public:
         explicit logic_error(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
     };
 
-    class domain_error : public exception_with_message {
+    class CPPTRACE_EXPORT domain_error : public exception_with_message {
     public:
         explicit domain_error(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
     };
 
-    class invalid_argument : public exception_with_message {
+    class CPPTRACE_EXPORT invalid_argument : public exception_with_message {
     public:
         explicit invalid_argument(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
     };
 
-    class length_error : public exception_with_message {
+    class CPPTRACE_EXPORT length_error : public exception_with_message {
     public:
         explicit length_error(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
     };
 
-    class out_of_range : public exception_with_message {
+    class CPPTRACE_EXPORT out_of_range : public exception_with_message {
     public:
         explicit out_of_range(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
     };
 
-    class runtime_error : public exception_with_message {
+    class CPPTRACE_EXPORT runtime_error : public exception_with_message {
     public:
         explicit runtime_error(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
     };
 
-    class range_error : public exception_with_message {
+    class CPPTRACE_EXPORT range_error : public exception_with_message {
     public:
         explicit range_error(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
     };
 
-    class overflow_error : public exception_with_message {
+    class CPPTRACE_EXPORT overflow_error : public exception_with_message {
     public:
         explicit overflow_error(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
     };
 
-    class underflow_error : public exception_with_message {
+    class CPPTRACE_EXPORT underflow_error : public exception_with_message {
     public:
         explicit underflow_error(std::string&& message_arg) noexcept
             : exception_with_message(std::move(message_arg), 1) {}
