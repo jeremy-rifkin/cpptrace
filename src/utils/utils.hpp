@@ -365,7 +365,7 @@ namespace detail {
         typename T,
         typename D
         // workaround a msvc bug https://developercommunity.visualstudio.com/t/MSVC-1938331290-preview-fails-to-comp/10505565
-        #if _MSC_VER != 1938
+        #if !defined(_MSC_VER) || _MSC_VER != 1938
          ,
          typename std::enable_if<
              std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
@@ -415,7 +415,7 @@ namespace detail {
         typename T,
         typename D
         // workaround a msvc bug https://developercommunity.visualstudio.com/t/MSVC-1938331290-preview-fails-to-comp/10505565
-        #if _MSC_VER != 1938
+        #if !defined(_MSC_VER) || _MSC_VER != 1938
          ,
          typename std::enable_if<
              std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
