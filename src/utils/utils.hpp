@@ -363,19 +363,23 @@ namespace detail {
 
     template<
         typename T,
-        typename D,
-        typename std::enable_if<
-            std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
-            int
-        >::type = 0,
-        typename std::enable_if<
-            std::is_standard_layout<T>::value && std::is_trivial<T>::value,
-            int
-        >::type = 0,
-        typename std::enable_if<
-            std::is_nothrow_move_constructible<T>::value,
-            int
-        >::type = 0
+        typename D
+        // workaround a msvc bug https://developercommunity.visualstudio.com/t/MSVC-1938331290-preview-fails-to-comp/10505565
+        #if _MSC_VER != 1938
+         ,
+         typename std::enable_if<
+             std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
+             int
+         >::type = 0,
+         typename std::enable_if<
+             std::is_standard_layout<T>::value && std::is_trivial<T>::value,
+             int
+         >::type = 0,
+         typename std::enable_if<
+             std::is_nothrow_move_constructible<T>::value,
+             int
+         >::type = 0
+        #endif
     >
     class raii_wrapper {
         T obj;
@@ -409,15 +413,19 @@ namespace detail {
 
     template<
         typename T,
-        typename D,
-        typename std::enable_if<
-            std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
-            int
-        >::type = 0,
-        typename std::enable_if<
-            std::is_standard_layout<T>::value && std::is_trivial<T>::value,
-            int
-        >::type = 0
+        typename D
+        // workaround a msvc bug https://developercommunity.visualstudio.com/t/MSVC-1938331290-preview-fails-to-comp/10505565
+        #if _MSC_VER != 1938
+         ,
+         typename std::enable_if<
+             std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
+             int
+         >::type = 0,
+         typename std::enable_if<
+             std::is_standard_layout<T>::value && std::is_trivial<T>::value,
+             int
+         >::type = 0
+        #endif
     >
     raii_wrapper<typename std::remove_reference<T>::type, D> raii_wrap(T obj, D deleter) {
         return raii_wrapper<typename std::remove_reference<T>::type, D>(obj, deleter);
