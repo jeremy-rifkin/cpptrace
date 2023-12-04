@@ -12,6 +12,9 @@
 
 Tiny patch:
 - Fix `CPPTRACE_EXPORT` annotations
+- Add workaround for [msvc bug][msvc bug] affecting msvc 19.38.
+
+[msvc bug]: https://developercommunity.visualstudio.com/t/MSVC-1938331290-preview-fails-to-comp/10505565
 
 # v0.3.0
 
