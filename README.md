@@ -119,7 +119,7 @@ if(WIN32)
 endif()
 ```
 
-On windows and macos some extra work is required, see [below](#platform-logistics).
+On macos a little extra work to generate a .dSYM file is required, see [below](#platform-logistics).
 
 # In-Depth Documentation
 
