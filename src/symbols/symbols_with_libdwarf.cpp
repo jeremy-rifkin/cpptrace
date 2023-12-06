@@ -95,6 +95,7 @@ namespace libdwarf {
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
         // Vector of ranges and their corresponding CU offsets
         std::vector<cu_entry> cu_cache;
+        bool generated_cu_cache = false;
         // Map from CU -> {srcfiles, count}
         std::unordered_map<Dwarf_Off, std::pair<char**, Dwarf_Signed>> srcfiles_cache;
 
@@ -165,21 +166,6 @@ namespace libdwarf {
                 // Check for .debug_aranges for fast lookup
                 wrap(dwarf_get_aranges, dbg, &aranges, &arange_count);
             }
-            if(ok && !aranges && get_cache_mode() != cache_mode::prioritize_memory) {
-                walk_compilation_units([this] (const die_object& cu_die) {
-                    Dwarf_Half offset_size = 0;
-                    Dwarf_Half dwversion = 0;
-                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
-                    auto ranges_vec = cu_die.get_rangelist_entries(dwversion);
-                    for(auto range : ranges_vec) {
-                        cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
-                    }
-                    return true;
-                });
-                std::sort(cu_cache.begin(), cu_cache.end(), [] (const cu_entry& a, const cu_entry& b) {
-                    return a.low < b.low;
-                });
-            }
         }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
@@ -213,6 +199,7 @@ namespace libdwarf {
             line_contexts(std::move(other.line_contexts)),
             subprograms_cache(std::move(other.subprograms_cache)),
             cu_cache(std::move(other.cu_cache)),
+            generated_cu_cache(other.generated_cu_cache),
             srcfiles_cache(std::move(other.srcfiles_cache))
         {
             other.dbg = nullptr;
@@ -228,6 +215,7 @@ namespace libdwarf {
             line_contexts = std::move(other.line_contexts);
             subprograms_cache = std::move(other.subprograms_cache);
             cu_cache = std::move(other.cu_cache);
+            generated_cu_cache = other.generated_cu_cache;
             srcfiles_cache = std::move(other.srcfiles_cache);
             other.dbg = nullptr;
             other.aranges = nullptr;
@@ -279,6 +267,25 @@ namespace libdwarf {
             }
             if(dump_dwarf) {
                 std::fprintf(stderr, "End walk_compilation_units\n");
+            }
+        }
+
+        void lazy_generate_cu_cache() {
+            if(!generated_cu_cache) {
+                walk_compilation_units([this] (const die_object& cu_die) {
+                    Dwarf_Half offset_size = 0;
+                    Dwarf_Half dwversion = 0;
+                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    auto ranges_vec = cu_die.get_rangelist_entries(dwversion);
+                    for(auto range : ranges_vec) {
+                        cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
+                    }
+                    return true;
+                });
+                std::sort(cu_cache.begin(), cu_cache.end(), [] (const cu_entry& a, const cu_entry& b) {
+                    return a.low < b.low;
+                });
+                generated_cu_cache = true;
             }
         }
 
@@ -787,61 +794,66 @@ namespace libdwarf {
                     }
                     retrieve_line_info(cu_die, pc, frame); // no offset for line info
                     retrieve_symbol(cu_die, pc, dwversion, frame, inlines);
+                    return;
                 }
-            } else {
-                if(get_cache_mode() == cache_mode::prioritize_memory) {
-                    // walk for the cu and go from there
-                    walk_compilation_units([this, pc, &frame, &inlines] (const die_object& cu_die) {
-                        Dwarf_Half offset_size = 0;
-                        Dwarf_Half dwversion = 0;
-                        dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
-                        //auto p = cu_die.get_pc_range(dwversion);
-                        //cu_die.print();
-                        //fprintf(stderr, "        %llx, %llx\n", p.first, p.second);
+            }
+            // otherwise, or if not in aranges
+            // one reason to fallback here is if the compilation has dwarf generated from different compilers and only
+            // some of them generate aranges (e.g. static linking with cpptrace after specifying clang++ as the c++
+            // compiler while the C compiler defaults to an older gcc)
+            if(get_cache_mode() == cache_mode::prioritize_memory) {
+                // walk for the cu and go from there
+                walk_compilation_units([this, pc, &frame, &inlines] (const die_object& cu_die) {
+                    Dwarf_Half offset_size = 0;
+                    Dwarf_Half dwversion = 0;
+                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    //auto p = cu_die.get_pc_range(dwversion);
+                    //cu_die.print();
+                    //fprintf(stderr, "        %llx, %llx\n", p.first, p.second);
+                    if(trace_dwarf) {
+                        std::fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
+                    }
+                    if(cu_die.pc_in_die(dwversion, pc)) {
                         if(trace_dwarf) {
-                            std::fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
+                            std::fprintf(
+                                stderr,
+                                "pc in die %08llx %s (now searching for %08llx)\n",
+                                to_ull(cu_die.get_global_offset()),
+                                cu_die.get_tag_name(),
+                                to_ull(pc)
+                            );
                         }
-                        if(cu_die.pc_in_die(dwversion, pc)) {
-                            if(trace_dwarf) {
-                                std::fprintf(
-                                    stderr,
-                                    "pc in die %08llx %s (now searching for %08llx)\n",
-                                    to_ull(cu_die.get_global_offset()),
-                                    cu_die.get_tag_name(),
-                                    to_ull(pc)
-                                );
-                            }
-                            retrieve_line_info(cu_die, pc, frame); // no offset for line info
-                            retrieve_symbol(cu_die, pc, dwversion, frame, inlines);
-                            return false;
-                        }
-                        return true;
-                    });
+                        retrieve_line_info(cu_die, pc, frame); // no offset for line info
+                        retrieve_symbol(cu_die, pc, dwversion, frame, inlines);
+                        return false;
+                    }
+                    return true;
+                });
+            } else {
+                lazy_generate_cu_cache();
+                // look up the cu
+                auto vec_it = std::lower_bound(
+                    cu_cache.begin(),
+                    cu_cache.end(),
+                    pc,
+                    [] (const cu_entry& entry, Dwarf_Addr pc) {
+                        return entry.low < pc;
+                    }
+                );
+                // vec_it is first >= pc
+                // we want first <= pc
+                if(vec_it != cu_cache.begin()) {
+                    vec_it--;
+                }
+                // If the vector has been empty this can happen
+                if(vec_it != cu_cache.end()) {
+                    //vec_it->die.print();
+                    if(vec_it->die.pc_in_die(vec_it->dwversion, pc)) {
+                        retrieve_line_info(vec_it->die, pc, frame); // no offset for line info
+                        retrieve_symbol(vec_it->die, pc, vec_it->dwversion, frame, inlines);
+                    }
                 } else {
-                    // look up the cu
-                    auto vec_it = std::lower_bound(
-                        cu_cache.begin(),
-                        cu_cache.end(),
-                        pc,
-                        [] (const cu_entry& entry, Dwarf_Addr pc) {
-                            return entry.low < pc;
-                        }
-                    );
-                    // vec_it is first >= pc
-                    // we want first <= pc
-                    if(vec_it != cu_cache.begin()) {
-                       vec_it--;
-                    }
-                    // If the vector has been empty this can happen
-                    if(vec_it != cu_cache.end()) {
-                       //vec_it->die.print();
-                       if(vec_it->die.pc_in_die(vec_it->dwversion, pc)) {
-                           retrieve_line_info(vec_it->die, pc, frame); // no offset for line info
-                           retrieve_symbol(vec_it->die, pc, vec_it->dwversion, frame, inlines);
-                       }
-                    } else {
-                       ASSERT(cu_cache.size() == 0, "Vec should be empty?");
-                    }
+                    ASSERT(cu_cache.size() == 0, "Vec should be empty?");
                 }
             }
         }
