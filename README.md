@@ -106,20 +106,20 @@ FetchContent_Declare(
   GIT_TAG        v0.3.1 # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
-target_link_libraries(your_target cpptrace)
+target_link_libraries(your_target cpptrace::cpptrace)
 
 # On windows copy cpptrace.dll to the same directory as the executable for your_target
 if(WIN32)
   add_custom_command(
     TARGET your_target POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    $<TARGET_FILE:cpptrace>
+    $<TARGET_FILE:cpptrace::cpptrace>
     $<TARGET_FILE_DIR:your_target>
   )
 endif()
 ```
 
-On windows and macos some extra work is required, see [below](#platform-logistics).
+On macos a little extra work to generate a .dSYM file is required, see [below](#platform-logistics).
 
 # In-Depth Documentation
 
@@ -553,7 +553,7 @@ FetchContent_Declare(
   GIT_TAG        v0.3.1 # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
-target_link_libraries(your_target cpptrace)
+target_link_libraries(your_target cpptrace::cpptrace)
 ```
 
 It's as easy as that. Cpptrace will automatically configure itself for your system. Note: On windows and macos some
@@ -683,7 +683,7 @@ if(WIN32)
   add_custom_command(
     TARGET your_target POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    $<TARGET_FILE:cpptrace>
+    $<TARGET_FILE:cpptrace::cpptrace>
     $<TARGET_FILE_DIR:your_target>
   )
 endif()
