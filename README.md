@@ -15,6 +15,8 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
 
 - [30-Second Overview](#30-second-overview)
   - [CMake FetchContent Usage](#cmake-fetchcontent-usage)
+- [FAQ](#faq)
+  - [What about C++23 `<stacktrace>`?](#what-about-c23-stacktrace)
 - [In-Depth Documentation](#in-depth-documentation)
   - [`namespace cpptrace`](#namespace-cpptrace)
     - [Stack Traces](#stack-traces)
@@ -26,27 +28,24 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
   - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
   - [Signal-Safe Tracing](#signal-safe-tracing)
   - [Utility Types](#utility-types)
-  - [Notable Library Configurations](#notable-library-configurations)
-  - [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
-    - [FAQ: What about C++23 `<stacktrace>`?](#faq-what-about-c23-stacktrace)
-  - [Supported Debug Symbols](#supported-debug-symbols)
-  - [Usage](#usage)
-    - [CMake FetchContent](#cmake-fetchcontent)
-    - [System-Wide Installation](#system-wide-installation)
-    - [Local User Installation](#local-user-installation)
-    - [Package Managers](#package-managers)
-      - [Conan](#conan)
-      - [Vcpkg](#vcpkg)
-    - [Platform Logistics](#platform-logistics)
-    - [Static Linking](#static-linking)
-  - [Library Internals](#library-internals)
-    - [Summary of Library Configurations](#summary-of-library-configurations)
-  - [Testing Methodology](#testing-methodology)
+- [Supported Debug Formats](#supported-debug-formats)
+- [Usage](#usage)
+  - [CMake FetchContent](#cmake-fetchcontent)
+  - [System-Wide Installation](#system-wide-installation)
+  - [Local User Installation](#local-user-installation)
+  - [Package Managers](#package-managers)
+    - [Conan](#conan)
+    - [Vcpkg](#vcpkg)
+- [Platform Logistics](#platform-logistics)
+- [Library Back-Ends](#library-back-ends)
+  - [Summary of Library Configurations](#summary-of-library-configurations)
+- [Testing Methodology](#testing-methodology)
+- [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
 - [License](#license)
 
 # 30-Second Overview
 
-Generating traces is as easy as:
+Generating stack traces is as easy as:
 
 ```cpp
 #include <cpptrace/cpptrace.hpp>
@@ -54,13 +53,11 @@ Generating traces is as easy as:
 void trace() {
     cpptrace::generate_trace().print();
 }
-
-/* other stuff */
 ```
 
 ![Demo](res/demo.png)
 
-It even supports function inlining information on release builds:
+Cpptrace can also retrieve function inlining information on optimized release builds:
 
 ![Inlining](res/inlining.png)
 
@@ -80,15 +77,9 @@ Cpptrace also provides exception types that store stack traces:
 void trace() {
     throw cpptrace::logic_error("This wasn't supposed to happen!");
 }
-
-/* other stuff */
-// terminate called after throwing an instance of 'cpptrace::logic_error'
-//   what():  This wasn't supposed to happen!:
-// Stack trace (most recent call first):
-// #0 0x00005641c715a1b6 in trace() at demo.cpp:9
-// #1 0x00005641c715a229 in foo(int) at demo.cpp:16
-// #2 0x00005641c715a2ba in main at demo.cpp:34
 ```
+
+![Inlining](res/exception.png)
 
 Additional notable features:
 
@@ -119,7 +110,23 @@ if(WIN32)
 endif()
 ```
 
-On macos a little extra work to generate a .dSYM file is required, see [below](#platform-logistics).
+Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
+information.
+
+On macos a little extra work to generate a .dSYM file is required, see [Platform Logistics](#platform-logistics) below.
+
+For other ways to use the library, such as through package managers, a system-wide installation, or on a platform
+without internet access see [Usage](#usage) below.
+
+# FAQ
+
+## What about C++23 `<stacktrace>`?
+
+Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
+The original motivation for cpptrace was to support projects using older C++ standards and as the library has grown its
+functionality has extended beyond the standard library's implementation.
+
+Cpptrace also provides additional functionality including being able to
 
 # In-Depth Documentation
 
@@ -132,7 +139,7 @@ method to get lightweight raw traces, which are just vectors of program counters
 **Note:** Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`) is generally required for good trace information.
 
 **Note:** Currently on Mac .dSYM files are required, which can be generated with `dsymutil yourbinary`. A cmake snippet
-for generating these is included [below](#platform-logistics).
+for generating these is provided in [Platform Logistics](#platform-logistics) below.
 
 All functions are thread-safe unless otherwise noted.
 
@@ -489,44 +496,7 @@ namespace cpptrace {
 }
 ```
 
-## Notable Library Configurations
-
-- `CPPTRACE_STATIC=On/Off`: Create cpptrace as a static library.
-- `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
-  Default is `200`.
-
-## Notes About the Library and Future Work
-
-For the most part I'm happy with the state of the library. But I'm sure that there is room for improvement and issues
-will exist. If you encounter any issue, please let me know! If you find any pain-points in the library, please let me
-know that too.
-
-A note about performance: For handling of DWARF symbols there is a lot of room to explore for performance optimizations
-and time-memory tradeoffs. If you find the current implementation is either slow or using too much memory, I'd be happy
-to explore some of these options.
-
-A couple things I'd like to improve in the future:
-- On MacOS .dSYM files are required
-- On Windows when collecting symbols with dbghelp (msvc/clang) parameter types are almost perfect but due to limitations
-  in dbghelp the library cannot accurately show const and volatile qualifiers or rvalue references (these appear as
-  pointers).
-
-A couple features I'd like to add in the future:
-- Tracing from signal handlers
-- Tracing other thread's stacks
-- Showing inlined calls in the stack trace
-
-### FAQ: What about C++23 `<stacktrace>`?
-
-Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
-The original motivation for cpptrace was to support projects using older C++ standards and as the library has grown its
-functionality has extended beyond the standard library's implementation.
-
-Plenty of additional functionality is planned too, such as stack tracing from signal handlers, stack tracing other
-threads, and generating lightweight stack traces on embedded devices that can be resolved either on embedded or on
-another system (this is theoretically possible currently but untested).
-
-## Supported Debug Symbols
+# Supported Debug Formats
 
 | Format                                           | Supported |
 | ------------------------------------------------ | --------- |
@@ -539,9 +509,9 @@ another system (this is theoretically possible currently but untested).
 
 DWARF5 added DWARF package files. As far as I can tell no compiler implements these yet.
 
-## Usage
+# Usage
 
-### CMake FetchContent
+## CMake FetchContent
 
 With CMake FetchContent:
 
@@ -557,12 +527,12 @@ target_link_libraries(your_target cpptrace::cpptrace)
 ```
 
 It's as easy as that. Cpptrace will automatically configure itself for your system. Note: On windows and macos some
-extra work is required, see [below](#platform-logistics).
+extra work is required, see [Platform Logistics](#platform-logistics) below.
 
 Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
 information.
 
-### System-Wide Installation
+## System-Wide Installation
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
@@ -614,7 +584,7 @@ Note: You'll need to run as an administrator in a developer powershell, or use v
 studio to get the correct environment variables set.
 </details>
 
-### Local User Installation
+## Local User Installation
 
 To install just for the local user (or any custom prefix):
 
@@ -639,9 +609,9 @@ Using manually:
 g++ main.cpp -o main -g -Wall -I$HOME/wherever/include -L$HOME/wherever/lib -lcpptrace
 ```
 
-### Package Managers
+## Package Managers
 
-#### Conan
+### Conan
 
 Cpptrace is available through conan at https://conan.io/center/recipes/cpptrace.
 ```
@@ -660,7 +630,7 @@ find_package(cpptrace REQUIRED)
 target_link_libraries(YOUR_TARGET cpptrace::cpptrace)
 ```
 
-#### Vcpkg
+### Vcpkg
 
 ```
 vcpkg install cpptrace
@@ -670,7 +640,7 @@ find_package(cpptrace CONFIG REQUIRED)
 target_link_libraries(main PRIVATE cpptrace::cpptrace)
 ```
 
-### Platform Logistics
+# Platform Logistics
 
 Windows and macos require a little extra work to get everything in the right place
 
@@ -710,11 +680,7 @@ if(APPLE)
 endif()
 ```
 
-### Static Linking
-
-To static link the library set `-DCPPTRACE_STATIC=On`.
-
-## Library Internals
+# Library Back-Ends
 
 Cpptrace supports a number of back-ends to produce stack traces. Stack traces are produced in roughly three steps:
 Unwinding, symbol resolution, and demangling.
@@ -782,7 +748,7 @@ Lastly, depending on other back-ends used a demangler back-end may be needed.
 There are plenty more libraries that can be used for unwinding, parsing debug information, and demangling. In the future
 more back-ends can be added. Ideally this library can "just work" on systems, without additional installation work.
 
-### Summary of Library Configurations
+## Summary of Library Configurations
 
 Summary of all library configuration options:
 
@@ -824,7 +790,7 @@ Testing:
 - `CPPTRACE_BUILD_TESTING` Build small demo and test program
 - `CPPTRACE_BUILD_TEST_RDYNAMIC` Use `-rdynamic` when compiling the test program
 
-## Testing Methodology
+# Testing Methodology
 
 Cpptrace currently uses integration and functional testing, building and running under every combination of back-end
 options. The implementation is based on [github actions matrices][1] and driven by python scripts located in the
@@ -834,6 +800,27 @@ second jobs was extremely inefficient. Test outputs are compared against expecte
 unwinding back-end, and the python script will check for an exact or near-match accordingly.
 
 [1]: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
+
+# Notes About the Library and Future Work
+
+For the most part I'm happy with the state of the library. But I'm sure that there is room for improvement and issues
+will exist. If you encounter any issue, please let me know! If you find any pain-points in the library, please let me
+know that too.
+
+A note about performance: For handling of DWARF symbols there is a lot of room to explore for performance optimizations
+and time-memory tradeoffs. If you find the current implementation is either slow or using too much memory, I'd be happy
+to explore some of these options.
+
+A couple things I'd like to improve in the future:
+- On MacOS .dSYM files are required
+- On Windows when collecting symbols with dbghelp (msvc/clang) parameter types are almost perfect but due to limitations
+  in dbghelp the library cannot accurately show const and volatile qualifiers or rvalue references (these appear as
+  pointers).
+
+A couple features I'd like to add in the future:
+- ~~Tracing from signal handlers~~
+- Tracing other thread's stacks
+- ~~Showing inlined calls in the stack trace~~
 
 # License
 

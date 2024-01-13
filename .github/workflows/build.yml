@@ -12,7 +12,7 @@ jobs:
       matrix:
         compiler: [gcc, clang]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: dependencies
       run: |
            sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev
@@ -42,7 +42,7 @@ jobs:
       matrix:
         compiler: [gcc, clang]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: dependencies
       run: |
            pip3 install colorama
@@ -71,7 +71,7 @@ jobs:
       matrix:
         compiler: [msvc, clang, gcc]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
     - name: dependencies

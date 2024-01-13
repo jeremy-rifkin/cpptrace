@@ -8,7 +8,7 @@ jobs:
   test-linux-fetchcontent:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: test
       run: |
            tag=$(git rev-parse --abbrev-ref HEAD)
@@ -23,7 +23,7 @@ jobs:
   test-linux-findpackage:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: test
       run: |
            tag=$(git rev-parse --abbrev-ref HEAD)
@@ -41,7 +41,7 @@ jobs:
   test-linux-add_subdirectory:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: build
       run: |
            cd ..
@@ -56,7 +56,7 @@ jobs:
   test-macos-fetchcontent:
     runs-on: macos-13
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: test
       run: |
            tag=$(git rev-parse --abbrev-ref HEAD)
@@ -71,7 +71,7 @@ jobs:
   test-macos-findpackage:
     runs-on: macos-13
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: test
       run: |
            tag=$(git rev-parse --abbrev-ref HEAD)
@@ -90,7 +90,7 @@ jobs:
   test-macos-add_subdirectory:
     runs-on: macos-13
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: test
       run: |
            cd ..
@@ -105,7 +105,7 @@ jobs:
   test-mingw-fetchcontent:
     runs-on: windows-2022
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: test
       run: |
            $tag=$(git rev-parse --abbrev-ref HEAD)
@@ -120,7 +120,7 @@ jobs:
   test-mingw-add_subdirectory:
     runs-on: windows-2022
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: test
       run: |
            cd ..
@@ -134,7 +134,7 @@ jobs:
   test-windows-fetchcontent:
     runs-on: windows-2022
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
     - name: test
@@ -151,7 +151,7 @@ jobs:
   test-windows-add_subdirectory:
     runs-on: windows-2022
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
     - name: test
