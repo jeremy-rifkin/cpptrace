@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <type_traits>
 
-#ifdef CPPTRACE_USE_EXTERNAL_LIBDWARF
+#ifdef CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH
 #include <libdwarf/libdwarf.h>
 #include <libdwarf/dwarf.h>
 #else
