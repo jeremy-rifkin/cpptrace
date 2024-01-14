@@ -371,14 +371,18 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       # libdwarf::dwarf-shared under fetchcontent
       target_link_libraries(${target_name} PRIVATE $<IF:$<TARGET_EXISTS:libdwarf::dwarf-static>,libdwarf::dwarf-static,$<IF:$<TARGET_EXISTS:libdwarf::dwarf-shared>,libdwarf::dwarf-shared,libdwarf::dwarf>>)
     endif()
+    include(CheckIncludeFileCXX)
+    # There seems to be no consistency at all about where libdwarf decides to place its headers........ Figure out if
+    # it's libdwarf/libdwarf.h and libdwarf/dwarf.h or just libdwarf.h and dwarf.h
+    CHECK_INCLUDE_FILE_CXX("libdwarf/libdwarf.h" LIBDWARF_IS_NESTED)
+    if(${LIBDWARF_IS_NESTED})
+      target_compile_definitions(${target_name} PRIVATE CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH)
+    endif()
   else()
     target_link_libraries(${target_name} PRIVATE libdwarf::dwarf-static)
   endif()
   if(UNIX)
     target_link_libraries(${target_name} PRIVATE ${CMAKE_DL_LIBS})
-  endif()
-  if(CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH) # user override
-    target_compile_definitions(${target_name} PRIVATE CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH)
   endif()
 endif()
 
