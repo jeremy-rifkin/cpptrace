@@ -3,7 +3,7 @@
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
 #include "../utils/common.hpp"
-#include "../utils/dwarf.hpp"
+#include "../utils/dwarf.hpp" // has dwarf #includes
 #include "../utils/error.hpp"
 #include "../binary/object.hpp"
 #include "../utils/utils.hpp"
@@ -19,14 +19,6 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
-
-#ifdef CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH
-#include <libdwarf/libdwarf.h>
-#include <libdwarf/dwarf.h>
-#else
-#include <libdwarf.h>
-#include <dwarf.h>
-#endif
 
 // It's been tricky to piece together how to handle all this dwarf stuff. Some resources I've used are
 // https://www.prevanders.net/libdwarf.pdf

@@ -10,11 +10,21 @@
 #include <type_traits>
 
 #ifdef CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH
-#include <libdwarf/libdwarf.h>
-#include <libdwarf/dwarf.h>
+ #include <libdwarf/libdwarf.h>
+ #include <libdwarf/dwarf.h>
 #else
-#include <libdwarf.h>
-#include <dwarf.h>
+ #ifdef __has_include
+  #ifdef __has_include(<libdwarf/libdwarf.h>)
+   #include <libdwarf/libdwarf.h>
+   #include <libdwarf/dwarf.h>
+  #else
+   #include <libdwarf.h>
+   #include <dwarf.h>
+  #endif
+ #else
+  #include <libdwarf.h>
+  #include <dwarf.h>
+ #endif
 #endif
 
 namespace cpptrace {
