@@ -344,11 +344,13 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     include(FetchContent)
     FetchContent_Declare(
       libdwarf
-      # GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+      # GIT_REPOSITORY https://github.com/davea42/libdwarf-code.git
       # GIT_TAG 6216e185863f41d6f19ab850caabfff7326020d7 # v0.8.0
+      # GIT_TAG 8b0bd09d8c77d45a68cb1bb00a54186a92b683d9 # v0.9.0
       # Using a lightweight mirror that's optimized for clone + configure speed
       GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-lite.git
-      GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65
+      GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
+      # GIT_TAG 71090c680b4c943448ba87a0f1f864f174e4edda # v0.9.0
       GIT_SHALLOW 1
     )
     FetchContent_MakeAvailable(libdwarf)
