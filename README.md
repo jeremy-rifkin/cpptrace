@@ -34,8 +34,7 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
   - [System-Wide Installation](#system-wide-installation)
   - [Local User Installation](#local-user-installation)
   - [Use Without CMake](#use-without-cmake)
-    - [Installation Without Package Managers or FetchContent](#installation-without-package-managers-or-fetchcontent)
-    - [Creating a Bundle](#creating-a-bundle)
+  - [Installation Without Package Managers or FetchContent](#installation-without-package-managers-or-fetchcontent)
   - [Package Managers](#package-managers)
     - [Conan](#conan)
     - [Vcpkg](#vcpkg)
@@ -614,10 +613,23 @@ g++ main.cpp -o main -g -Wall -I$HOME/wherever/include -L$HOME/wherever/lib -lcp
 
 ## Use Without CMake
 
-If you want to use the library without cmake, follow either the [System-Wide Installation](#system-wide-installation),
-[Local User Installation](#local-user-installation), or [Package Managers](#package-managers) instructions.
+To use the library without cmake first follow the installation instructions at
+[System-Wide Installation](#system-wide-installation), [Local User Installation](#local-user-installation),
+or [Package Managers](#package-managers).
 
-### Installation Without Package Managers or FetchContent
+In addition to any include or library paths you'll need to specify to tell the compiler where cpptrace was installed the
+typical dependencies for cpptrace are:
+
+| Compiler                | Platform         | Dependencies                            |
+| ----------------------- | ---------------- | --------------------------------------- |
+| gcc, clang, intel, etc. | Linux/macos/unix | `-lcpptrace -ldwarf -lz -ldl`           |
+| gcc                     | Windows          | `-lcpptrace -ldbghelp -ldwarf -lz` |
+| msvc                    | Windows          | `cpptrace.lib dbghelp.lib`              |
+| clang                   | Windows          | `-lcpptrace -ldbghelp`                  |
+
+Dependencies may differ if different back-ends are manually selected.
+
+## Installation Without Package Managers or FetchContent
 
 Some users may prefer, or need to, to install cpptrace without package managers or fetchcontent (e.g. if their system
 does not have internet access). Below are instructions for how to install libdwarf and cpptrace.
@@ -651,9 +663,11 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On -DCPPTRACE_USE_EXTERN
 make -j
 make install
 ```
-</details>
 
-### Creating a Bundle
+The `~/scratch/cpptrace-test/resources` directory also serves as a bundle you can ship with all the installed files for
+cpptrace and its dependencies.
+
+</details>
 
 ## Package Managers
 
