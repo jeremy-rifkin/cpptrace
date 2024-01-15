@@ -73,134 +73,205 @@ namespace detail {
      #define LP(x) x
     #endif
 
-    template<std::size_t Bits>
-    static optional<std::uintptr_t> macho_get_text_vmaddr_mach(
-        std::FILE* object_file,
-        const std::string& object_path,
-        off_t offset,
-        bool should_swap,
-        bool allow_arch_mismatch
-    ) {
-        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
-        using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
-        using Segment_Command = typename std::conditional<Bits == 32, segment_command, segment_command_64>::type;
-        std::uint32_t ncmds;
-        off_t load_commands_offset = offset;
-        std::size_t header_size = sizeof(Mach_Header);
-        Mach_Header header = load_bytes<Mach_Header>(object_file, offset);
-        if(should_swap) {
-            swap_mach_header(header);
+    struct load_command_entry {
+        std::uint32_t file_offset;
+        std::uint32_t cmd;
+        std::uint32_t cmdsize;
+    };
+
+    class mach_o {
+        std::FILE* file = nullptr;
+        std::string object_path;
+        std::uint32_t magic;
+        cpu_type_t cputype;
+        cpu_subtype_t cpusubtype;
+        std::uint32_t filetype;
+        std::uint32_t n_load_commands;
+        std::uint32_t sizeof_load_commands;
+        std::uint32_t flags;
+
+        std::size_t load_base = 0;
+        std::size_t fat_index = std::numeric_limits<std::size_t>::max();
+
+        std::vector<load_command_entry> load_commands;
+
+    public:
+        mach_o(const std::string& object_path) : object_path(object_path) {
+            file = std::fopen(object_path.c_str(), "rb");
+            if(file == nullptr) {
+                throw file_error("Unable to read object file " + object_path);
+            }
+            magic = load_bytes<std::uint32_t>(file, 0);
+            VERIFY(is_mach_o(magic), "File is not Mach-O " + object_path);
+            if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
+                load_fat_mach();
+            } else {
+                fat_index = 0;
+                if(is_magic_64(magic)) {
+                    load_mach<64>(false);
+                } else {
+                    load_mach<32>(false);
+                }
+            }
         }
-        thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
-        //std::fprintf(
-        //    stderr,
-        //    "----> %d %d; %d %d\n",
-        //    header.cputype,
-        //    mhp->cputype,
-        //    static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK),
-        //    header.cpusubtype
-        //);
-        if(
-            header.cputype != mhp->cputype ||
-            static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) != header.cpusubtype
+
+        ~mach_o() {
+            if(file) {
+                fclose(file);
+            }
+        }
+
+        std::uintptr_t get_text_vmaddr() {
+            for(const auto& command : load_commands) {
+                if(command.cmd == LC_SEGMENT_64 || command.cmd == LC_SEGMENT) {
+                    auto segment = command.cmd == LC_SEGMENT_64
+                                        ? load_segment_command<64>(command.file_offset)
+                                        : load_segment_command<32>(command.file_offset);
+                    if(std::strcmp(segment.segname, "__TEXT") == 0) {
+                        return segment.vmaddr;
+                    }
+                }
+            }
+            // somehow no __TEXT section was found...
+            PANIC("Couldn't find __TEXT section while parsing Mach-O object");
+            return 0;
+        }
+
+        std::size_t get_fat_index() const {
+            VERIFY(fat_index != std::numeric_limits<std::size_t>::max());
+            return fat_index;
+        }
+
+        void print_segments() const {
+            int i = 0;
+            for(const auto& command : load_commands) {
+                if(command.cmd == LC_SEGMENT_64 || command.cmd == LC_SEGMENT) {
+                    auto segment = command.cmd == LC_SEGMENT_64
+                                        ? load_segment_command<64>(command.file_offset)
+                                        : load_segment_command<32>(command.file_offset);
+                    fprintf(stderr, "Load command %d\n", i);
+                    fprintf(stderr, "         cmd %u\n", segment.cmd);
+                    fprintf(stderr, "     cmdsize %u\n", segment.cmdsize);
+                    fprintf(stderr, "     segname %s\n", segment.segname);
+                    fprintf(stderr, "      vmaddr 0x%llx\n", segment.vmaddr);
+                    fprintf(stderr, "      vmsize 0x%llx\n", segment.vmsize);
+                    fprintf(stderr, "         off 0x%llx\n", segment.fileoff);
+                    fprintf(stderr, "    filesize %llu\n", segment.filesize);
+                    fprintf(stderr, "      nsects %u\n", segment.nsects);
+                }
+                i++;
+            }
+        }
+
+    private:
+        template<std::size_t Bits>
+        void load_mach(
+            bool allow_arch_mismatch
         ) {
-            if(allow_arch_mismatch) {
-                return nullopt;
-            } else {
-                PANIC("Mach-O file cpu type and subtype do not match current machine " + object_path);
+            static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
+            using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
+            std::size_t header_size = sizeof(Mach_Header);
+            Mach_Header header = load_bytes<Mach_Header>(file, load_base);
+            magic = header.magic;
+            if(should_swap()) {
+                swap_mach_header(header);
+            }
+            thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
+            if(
+                header.cputype != mhp->cputype ||
+                static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) != header.cpusubtype
+            ) {
+                if(allow_arch_mismatch) {
+                    return;
+                } else {
+                    PANIC("Mach-O file cpu type and subtype do not match current machine " + object_path);
+                }
+            }
+            cputype = header.cputype;
+            cpusubtype = header.cpusubtype;
+            filetype = header.filetype;
+            n_load_commands = header.ncmds;
+            sizeof_load_commands = header.sizeofcmds;
+            flags = header.flags;
+            // handle load commands
+            std::uint32_t ncmds = header.ncmds;
+            std::uint32_t load_commands_offset = load_base + header_size;
+            // iterate load commands
+            std::uint32_t actual_offset = load_commands_offset;
+            for(std::uint32_t i = 0; i < ncmds; i++) {
+                load_command cmd = load_bytes<load_command>(file, actual_offset);
+                if(should_swap()) {
+                    swap_load_command(&cmd, NX_UnknownByteOrder);
+                }
+                load_commands.push_back({ actual_offset, cmd.cmd, cmd.cmdsize });
+                actual_offset += cmd.cmdsize;
             }
         }
-        ncmds = header.ncmds;
-        load_commands_offset += header_size;
-        // iterate load commands
-        off_t actual_offset = load_commands_offset;
-        for(std::uint32_t i = 0; i < ncmds; i++) {
-            load_command cmd = load_bytes<load_command>(object_file, actual_offset);
-            if(should_swap) {
-                swap_load_command(&cmd, NX_UnknownByteOrder);
-            }
-            // TODO: This is a mistake? Need to check cmd.cmd == LC_SEGMENT_64 / cmd.cmd == LC_SEGMENT
-            Segment_Command segment = load_bytes<Segment_Command>(object_file, actual_offset);
-            if(should_swap) {
-                swap_segment_command(segment);
-            }
-            if(std::strcmp(segment.segname, "__TEXT") == 0) {
-                return segment.vmaddr;
-            }
-            actual_offset += cmd.cmdsize;
-        }
-        // somehow no __TEXT section was found...
-        PANIC("Couldn't find __TEXT section while parsing Mach-O object");
-        return 0;
-    }
 
-    static std::uintptr_t macho_get_text_vmaddr_fat(
-        std::FILE* object_file,
-        const std::string& object_path,
-        bool should_swap
-    ) {
-        std::size_t header_size = sizeof(fat_header);
-        std::size_t arch_size = sizeof(fat_arch);
-        fat_header header = load_bytes<fat_header>(object_file, 0);
-        if(should_swap) {
-            swap_fat_header(&header, NX_UnknownByteOrder);
+        void load_fat_mach() {
+            std::size_t header_size = sizeof(fat_header);
+            std::size_t arch_size = sizeof(fat_arch);
+            fat_header header = load_bytes<fat_header>(file, 0);
+            if(should_swap()) {
+                swap_fat_header(&header, NX_UnknownByteOrder);
+            }
+            thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
+            off_t arch_offset = (off_t)header_size;
+            for(std::size_t i = 0; i < header.nfat_arch; i++) {
+                fat_arch arch = load_bytes<fat_arch>(file, arch_offset);
+                if(should_swap()) {
+                    swap_fat_arch(&arch, 1, NX_UnknownByteOrder);
+                }
+                off_t mach_header_offset = (off_t)arch.offset;
+                arch_offset += arch_size;
+                std::uint32_t magic = load_bytes<std::uint32_t>(file, mach_header_offset);
+                if(
+                    arch.cputype == mhp->cputype &&
+                    static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) == arch.cpusubtype
+                ) {
+                    load_base = mach_header_offset;
+                    fat_index = i;
+                    if(is_magic_64(magic)) {
+                        load_mach<64>(true);
+                    } else {
+                        load_mach<32>(true);
+                    }
+                    return;
+                }
+            }
+            // If this is reached... something went wrong. The cpu we're on wasn't found.
+            PANIC("Couldn't find appropriate architecture in fat Mach-O");
         }
-        off_t arch_offset = (off_t)header_size;
-        optional<std::uintptr_t> text_vmaddr;
-        for(std::uint32_t i = 0; i < header.nfat_arch; i++) {
-            fat_arch arch = load_bytes<fat_arch>(object_file, arch_offset);
-            if(should_swap) {
-                swap_fat_arch(&arch, 1, NX_UnknownByteOrder);
-            }
-            off_t mach_header_offset = (off_t)arch.offset;
-            arch_offset += arch_size;
-            std::uint32_t magic = load_bytes<std::uint32_t>(object_file, mach_header_offset);
-            if(is_magic_64(magic)) {
-                text_vmaddr = macho_get_text_vmaddr_mach<64>(
-                    object_file,
-                    object_path,
-                    mach_header_offset,
-                    should_swap_bytes(magic),
-                    true
-                );
-            } else {
-                text_vmaddr = macho_get_text_vmaddr_mach<32>(
-                    object_file,
-                    object_path,
-                    mach_header_offset,
-                    should_swap_bytes(magic),
-                    true
-                );
-            }
-            if(text_vmaddr.has_value()) {
-                return text_vmaddr.unwrap();
-            }
-        }
-        // If this is reached... something went wrong. The cpu we're on wasn't found.
-        PANIC("Couldn't find appropriate architecture in fat Mach-O");
-        return 0;
-    }
 
-    static std::uintptr_t macho_get_text_vmaddr(const std::string& object_path) {
-        //std::fprintf(stderr, "--%s--\n", object_path.c_str());
-        auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
-        if(file == nullptr) {
-            throw file_error("Unable to read object file " + object_path);
-        }
-        std::uint32_t magic = load_bytes<std::uint32_t>(file, 0);
-        VERIFY(is_mach_o(magic), "File is not Mach-O " + object_path);
-        bool is_64 = is_magic_64(magic);
-        bool should_swap = should_swap_bytes(magic);
-        if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
-            return macho_get_text_vmaddr_fat(file, object_path, should_swap);
-        } else {
-            if(is_64) {
-                return macho_get_text_vmaddr_mach<64>(file, object_path, 0, should_swap, false).unwrap();
-            } else {
-                return macho_get_text_vmaddr_mach<32>(file, object_path, 0, should_swap, false).unwrap();
+        template<std::size_t Bits>
+        segment_command_64 load_segment_command(std::uint32_t offset) const {
+            using Segment_Command = typename std::conditional<Bits == 32, segment_command, segment_command_64>::type;
+            Segment_Command segment = load_bytes<Segment_Command>(file, offset);
+            ASSERT(segment.cmd == LC_SEGMENT_64 || segment.cmd == LC_SEGMENT);
+            if(should_swap()) {
+               swap_segment_command(segment);
             }
+            // fields match just u64 instead of u32
+            segment_command_64 common;
+            common.cmd = segment.cmd;
+            common.cmdsize = segment.cmdsize;
+            static_assert(sizeof common.segname == 16 && sizeof segment.segname == 16, "xx");
+            memcpy(common.segname, segment.segname, 16);
+            common.vmaddr = segment.vmaddr;
+            common.vmsize = segment.vmsize;
+            common.fileoff = segment.fileoff;
+            common.filesize = segment.filesize;
+            common.maxprot = segment.maxprot;
+            common.initprot = segment.initprot;
+            common.nsects = segment.nsects;
+            common.flags = segment.flags;
+            return common;
         }
-    }
+
+        bool should_swap() const {
+            return should_swap_bytes(magic);
+        }
+    };
 
     inline bool macho_is_fat(const std::string& object_path) {
         auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
@@ -209,41 +280,6 @@ namespace detail {
         }
         std::uint32_t magic = load_bytes<std::uint32_t>(file, 0);
         return is_fat_magic(magic);
-    }
-
-    // returns index of the appropriate mach-o binary in the universal binary
-    // TODO: Code duplication with macho_get_text_vmaddr_fat
-    inline unsigned get_fat_macho_index(const std::string& object_path) {
-        auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
-        if(file == nullptr) {
-            throw file_error("Unable to read object file " + object_path);
-        }
-        std::uint32_t magic = load_bytes<std::uint32_t>(file, 0);
-        VERIFY(is_fat_magic(magic));
-        bool should_swap = should_swap_bytes(magic);
-        std::size_t header_size = sizeof(fat_header);
-        std::size_t arch_size = sizeof(fat_arch);
-        fat_header header = load_bytes<fat_header>(file, 0);
-        if(should_swap) {
-            swap_fat_header(&header, NX_UnknownByteOrder);
-        }
-        off_t arch_offset = (off_t)header_size;
-        thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
-        for(std::uint32_t i = 0; i < header.nfat_arch; i++) {
-            fat_arch arch = load_bytes<fat_arch>(file, arch_offset);
-            if(should_swap) {
-                swap_fat_arch(&arch, 1, NX_UnknownByteOrder);
-            }
-            arch_offset += arch_size;
-            if(
-                arch.cputype == mhp->cputype &&
-                static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) == arch.cpusubtype
-            ) {
-                return i;
-            }
-        }
-        // If this is reached... something went wrong. The cpu we're on wasn't found.
-        PANIC("Couldn't find appropriate architecture in fat Mach-O");
     }
 }
 }
