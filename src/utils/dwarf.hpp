@@ -13,18 +13,8 @@
  #include <libdwarf/libdwarf.h>
  #include <libdwarf/dwarf.h>
 #else
- #ifdef __has_include
-  #if __has_include(<libdwarf/libdwarf.h>)
-   #include <libdwarf/libdwarf.h>
-   #include <libdwarf/dwarf.h>
-  #else
-   #include <libdwarf.h>
-   #include <dwarf.h>
-  #endif
- #else
-  #include <libdwarf.h>
-  #include <dwarf.h>
- #endif
+ #include <libdwarf.h>
+ #include <dwarf.h>
 #endif
 
 namespace cpptrace {
