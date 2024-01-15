@@ -14,7 +14,7 @@
  #include <libdwarf/dwarf.h>
 #else
  #ifdef __has_include
-  #ifdef __has_include(<libdwarf/libdwarf.h>)
+  #if __has_include(<libdwarf/libdwarf.h>)
    #include <libdwarf/libdwarf.h>
    #include <libdwarf/dwarf.h>
   #else
