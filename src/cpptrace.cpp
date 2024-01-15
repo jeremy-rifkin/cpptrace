@@ -58,7 +58,7 @@ namespace cpptrace {
             for(auto& frame : trace) {
                 frame.symbol = detail::demangle(frame.symbol);
             }
-            return stacktrace{std::move(trace)};
+            return {std::move(trace)};
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
@@ -91,7 +91,7 @@ namespace cpptrace {
             for(auto& frame : trace) {
                 frame.symbol = detail::demangle(frame.symbol);
             }
-            return stacktrace{std::move(trace)};
+            return {std::move(trace)};
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
@@ -333,7 +333,7 @@ namespace cpptrace {
             for(auto& frame : trace) {
                 frame.symbol = detail::demangle(frame.symbol);
             }
-            return stacktrace{std::move(trace)};
+            return {std::move(trace)};
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
