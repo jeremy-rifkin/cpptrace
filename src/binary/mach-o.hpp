@@ -23,7 +23,7 @@
 
 namespace cpptrace {
 namespace detail {
-    static bool is_mach_o(std::std::uint32_t magic) {
+    static bool is_mach_o(std::uint32_t magic) {
         switch(magic) {
             case FAT_MAGIC:
             case FAT_CIGAM:
@@ -37,17 +37,17 @@ namespace detail {
         }
     }
 
-    static bool is_fat_magic(std::std::uint32_t magic) {
+    static bool is_fat_magic(std::uint32_t magic) {
         return magic == FAT_MAGIC || magic == FAT_CIGAM;
     }
 
     // Based on https://github.com/AlexDenisov/segment_dumper/blob/master/main.c
     // and https://lowlevelbits.org/parsing-mach-o-files/
-    static bool is_magic_64(std::std::uint32_t magic) {
+    static bool is_magic_64(std::uint32_t magic) {
         return magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
     }
 
-    static bool should_swap_bytes(std::std::uint32_t magic) {
+    static bool should_swap_bytes(std::uint32_t magic) {
         return magic == MH_CIGAM || magic == MH_CIGAM_64 || magic == FAT_CIGAM;
     }
 
@@ -278,7 +278,7 @@ namespace detail {
         if(file == nullptr) {
             throw file_error("Unable to read object file " + object_path);
         }
-        std::std::uint32_t magic = load_bytes<std::std::uint32_t>(file, 0);
+        std::uint32_t magic = load_bytes<std::uint32_t>(file, 0);
         return is_fat_magic(magic);
     }
 }
