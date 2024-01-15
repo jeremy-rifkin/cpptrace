@@ -16,7 +16,7 @@ jobs:
           -DSPEEDTEST_DWARF5=On
         ]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: dependencies
       run: sudo apt install gcc-11 g++-11 libgcc-11-dev
     - name: build
@@ -40,13 +40,13 @@ jobs:
   # I give up. For some reason SymInitialize is super slow on github's windows runner and it alone takes hundreds of ms.
   # Nothing I can do about that.
   #performancetest-windows:
-  # runs-on: windows-2019
+  # runs-on: windows-2022
   # strategy:
   #   fail-fast: false
   #   matrix:
   #     compiler: [cl, clang++]
   # steps:
-  # - uses: actions/checkout@v2
+  # - uses: actions/checkout@v4
   # - name: Enable Developer Command Prompt
   #   uses: ilammy/msvc-dev-cmd@v1.10.0
   # - name: build

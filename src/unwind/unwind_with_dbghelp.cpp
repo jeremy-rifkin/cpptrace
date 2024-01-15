@@ -2,9 +2,9 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "unwind.hpp"
-#include "../platform/common.hpp"
-#include "../platform/utils.hpp"
-#include "../platform/dbghelp_syminit_manager.hpp"
+#include "../utils/common.hpp"
+#include "../utils/utils.hpp"
+#include "../utils/dbghelp_syminit_manager.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -21,8 +21,12 @@
 
 namespace cpptrace {
 namespace detail {
+    #if IS_MSVC
+    #pragma warning(push)
+    #pragma warning(disable: 4740) // warning C4740: flow in or out of inline asm code suppresses global optimization
+    #endif
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<uintptr_t> capture_frames(size_t skip, size_t max_depth) {
+    std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth) {
         skip++;
         // https://jpassing.com/2008/03/12/walking-the-stack-of-the-current-thread/
 
@@ -30,9 +34,10 @@ namespace detail {
         // GetThreadContext cannot be used on the current thread.
         // RtlCaptureContext doesn't work on i386
         CONTEXT context;
-        #ifdef _M_IX86
+        #if defined(_M_IX86) || defined(__i386__)
         ZeroMemory(&context, sizeof(CONTEXT));
         context.ContextFlags = CONTEXT_CONTROL;
+        #if IS_MSVC
         __asm {
             label:
             mov [context.Ebp], ebp;
@@ -41,13 +46,25 @@ namespace detail {
             mov [context.Eip], eax;
         }
         #else
+        asm(
+            "label:\n\t"
+            "mov{l %%ebp, %[cEbp] | %[cEbp], ebp};\n\t"
+            "mov{l %%esp, %[cEsp] | %[cEsp], esp};\n\t"
+            "mov{l $label, %%eax | eax, OFFSET label};\n\t"
+            "mov{l %%eax, %[cEip] | %[cEip], eax};\n\t"
+            : [cEbp] "=r" (context.Ebp),
+              [cEsp] "=r" (context.Esp),
+              [cEip] "=r" (context.Eip)
+        );
+        #endif
+        #else
         RtlCaptureContext(&context);
         #endif
         // Setup current frame
         STACKFRAME64 frame;
         ZeroMemory(&frame, sizeof(STACKFRAME64));
         DWORD machine_type;
-        #ifdef _M_IX86
+        #if defined(_M_IX86) || defined(__i386__)
         machine_type           = IMAGE_FILE_MACHINE_I386;
         frame.AddrPC.Offset    = context.Eip;
         frame.AddrPC.Mode      = AddrModeFlat;
@@ -55,7 +72,7 @@ namespace detail {
         frame.AddrFrame.Mode   = AddrModeFlat;
         frame.AddrStack.Offset = context.Esp;
         frame.AddrStack.Mode   = AddrModeFlat;
-        #elif _M_X64
+        #elif defined(_M_X64) || defined(__x86_64__)
         machine_type           = IMAGE_FILE_MACHINE_AMD64;
         frame.AddrPC.Offset    = context.Rip;
         frame.AddrPC.Mode      = AddrModeFlat;
@@ -63,7 +80,7 @@ namespace detail {
         frame.AddrFrame.Mode   = AddrModeFlat;
         frame.AddrStack.Offset = context.Rsp;
         frame.AddrStack.Mode   = AddrModeFlat;
-        #elif _M_IA64
+        #elif defined(_M_IA64) || defined(__aarch64__)
         machine_type           = IMAGE_FILE_MACHINE_IA64;
         frame.AddrPC.Offset    = context.StIIP;
         frame.AddrPC.Mode      = AddrModeFlat;
@@ -77,7 +94,7 @@ namespace detail {
         #error "Cpptrace: StackWalk64 not supported for this platform yet"
         #endif
 
-        std::vector<uintptr_t> trace;
+        std::vector<frame_ptr> trace;
 
         // Dbghelp is is single-threaded, so acquire a lock.
         static std::mutex mutex;
@@ -121,7 +138,7 @@ namespace detail {
                     // On x86/x64/arm, as far as I can tell, the frame return address is always one after the call
                     // So we just decrement to get the pc back inside the `call` / `bl`
                     // This is done with _Unwind too but conditionally based on info from _Unwind_GetIPInfo.
-                    trace.push_back(frame.AddrPC.Offset - 1);
+                    trace.push_back(to_frame_ptr(frame.AddrPC.Offset) - 1);
                 }
             } else {
                 // base
@@ -135,6 +152,15 @@ namespace detail {
         }
         return trace;
     }
+
+    CPPTRACE_FORCE_NO_INLINE
+    std::size_t safe_capture_frames(frame_ptr*, std::size_t, std::size_t, std::size_t) {
+        // Can't safe trace with dbghelp
+        return 0;
+    }
+    #if IS_MSVC
+    #pragma warning(pop)
+    #endif
 }
 }
 

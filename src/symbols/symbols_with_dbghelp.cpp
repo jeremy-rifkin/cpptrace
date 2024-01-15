@@ -2,8 +2,7 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
-#include "../platform/program_name.hpp"
-#include "../platform/dbghelp_syminit_manager.hpp"
+#include "../utils/dbghelp_syminit_manager.hpp"
 
 #include <memory>
 #include <regex>
@@ -234,7 +233,7 @@ namespace dbghelp {
                     return {return_type.base, "()" + return_type.extent};
                 } else {
                     // alignment should be fine
-                    size_t sz = sizeof(TI_FINDCHILDREN_PARAMS) +
+                    std::size_t sz = sizeof(TI_FINDCHILDREN_PARAMS) +
                                     (n_children) * sizeof(TI_FINDCHILDREN_PARAMS::ChildId[0]);
                     TI_FINDCHILDREN_PARAMS* children = (TI_FINDCHILDREN_PARAMS*) new char[sz];
                     children->Start = 0;
@@ -325,7 +324,7 @@ namespace dbghelp {
     std::recursive_mutex dbghelp_lock;
 
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
-    stacktrace_frame resolve_frame(HANDLE proc, uintptr_t addr) {
+    stacktrace_frame resolve_frame(HANDLE proc, frame_ptr addr) {
         const std::lock_guard<std::recursive_mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
         alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
         SYMBOL_INFO* symbol = (SYMBOL_INFO*)buffer;
@@ -343,13 +342,14 @@ namespace dbghelp {
                 // function fails but GetLastError returns ERROR_SUCCESS."
                 // This is the stupidest fucking api I've ever worked with.
                 if(SymSetContext(proc, &frame, nullptr) == FALSE && GetLastError() != ERROR_SUCCESS) {
-                    fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
+                    std::fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
                     return {
                         addr,
-                        static_cast<std::uint_least32_t>(line.LineNumber),
-                        UINT_LEAST32_MAX,
+                        static_cast<std::uint32_t>(line.LineNumber),
+                        nullable<std::uint32_t>::null(),
                         line.FileName,
-                        symbol->Name
+                        symbol->Name,
+                        false
                     };
                 }
                 DWORD n_children = get_info<DWORD, IMAGEHLP_SYMBOL_TYPE_INFO::TI_GET_COUNT, true>(
@@ -377,20 +377,28 @@ namespace dbghelp {
                 signature = std::regex_replace(signature, comma_re, ", ");
                 return {
                     addr,
-                    static_cast<std::uint_least32_t>(line.LineNumber),
-                    UINT_LEAST32_MAX,
+                    static_cast<std::uint32_t>(line.LineNumber),
+                    nullable<std::uint32_t>::null(),
                     line.FileName,
-                    signature
+                    signature,
+                    false,
                 };
             } else {
-                return { addr, 0, UINT_LEAST32_MAX, "", symbol->Name };
+                return {
+                    addr,
+                    nullable<std::uint32_t>::null(),
+                    nullable<std::uint32_t>::null(),
+                    "",
+                    symbol->Name,
+                    false
+                };
             }
         } else {
-            return { addr, 0, UINT_LEAST32_MAX, "", "" };
+            return { addr, nullable<std::uint32_t>::null(), nullable<std::uint32_t>::null(), "", "", false };
         }
     }
 
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<uintptr_t>& frames) {
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames) {
         const std::lock_guard<std::recursive_mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
         std::vector<stacktrace_frame> trace;
         trace.reserve(frames.size());
@@ -408,11 +416,13 @@ namespace dbghelp {
         for(const auto frame : frames) {
             try {
                 trace.push_back(resolve_frame(proc, frame));
-            } catch(...) {
+            } catch(...) { // NOSONAR
                 if(!detail::should_absorb_trace_exceptions()) {
                     throw;
                 }
-                trace.push_back(null_frame);
+                auto entry = null_frame;
+                entry.address = frame;
+                trace.push_back(entry);
             }
         }
         if(get_cache_mode() != cache_mode::prioritize_speed) {

@@ -9,49 +9,99 @@ on:
 jobs:
   test-linux:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        shared: [--shared, ""]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: dependencies
-      run: sudo apt install gcc-10 g++-10 libgcc-10-dev
+      run: |
+           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev
+           pip3 install colorama
+    - name: libdwarf
+      run: |
+           cd ..
+           mkdir libdwarf
+           cd libdwarf
+           git init
+           git remote add origin https://github.com/davea42/libdwarf-code.git
+           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
+           git checkout FETCH_HEAD
+           mkdir build
+           cd build
+           cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
+           make -j
+           sudo make install
+           cd ../../cpptrace
     - name: build and test
       run: |
-           pip3 install colorama
-           python3 ci/test-all-configs.py
+           python3 ci/test-all-configs.py --${{matrix.compiler}}
   test-macos:
     runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        shared: [--shared, ""]
     steps:
-    - uses: actions/checkout@v2
-    - name: build and test
+    - uses: actions/checkout@v4
+    - name: libdwarf
+      run: |
+           cd ..
+           mkdir libdwarf
+           cd libdwarf
+           git init
+           git remote add origin https://github.com/davea42/libdwarf-code.git
+           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
+           git checkout FETCH_HEAD
+           mkdir build
+           cd build
+           cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
+           make -j
+           sudo make install
+           cd ../../cpptrace
+    - name: dependencies
       run: |
            pip3 install colorama
-           python3 ci/test-all-configs.py
-  test-windows-msvc:
-    runs-on: windows-2019
+    - name: build and test
+      run: |
+           python3 ci/test-all-configs.py --${{matrix.compiler}}
+  test-windows:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, clang, gcc]
+        shared: [--shared, ""]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.10.0
-    - name: build and test
+    - name: dependencies
       run: |
            pip3 install colorama
-           python3 ci/test-all-configs.py --msvc-only
-  test-windows-clang:
-    runs-on: windows-2019
-    steps:
-    - uses: actions/checkout@v2
-    - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.10.0
+    - name: libdwarf
+      run: |
+           cd ..
+           mkdir libdwarf
+           cd libdwarf
+           git init
+           git remote add origin https://github.com/davea42/libdwarf-code.git
+           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
+           git checkout FETCH_HEAD
+           mkdir build
+           cd build
+           if("${{matrix.compiler}}" -eq "gcc") {
+            cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE -G"Unix Makefiles"
+            make -j
+            make install
+           } else {
+            cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
+            msbuild INSTALL.vcxproj
+           }
+           cd ../../cpptrace
     - name: build and test
       run: |
-           pip3 install colorama
-           python3 ci/test-all-configs.py --clang-only
-  test-windows-mingw:
-    runs-on: windows-2019
-    steps:
-    - uses: actions/checkout@v2
-    - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.10.0
-    - name: build and test
-      run: |
-           pip3 install colorama
-           python3 ci/test-all-configs.py --mingw-only
+           python3 ci/test-all-configs.py --${{matrix.compiler}}

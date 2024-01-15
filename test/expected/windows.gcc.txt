@@ -35,5 +35,5 @@ test/test.cpp||118||function_one(int)
 test/test.cpp||125||main
 C:/M/mingw-w64-crt-git/src/mingw-w64/mingw-w64-crt/crt/crtexe.c||272||__tmainCRTStartup
 C:/M/mingw-w64-crt-git/src/mingw-w64/mingw-w64-crt/crt/crtexe.c||193||mainCRTStartup
-||0||BaseThreadInitThunk
-||0||RtlUserThreadStart
+||4294967295||BaseThreadInitThunk
+||4294967295||RtlUserThreadStart

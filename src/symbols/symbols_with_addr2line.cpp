@@ -2,8 +2,8 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols.hpp"
-#include "../platform/common.hpp"
-#include "../platform/utils.hpp"
+#include "../utils/common.hpp"
+#include "../utils/utils.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -20,7 +20,7 @@
  #include <sys/wait.h>
 #endif
 
-#include "../platform/object.hpp"
+#include "../binary/object.hpp"
 
 namespace cpptrace {
 namespace detail {
@@ -127,7 +127,7 @@ namespace addr2line {
         std::string output;
         constexpr int buffer_size = 4096;
         char buffer[buffer_size];
-        size_t count = 0;
+        std::size_t count = 0;
         while((count = read(output_pipe.read_end, buffer, buffer_size)) > 0) {
             output.insert(output.end(), buffer, buffer + count);
         }
@@ -145,12 +145,12 @@ namespace addr2line {
             // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
             checked = true;
             #ifdef CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
-            FILE* p = popen("addr2line --version", "r");
+            std::FILE* p = popen("addr2line --version", "r");
             #else
             #ifndef CPPTRACE_ADDR2LINE_PATH
             #error "CPPTRACE_ADDR2LINE_PATH must be defined if CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH is not"
             #endif
-            FILE* p = popen(CPPTRACE_ADDR2LINE_PATH " --version", "r");
+            std::FILE* p = popen(CPPTRACE_ADDR2LINE_PATH " --version", "r");
             #endif
             if(p) {
                 has_addr2line = pclose(p) == 0;
@@ -163,12 +163,12 @@ namespace addr2line {
         // TODO: Popen is a hack. Implement properly with CreateProcess and pipes later.
         ///fprintf(stderr, ("addr2line -e " + executable + " -fCp " + addresses + "\n").c_str());
         #ifdef CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
-        FILE* p = popen(("addr2line -e \"" + executable + "\" -fCp " + addresses).c_str(), "r");
+        std::FILE* p = popen(("addr2line -e \"" + executable + "\" -fCp " + addresses).c_str(), "r");
         #else
         #ifndef CPPTRACE_ADDR2LINE_PATH
         #error "CPPTRACE_ADDR2LINE_PATH must be defined if CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH is not"
         #endif
-        FILE* p = popen(
+        std::FILE* p = popen(
             (CPPTRACE_ADDR2LINE_PATH " -e \"" + executable + "\" -fCp " + addresses).c_str(),
             "r"
         );
@@ -176,8 +176,8 @@ namespace addr2line {
         std::string output;
         constexpr int buffer_size = 4096;
         char buffer[buffer_size];
-        size_t count = 0;
-        while((count = fread(buffer, 1, buffer_size, p)) > 0) {
+        std::size_t count = 0;
+        while((count = std::fread(buffer, 1, buffer_size, p)) > 0) {
             output.insert(output.end(), buffer, buffer + count);
         }
         pclose(p);
@@ -186,7 +186,7 @@ namespace addr2line {
     }
     #endif
 
-    void update_trace(const std::string& line, size_t entry_index, const collated_vec& entries_vec) {
+    void update_trace(const std::string& line, std::size_t entry_index, const collated_vec& entries_vec) {
         #if !IS_APPLE
         // Result will be of the form "<symbol> at path:line"
         // The path may be ?? if addr2line cannot resolve, line may be ?
@@ -236,12 +236,12 @@ namespace addr2line {
         }
         const std::size_t symbol_end = in_location;
         entries_vec[entry_index].second.get().symbol = line.substr(0, symbol_end);
-        const std::size_t obj_end = line.find(")", in_location);
+        const std::size_t object_end = line.find(")", in_location);
         VERIFY(
-            obj_end != std::string::npos,
+            object_end != std::string::npos,
             "Unexpected edge case while processing addr2line/atos output"
         );
-        const std::size_t filename_start = line.find(") (", obj_end);
+        const std::size_t filename_start = line.find(") (", object_end);
         if(filename_start == std::string::npos) {
             // presumably something like 0x100003b70 (in demo) or foo (in bar) + 14
             return;
@@ -268,11 +268,10 @@ namespace addr2line {
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         // TODO: Refactor better
         std::vector<stacktrace_frame> trace(frames.size(), null_frame);
-        for(size_t i = 0; i < frames.size(); i++) {
+        for(std::size_t i = 0; i < frames.size(); i++) {
             trace[i].address = frames[i].raw_address;
             // Set what is known for now, and resolutions from addr2line should overwrite
-            trace[i].filename = frames[i].obj_path;
-            trace[i].symbol = frames[i].symbol;
+            trace[i].filename = frames[i].object_path;
         }
         if(has_addr2line()) {
             const auto entries = collate_frames(frames, trace);
@@ -289,7 +288,7 @@ namespace addr2line {
                     }
                     std::string address_input;
                     for(const auto& pair : entries_vec) {
-                        address_input += to_hex(pair.first.get().obj_address);
+                        address_input += to_hex(pair.first.get().object_address);
                         #if !IS_WINDOWS
                             address_input += '\n';
                         #else
@@ -298,10 +297,10 @@ namespace addr2line {
                     }
                     auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
                     VERIFY(output.size() == entries_vec.size());
-                    for(size_t i = 0; i < output.size(); i++) {
+                    for(std::size_t i = 0; i < output.size(); i++) {
                         update_trace(output[i], i, entries_vec);
                     }
-                } catch(...) {
+                } catch(...) { // NOSONAR
                     if(!should_absorb_trace_exceptions()) {
                         throw;
                     }

@@ -15,6 +15,9 @@ failed = False
 
 expected_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test/expected/")
 
+def get_c_compiler_counterpart(compiler: str) -> str:
+    return compiler.replace("clang++", "clang").replace("g++", "gcc")
+
 MAX_LINE_DIFF = 2
 
 def similarity(name: str, target: List[str]) -> int:
@@ -78,9 +81,7 @@ def output_matches(output: str, params: Tuple[str]):
     expected = [line.strip().split("||") for line in expected.split("\n")]
     output = [line.strip().split("||") for line in output.split("\n")]
 
-    max_line_diff = MAX_LINE_DIFF
-    if "CPPTRACE_UNWIND_WITH_UNWIND" in params or "CPPTRACE_UNWIND_WITH_DBGHELP" in params:
-        max_line_diff = 0
+    max_line_diff = 0
 
     errored = False
 
@@ -136,8 +137,6 @@ def run_test(test_binary, params: Tuple[str]):
         if len(test_stderr) != 0:
             print("stderr:")
             print(test_stderr.decode("utf-8"), end="")
-        print(test_stdout, test_stderr, test.returncode)
-        print(test)
         if output_matches(test_stdout.decode("utf-8"), params):
             print(f"{Fore.GREEN}{Style.BRIGHT}Test succeeded{Style.RESET_ALL}")
             return True
@@ -153,12 +152,15 @@ def build(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
-            "-DCPPTRACE_BUILD_TEST=On"
+            "-DCPPTRACE_BUILD_TESTING=On",
+            f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix['symbols'] == "CPPTRACE_GET_SYMBOLS_WITH_LIBDL":
            args.append("-DCPPTRACE_BUILD_TEST_RDYNAMIC=On")
@@ -171,11 +173,14 @@ def build(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
-            "-DCPPTRACE_BUILD_TEST=On"
+            "-DCPPTRACE_BUILD_TESTING=On",
+            f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["compiler"] == "g++":
             args.append("-GUnix Makefiles")
@@ -194,9 +199,12 @@ def build_full_or_auto(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
+            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
-            "-DCPPTRACE_BUILD_TEST=On"
+            "-DCPPTRACE_BUILD_TESTING=On",
+            f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
@@ -209,8 +217,11 @@ def build_full_or_auto(matrix):
             "..",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
-            "-DCPPTRACE_BUILD_TEST=On"
+            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
+            "-DCPPTRACE_BUILD_TESTING=On",
+            f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")
@@ -264,9 +275,10 @@ def build_and_test(matrix):
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build and test with config {', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
-        shutil.rmtree("build")
+        shutil.rmtree("build", ignore_errors=True)
 
-    os.mkdir("build")
+    if not os.path.exists("build"):
+        os.mkdir("build")
     os.chdir("build")
 
     good = False
@@ -282,9 +294,10 @@ def build_and_test_full_or_auto(matrix):
     print(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} Running build and test with config {'<auto>' if matrix['config'] == '' else ', '.join(matrix.values())} {'=' * 10}{Style.RESET_ALL}")
 
     if os.path.exists("build"):
-        shutil.rmtree("build")
+        shutil.rmtree("build", ignore_errors=True)
 
-    os.mkdir("build")
+    if not os.path.exists("build"):
+        os.mkdir("build")
     os.chdir("build")
 
     good = False
@@ -301,19 +314,47 @@ def main():
         prog="Build in all configs",
         description="Try building the library in all possible configurations for the current host"
     )
+    parser.add_argument(
+        "--clang",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--gcc",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--msvc",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--shared",
+        action="store_true"
+    )
+    args = parser.parse_args()
 
     if platform.system() == "Linux":
+        compilers = []
+        if args.clang or args.all:
+            compilers.append("clang++-14")
+        if args.gcc or args.all:
+            compilers.append("g++-10")
         matrix = {
-            "compiler": ["g++-10", "clang++-14"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": ["11", "20"],
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_EXECINFO",
                 "CPPTRACE_UNWIND_WITH_UNWIND",
+                "CPPTRACE_UNWIND_WITH_LIBUNWIND",
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
             "symbols": [
-                "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
+                # Disabled due to libbacktrace bug
+                # "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
                 "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
                 "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
@@ -323,20 +364,27 @@ def main():
                 "CPPTRACE_DEMANGLE_WITH_CXXABI",
                 #"CPPTRACE_DEMANGLE_WITH_NOTHING",
             ],
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test)
         matrix = {
-            "compiler": ["g++-10", "clang++-14"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": ["11", "20"],
-            "config": [""]
+            "config": [""],
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
     if platform.system() == "Darwin":
+        compilers = []
+        if args.clang or args.all:
+            compilers.append("clang++")
+        if args.gcc or args.all:
+            compilers.append("g++-12")
         matrix = {
-            "compiler": ["g++-12", "clang++"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": ["11", "20"],
             "unwind": [
@@ -354,41 +402,28 @@ def main():
             "demangle": [
                 "CPPTRACE_DEMANGLE_WITH_CXXABI",
                 #"CPPTRACE_DEMANGLE_WITH_NOTHING",
-            ]
+            ],
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test)
         matrix = {
-            "compiler": ["g++-12", "clang++"],
+            "compiler": compilers,
             "target": ["Debug"],
             "std": ["11", "20"],
-            "config": [""]
+            "config": [""],
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
         run_matrix(matrix, exclude, build_and_test_full_or_auto)
     if platform.system() == "Windows":
-        parser.add_argument(
-            "--clang-only",
-            action="store_true"
-        )
-        parser.add_argument(
-            "--msvc-only",
-            action="store_true"
-        )
-        parser.add_argument(
-            "--mingw-only",
-            action="store_true"
-        )
-        args = parser.parse_args()
-
-        compilers = ["cl", "clang++", "g++"]
-        if args.clang_only:
-            compilers = ["clang++"]
-        if args.msvc_only:
-            compilers = ["cl"]
-        if args.mingw_only:
-            compilers = ["g++"]
-
+        compilers = []
+        if args.clang or args.all:
+            compilers.append("clang++")
+        if args.msvc or args.all:
+            compilers.append("cl")
+        if args.gcc or args.all:
+            compilers.append("g++")
         matrix = {
             "compiler": compilers,
             "target": ["Debug"],
@@ -396,7 +431,7 @@ def main():
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_WINAPI",
                 "CPPTRACE_UNWIND_WITH_DBGHELP",
-                #"CPPTRACE_UNWIND_WITH_UNWIND", # Broken on github actions for some reason
+                "CPPTRACE_UNWIND_WITH_UNWIND", # Broken on github actions for some reason
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
             "symbols": [
@@ -408,7 +443,8 @@ def main():
             "demangle": [
                 "CPPTRACE_DEMANGLE_WITH_CXXABI",
                 "CPPTRACE_DEMANGLE_WITH_NOTHING",
-            ]
+            ],
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = [
             {
@@ -461,11 +497,11 @@ def main():
             "compiler": compilers,
             "target": ["Debug"],
             "std": ["11", "20"],
-            "config": [""]
+            "config": [""],
+            "shared": ["On" if args.shared else "Off"]
         }
         exclude = []
-        # TODO: Disabled for now due to unwind
-        #run_matrix(matrix, exclude, build_and_test_full_or_auto)
+        run_matrix(matrix, exclude, build_and_test_full_or_auto)
 
     global failed
     if failed:
