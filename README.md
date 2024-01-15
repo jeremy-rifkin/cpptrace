@@ -33,6 +33,9 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
   - [CMake FetchContent](#cmake-fetchcontent)
   - [System-Wide Installation](#system-wide-installation)
   - [Local User Installation](#local-user-installation)
+  - [Use Without CMake](#use-without-cmake)
+    - [Installation Without Package Managers or FetchContent](#installation-without-package-managers-or-fetchcontent)
+    - [Creating a Bundle](#creating-a-bundle)
   - [Package Managers](#package-managers)
     - [Conan](#conan)
     - [Vcpkg](#vcpkg)
@@ -608,6 +611,49 @@ Using manually:
 ```
 g++ main.cpp -o main -g -Wall -I$HOME/wherever/include -L$HOME/wherever/lib -lcpptrace
 ```
+
+## Use Without CMake
+
+If you want to use the library without cmake, follow either the [System-Wide Installation](#system-wide-installation),
+[Local User Installation](#local-user-installation), or [Package Managers](#package-managers) instructions.
+
+### Installation Without Package Managers or FetchContent
+
+Some users may prefer, or need to, to install cpptrace without package managers or fetchcontent (e.g. if their system
+does not have internet access). Below are instructions for how to install libdwarf and cpptrace.
+
+<details>
+    <summary>Installation Without Package Managers or FetchContent</summary>
+
+Here is an example for how to build cpptrace and libdwarf. `~/scratch/cpptrace-test` is used as a working directory and
+the libraries are installed to `~/scratch/cpptrace-test/resources`.
+
+```sh
+mkdir -p ~/scratch/cpptrace-test/resources
+
+cd ~/scratch/cpptrace-test
+git clone https://github.com/davea42/libdwarf-code.git
+cd libdwarf-code
+git checkout 6216e185863f41d6f19ab850caabfff7326020d7 # looks like some cmake stuff changed upstream, checking out the commit cpptrace currently uses
+mkdir build
+cd build
+cmake .. -DPIC_ALWAYS=On -DBUILD_DWARFDUMP=Off -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
+make -j
+make install
+
+cd ~/scratch/cpptrace-test
+git clone https://github.com/jeremy-rifkin/cpptrace.git
+cd cpptrace
+git checkout v0.3.1
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On -DCPPTRACE_USE_EXTERNAL_LIBDWARF=On -DCMAKE_PREFIX_PATH=~/scratch/cpptrace-test/resources -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
+make -j
+make install
+```
+</details>
+
+### Creating a Bundle
 
 ## Package Managers
 
