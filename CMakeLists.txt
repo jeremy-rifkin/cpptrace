@@ -229,6 +229,15 @@ target_compile_options(
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
 
+if(CPPTRACE_WERROR_BUILD)
+  target_compile_options(
+    ${target_name}
+    PRIVATE
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>
+    $<$<CXX_COMPILER_ID:MSVC>:/WX>
+  )
+endif()
+
 # ---- Generate Build Info Headers ----
 
 # used in export header generated below
