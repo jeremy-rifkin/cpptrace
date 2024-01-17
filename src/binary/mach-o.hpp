@@ -67,6 +67,14 @@ namespace detail {
         swap_segment_command(&segment, NX_UnknownByteOrder);
     }
 
+    static void swap_nlist(struct nlist& entry) {
+        swap_nlist(&entry, 1, NX_UnknownByteOrder);
+    }
+
+    static void swap_nlist(struct nlist_64& entry) {
+        swap_nlist_64(&entry, 1, NX_UnknownByteOrder);
+    }
+
     #ifdef __LP64__
      #define LP(x) x##_64
     #else
@@ -89,6 +97,7 @@ namespace detail {
         std::uint32_t n_load_commands;
         std::uint32_t sizeof_load_commands;
         std::uint32_t flags;
+        std::size_t bits = 0; // 32 or 64 once load_mach is called
 
         std::size_t load_base = 0;
         std::size_t fat_index = std::numeric_limits<std::size_t>::max();
@@ -163,12 +172,45 @@ namespace detail {
             }
         }
 
+        void print_symbol_table() const {
+            int i = 0;
+            for(const auto& command : load_commands) {
+                if(command.cmd == LC_SYMTAB) {
+                    auto symtab = load_symbol_table_command(command.file_offset);
+                    fprintf(stderr, "Load command %d\n", i);
+                    fprintf(stderr, "         cmd %u\n", symtab.cmd);
+                    fprintf(stderr, "     cmdsize %u\n", symtab.cmdsize);
+                    fprintf(stderr, "      symoff 0x%llu\n", symtab.symoff);
+                    fprintf(stderr, "       nsyms %llu\n", symtab.nsyms);
+                    fprintf(stderr, "      stroff 0x%llu\n", symtab.stroff);
+                    fprintf(stderr, "     strsize %llu\n", symtab.strsize);
+                    for(std::size_t j = 0; j < symtab.nsyms; j++) {
+                        nlist_64 entry = bits == 32
+                                        ? load_symtab_entry<32>(symtab.symoff, j)
+                                        : load_symtab_entry<64>(symtab.symoff, j);
+                        fprintf(
+                            stderr,
+                            "%5llu %8lx %2x %2u %4x %16lx\n",
+                            j,
+                            entry.n_un.n_strx,
+                            entry.n_type,
+                            entry.n_sect,
+                            entry.n_desc,
+                            entry.n_value
+                        );
+                    }
+                }
+                i++;
+            }
+        }
+
     private:
         template<std::size_t Bits>
         void load_mach(
             bool allow_arch_mismatch
         ) {
             static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
+            bits = Bits;
             using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
             std::size_t header_size = sizeof(Mach_Header);
             Mach_Header header = load_bytes<Mach_Header>(file, load_base);
@@ -265,6 +307,57 @@ namespace detail {
             common.initprot = segment.initprot;
             common.nsects = segment.nsects;
             common.flags = segment.flags;
+            return common;
+        }
+
+        symtab_command load_symbol_table_command(std::uint32_t offset) const {
+            symtab_command symtab = load_bytes<symtab_command>(file, offset);
+            ASSERT(symtab.cmd == LC_SYMTAB);
+            if(should_swap()) {
+               swap_symtab_command(&symtab, NX_UnknownByteOrder);
+            }
+            return symtab;
+        }
+
+        /*
+        struct nlist {
+            union {
+                #ifndef __LP64__
+                    char * n_name;
+                #endif
+                int32_t n_strx;
+            } n_un;
+            uint8_t n_type;
+            uint8_t n_sect;
+            int16_t n_desc;
+            uint32_t n_value;
+        };
+        struct nlist_64 {
+            union {
+                uint32_t n_strx;
+            } n_un;
+            uint8_t n_type;
+            uint8_t n_sect;
+            uint16_t n_desc;
+            uint64_t n_value;
+        };
+        */
+
+        template<std::size_t Bits>
+        nlist_64 load_symtab_entry(std::uint32_t base, std::size_t index) const {
+            using Nlist = typename std::conditional<Bits == 32, struct nlist, struct nlist_64>::type;
+            uint32_t offset = base + index * sizeof(Nlist);
+            Nlist entry = load_bytes<Nlist>(file, offset);
+            if(should_swap()) {
+               swap_nlist(entry);
+            }
+            // fields match just u64 instead of u32
+            nlist_64 common;
+            common.n_un.n_strx = entry.n_un.n_strx;
+            common.n_type = entry.n_type;
+            common.n_sect = entry.n_sect;
+            common.n_desc = entry.n_desc;
+            common.n_value = entry.n_value;
             return common;
         }
 

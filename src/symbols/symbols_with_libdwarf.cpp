@@ -119,6 +119,8 @@ namespace libdwarf {
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         dwarf_resolver(const std::string& _object_path) {
             object_path = _object_path;
+            fprintf(stderr, "-- %s\n", object_path.c_str());
+            mach_o(object_path).print_symbol_table();
             // for universal / fat mach-o files
             unsigned universal_number = 0;
             #if IS_APPLE
