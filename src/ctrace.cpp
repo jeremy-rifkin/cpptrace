@@ -213,7 +213,7 @@ extern "C" {
                     int(ptr_len + 2), 
                     "(inlined)");
             } else {
-                (void)std::fprintf(to, "%s0x%*zu%s",
+                (void)std::fprintf(to, "%s0x%0*zx%s",
                     blue, 
                     int(ptr_len), 
                     std::size_t(frames[I].address), 

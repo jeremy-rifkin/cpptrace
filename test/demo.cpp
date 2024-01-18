@@ -19,12 +19,21 @@ void test_linker() {
     assert(trace.count == 0);
 }
 
-void trace() {
-    ctrace_stacktrace trace = ctrace_generate_trace(0, INT_MAX);
+void cpp_trace() {
+    std::cout << "C++ Trace:" << std::endl;
+    cpptrace::generate_trace(1).print();
+}
+
+void c_trace() {
+    std::cout << "C Trace:" << std::endl;
+    ctrace_stacktrace trace = ctrace_generate_trace(1, INT_MAX);
     ctrace_stacktrace_print(&trace, stdout, 1);
     ctrace_free_stacktrace(&trace);
-    
-    cpptrace::generate_trace().print();
+}
+
+void trace() {
+    cpp_trace();
+    c_trace();
     // throw cpptrace::logic_error("foobar");
 }
 
