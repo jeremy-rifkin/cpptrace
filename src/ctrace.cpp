@@ -209,7 +209,7 @@ extern "C" {
             static constexpr auto ptr_len = 2 * sizeof(cpptrace::frame_ptr);
             ctrace::ffprintf(to, "#%-*zu ", int(frame_number_width), I);
             if(frames[I].is_inline) {
-                std::fprintf(to, "%*s", 
+                (void)std::fprintf(to, "%*s", 
                     int(ptr_len + 2), 
                     "(inlined)");
             } else {
@@ -228,7 +228,7 @@ extern "C" {
             if(!ctrace::is_empty(frames[I].filename)) {
                 (void)std::fprintf(to, " in %s%s%s",
                     green, 
-                    frames[I].symbol, 
+                    frames[I].filename, 
                     reset);
                 if(ctrace::is_empty(frames[I].line)) goto end;
                 (void)std::fprintf(to, ":%s%zu%s", 
