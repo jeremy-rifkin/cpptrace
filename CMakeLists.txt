@@ -182,6 +182,7 @@ add_library(cpptrace::cpptrace ALIAS ${target_name})
 target_sources(
     ${target_name} PRIVATE
     include/cpptrace/cpptrace.hpp
+    include/ctrace/ctrace.h
 )
 
 # add /src files to target
@@ -189,6 +190,7 @@ target_sources(
     ${target_name} PRIVATE
     # src
     src/cpptrace.cpp
+    src/ctrace.cpp
     src/demangle/demangle_with_cxxabi.cpp
     src/demangle/demangle_with_winapi.cpp
     src/demangle/demangle_with_nothing.cpp
@@ -491,6 +493,10 @@ if(CPPTRACE_BUILD_TESTING)
   check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
   if(HAS_DWARF4)
     target_compile_options(demo PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+  endif()
+  if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(demo PRIVATE -g -gcodeview)
+    target_link_options(demo PRIVATE -fuse-ld=lld -g -Wl,--pdb=)
   endif()
   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
     set_property(TARGET demo PROPERTY ENABLE_EXPORTS ON)

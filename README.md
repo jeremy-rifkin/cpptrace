@@ -429,8 +429,8 @@ namespace cpptrace {
 }
 ```
 
-**Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported
-`safe_generate_raw_trace` will just produce an empty trace and if object information can't be resolved in a signal-safe
+**Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported,
+`safe_generate_raw_trace` will just produce an empty trace, and if object information can't be resolved in a signal-safe
 way then `get_safe_object_frame` will not populate fields beyond the `raw_address`.
 
 **Another big note:** Calls to shared objects can be lazy-loaded where the first call to the shared object invokes
