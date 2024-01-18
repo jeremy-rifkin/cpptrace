@@ -203,7 +203,7 @@ extern "C" {
         const auto green   = use_color ? ESC "32m" : "";
         const auto yellow  = use_color ? ESC "33m" : "";
         const auto blue    = use_color ? ESC "34m" : "";
-        const auto frame_number_width = cpp_detail::n_digits(trace->count - 1);
+        const auto frame_number_width = cpp_detail::n_digits(unsigned(trace->count - 1));
         ctrace_stacktrace_frame* frames = trace->frames;
         for(std::size_t I = 0, E = trace->count; I < E; ++I) {
             static constexpr auto ptr_len = 2 * sizeof(cpptrace::frame_ptr);
@@ -226,7 +226,7 @@ extern "C" {
                     reset);
             }
             if(!ctrace::is_empty(frames[I].filename)) {
-                (void)std::fprintf(to, " in %s%s%s",
+                (void)std::fprintf(to, " at %s%s%s",
                     green, 
                     frames[I].filename, 
                     reset);
