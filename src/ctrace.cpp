@@ -244,6 +244,17 @@ extern "C" {
         }
     }
 
+    // ctrace::safe:
+    size_t ctrace_safe_generate_raw_trace(ctrace_frame_ptr* buffer, size_t size, size_t skip, size_t max_depth) {
+        return cpptrace::safe_generate_raw_trace(buffer, size, skip, max_depth);
+    }
+
+    void ctrace_get_safe_object_frame(ctrace_frame_ptr address, ctrace_safe_object_frame* out) {
+        // TODO: change this?
+        static_assert(sizeof(cpptrace::safe_object_frame) == sizeof(ctrace_safe_object_frame), "");
+        cpptrace::get_safe_object_frame(address, reinterpret_cast<cpptrace::safe_object_frame*>(out));
+    }
+
     // ctrace::io:
     ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color) {
         if(!trace || !trace->frames) return ctrace::generate_owning_string("<empty trace>");

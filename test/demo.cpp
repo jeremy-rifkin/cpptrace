@@ -24,11 +24,6 @@ void test_linker() {
   }
 }
 
-void cpp_trace() {
-    std::cout << "C++ Trace:" << std::endl;
-    cpptrace::generate_trace(1).print();
-}
-
 void c_trace() {
     std::cout << "C Trace:" << std::endl;
     ctrace_raw_trace raw_trace = ctrace_generate_raw_trace(1, INT_MAX);
@@ -41,10 +36,15 @@ void c_trace() {
     assert(raw_trace.frames == nullptr && obj_trace.count == 0);
 }
 
+void cpp_trace() {
+    std::cout << "C++ Trace:" << std::endl;
+    cpptrace::generate_trace(1).print();
+}
+
 void trace() {
     cpp_trace();
     c_trace();
-    // throw cpptrace::logic_error("foobar");
+    throw cpptrace::logic_error("foobar");
 }
 
 void foo(int n) {

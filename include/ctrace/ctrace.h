@@ -30,6 +30,8 @@
 // See `CPPTRACE_PATH_MAX` for more info.
 #define CTRACE_PATH_MAX 4096
 
+// TODO: Add exports
+
 CTRACE_BEGIN_DEFINITIONS
     typedef struct raw_trace ctrace_raw_trace;
     typedef struct object_trace ctrace_object_trace;
@@ -41,6 +43,7 @@ CTRACE_BEGIN_DEFINITIONS
     typedef uintptr_t ctrace_frame_ptr;
     typedef struct object_frame ctrace_object_frame;
     typedef struct stacktrace_frame ctrace_stacktrace_frame;
+    typedef struct safe_object_frame ctrace_safe_object_frame;
 
     // Type-safe null-terminated string wrapper
     typedef struct {
@@ -61,6 +64,12 @@ CTRACE_BEGIN_DEFINITIONS
         const char* filename;
         const char* symbol;
         ctrace_bool is_inline;
+    };
+
+    struct safe_object_frame {
+        ctrace_frame_ptr raw_address;
+        ctrace_frame_ptr relative_obj_address;
+        char object_path[CTRACE_PATH_MAX + 1];
     };
 
     struct raw_trace {
@@ -105,6 +114,10 @@ CTRACE_BEGIN_DEFINITIONS
     ctrace_stacktrace ctrace_raw_trace_resolve(const ctrace_raw_trace* trace);
     ctrace_object_trace ctrace_raw_trace_resolve_object_trace(const ctrace_raw_trace* trace);
     ctrace_stacktrace ctrace_object_trace_resolve(const ctrace_object_trace* trace);
+
+    // ctrace::safe:
+    size_t ctrace_safe_generate_raw_trace(ctrace_frame_ptr* buffer, size_t size, size_t skip, size_t max_depth);
+    void ctrace_get_safe_object_frame(ctrace_frame_ptr address, ctrace_safe_object_frame* out);
 
     // ctrace::io:
     ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);
