@@ -102,12 +102,12 @@ CTRACE_BEGIN_DEFINITIONS
     void ctrace_free_stacktrace(ctrace_stacktrace* trace);
 
     // ctrace::resolve:
-    // ctrace_stacktrace ctrace_raw_trace_resolve(const ctrace_raw_trace* trace);
-    // ctrace_object_trace ctrace_raw_trace_resolve_object_trace(const ctrace_raw_trace* trace);
-    // ctrace_stacktrace ctrace_object_trace_resolve(const ctrace_object_trace* trace);
+    ctrace_stacktrace ctrace_raw_trace_resolve(const ctrace_raw_trace* trace);
+    ctrace_object_trace ctrace_raw_trace_resolve_object_trace(const ctrace_raw_trace* trace);
+    ctrace_stacktrace ctrace_object_trace_resolve(const ctrace_object_trace* trace);
 
     // ctrace::io:
-    // ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);
+    ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);
     void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color);
 
     // utility::demangle:

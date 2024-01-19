@@ -80,16 +80,35 @@ namespace ctrace {
         std::transform(trace.begin(), trace.end(), frames,
         [] (const cpptrace::stacktrace_frame& frame) -> ctrace_stacktrace_frame {
             ctrace_stacktrace_frame new_frame;
-            new_frame.address = frame.address;
-            new_frame.line = frame.line.value_or(invalid_pos);
-            new_frame.column = frame.column.value_or(invalid_pos);
-            new_frame.filename = generate_owning_string(frame.filename).data;
-            new_frame.symbol = generate_owning_string(
-                cpp_detail::demangle(frame.symbol)).data;
+            new_frame.address   = frame.address;
+            new_frame.line      = frame.line.value_or(invalid_pos);
+            new_frame.column    = frame.column.value_or(invalid_pos);
+            new_frame.filename  = generate_owning_string(frame.filename).data;
+            new_frame.symbol    = generate_owning_string(cpp_detail::demangle(frame.symbol)).data;
             new_frame.is_inline = ctrace_bool(frame.is_inline);
             return new_frame;
         });
         return { frames, count };
+    }
+
+    static cpptrace::stacktrace cpp_convert(const ctrace_stacktrace* ptrace) {
+        if(!ptrace || !ptrace->frames) return { };
+        std::vector<cpptrace::stacktrace_frame> new_frames;
+        new_frames.reserve(ptrace->count);
+        for(std::size_t I = 0, E = ptrace->count; I < E; ++I) {
+            using nullable_type = cpptrace::nullable<std::uint32_t>;
+            static constexpr auto null_v = nullable_type::null().raw_value;
+            const ctrace_stacktrace_frame& old_frame = ptrace->frames[I];
+            cpptrace::stacktrace_frame new_frame;
+            new_frame.address   = old_frame.address;
+            new_frame.line      = nullable_type{is_empty(old_frame.line)   ? null_v : old_frame.line};
+            new_frame.column    = nullable_type{is_empty(old_frame.column) ? null_v : old_frame.column};
+            new_frame.filename  = old_frame.filename;
+            new_frame.symbol    = old_frame.symbol;
+            new_frame.is_inline = bool(old_frame.is_inline);
+            new_frames.push_back(std::move(new_frame));
+        }
+        return cpptrace::stacktrace{std::move(new_frames)};
     }
 }
 
@@ -128,7 +147,7 @@ extern "C" {
                 cpp_detail::get_frames_object_info(
                     cpp_detail::capture_frames(skip + 1, max_depth));
             return ctrace::c_convert(trace);
-        } catch(...) {
+        } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
             return { nullptr, 0 };
         }
@@ -140,7 +159,7 @@ extern "C" {
             std::vector<cpptrace::frame_ptr> frames = cpp_detail::capture_frames(skip + 1, max_depth);
             std::vector<cpptrace::stacktrace_frame> trace = cpp_detail::resolve_frames(frames);
             return ctrace::c_convert(trace);
-        } catch(...) {
+        } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
             return { nullptr, 0 };
         }
@@ -183,13 +202,54 @@ extern "C" {
     }
 
     // ctrace::resolve:
+    ctrace_stacktrace ctrace_raw_trace_resolve(const ctrace_raw_trace* trace) {
+        if(!trace || !trace->frames) return { nullptr, 0 };
+        try {
+            std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
+            std::copy(trace->frames, trace->frames + trace->count, frames.begin());
+            std::vector<cpptrace::stacktrace_frame> resolved = cpp_detail::resolve_frames(frames);
+            return ctrace::c_convert(resolved);
+        } catch(...) { // NOSONAR
+            // Don't check rethrow condition, it's risky.
+            return { nullptr, 0 };
+        }
+    }
+
+    ctrace_object_trace ctrace_raw_trace_resolve_object_trace(const ctrace_raw_trace* trace) {
+        if(!trace || !trace->frames) return { nullptr, 0 };
+        try {
+            std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
+            std::copy(trace->frames, trace->frames + trace->count, frames.begin());
+            std::vector<cpptrace::object_frame> obj = cpp_detail::get_frames_object_info(frames);
+            return ctrace::c_convert(obj);
+        } catch(...) { // NOSONAR
+            // Don't check rethrow condition, it's risky.
+            return { nullptr, 0 };
+        }
+    }
+
+    ctrace_stacktrace ctrace_object_trace_resolve(const ctrace_object_trace* trace) {
+        if(!trace || !trace->frames) return { nullptr, 0 };
+        try {
+            std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
+            std::transform(trace->frames, trace->frames + trace->count, frames.begin(),
+            [] (const ctrace_object_frame& frame) -> cpptrace::frame_ptr {
+                return frame.raw_address;
+            });
+            std::vector<cpptrace::stacktrace_frame> resolved = cpp_detail::resolve_frames(frames);
+            return ctrace::c_convert(resolved);
+        } catch(...) { // NOSONAR
+            // Don't check rethrow condition, it's risky.
+            return { nullptr, 0 };
+        }
+    }
 
     // ctrace::io:
     ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color) {
-        // TODO: Implement
-        (void)trace;
-        (void)use_color;
-        return ctrace::generate_owning_string("");
+        if(!trace || !trace->frames) return ctrace::generate_owning_string("<empty trace>");
+        auto cpp_trace = ctrace::cpp_convert(trace);
+        std::string trace_string = cpp_trace.to_string(bool(use_color));
+        return ctrace::generate_owning_string(trace_string);
     }
 
     void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color) {
