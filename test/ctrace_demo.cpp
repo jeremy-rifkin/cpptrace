@@ -1,5 +1,6 @@
 #include <ctrace/ctrace.h>
 #include <cassert>
+#include <climits>
 #include <cstdio>
 
 void test_linker() {

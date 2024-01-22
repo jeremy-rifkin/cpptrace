@@ -20,15 +20,25 @@
 #define MAGENTA ESC "35m"
 #define CYAN    ESC "36m"
 
+#if defined(__GNUC__) && ((__GNUC__ > 2) || (__GNUC__ == 2 && __GNUC_MINOR__ >= 6))
+# define CTRACE_GNU_FORMAT(...) __attribute__((format(__VA_ARGS__)))
+#elif defined(__clang__)
+// Probably requires llvm >3.5? Not exactly sure.
+# define CTRACE_GNU_FORMAT(...) __attribute__((format(__VA_ARGS__)))
+#else
+# define CTRACE_GNU_FORMAT(...)
+#endif
+
 namespace cpp_detail = cpptrace::detail;
 
 namespace ctrace {
     static constexpr std::uint32_t invalid_pos = ~0U;
 
     template <typename...Args>
+    CTRACE_GNU_FORMAT(printf, 2, 0)
     static void ffprintf(std::FILE* f, const char fmt[], Args&&...args) {
         (void)std::fprintf(f, fmt, args...);
-        fflush(f);
+        (void)fflush(f);
     }
 
     static bool is_empty(std::uint32_t pos) noexcept {
@@ -37,6 +47,18 @@ namespace ctrace {
 
     static bool is_empty(const char* str) noexcept {
         return (!str) || (std::char_traits<char>::length(str) == 0);
+    }
+
+    // Avoids the "useless cast" warnings.
+    CTRACE_FORCE_INLINE
+    static std::size_t size_cast(unsigned long long n) noexcept {
+        return n;
+    }
+
+    template <typename T>
+    CTRACE_FORCE_INLINE
+    static std::size_t size_cast(T&& t) noexcept {
+        return size_cast(static_cast<unsigned long long>(t));
     }
 
     static ctrace_owning_string generate_owning_string(const char* raw_string) noexcept {
@@ -93,10 +115,10 @@ namespace ctrace {
         if(!ptrace || !ptrace->frames) return { };
         std::vector<cpptrace::stacktrace_frame> new_frames;
         new_frames.reserve(ptrace->count);
-        for(std::size_t I = 0; I < ptrace->count; ++I) {
+        for(std::size_t i = 0; i < ptrace->count; ++i) {
             using nullable_type = cpptrace::nullable<std::uint32_t>;
             static constexpr auto null_v = nullable_type::null().raw_value;
-            const ctrace_stacktrace_frame& old_frame = ptrace->frames[I];
+            const ctrace_stacktrace_frame& old_frame = ptrace->frames[i];
             cpptrace::stacktrace_frame new_frame;
             new_frame.address   = old_frame.address;
             new_frame.line      = nullable_type{is_empty(old_frame.line)   ? null_v : old_frame.line};
@@ -176,8 +198,8 @@ extern "C" {
     void ctrace_free_object_trace(ctrace_object_trace* trace) {
         if(!trace || !trace->frames) return;
         ctrace_object_frame* frames = trace->frames;
-        for(std::size_t I = 0; I < trace->count; ++I) {
-            const char* path = frames[I].obj_path;
+        for(std::size_t i = 0; i < trace->count; ++i) {
+            const char* path = frames[i].obj_path;
             ctrace::free_owning_string(path);
         }
 
@@ -189,9 +211,9 @@ extern "C" {
     void ctrace_free_stacktrace(ctrace_stacktrace* trace) {
         if(!trace || !trace->frames) return;
         ctrace_stacktrace_frame* frames = trace->frames;
-        for(std::size_t I = 0; I < trace->count; ++I) {
-            ctrace::free_owning_string(frames[I].filename);
-            ctrace::free_owning_string(frames[I].symbol);
+        for(std::size_t i = 0; i < trace->count; ++i) {
+            ctrace::free_owning_string(frames[i].filename);
+            ctrace::free_owning_string(frames[i].symbol);
         }
 
         delete[] frames;
@@ -274,46 +296,46 @@ extern "C" {
         const auto blue    = use_color ? ESC "34m" : "";
         const auto frame_number_width = cpp_detail::n_digits(unsigned(trace->count - 1));
         ctrace_stacktrace_frame* frames = trace->frames;
-        for(std::size_t I = 0; I < trace->count; ++I) {
+        for(std::size_t i = 0; i < trace->count; ++i) {
             static constexpr auto ptr_len = 2 * sizeof(cpptrace::frame_ptr);
-            ctrace::ffprintf(to, "#%-*zu ", int(frame_number_width), I);
-            if(frames[I].is_inline) {
+            ctrace::ffprintf(to, "#%-*llu ", int(frame_number_width), i);
+            if(frames[i].is_inline) {
                 (void)std::fprintf(to, "%*s", 
                     int(ptr_len + 2), 
                     "(inlined)");
             } else {
-                (void)std::fprintf(to, "%s0x%0*zx%s",
+                (void)std::fprintf(to, "%s0x%0*llx%s",
                     blue, 
                     int(ptr_len), 
-                    std::size_t(frames[I].address), 
+                    ctrace::size_cast(frames[i].address), 
                     reset);
             }
-            if(!ctrace::is_empty(frames[I].symbol)) {
+            if(!ctrace::is_empty(frames[i].symbol)) {
                 (void)std::fprintf(to, " in %s%s%s", 
                     yellow, 
-                    frames[I].symbol, 
+                    frames[i].symbol, 
                     reset);
             }
-            if(!ctrace::is_empty(frames[I].filename)) {
+            if(!ctrace::is_empty(frames[i].filename)) {
                 (void)std::fprintf(to, " at %s%s%s",
                     green, 
-                    frames[I].filename, 
+                    frames[i].filename, 
                     reset);
-                if(ctrace::is_empty(frames[I].line)) {
+                if(ctrace::is_empty(frames[i].line)) {
                     ctrace::ffprintf(to, "\n");
                     continue;
                 }
-                (void)std::fprintf(to, ":%s%zu%s", 
+                (void)std::fprintf(to, ":%s%llu%s", 
                     blue, 
-                    std::size_t(frames[I].line), 
+                    ctrace::size_cast(frames[i].line), 
                     reset);
-                if(ctrace::is_empty(frames[I].column)) {
+                if(ctrace::is_empty(frames[i].column)) {
                     ctrace::ffprintf(to, "\n");
                     continue;
                 }
-                (void)std::fprintf(to, ":%s%zu%s", 
+                (void)std::fprintf(to, ":%s%llu%s", 
                     blue, 
-                    std::size_t(frames[I].column), 
+                    ctrace::size_cast(frames[i].column), 
                     reset);
             }
             // always print newline at end :M
