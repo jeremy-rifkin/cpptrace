@@ -53,10 +53,8 @@ namespace ctrace {
     }
 
     static void free_owning_string(const char* owned_string) noexcept {
-        if(!owned_string) return;
-        // ok because we allocated it.
-        char* data = const_cast<char*>(owned_string);
-        delete[] data;
+        if(!owned_string) return; // Not necessary but eh
+        delete[] owned_string;
     }
 
     static void free_owning_string(ctrace_owning_string& owned_string) noexcept {
@@ -95,7 +93,7 @@ namespace ctrace {
         if(!ptrace || !ptrace->frames) return { };
         std::vector<cpptrace::stacktrace_frame> new_frames;
         new_frames.reserve(ptrace->count);
-        for(std::size_t I = 0, E = ptrace->count; I < E; ++I) {
+        for(std::size_t I = 0; I < ptrace->count; ++I) {
             using nullable_type = cpptrace::nullable<std::uint32_t>;
             static constexpr auto null_v = nullable_type::null().raw_value;
             const ctrace_stacktrace_frame& old_frame = ptrace->frames[I];
@@ -178,7 +176,7 @@ extern "C" {
     void ctrace_free_object_trace(ctrace_object_trace* trace) {
         if(!trace || !trace->frames) return;
         ctrace_object_frame* frames = trace->frames;
-        for(std::size_t I = 0, E = trace->count; I < E; ++I) {
+        for(std::size_t I = 0; I < trace->count; ++I) {
             const char* path = frames[I].obj_path;
             ctrace::free_owning_string(path);
         }
@@ -191,7 +189,7 @@ extern "C" {
     void ctrace_free_stacktrace(ctrace_stacktrace* trace) {
         if(!trace || !trace->frames) return;
         ctrace_stacktrace_frame* frames = trace->frames;
-        for(std::size_t I = 0, E = trace->count; I < E; ++I) {
+        for(std::size_t I = 0; I < trace->count; ++I) {
             ctrace::free_owning_string(frames[I].filename);
             ctrace::free_owning_string(frames[I].symbol);
         }
@@ -276,7 +274,7 @@ extern "C" {
         const auto blue    = use_color ? ESC "34m" : "";
         const auto frame_number_width = cpp_detail::n_digits(unsigned(trace->count - 1));
         ctrace_stacktrace_frame* frames = trace->frames;
-        for(std::size_t I = 0, E = trace->count; I < E; ++I) {
+        for(std::size_t I = 0; I < trace->count; ++I) {
             static constexpr auto ptr_len = 2 * sizeof(cpptrace::frame_ptr);
             ctrace::ffprintf(to, "#%-*zu ", int(frame_number_width), I);
             if(frames[I].is_inline) {
@@ -301,19 +299,25 @@ extern "C" {
                     green, 
                     frames[I].filename, 
                     reset);
-                if(ctrace::is_empty(frames[I].line)) goto end;
+                if(ctrace::is_empty(frames[I].line)) {
+                    ctrace::ffprintf(to, "\n");
+                    continue;
+                }
                 (void)std::fprintf(to, ":%s%zu%s", 
                     blue, 
                     std::size_t(frames[I].line), 
                     reset);
-                if(ctrace::is_empty(frames[I].column)) goto end;
+                if(ctrace::is_empty(frames[I].column)) {
+                    ctrace::ffprintf(to, "\n");
+                    continue;
+                }
                 (void)std::fprintf(to, ":%s%zu%s", 
                     blue, 
                     std::size_t(frames[I].column), 
                     reset);
             }
             // always print newline at end :M
-            end: ctrace::ffprintf(to, "\n");
+            ctrace::ffprintf(to, "\n");
         }
     }
 

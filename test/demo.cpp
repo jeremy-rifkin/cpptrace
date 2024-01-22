@@ -5,45 +5,8 @@
 #include <iostream>
 #include <string>
 
-#include <ctrace/ctrace.h>
-#include <cassert>
-
-void test_linker() {
-  /* Owning String */ {
-    auto str = ctrace_generate_owning_string("Hello C!");
-    std::printf("%s\n", str.data);
-    ctrace_free_owning_string(&str);
-    assert(str.data == nullptr);
-  } /* Trace */ {
-    ctrace_stacktrace trace = ctrace_generate_trace(0, INT_MAX);
-    ctrace_owning_string str = ctrace_stacktrace_to_string(&trace, 0);
-    ctrace_free_stacktrace(&trace);
-    assert(trace.count == 0);
-    std::printf("%s\n", str.data);
-    ctrace_free_owning_string(&str);
-  }
-}
-
-void c_trace() {
-    std::cout << "C Trace:" << std::endl;
-    ctrace_raw_trace raw_trace = ctrace_generate_raw_trace(1, INT_MAX);
-    ctrace_object_trace obj_trace = ctrace_raw_trace_resolve_object_trace(&raw_trace);
-    ctrace_stacktrace trace = ctrace_object_trace_resolve(&obj_trace);
-    ctrace_stacktrace_print(&trace, stdout, 1);
-    ctrace_free_stacktrace(&trace);
-    ctrace_free_object_trace(&obj_trace);
-    ctrace_free_raw_trace(&raw_trace);
-    assert(raw_trace.frames == nullptr && obj_trace.count == 0);
-}
-
-void cpp_trace() {
-    std::cout << "C++ Trace:" << std::endl;
-    cpptrace::generate_trace(1).print();
-}
-
 void trace() {
-    cpp_trace();
-    c_trace();
+    cpptrace::generate_trace().print();
     throw cpptrace::logic_error("foobar");
 }
 
@@ -64,13 +27,11 @@ void function_two(int, float) {
     foo(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 }
 
-CTRACE_FORCE_INLINE
 void function_one(int) {
     function_two(0, 0);
 }
 
 int main() {
-    test_linker();
     cpptrace::absorb_trace_exceptions(false);
     cpptrace::register_terminate_handler();
     function_one(0);
