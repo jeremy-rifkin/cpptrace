@@ -46,8 +46,6 @@
 # define CTRACE_FORMAT_EPILOGUE
 #endif
 
-namespace cpp_detail = cpptrace::detail;
-
 namespace ctrace {
     static constexpr std::uint32_t invalid_pos = ~0U;
 
@@ -61,23 +59,11 @@ CTRACE_FORMAT_PROLOGUE
 CTRACE_FORMAT_EPILOGUE
 
     static bool is_empty(std::uint32_t pos) noexcept {
-        return (pos == invalid_pos);
+        return pos == invalid_pos;
     }
 
     static bool is_empty(const char* str) noexcept {
-        return (!str) || (std::char_traits<char>::length(str) == 0);
-    }
-
-    // Avoids the "useless cast" warnings.
-    CTRACE_FORCE_INLINE
-    static unsigned long long size_cast(unsigned long long n) noexcept {
-        return n;
-    }
-
-    template <typename T>
-    CTRACE_FORCE_INLINE
-    static unsigned long long size_cast(T t) noexcept {
-        return size_cast(static_cast<unsigned long long>(t));
+        return !str || std::char_traits<char>::length(str) == 0;
     }
 
     static ctrace_owning_string generate_owning_string(const char* raw_string) noexcept {
@@ -105,28 +91,36 @@ CTRACE_FORMAT_EPILOGUE
     static ctrace_object_trace c_convert(const std::vector<cpptrace::object_frame>& trace) {
         std::size_t count = trace.size();
         auto* frames = new ctrace_object_frame[count];
-        std::transform(trace.begin(), trace.end(), frames,
-        [] (const cpptrace::object_frame& frame) -> ctrace_object_frame {
-            const char* new_path = generate_owning_string(frame.object_path).data;
-            return { frame.raw_address, frame.object_address, new_path };
-        });
+        std::transform(
+            trace.begin(),
+            trace.end(),
+            frames,
+            [] (const cpptrace::object_frame& frame) -> ctrace_object_frame {
+                const char* new_path = generate_owning_string(frame.object_path).data;
+                return { frame.raw_address, frame.object_address, new_path };
+            }
+        );
         return { frames, count };
     }
 
     static ctrace_stacktrace c_convert(const std::vector<cpptrace::stacktrace_frame>& trace) {
         std::size_t count = trace.size();
         auto* frames = new ctrace_stacktrace_frame[count];
-        std::transform(trace.begin(), trace.end(), frames,
-        [] (const cpptrace::stacktrace_frame& frame) -> ctrace_stacktrace_frame {
-            ctrace_stacktrace_frame new_frame;
-            new_frame.address   = frame.address;
-            new_frame.line      = frame.line.value_or(invalid_pos);
-            new_frame.column    = frame.column.value_or(invalid_pos);
-            new_frame.filename  = generate_owning_string(frame.filename).data;
-            new_frame.symbol    = generate_owning_string(cpp_detail::demangle(frame.symbol)).data;
-            new_frame.is_inline = ctrace_bool(frame.is_inline);
-            return new_frame;
-        });
+        std::transform(
+            trace.begin(),
+            trace.end(),
+            frames,
+            [] (const cpptrace::stacktrace_frame& frame) -> ctrace_stacktrace_frame {
+                ctrace_stacktrace_frame new_frame;
+                new_frame.address   = frame.address;
+                new_frame.line      = frame.line.value_or(invalid_pos);
+                new_frame.column    = frame.column.value_or(invalid_pos);
+                new_frame.filename  = generate_owning_string(frame.filename).data;
+                new_frame.symbol    = generate_owning_string(cpptrace::detail::demangle(frame.symbol)).data;
+                new_frame.is_inline = ctrace_bool(frame.is_inline);
+                return new_frame;
+            }
+        );
         return { frames, count };
     }
 
@@ -167,8 +161,7 @@ extern "C" {
     CTRACE_FORCE_NO_INLINE
     ctrace_raw_trace ctrace_generate_raw_trace(size_t skip, size_t max_depth) {
         try {
-            std::vector<cpptrace::frame_ptr> trace = 
-                cpp_detail::capture_frames(skip + 1, max_depth);
+            std::vector<cpptrace::frame_ptr> trace = cpptrace::detail::capture_frames(skip + 1, max_depth);
             std::size_t count = trace.size();
             auto* frames = new ctrace_frame_ptr[count];
             std::copy(trace.data(), trace.data() + count, frames);
@@ -182,9 +175,9 @@ extern "C" {
     CTRACE_FORCE_NO_INLINE
     ctrace_object_trace ctrace_generate_object_trace(size_t skip, size_t max_depth) {
         try {
-            std::vector<cpptrace::object_frame> trace = 
-                cpp_detail::get_frames_object_info(
-                    cpp_detail::capture_frames(skip + 1, max_depth));
+            std::vector<cpptrace::object_frame> trace = cpptrace::detail::get_frames_object_info(
+                cpptrace::detail::capture_frames(skip + 1, max_depth)
+            );
             return ctrace::c_convert(trace);
         } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
@@ -195,8 +188,8 @@ extern "C" {
     CTRACE_FORCE_NO_INLINE
     ctrace_stacktrace ctrace_generate_trace(size_t skip, size_t max_depth) {
         try {
-            std::vector<cpptrace::frame_ptr> frames = cpp_detail::capture_frames(skip + 1, max_depth);
-            std::vector<cpptrace::stacktrace_frame> trace = cpp_detail::resolve_frames(frames);
+            std::vector<cpptrace::frame_ptr> frames = cpptrace::detail::capture_frames(skip + 1, max_depth);
+            std::vector<cpptrace::stacktrace_frame> trace = cpptrace::detail::resolve_frames(frames);
             return ctrace::c_convert(trace);
         } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
@@ -246,7 +239,7 @@ extern "C" {
         try {
             std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
             std::copy(trace->frames, trace->frames + trace->count, frames.begin());
-            std::vector<cpptrace::stacktrace_frame> resolved = cpp_detail::resolve_frames(frames);
+            std::vector<cpptrace::stacktrace_frame> resolved = cpptrace::detail::resolve_frames(frames);
             return ctrace::c_convert(resolved);
         } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
@@ -259,7 +252,7 @@ extern "C" {
         try {
             std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
             std::copy(trace->frames, trace->frames + trace->count, frames.begin());
-            std::vector<cpptrace::object_frame> obj = cpp_detail::get_frames_object_info(frames);
+            std::vector<cpptrace::object_frame> obj = cpptrace::detail::get_frames_object_info(frames);
             return ctrace::c_convert(obj);
         } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
@@ -271,11 +264,15 @@ extern "C" {
         if(!trace || !trace->frames) return { nullptr, 0 };
         try {
             std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
-            std::transform(trace->frames, trace->frames + trace->count, frames.begin(),
-            [] (const ctrace_object_frame& frame) -> cpptrace::frame_ptr {
-                return frame.raw_address;
-            });
-            std::vector<cpptrace::stacktrace_frame> resolved = cpp_detail::resolve_frames(frames);
+            std::transform(
+                trace->frames,
+                trace->frames + trace->count,
+                frames.begin(),
+                [] (const ctrace_object_frame& frame) -> cpptrace::frame_ptr {
+                    return frame.raw_address;
+                }
+            );
+            std::vector<cpptrace::stacktrace_frame> resolved = cpptrace::detail::resolve_frames(frames);
             return ctrace::c_convert(resolved);
         } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
@@ -303,7 +300,7 @@ extern "C" {
     }
 
     void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color) {
-        if(use_color) cpp_detail::enable_virtual_terminal_processing_if_needed();
+        if(use_color) cpptrace::detail::enable_virtual_terminal_processing_if_needed();
         ctrace::ffprintf(to, "Stack trace (most recent call first):\n");
         if(trace->count == 0 || !trace->frames) {
             ctrace::ffprintf(to, "<empty trace>\n");
@@ -313,48 +310,48 @@ extern "C" {
         const auto green   = use_color ? ESC "32m" : "";
         const auto yellow  = use_color ? ESC "33m" : "";
         const auto blue    = use_color ? ESC "34m" : "";
-        const auto frame_number_width = cpp_detail::n_digits(unsigned(trace->count - 1));
+        const auto frame_number_width = cpptrace::detail::n_digits(unsigned(trace->count - 1));
         ctrace_stacktrace_frame* frames = trace->frames;
         for(std::size_t i = 0; i < trace->count; ++i) {
             static constexpr auto ptr_len = 2 * sizeof(cpptrace::frame_ptr);
             ctrace::ffprintf(to, "#%-*llu ", int(frame_number_width), i);
             if(frames[i].is_inline) {
-                (void)std::fprintf(to, "%*s", 
-                    int(ptr_len + 2), 
+                (void)std::fprintf(to, "%*s",
+                    int(ptr_len + 2),
                     "(inlined)");
             } else {
                 (void)std::fprintf(to, "%s0x%0*llx%s",
-                    blue, 
-                    int(ptr_len), 
-                    ctrace::size_cast(frames[i].address), 
+                    blue,
+                    int(ptr_len),
+                    ctrace::detail::to_ull(frames[i].address),
                     reset);
             }
             if(!ctrace::is_empty(frames[i].symbol)) {
-                (void)std::fprintf(to, " in %s%s%s", 
-                    yellow, 
-                    frames[i].symbol, 
+                (void)std::fprintf(to, " in %s%s%s",
+                    yellow,
+                    frames[i].symbol,
                     reset);
             }
             if(!ctrace::is_empty(frames[i].filename)) {
                 (void)std::fprintf(to, " at %s%s%s",
-                    green, 
-                    frames[i].filename, 
+                    green,
+                    frames[i].filename,
                     reset);
                 if(ctrace::is_empty(frames[i].line)) {
                     ctrace::ffprintf(to, "\n");
                     continue;
                 }
-                (void)std::fprintf(to, ":%s%llu%s", 
-                    blue, 
-                    ctrace::size_cast(frames[i].line), 
+                (void)std::fprintf(to, ":%s%llu%s",
+                    blue,
+                    ctrace::detail::to_ull(frames[i].line),
                     reset);
                 if(ctrace::is_empty(frames[i].column)) {
                     ctrace::ffprintf(to, "\n");
                     continue;
                 }
-                (void)std::fprintf(to, ":%s%llu%s", 
-                    blue, 
-                    ctrace::size_cast(frames[i].column), 
+                (void)std::fprintf(to, ":%s%llu%s",
+                    blue,
+                    ctrace::detail::to_ull(frames[i].column),
                     reset);
             }
             // always print newline at end :M
@@ -395,7 +392,7 @@ extern "C" {
     }
 
     ctrace_cache_mode ctrace_get_cache_mode(void) {
-        auto cache_mode = cpp_detail::get_cache_mode();
+        auto cache_mode = cpptrace::detail::get_cache_mode();
         return static_cast<ctrace_cache_mode>(cache_mode);
     }
 }
