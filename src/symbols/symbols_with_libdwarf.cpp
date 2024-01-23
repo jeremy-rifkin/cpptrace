@@ -20,6 +20,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include <iostream>
+#include <iomanip>
+
 // It's been tricky to piece together how to handle all this dwarf stuff. Some resources I've used are
 // https://www.prevanders.net/libdwarf.pdf
 // https://github.com/davea42/libdwarf-addr2line
@@ -74,7 +77,14 @@ namespace libdwarf {
         std::vector<line_entry> line_entries;
     };
 
-    struct dwarf_resolver {
+    class symbol_resolver {
+    public:
+        virtual ~symbol_resolver() = default;
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+        virtual frame_with_inlines resolve_frame(const object_frame& frame_info) = 0;
+    };
+
+    class dwarf_resolver : public symbol_resolver {
         std::string object_path;
         Dwarf_Debug dbg = nullptr;
         bool ok = false;
@@ -91,6 +101,7 @@ namespace libdwarf {
         // Map from CU -> {srcfiles, count}
         std::unordered_map<Dwarf_Off, std::pair<char**, Dwarf_Signed>> srcfiles_cache;
 
+    private:
         // Error handling helper
         // For some reason R (*f)(Args..., void*)-style deduction isn't possible, seems like a bug in all compilers
         // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56190
@@ -116,16 +127,25 @@ namespace libdwarf {
             return ret;
         }
 
+    public:
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         dwarf_resolver(const std::string& _object_path) {
             object_path = _object_path;
-            fprintf(stderr, "-- %s\n", object_path.c_str());
-            mach_o(object_path).print_symbol_table();
+            #if IS_APPLE
+            // fprintf(stderr, "-- %s\n", object_path.c_str());
+            // mach_o(object_path).print_symbol_table();
+            #endif
             // for universal / fat mach-o files
             unsigned universal_number = 0;
             #if IS_APPLE
             if(directory_exists(object_path + ".dSYM")) {
-                object_path += ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
+                // Possibly depends on the build system but a obj.cpp.o.dSYM/Contents/Resources/DWARF/obj.cpp.o can be
+                // created alongside .o files. These are text files containing directives, as opposed to something we
+                // can actually use
+                std::string dsym_resource = object_path + ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
+                if(file_is_mach_o(dsym_resource)) {
+                    object_path = std::move(dsym_resource);
+                }
             }
             if(macho_is_fat(object_path)) {
                 universal_number = mach_o(object_path).get_fat_index();
@@ -216,6 +236,7 @@ namespace libdwarf {
             return *this;
         }
 
+    private:
         // walk all CU's in a dbg, callback is called on each die and should return true to
         // continue traversal
         void walk_compilation_units(const std::function<bool(const die_object&)>& fn) {
@@ -523,19 +544,14 @@ namespace libdwarf {
                     it = subprograms_cache.find(off);
                 }
                 auto& vec = it->second;
-                auto vec_it = std::lower_bound(
+                auto vec_it = first_less_than_or_equal(
                     vec.begin(),
                     vec.end(),
                     pc,
-                    [] (const subprogram_entry& entry, Dwarf_Addr pc) {
-                        return entry.low < pc;
+                    [] (Dwarf_Addr pc, const subprogram_entry& entry) {
+                        return pc < entry.low;
                     }
                 );
-                // vec_it is first >= pc
-                // we want first <= pc
-                if(vec_it != vec.begin()) {
-                    vec_it--;
-                }
                 // If the vector has been empty this can happen
                 if(vec_it != vec.end()) {
                     //vec_it->die.print();
@@ -650,19 +666,14 @@ namespace libdwarf {
             if(get_cache_mode() == cache_mode::prioritize_speed) {
                 // Lookup in the table
                 auto& line_entries = table_info.line_entries;
-                auto table_it = std::lower_bound(
+                auto table_it = first_less_than_or_equal(
                     line_entries.begin(),
                     line_entries.end(),
                     pc,
-                    [] (const line_entry& entry, Dwarf_Addr pc) {
-                        return entry.low < pc;
+                    [] (Dwarf_Addr pc, const line_entry& entry) {
+                        return pc < entry.low;
                     }
                 );
-                // vec_it is first >= pc
-                // we want first <= pc
-                if(table_it != line_entries.begin()) {
-                    table_it--;
-                }
                 // If the vector has been empty this can happen
                 if(table_it != line_entries.end()) {
                     Dwarf_Line line = table_it->line;
@@ -826,19 +837,14 @@ namespace libdwarf {
             } else {
                 lazy_generate_cu_cache();
                 // look up the cu
-                auto vec_it = std::lower_bound(
+                auto vec_it = first_less_than_or_equal(
                     cu_cache.begin(),
                     cu_cache.end(),
                     pc,
-                    [] (const cu_entry& entry, Dwarf_Addr pc) {
-                        return entry.low < pc;
+                    [] (Dwarf_Addr pc, const cu_entry& entry) {
+                        return pc < entry.low;
                     }
                 );
-                // vec_it is first >= pc
-                // we want first <= pc
-                if(vec_it != cu_cache.begin()) {
-                    vec_it--;
-                }
                 // If the vector has been empty this can happen
                 if(vec_it != cu_cache.end()) {
                     //vec_it->die.print();
@@ -852,8 +858,22 @@ namespace libdwarf {
             }
         }
 
+    public:
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        frame_with_inlines resolve_frame(const object_frame& frame_info) {
+        frame_with_inlines resolve_frame(const object_frame& frame_info) override {
+            if(!ok) {
+                return {
+                    {
+                        frame_info.raw_address,
+                        nullable<std::uint32_t>::null(),
+                        nullable<std::uint32_t>::null(),
+                        frame_info.object_path,
+                        "",
+                        false
+                    },
+                    {}
+                };
+            }
             stacktrace_frame frame = null_frame;
             frame.filename = frame_info.object_path;
             frame.address = frame_info.raw_address;
@@ -875,50 +895,227 @@ namespace libdwarf {
         }
     };
 
+    class null_resolver : public symbol_resolver {
+    public:
+        null_resolver(const std::string& source_object_path) {}
+
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+        frame_with_inlines resolve_frame(const object_frame& frame_info) override {
+            return {
+                {
+                    frame_info.raw_address,
+                    nullable<std::uint32_t>::null(),
+                    nullable<std::uint32_t>::null(),
+                    frame_info.object_path,
+                    "",
+                    false
+                },
+                {}
+            };
+        };
+    };
+
+    #if IS_APPLE
+    struct target_object {
+        std::string object_path;
+        bool path_ok = true;
+        optional<std::unordered_map<std::string, uint64_t>> symbols;
+        // std::unique_ptr<dwarf_resolver> resolver;
+        std::unique_ptr<symbol_resolver> resolver;
+
+        target_object(std::string object_path) : object_path(object_path) {}
+
+        std::unique_ptr<symbol_resolver>& get_resolver() {
+            if(!resolver) {
+                resolver = std::unique_ptr<dwarf_resolver>(new dwarf_resolver(object_path));
+            }
+            return resolver;
+        }
+
+        std::unordered_map<std::string, uint64_t>& get_symbols() {
+            if(!symbols) {
+                auto symbol_table = mach_o(object_path).symbol_table();
+                std::unordered_map<std::string, uint64_t> symbols;
+                for(const auto& symbol : symbol_table) {
+                    symbols[symbol.name] = symbol.address;
+                }
+                this->symbols = std::move(symbols);
+            }
+            return symbols.unwrap();
+        }
+
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+        frame_with_inlines resolve_frame(
+            const object_frame& frame_info,
+            const std::string& symbol_name,
+            std::size_t offset
+        ) {
+            const auto& symbol_table = get_symbols();
+            auto it = symbol_table.find(symbol_name);
+            if(it != symbol_table.end()) {
+                auto frame = frame_info;
+                frame.object_address = it->second + offset;
+                return get_resolver()->resolve_frame(frame);
+            } else {
+                return {
+                    {
+                        frame_info.raw_address,
+                        nullable<std::uint32_t>::null(),
+                        nullable<std::uint32_t>::null(),
+                        frame_info.object_path,
+                        "",
+                        false
+                    },
+                    {}
+                };
+            }
+        }
+    };
+
+    struct debug_map_symbol_info {
+        uint64_t source_address;
+        uint64_t size;
+        std::string name;
+        nullable<uint64_t> target_address; // T(-1) is used as a sentinel
+        std::size_t object_index;
+    };
+
+    class debug_map_resolver : public symbol_resolver {
+        // mach_o::debug_map source_debug_map;
+        std::vector<target_object> target_objects;
+        std::vector<debug_map_symbol_info> symbols;
+        // std::unordered_map<std::string, mach_o> target_objects;
+    public:
+        debug_map_resolver(const std::string& source_object_path) {
+            // load mach-o
+            // TODO: Cache somehow?
+            std::cerr<<"loading "<<source_object_path<<std::endl;
+            mach_o source_mach(source_object_path);
+            std::cerr<<"symbol table"<<std::endl;
+            source_mach.print_symbol_table();
+            auto source_debug_map = source_mach.get_debug_map();
+            std::cerr<<"print debug map"<<std::endl;
+            mach_o::print_debug_map(source_debug_map);
+            // get symbol entries from debug map, as well as the various object files used to make this binary
+            for(auto& entry : source_debug_map) {
+                // object it came from
+                target_objects.push_back({std::move(entry.first)});
+                // push the symbols
+                auto& map_entry_symbols = entry.second;
+                symbols.reserve(symbols.size() + map_entry_symbols.size());
+                for(auto& symbol : map_entry_symbols) {
+                    symbols.push_back({
+                        symbol.source_address,
+                        symbol.size,
+                        std::move(symbol.name),
+                        nullable<uint64_t>::null(),
+                        target_objects.size() - 1
+                    });
+                }
+            }
+            // sort for binary lookup later
+            std::sort(
+                symbols.begin(),
+                symbols.end(),
+                [] (
+                    const debug_map_symbol_info& a,
+                    const debug_map_symbol_info& b
+                ) {
+                    return a.source_address < b.source_address;
+                }
+            );
+        }
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+        frame_with_inlines resolve_frame(const object_frame& frame_info) override {
+            // resolve object frame:
+            //   find the symbol in this executable corresponding to the object address
+            //   resolve the symbol in the object it came from, based on the symbol name
+            auto closest_symbol_it = first_less_than_or_equal(
+                symbols.begin(),
+                symbols.end(),
+                frame_info.object_address,
+                [] (
+                    Dwarf_Addr pc,
+                    const debug_map_symbol_info& symbol
+                ) {
+                    return pc < symbol.source_address;
+                }
+            );
+            if(closest_symbol_it != symbols.end()) {
+                std::cout<<closest_symbol_it->source_address<<" "<<closest_symbol_it->name<<std::endl;
+                if(frame_info.object_address <= closest_symbol_it->source_address + closest_symbol_it->size) {
+                    // // if we don't know the address in the .o it came from
+                    // if(!closest_symbol_it->target_address) {
+
+                    // }
+                    // resolve in the .o it came from
+                    // if(closest_symbol_it->target_address) {
+                        return target_objects[closest_symbol_it->object_index].resolve_frame(
+                            {
+                                frame_info.raw_address,
+                                0, // closest_symbol_it->target_address,
+                                frame_info.object_path
+                            },
+                            closest_symbol_it->name,
+                            frame_info.object_address - closest_symbol_it->source_address
+                        );
+                    // }
+                }
+            } else {
+                std::cout<<"no closest_symbol_it"<<std::endl;
+            }
+            return {};
+        };
+    };
+    #endif
+
+    std::unique_ptr<symbol_resolver> get_resolver_for_object(const std::string& object_path) {
+        #if IS_APPLE
+        // Check if dSYM exist, if not fallback to debug map
+        if(!directory_exists(object_path + ".dSYM")) {
+            std::cerr<<"no dsym"<<std::endl;
+            return std::unique_ptr<debug_map_resolver>(new debug_map_resolver(object_path));
+        }
+        #endif
+        return std::unique_ptr<dwarf_resolver>(new dwarf_resolver(object_path));
+    }
+
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         std::vector<frame_with_inlines> trace(frames.size(), {null_frame, {}});
         static std::mutex mutex;
         // cache resolvers since objects are likely to be traced more than once
-        static std::unordered_map<std::string, dwarf_resolver> resolver_map;
+        static std::unordered_map<std::string, std::unique_ptr<symbol_resolver>> resolver_map;
         // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
+        // And also interactions with the above static map
         const std::lock_guard<std::mutex> lock(mutex);
         for(const auto& object_entry : collate_frames(frames, trace)) {
             try {
                 const auto& object_name = object_entry.first;
-                optional<dwarf_resolver> resolver_object = nullopt;
-                dwarf_resolver* resolver = nullptr;
+                std::unique_ptr<symbol_resolver> resolver_object;
+                symbol_resolver* resolver = nullptr;
                 auto it = resolver_map.find(object_name);
                 if(it != resolver_map.end()) {
-                    resolver = &it->second;
+                    resolver = it->second.get();
                 } else {
-                    resolver_object = dwarf_resolver(object_name);
-                    resolver = &resolver_object.unwrap();
+                    resolver_object = get_resolver_for_object(object_name);
+                    resolver = resolver_object.get();
                 }
                 // If there's no debug information it'll mark itself as not ok
-                if(resolver->ok) {
-                    for(const auto& entry : object_entry.second) {
-                        try {
-                            const auto& dlframe = entry.first.get();
-                            auto& frame = entry.second.get();
-                            frame = resolver->resolve_frame(dlframe);
-                        } catch(...) {
-                            if(!should_absorb_trace_exceptions()) {
-                                throw;
-                            }
-                        }
-                    }
-                } else {
-                    // at least copy the addresses
-                    for(const auto& entry : object_entry.second) {
+                for(const auto& entry : object_entry.second) {
+                    try {
                         const auto& dlframe = entry.first.get();
                         auto& frame = entry.second.get();
-                        frame.frame.address = dlframe.raw_address;
+                        frame = resolver->resolve_frame(dlframe);
+                    } catch(...) {
+                        if(!should_absorb_trace_exceptions()) {
+                            throw;
+                        }
                     }
                 }
-                if(resolver_object.has_value() && get_cache_mode() == cache_mode::prioritize_speed) {
+                if(resolver_object && get_cache_mode() == cache_mode::prioritize_speed) {
                     // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
-                    resolver_map.emplace(object_name, std::move(resolver_object).unwrap());
+                    resolver_map.emplace(object_name, std::move(resolver_object));
                 }
             } catch(...) { // NOSONAR
                 if(!should_absorb_trace_exceptions()) {

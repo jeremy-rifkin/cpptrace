@@ -27,12 +27,12 @@ if(PROJECT_IS_TOP_LEVEL)
   if(CMAKE_GENERATOR STREQUAL "Ninja")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
       SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
-    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
       SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
     endif()
     if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
       SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always")
-    elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+    elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
       SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fcolor-diagnostics")
     endif()
   endif()
@@ -550,13 +550,13 @@ if(CPPTRACE_BUILD_TESTING)
   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
     set_property(TARGET demo PROPERTY ENABLE_EXPORTS ON)
   endif()
-  if(APPLE) # TODO: Temporary
-    add_custom_command(
-      TARGET demo
-      POST_BUILD
-      COMMAND dsymutil $<TARGET_FILE:demo>
-    )
-  endif()
+  # if(APPLE) # TODO: Temporary
+  #   add_custom_command(
+  #     TARGET demo
+  #     POST_BUILD
+  #     COMMAND dsymutil $<TARGET_FILE:demo>
+  #   )
+  # endif()
 
   if(UNIX)
     add_executable(signal_demo test/signal_demo.cpp)
