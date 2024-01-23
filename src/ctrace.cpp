@@ -29,17 +29,36 @@
 # define CTRACE_GNU_FORMAT(...)
 #endif
 
+#if defined(__clang__)
+# define CTRACE_FORMAT_PROLOGUE         \
+    _Pragma("clang diagnostic push")    \
+    _Pragma("clang diagnostic ignored \"-Wformat-security\"")
+# define CTRACE_FORMAT_EPILOGUE         \
+    _Pragma("clang diagnostic pop")
+#elif defined(__GNUC_MINOR__)
+# define CTRACE_FORMAT_PROLOGUE         \
+    _Pragma("GCC diagnostic push")      \
+    _Pragma("GCC diagnostic ignored \"-Wformat-security\"")
+# define CTRACE_FORMAT_EPILOGUE         \
+    _Pragma("GCC diagnostic pop")
+#else
+# define CTRACE_FORMAT_PROLOGUE
+# define CTRACE_FORMAT_EPILOGUE
+#endif
+
 namespace cpp_detail = cpptrace::detail;
 
 namespace ctrace {
     static constexpr std::uint32_t invalid_pos = ~0U;
 
+CTRACE_FORMAT_PROLOGUE
     template <typename...Args>
     CTRACE_GNU_FORMAT(printf, 2, 0)
     static void ffprintf(std::FILE* f, const char fmt[], Args&&...args) {
         (void)std::fprintf(f, fmt, args...);
         (void)fflush(f);
     }
+CTRACE_FORMAT_EPILOGUE
 
     static bool is_empty(std::uint32_t pos) noexcept {
         return (pos == invalid_pos);
