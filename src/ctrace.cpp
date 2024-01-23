@@ -323,7 +323,7 @@ extern "C" {
                 (void)std::fprintf(to, "%s0x%0*llx%s",
                     blue,
                     int(ptr_len),
-                    ctrace::detail::to_ull(frames[i].address),
+                    cpptrace::detail::to_ull(frames[i].address),
                     reset);
             }
             if(!ctrace::is_empty(frames[i].symbol)) {
@@ -343,7 +343,7 @@ extern "C" {
                 }
                 (void)std::fprintf(to, ":%s%llu%s",
                     blue,
-                    ctrace::detail::to_ull(frames[i].line),
+                    cpptrace::detail::to_ull(frames[i].line),
                     reset);
                 if(ctrace::is_empty(frames[i].column)) {
                     ctrace::ffprintf(to, "\n");
@@ -351,7 +351,7 @@ extern "C" {
                 }
                 (void)std::fprintf(to, ":%s%llu%s",
                     blue,
-                    ctrace::detail::to_ull(frames[i].column),
+                    cpptrace::detail::to_ull(frames[i].column),
                     reset);
             }
             // always print newline at end :M
