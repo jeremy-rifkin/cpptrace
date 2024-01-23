@@ -620,12 +620,12 @@ or [Package Managers](#package-managers).
 In addition to any include or library paths you'll need to specify to tell the compiler where cpptrace was installed the
 typical dependencies for cpptrace are:
 
-| Compiler                | Platform         | Dependencies                            |
-| ----------------------- | ---------------- | --------------------------------------- |
-| gcc, clang, intel, etc. | Linux/macos/unix | `-lcpptrace -ldwarf -lz -ldl`           |
+| Compiler                | Platform         | Dependencies                       |
+| ----------------------- | ---------------- | ---------------------------------- |
+| gcc, clang, intel, etc. | Linux/macos/unix | `-lcpptrace -ldwarf -lz -ldl`      |
 | gcc                     | Windows          | `-lcpptrace -ldbghelp -ldwarf -lz` |
-| msvc                    | Windows          | `cpptrace.lib dbghelp.lib`              |
-| clang                   | Windows          | `-lcpptrace -ldbghelp`                  |
+| msvc                    | Windows          | `cpptrace.lib dbghelp.lib`         |
+| clang                   | Windows          | `-lcpptrace -ldbghelp`             |
 
 Dependencies may differ if different back-ends are manually selected.
 
