@@ -51,13 +51,13 @@ namespace ctrace {
 
     // Avoids the "useless cast" warnings.
     CTRACE_FORCE_INLINE
-    static std::size_t size_cast(unsigned long long n) noexcept {
+    static unsigned long long size_cast(unsigned long long n) noexcept {
         return n;
     }
 
     template <typename T>
     CTRACE_FORCE_INLINE
-    static std::size_t size_cast(T&& t) noexcept {
+    static unsigned long long size_cast(T t) noexcept {
         return size_cast(static_cast<unsigned long long>(t));
     }
 
