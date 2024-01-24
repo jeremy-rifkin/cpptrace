@@ -29,7 +29,7 @@
 
 namespace cpptrace {
 namespace detail {
-    static bool is_mach_o(std::uint32_t magic) {
+    inline bool is_mach_o(std::uint32_t magic) {
         switch(magic) {
             case FAT_MAGIC:
             case FAT_CIGAM:
@@ -43,7 +43,7 @@ namespace detail {
         }
     }
 
-    static bool file_is_mach_o(const std::string& object_path) {
+    inline bool file_is_mach_o(const std::string& object_path) {
         FILE* file = std::fopen(object_path.c_str(), "rb");
         if(file == nullptr) {
             return false;
@@ -52,41 +52,41 @@ namespace detail {
         return is_mach_o(magic);
     }
 
-    static bool is_fat_magic(std::uint32_t magic) {
+    inline bool is_fat_magic(std::uint32_t magic) {
         return magic == FAT_MAGIC || magic == FAT_CIGAM;
     }
 
     // Based on https://github.com/AlexDenisov/segment_dumper/blob/master/main.c
     // and https://lowlevelbits.org/parsing-mach-o-files/
-    static bool is_magic_64(std::uint32_t magic) {
+    inline bool is_magic_64(std::uint32_t magic) {
         return magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
     }
 
-    static bool should_swap_bytes(std::uint32_t magic) {
+    inline bool should_swap_bytes(std::uint32_t magic) {
         return magic == MH_CIGAM || magic == MH_CIGAM_64 || magic == FAT_CIGAM;
     }
 
-    static void swap_mach_header(mach_header_64& header) {
+    inline void swap_mach_header(mach_header_64& header) {
         swap_mach_header_64(&header, NX_UnknownByteOrder);
     }
 
-    static void swap_mach_header(mach_header& header) {
+    inline void swap_mach_header(mach_header& header) {
         swap_mach_header(&header, NX_UnknownByteOrder);
     }
 
-    static void swap_segment_command(segment_command_64& segment) {
+    inline void swap_segment_command(segment_command_64& segment) {
         swap_segment_command_64(&segment, NX_UnknownByteOrder);
     }
 
-    static void swap_segment_command(segment_command& segment) {
+    inline void swap_segment_command(segment_command& segment) {
         swap_segment_command(&segment, NX_UnknownByteOrder);
     }
 
-    static void swap_nlist(struct nlist& entry) {
+    inline void swap_nlist(struct nlist& entry) {
         swap_nlist(&entry, 1, NX_UnknownByteOrder);
     }
 
-    static void swap_nlist(struct nlist_64& entry) {
+    inline void swap_nlist(struct nlist_64& entry) {
         swap_nlist_64(&entry, 1, NX_UnknownByteOrder);
     }
 
@@ -228,14 +228,14 @@ namespace detail {
             }
             fprintf(
                 stderr,
-                "%5llu %8lx %2x %7s %2u %4x %16lx %s\n",
-                j,
-                entry.n_un.n_strx,
-                entry.n_type,
+                "%5llu %8llx %2llx %7s %2llu %4llx %16llx %s\n",
+                to_ull(j),
+                to_ull(entry.n_un.n_strx),
+                to_ull(entry.n_type),
                 type,
-                entry.n_sect,
-                entry.n_desc,
-                entry.n_value,
+                to_ull(entry.n_sect),
+                to_ull(entry.n_desc),
+                to_ull(entry.n_value),
                 stringtab.get() + entry.n_un.n_strx
             );
         }
@@ -246,12 +246,12 @@ namespace detail {
                 if(command.cmd == LC_SYMTAB) {
                     auto symtab = load_symbol_table_command(command.file_offset);
                     fprintf(stderr, "Load command %d\n", i);
-                    fprintf(stderr, "         cmd %u\n", symtab.cmd);
-                    fprintf(stderr, "     cmdsize %u\n", symtab.cmdsize);
-                    fprintf(stderr, "      symoff 0x%llu\n", symtab.symoff);
-                    fprintf(stderr, "       nsyms %llu\n", symtab.nsyms);
-                    fprintf(stderr, "      stroff 0x%llu\n", symtab.stroff);
-                    fprintf(stderr, "     strsize %llu\n", symtab.strsize);
+                    fprintf(stderr, "         cmd %llu\n", to_ull(symtab.cmd));
+                    fprintf(stderr, "     cmdsize %llu\n", to_ull(symtab.cmdsize));
+                    fprintf(stderr, "      symoff 0x%llu\n", to_ull(symtab.symoff));
+                    fprintf(stderr, "       nsyms %llu\n", to_ull(symtab.nsyms));
+                    fprintf(stderr, "      stroff 0x%llu\n", to_ull(symtab.stroff));
+                    fprintf(stderr, "     strsize %llu\n", to_ull(symtab.strsize));
                     auto stringtab = load_string_table(symtab.stroff, symtab.strsize);
                     for(std::size_t j = 0; j < symtab.nsyms; j++) {
                         nlist_64 entry = bits == 32
