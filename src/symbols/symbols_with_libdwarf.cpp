@@ -897,7 +897,7 @@ namespace libdwarf {
 
     class null_resolver : public symbol_resolver {
     public:
-        null_resolver(const std::string& source_object_path) {}
+        null_resolver(const std::string&) {}
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         frame_with_inlines resolve_frame(const object_frame& frame_info) override {

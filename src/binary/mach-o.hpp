@@ -44,7 +44,7 @@ namespace detail {
     }
 
     static bool file_is_mach_o(const std::string& object_path) {
-        file = std::fopen(object_path.c_str(), "rb");
+        FILE* file = std::fopen(object_path.c_str(), "rb");
         if(file == nullptr) {
             return false;
         }
