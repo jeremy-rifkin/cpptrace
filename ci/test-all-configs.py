@@ -126,7 +126,7 @@ def run_test(test_binary, params: Tuple[str]):
     print(Style.RESET_ALL, end="") # makefile in parallel sometimes messes up colors
 
     if test.returncode != 0:
-        print("[🔴 Test command failed]")
+        print(f"[🔴 Test command failed with code {test.returncode}]")
         print("stderr:")
         print(test_stderr.decode("utf-8"), end="")
         print("stdout:")
