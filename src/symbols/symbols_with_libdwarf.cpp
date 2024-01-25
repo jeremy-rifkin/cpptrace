@@ -143,6 +143,7 @@ namespace libdwarf {
                 // created alongside .o files. These are text files containing directives, as opposed to something we
                 // can actually use
                 std::string dsym_resource = object_path + ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
+                // TODO: Disable buffer below in this case
                 if(file_is_mach_o(dsym_resource)) {
                     object_path = std::move(dsym_resource);
                 }
@@ -989,13 +990,8 @@ namespace libdwarf {
         debug_map_resolver(const std::string& source_object_path) {
             // load mach-o
             // TODO: Cache somehow?
-            std::cerr<<"loading "<<source_object_path<<std::endl;
             mach_o source_mach(source_object_path);
-            std::cerr<<"symbol table"<<std::endl;
-            source_mach.print_symbol_table();
             auto source_debug_map = source_mach.get_debug_map();
-            std::cerr<<"print debug map"<<std::endl;
-            mach_o::print_debug_map(source_debug_map);
             // get symbol entries from debug map, as well as the various object files used to make this binary
             for(auto& entry : source_debug_map) {
                 // object it came from
@@ -1042,7 +1038,6 @@ namespace libdwarf {
                 }
             );
             if(closest_symbol_it != symbols.end()) {
-                std::cout<<closest_symbol_it->source_address<<" "<<closest_symbol_it->name<<std::endl;
                 if(frame_info.object_address <= closest_symbol_it->source_address + closest_symbol_it->size) {
                     // // if we don't know the address in the .o it came from
                     // if(!closest_symbol_it->target_address) {
@@ -1062,6 +1057,7 @@ namespace libdwarf {
                     // }
                 }
             } else {
+                // TODO: Properly handle
                 std::cout<<"no closest_symbol_it"<<std::endl;
             }
             return {};
@@ -1073,7 +1069,6 @@ namespace libdwarf {
         #if IS_APPLE
         // Check if dSYM exist, if not fallback to debug map
         if(!directory_exists(object_path + ".dSYM")) {
-            std::cerr<<"no dsym"<<std::endl;
             return std::unique_ptr<debug_map_resolver>(new debug_map_resolver(object_path));
         }
         #endif
