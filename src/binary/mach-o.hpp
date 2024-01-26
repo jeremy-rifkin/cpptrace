@@ -513,9 +513,9 @@ namespace detail {
         */
 
         template<std::size_t Bits>
-        nlist_64 load_symtab_entry(std::uint32_t base, std::size_t index) const {
+        nlist_64 load_symtab_entry(std::uint32_t symbol_base, std::size_t index) const {
             using Nlist = typename std::conditional<Bits == 32, struct nlist, struct nlist_64>::type;
-            uint32_t offset = base + index * sizeof(Nlist);
+            uint32_t offset = load_base + symbol_base + index * sizeof(Nlist);
             Nlist entry = load_bytes<Nlist>(file, offset);
             if(should_swap()) {
                swap_nlist(entry);
@@ -532,7 +532,7 @@ namespace detail {
 
         std::unique_ptr<char[]> load_string_table(std::uint32_t offset, std::uint32_t byte_count) const {
             std::unique_ptr<char[]> buffer(new char[byte_count]);
-            VERIFY(std::fseek(file, offset, SEEK_SET) == 0, "fseek error");
+            VERIFY(std::fseek(file, load_base + offset, SEEK_SET) == 0, "fseek error");
             VERIFY(std::fread(buffer.get(), sizeof(char), byte_count, file) == byte_count, "fread error");
             return buffer;
         }
