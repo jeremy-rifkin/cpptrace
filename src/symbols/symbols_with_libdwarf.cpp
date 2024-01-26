@@ -1056,19 +1056,20 @@ namespace libdwarf {
                         );
                     // }
                 }
-            } else {
-                return {
-                    {
-                        frame_info.raw_address,
-                        nullable<std::uint32_t>::null(),
-                        nullable<std::uint32_t>::null(),
-                        frame_info.object_path,
-                        "",
-                        false
-                    },
-                    {}
-                };
             }
+            // There was either no closest symbol or the closest symbol didn't end up containing the address we're
+            // looking for, so just return a blank frame
+            return {
+                {
+                    frame_info.raw_address,
+                    nullable<std::uint32_t>::null(),
+                    nullable<std::uint32_t>::null(),
+                    frame_info.object_path,
+                    "",
+                    false
+                },
+                {}
+            };
         };
     };
     #endif
