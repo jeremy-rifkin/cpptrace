@@ -30,7 +30,7 @@ def similarity(name: str, target: List[str]) -> int:
             return -1
     return c
 
-def output_matches(output: str, params: Tuple[str]):
+def output_matches(raw_output: str, params: Tuple[str]):
     target = []
 
     if params[0].startswith("gcc") or params[0].startswith("g++"):
@@ -72,14 +72,14 @@ def output_matches(output: str, params: Tuple[str]):
     print(f"Reading from {file}")
 
     with open(os.path.join(expected_dir, file), "r") as f:
-        expected = f.read()
+        raw_expected = f.read()
 
-    if output.strip() == "":
+    if raw_output.strip() == "":
         print(f"Error: No output from test")
         return False
 
-    expected = [line.strip().split("||") for line in expected.split("\n")]
-    output = [line.strip().split("||") for line in output.split("\n")]
+    expected = [line.strip().split("||") for line in raw_expected.split("\n")]
+    output = [line.strip().split("||") for line in raw_output.split("\n")]
 
     max_line_diff = 0
 
@@ -101,9 +101,10 @@ def output_matches(output: str, params: Tuple[str]):
     except ValueError:
         print("ValueError during output checking")
         print("Output:")
-        print(output)
+        print(raw_output)
         print("Expected:")
-        print(expected)
+        print(raw_expected)
+        errored = True
 
     return not errored
 
