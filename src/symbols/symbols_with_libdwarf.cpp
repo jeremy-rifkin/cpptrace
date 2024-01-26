@@ -1057,10 +1057,18 @@ namespace libdwarf {
                     // }
                 }
             } else {
-                // TODO: Properly handle
-                std::cout<<"no closest_symbol_it"<<std::endl;
+                return {
+                    {
+                        frame_info.raw_address,
+                        nullable<std::uint32_t>::null(),
+                        nullable<std::uint32_t>::null(),
+                        frame_info.object_path,
+                        "",
+                        false
+                    },
+                    {}
+                };
             }
-            return {};
         };
     };
     #endif
