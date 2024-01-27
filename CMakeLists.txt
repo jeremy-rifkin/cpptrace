@@ -362,7 +362,7 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       # GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
       # GIT_TAG 71090c680b4c943448ba87a0f1f864f174e4edda # v0.9.0
       GIT_REPOSITORY https://github.com/flagarde/libdwarf-code.git
-      GIT_TAG 532725e0b0deddd299e20429411d1e193376fecd
+      GIT_TAG d1a559b7af0840194dfa51f7e3013e0f80614032
       GIT_SHALLOW 1
     )
     FetchContent_MakeAvailable(libdwarf)
