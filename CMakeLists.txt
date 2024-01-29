@@ -534,13 +534,6 @@ if(CPPTRACE_BUILD_TESTING)
   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
     set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
   endif()
-  if(APPLE) # TODO: Temporary
-    add_custom_command(
-      TARGET test
-      POST_BUILD
-      COMMAND dsymutil $<TARGET_FILE:test>
-    )
-  endif()
 
   add_executable(demo test/demo.cpp)
   target_compile_features(demo PRIVATE cxx_std_11)
