@@ -131,10 +131,9 @@ namespace libdwarf {
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         dwarf_resolver(const std::string& _object_path) {
             object_path = _object_path;
-            #if IS_APPLE
-            // fprintf(stderr, "-- %s\n", object_path.c_str());
-            // mach_o(object_path).print_symbol_table();
-            #endif
+            // use a buffer when invoking dwarf_init_path, which allows it to automatically find debuglink or dSYM
+            // sources
+            bool use_buffer = true;
             // for universal / fat mach-o files
             unsigned universal_number = 0;
             #if IS_APPLE
@@ -143,10 +142,10 @@ namespace libdwarf {
                 // created alongside .o files. These are text files containing directives, as opposed to something we
                 // can actually use
                 std::string dsym_resource = object_path + ".dSYM/Contents/Resources/DWARF/" + basename(object_path);
-                // TODO: Disable buffer below in this case
                 if(file_is_mach_o(dsym_resource)) {
                     object_path = std::move(dsym_resource);
                 }
+                use_buffer = false; // we resolved dSYM above as appropriate
             }
             if(macho_is_fat(object_path)) {
                 universal_number = mach_o(object_path).get_fat_index();
@@ -155,7 +154,10 @@ namespace libdwarf {
 
             // Giving libdwarf a buffer for a true output path is needed for its automatic resolution of debuglink and
             // dSYM files. We don't utilize the dSYM logic here, we just care about debuglink.
-            std::unique_ptr<char[]> buffer(new char[CPPTRACE_MAX_PATH]);
+            std::unique_ptr<char[]> buffer;
+            if(use_buffer) {
+                buffer = std::unique_ptr<char[]>(new char[CPPTRACE_MAX_PATH]);
+            }
             auto ret = wrap(
                 dwarf_init_path_a,
                 object_path.c_str(),
@@ -898,6 +900,7 @@ namespace libdwarf {
 
     class null_resolver : public symbol_resolver {
     public:
+        null_resolver() = default;
         null_resolver(const std::string&) {}
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
@@ -921,13 +924,15 @@ namespace libdwarf {
         std::string object_path;
         bool path_ok = true;
         optional<std::unordered_map<std::string, uint64_t>> symbols;
-        // std::unique_ptr<dwarf_resolver> resolver;
         std::unique_ptr<symbol_resolver> resolver;
 
         target_object(std::string object_path) : object_path(object_path) {}
 
         std::unique_ptr<symbol_resolver>& get_resolver() {
             if(!resolver) {
+                // this seems silly but it's an attempt to not repeatedly try to initialize new dwarf_resolvers if
+                // exceptions are thrown, e.g. if the path doesn't exist
+                resolver = std::unique_ptr<null_resolver>(new null_resolver);
                 resolver = std::unique_ptr<dwarf_resolver>(new dwarf_resolver(object_path));
             }
             return resolver;
@@ -935,8 +940,11 @@ namespace libdwarf {
 
         std::unordered_map<std::string, uint64_t>& get_symbols() {
             if(!symbols) {
-                auto symbol_table = mach_o(object_path).symbol_table();
+                // this is an attempt to not repeatedly try to reprocess mach-o files if exceptions are thrown, e.g. if
+                // the path doesn't exist
                 std::unordered_map<std::string, uint64_t> symbols;
+                this->symbols = symbols;
+                auto symbol_table = mach_o(object_path).symbol_table();
                 for(const auto& symbol : symbol_table) {
                     symbols[symbol.name] = symbol.address;
                 }
@@ -982,10 +990,8 @@ namespace libdwarf {
     };
 
     class debug_map_resolver : public symbol_resolver {
-        // mach_o::debug_map source_debug_map;
         std::vector<target_object> target_objects;
         std::vector<debug_map_symbol_info> symbols;
-        // std::unordered_map<std::string, mach_o> target_objects;
     public:
         debug_map_resolver(const std::string& source_object_path) {
             // load mach-o
@@ -1039,22 +1045,17 @@ namespace libdwarf {
             );
             if(closest_symbol_it != symbols.end()) {
                 if(frame_info.object_address <= closest_symbol_it->source_address + closest_symbol_it->size) {
-                    // // if we don't know the address in the .o it came from
-                    // if(!closest_symbol_it->target_address) {
-
-                    // }
-                    // resolve in the .o it came from
-                    // if(closest_symbol_it->target_address) {
-                        return target_objects[closest_symbol_it->object_index].resolve_frame(
-                            {
-                                frame_info.raw_address,
-                                0, // closest_symbol_it->target_address,
-                                frame_info.object_path
-                            },
-                            closest_symbol_it->name,
-                            frame_info.object_address - closest_symbol_it->source_address
-                        );
-                    // }
+                    return target_objects[closest_symbol_it->object_index].resolve_frame(
+                        {
+                            frame_info.raw_address,
+                            // the resolver doesn't care about the object address here, only the offset from the start
+                            // of the symbol and it'll lookup the symbol's base-address
+                            0,
+                            frame_info.object_path
+                        },
+                        closest_symbol_it->name,
+                        frame_info.object_address - closest_symbol_it->source_address
+                    );
                 }
             }
             // There was either no closest symbol or the closest symbol didn't end up containing the address we're
@@ -1124,6 +1125,21 @@ namespace libdwarf {
             } catch(...) { // NOSONAR
                 if(!should_absorb_trace_exceptions()) {
                     throw;
+                }
+                for(const auto& entry : object_entry.second) {
+                    const auto& dlframe = entry.first.get();
+                    auto& frame = entry.second.get();
+                    frame = {
+                        {
+                            dlframe.raw_address,
+                            nullable<std::uint32_t>::null(),
+                            nullable<std::uint32_t>::null(),
+                            dlframe.object_path,
+                            "",
+                            false
+                        },
+                        {}
+                    };
                 }
             }
         }

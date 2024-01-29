@@ -65,10 +65,6 @@ jobs:
     - name: dependencies
       run: |
            pip3 install colorama
-    # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v3
-    #   with:
-    #     limit-access-to-actor: true
     - name: build and test
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}}

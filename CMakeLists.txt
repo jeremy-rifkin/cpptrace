@@ -553,13 +553,6 @@ if(CPPTRACE_BUILD_TESTING)
   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
     set_property(TARGET demo PROPERTY ENABLE_EXPORTS ON)
   endif()
-  # if(APPLE) # TODO: Temporary
-  #   add_custom_command(
-  #     TARGET demo
-  #     POST_BUILD
-  #     COMMAND dsymutil $<TARGET_FILE:demo>
-  #   )
-  # endif()
 
   if(UNIX)
     add_executable(signal_demo test/signal_demo.cpp)

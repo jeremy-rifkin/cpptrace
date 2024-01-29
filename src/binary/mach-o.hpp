@@ -43,13 +43,17 @@ namespace detail {
         }
     }
 
-    inline bool file_is_mach_o(const std::string& object_path) {
-        FILE* file = std::fopen(object_path.c_str(), "rb");
-        if(file == nullptr) {
+    inline bool file_is_mach_o(const std::string& object_path) noexcept {
+        try {
+            FILE* file = std::fopen(object_path.c_str(), "rb");
+            if(file == nullptr) {
+                return false;
+            }
+            auto magic = load_bytes<std::uint32_t>(file, 0);
+            return is_mach_o(magic);
+        } catch(...) {
             return false;
         }
-        auto magic = load_bytes<std::uint32_t>(file, 0);
-        return is_mach_o(magic);
     }
 
     inline bool is_fat_magic(std::uint32_t magic) {
@@ -122,8 +126,16 @@ namespace detail {
         struct symtab_info_data {
             symtab_command symtab;
             std::unique_ptr<char[]> stringtab;
+            const char* get_string(std::size_t index) const {
+                if(stringtab && index < symtab.strsize) {
+                    return stringtab.get() + index;
+                } else {
+                    throw std::runtime_error("can't retrieve symbol from symtab");
+                }
+            }
         };
 
+        bool tried_to_load_symtab = false;
         optional<symtab_info_data> symtab_info;
 
     public:
@@ -148,7 +160,7 @@ namespace detail {
 
         ~mach_o() {
             if(file) {
-                fclose(file);
+                std::fclose(file);
             }
         }
 
@@ -195,7 +207,9 @@ namespace detail {
         }
 
         optional<symtab_info_data>& get_symtab_info() {
-            if(!symtab_info.has_value()) {
+            if(!symtab_info.has_value() && !tried_to_load_symtab) {
+                // don't try to load the symtab again if for some reason loading here fails
+                tried_to_load_symtab = true;
                 for(const auto& command : load_commands) {
                     if(command.cmd == LC_SYMTAB) {
                         symtab_info_data info;
@@ -212,6 +226,7 @@ namespace detail {
         void print_symbol_table_entry(
             const nlist_64& entry,
             const std::unique_ptr<char[]>& stringtab,
+            std::size_t stringsize,
             std::size_t j
         ) const {
             const char* type = "";
@@ -236,7 +251,11 @@ namespace detail {
                 to_ull(entry.n_sect),
                 to_ull(entry.n_desc),
                 to_ull(entry.n_value),
-                stringtab.get() + entry.n_un.n_strx
+                stringtab == nullptr
+                    ? "Stringtab error"
+                    : entry.n_un.n_strx < stringsize
+                        ? stringtab.get() + entry.n_un.n_strx
+                        : "String index out of bounds"
             );
         }
 
@@ -257,7 +276,7 @@ namespace detail {
                         nlist_64 entry = bits == 32
                                         ? load_symtab_entry<32>(symtab.symoff, j)
                                         : load_symtab_entry<64>(symtab.symoff, j);
-                        print_symbol_table_entry(entry, stringtab, j);
+                        print_symbol_table_entry(entry, stringtab, symtab.strsize, j);
                     }
                 }
                 i++;
@@ -285,8 +304,6 @@ namespace detail {
             debug_map debug_map;
             const auto& symtab_info = get_symtab_info().unwrap();
             const auto& symtab = symtab_info.symtab;
-            const auto& stringtab = symtab_info.stringtab;
-            // TODO: Take size into account?
             // TODO: Take timestamp into account?
             std::string current_module;
             optional<debug_map_entry> current_function;
@@ -304,13 +321,13 @@ namespace detail {
                         break;
                     case N_OSO:
                         // sets the module
-                        current_module = stringtab.get() + entry.n_un.n_strx;
+                        current_module = symtab_info.get_string(entry.n_un.n_strx);
                         break;
                     case N_BNSYM: break; // pass
                     case N_ENSYM: break; // pass
                     case N_FUN:
                         {
-                            const char* str = stringtab.get() + entry.n_un.n_strx;
+                            const char* str = symtab_info.get_string(entry.n_un.n_strx);
                             if(str[0] == 0) {
                                 // end of function scope
                                 if(!current_function) { /**/ }
@@ -334,8 +351,6 @@ namespace detail {
             std::vector<symbol_entry> symbols;
             const auto& symtab_info = get_symtab_info().unwrap();
             const auto& symtab = symtab_info.symtab;
-            const auto& stringtab = symtab_info.stringtab;
-            // TODO: Take size into account?
             // TODO: Take timestamp into account?
             for(std::size_t j = 0; j < symtab.nsyms; j++) {
                 nlist_64 entry = bits == 32
@@ -347,7 +362,7 @@ namespace detail {
                 if((entry.n_type & N_TYPE) == N_SECT) {
                     symbols.push_back({
                         entry.n_value,
-                        stringtab.get() + entry.n_un.n_strx
+                        symtab_info.get_string(entry.n_un.n_strx)
                     });
                 }
             }
@@ -488,30 +503,6 @@ namespace detail {
             return symtab;
         }
 
-        /*
-        struct nlist {
-            union {
-                #ifndef __LP64__
-                    char * n_name;
-                #endif
-                int32_t n_strx;
-            } n_un;
-            uint8_t n_type;
-            uint8_t n_sect;
-            int16_t n_desc;
-            uint32_t n_value;
-        };
-        struct nlist_64 {
-            union {
-                uint32_t n_strx;
-            } n_un;
-            uint8_t n_type;
-            uint8_t n_sect;
-            uint16_t n_desc;
-            uint64_t n_value;
-        };
-        */
-
         template<std::size_t Bits>
         nlist_64 load_symtab_entry(std::uint32_t symbol_base, std::size_t index) const {
             using Nlist = typename std::conditional<Bits == 32, struct nlist, struct nlist_64>::type;
@@ -531,9 +522,10 @@ namespace detail {
         }
 
         std::unique_ptr<char[]> load_string_table(std::uint32_t offset, std::uint32_t byte_count) const {
-            std::unique_ptr<char[]> buffer(new char[byte_count]);
+            std::unique_ptr<char[]> buffer(new char[byte_count + 1]);
             VERIFY(std::fseek(file, load_base + offset, SEEK_SET) == 0, "fseek error");
             VERIFY(std::fread(buffer.get(), sizeof(char), byte_count, file) == byte_count, "fread error");
+            buffer[byte_count] = 0; // just out of an abundance of caution
             return buffer;
         }
 
