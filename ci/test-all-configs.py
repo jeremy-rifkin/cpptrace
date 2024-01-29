@@ -100,11 +100,13 @@ def output_matches(raw_output: str, params: Tuple[str]):
                 break
     except ValueError:
         print("ValueError during output checking")
+        errored = True
+
+    if errored:
         print("Output:")
         print(raw_output)
         print("Expected:")
         print(raw_expected)
-        errored = True
 
     return not errored
 
