@@ -4,3 +4,4 @@ build*/
 repro*/
 __pycache__
 scratch
+.vscode

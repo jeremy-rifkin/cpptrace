@@ -189,6 +189,7 @@ add_library(cpptrace::cpptrace ALIAS ${target_name})
 target_sources(
     ${target_name} PRIVATE
     include/cpptrace/cpptrace.hpp
+    include/ctrace/ctrace.h
 )
 
 # add /src files to target
@@ -196,6 +197,7 @@ target_sources(
     ${target_name} PRIVATE
     # src
     src/cpptrace.cpp
+    src/ctrace.cpp
     src/demangle/demangle_with_cxxabi.cpp
     src/demangle/demangle_with_winapi.cpp
     src/demangle/demangle_with_nothing.cpp
@@ -522,30 +524,28 @@ endif()
 
 # =============================================== Demo/test ===============================================
 
+macro(add_test_dependencies exec_name)
+  target_compile_features(${exec_name} PRIVATE cxx_std_11)
+  target_link_libraries(${exec_name} PRIVATE ${target_name})
+  # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
+  check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
+  if(HAS_DWARF4)
+    target_compile_options(${exec_name} PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+  endif()
+  # TODO: add debug info for mingw clang?
+  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
+    set_property(TARGET ${exec_name} PROPERTY ENABLE_EXPORTS ON)
+  endif()
+endmacro()
+
 if(CPPTRACE_BUILD_TESTING)
   add_executable(test test/test.cpp)
-  target_compile_features(test PRIVATE cxx_std_11)
-  target_link_libraries(test PRIVATE ${target_name})
-  # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
-  check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
-  if(HAS_DWARF4)
-    target_compile_options(test PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
-  endif()
-  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
-    set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
-  endif()
-
   add_executable(demo test/demo.cpp)
-  target_compile_features(demo PRIVATE cxx_std_11)
-  target_link_libraries(demo PRIVATE ${target_name})
-  # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
-  check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
-  if(HAS_DWARF4)
-    target_compile_options(demo PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
-  endif()
-  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
-    set_property(TARGET demo PROPERTY ENABLE_EXPORTS ON)
-  endif()
+  add_executable(c_demo test/ctrace_demo.cpp)
+
+  add_test_dependencies(test)
+  add_test_dependencies(demo)
+  add_test_dependencies(c_demo)
 
   if(UNIX)
     add_executable(signal_demo test/signal_demo.cpp)
