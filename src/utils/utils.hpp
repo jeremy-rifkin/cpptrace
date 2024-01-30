@@ -1,6 +1,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -70,6 +71,28 @@ namespace detail {
             }
         }
         return str;
+    }
+
+    // first value in a sorted range such that *it <= value
+    template<typename ForwardIt, typename T>
+    ForwardIt first_less_than_or_equal(ForwardIt begin, ForwardIt end, const T& value) {
+        auto it = std::upper_bound(begin, end, value);
+        // it is first > value, we want first <= value
+        if(it != begin) {
+            return --it;
+        }
+        return end;
+    }
+
+    // first value in a sorted range such that *it <= value
+    template<typename ForwardIt, typename T, typename Compare>
+    ForwardIt first_less_than_or_equal(ForwardIt begin, ForwardIt end, const T& value, Compare compare) {
+        auto it = std::upper_bound(begin, end, value, compare);
+        // it is first > value, we want first <= value
+        if(it != begin) {
+            return --it;
+        }
+        return end;
     }
 
     constexpr const char* const whitespace = " \t\n\r\f\v";

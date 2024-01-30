@@ -30,7 +30,7 @@ def similarity(name: str, target: List[str]) -> int:
             return -1
     return c
 
-def output_matches(output: str, params: Tuple[str]):
+def output_matches(raw_output: str, params: Tuple[str]):
     target = []
 
     if params[0].startswith("gcc") or params[0].startswith("g++"):
@@ -72,31 +72,41 @@ def output_matches(output: str, params: Tuple[str]):
     print(f"Reading from {file}")
 
     with open(os.path.join(expected_dir, file), "r") as f:
-        expected = f.read()
+        raw_expected = f.read()
 
-    if output.strip() == "":
+    if raw_output.strip() == "":
         print(f"Error: No output from test")
         return False
 
-    expected = [line.strip().split("||") for line in expected.split("\n")]
-    output = [line.strip().split("||") for line in output.split("\n")]
+    expected = [line.strip().split("||") for line in raw_expected.split("\n")]
+    output = [line.strip().split("||") for line in raw_output.split("\n")]
 
     max_line_diff = 0
 
     errored = False
 
-    for i, ((output_file, output_line, output_symbol), (expected_file, expected_line, expected_symbol)) in enumerate(zip(output, expected)):
-        if output_file != expected_file:
-            print(f"Error: File name mismatch on line {i + 1}, found \"{output_file}\" expected \"{expected_file}\"")
-            errored = True
-        if abs(int(output_line) - int(expected_line)) > max_line_diff:
-            print(f"Error: File line mismatch on line {i + 1}, found {output_line} expected {expected_line}")
-            errored = True
-        if output_symbol != expected_symbol:
-            print(f"Error: File symbol mismatch on line {i + 1}, found \"{output_symbol}\" expected \"{expected_symbol}\"")
-            errored = True
-        if expected_symbol == "main" or expected_symbol == "main()":
-            break
+    try:
+        for i, ((output_file, output_line, output_symbol), (expected_file, expected_line, expected_symbol)) in enumerate(zip(output, expected)):
+            if output_file != expected_file:
+                print(f"Error: File name mismatch on line {i + 1}, found \"{output_file}\" expected \"{expected_file}\"")
+                errored = True
+            if abs(int(output_line) - int(expected_line)) > max_line_diff:
+                print(f"Error: File line mismatch on line {i + 1}, found {output_line} expected {expected_line}")
+                errored = True
+            if output_symbol != expected_symbol:
+                print(f"Error: File symbol mismatch on line {i + 1}, found \"{output_symbol}\" expected \"{expected_symbol}\"")
+                errored = True
+            if expected_symbol == "main" or expected_symbol == "main()":
+                break
+    except ValueError:
+        print("ValueError during output checking")
+        errored = True
+
+    if errored:
+        print("Output:")
+        print(raw_output)
+        print("Expected:")
+        print(raw_expected)
 
     return not errored
 
@@ -126,7 +136,7 @@ def run_test(test_binary, params: Tuple[str]):
     print(Style.RESET_ALL, end="") # makefile in parallel sometimes messes up colors
 
     if test.returncode != 0:
-        print("[🔴 Test command failed]")
+        print(f"[🔴 Test command failed with code {test.returncode}]")
         print("stderr:")
         print(test_stderr.decode("utf-8"), end="")
         print("stdout:")

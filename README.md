@@ -115,7 +115,7 @@ endif()
 Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
 information.
 
-On macos a little extra work to generate a .dSYM file is required, see [Platform Logistics](#platform-logistics) below.
+On macOS it is recommended to generate a .dSYM file, see [Platform Logistics](#platform-logistics) below.
 
 For other ways to use the library, such as through package managers, a system-wide installation, or on a platform
 without internet access see [Usage](#usage) below.
@@ -139,9 +139,6 @@ be accessed from this object with `.frames` and also the trace can be printed wi
 method to get lightweight raw traces, which are just vectors of program counters, which can be resolved at a later time.
 
 **Note:** Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`) is generally required for good trace information.
-
-**Note:** Currently on Mac .dSYM files are required, which can be generated with `dsymutil yourbinary`. A cmake snippet
-for generating these is provided in [Platform Logistics](#platform-logistics) below.
 
 All functions are thread-safe unless otherwise noted.
 
@@ -506,7 +503,7 @@ namespace cpptrace {
 | DWARF in separate binary (binary gnu debug link) | ️️✔️  |
 | DWARF in separate binary (split dwarf)           | ✔️      |
 | DWARF in dSYM                                    | ✔️      |
-| DWARF in via Mach-O debug map                    | Soon      |
+| DWARF in via Mach-O debug map                    | ✔️      |
 | Windows debug symbols in PDB                     | ✔️      |
 
 DWARF5 added DWARF package files. As far as I can tell no compiler implements these yet.
@@ -719,7 +716,7 @@ if(WIN32)
 endif()
 ```
 
-Generating a .dSYM file on macos:
+On macOS it's recommended to generate a dSYM file containing debug information for your program:
 
 In xcode cmake this can be done with
 
@@ -872,7 +869,6 @@ and time-memory tradeoffs. If you find the current implementation is either slow
 to explore some of these options.
 
 A couple things I'd like to improve in the future:
-- On MacOS .dSYM files are required
 - On Windows when collecting symbols with dbghelp (msvc/clang) parameter types are almost perfect but due to limitations
   in dbghelp the library cannot accurately show const and volatile qualifiers or rvalue references (these appear as
   pointers).

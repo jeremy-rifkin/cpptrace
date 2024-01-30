@@ -12,7 +12,13 @@
 
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <type_traits>
+#include <unordered_map>
+#include <vector>
+
+#include <iostream>
+#include <iomanip>
 
 #include <mach-o/loader.h>
 #include <mach-o/swap.h>
@@ -23,7 +29,7 @@
 
 namespace cpptrace {
 namespace detail {
-    static bool is_mach_o(std::uint32_t magic) {
+    inline bool is_mach_o(std::uint32_t magic) {
         switch(magic) {
             case FAT_MAGIC:
             case FAT_CIGAM:
@@ -37,34 +43,55 @@ namespace detail {
         }
     }
 
-    static bool is_fat_magic(std::uint32_t magic) {
+    inline bool file_is_mach_o(const std::string& object_path) noexcept {
+        try {
+            FILE* file = std::fopen(object_path.c_str(), "rb");
+            if(file == nullptr) {
+                return false;
+            }
+            auto magic = load_bytes<std::uint32_t>(file, 0);
+            return is_mach_o(magic);
+        } catch(...) {
+            return false;
+        }
+    }
+
+    inline bool is_fat_magic(std::uint32_t magic) {
         return magic == FAT_MAGIC || magic == FAT_CIGAM;
     }
 
     // Based on https://github.com/AlexDenisov/segment_dumper/blob/master/main.c
     // and https://lowlevelbits.org/parsing-mach-o-files/
-    static bool is_magic_64(std::uint32_t magic) {
+    inline bool is_magic_64(std::uint32_t magic) {
         return magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
     }
 
-    static bool should_swap_bytes(std::uint32_t magic) {
+    inline bool should_swap_bytes(std::uint32_t magic) {
         return magic == MH_CIGAM || magic == MH_CIGAM_64 || magic == FAT_CIGAM;
     }
 
-    static void swap_mach_header(mach_header_64& header) {
+    inline void swap_mach_header(mach_header_64& header) {
         swap_mach_header_64(&header, NX_UnknownByteOrder);
     }
 
-    static void swap_mach_header(mach_header& header) {
+    inline void swap_mach_header(mach_header& header) {
         swap_mach_header(&header, NX_UnknownByteOrder);
     }
 
-    static void swap_segment_command(segment_command_64& segment) {
+    inline void swap_segment_command(segment_command_64& segment) {
         swap_segment_command_64(&segment, NX_UnknownByteOrder);
     }
 
-    static void swap_segment_command(segment_command& segment) {
+    inline void swap_segment_command(segment_command& segment) {
         swap_segment_command(&segment, NX_UnknownByteOrder);
+    }
+
+    inline void swap_nlist(struct nlist& entry) {
+        swap_nlist(&entry, 1, NX_UnknownByteOrder);
+    }
+
+    inline void swap_nlist(struct nlist_64& entry) {
+        swap_nlist_64(&entry, 1, NX_UnknownByteOrder);
     }
 
     #ifdef __LP64__
@@ -89,11 +116,27 @@ namespace detail {
         std::uint32_t n_load_commands;
         std::uint32_t sizeof_load_commands;
         std::uint32_t flags;
+        std::size_t bits = 0; // 32 or 64 once load_mach is called
 
         std::size_t load_base = 0;
         std::size_t fat_index = std::numeric_limits<std::size_t>::max();
 
         std::vector<load_command_entry> load_commands;
+
+        struct symtab_info_data {
+            symtab_command symtab;
+            std::unique_ptr<char[]> stringtab;
+            const char* get_string(std::size_t index) const {
+                if(stringtab && index < symtab.strsize) {
+                    return stringtab.get() + index;
+                } else {
+                    throw std::runtime_error("can't retrieve symbol from symtab");
+                }
+            }
+        };
+
+        bool tried_to_load_symtab = false;
+        optional<symtab_info_data> symtab_info;
 
     public:
         mach_o(const std::string& object_path) : object_path(object_path) {
@@ -117,7 +160,7 @@ namespace detail {
 
         ~mach_o() {
             if(file) {
-                fclose(file);
+                std::fclose(file);
             }
         }
 
@@ -163,12 +206,195 @@ namespace detail {
             }
         }
 
+        optional<symtab_info_data>& get_symtab_info() {
+            if(!symtab_info.has_value() && !tried_to_load_symtab) {
+                // don't try to load the symtab again if for some reason loading here fails
+                tried_to_load_symtab = true;
+                for(const auto& command : load_commands) {
+                    if(command.cmd == LC_SYMTAB) {
+                        symtab_info_data info;
+                        info.symtab = load_symbol_table_command(command.file_offset);
+                        info.stringtab = load_string_table(info.symtab.stroff, info.symtab.strsize);
+                        symtab_info = std::move(info);
+                        break;
+                    }
+                }
+            }
+            return symtab_info;
+        }
+
+        void print_symbol_table_entry(
+            const nlist_64& entry,
+            const std::unique_ptr<char[]>& stringtab,
+            std::size_t stringsize,
+            std::size_t j
+        ) const {
+            const char* type = "";
+            if(entry.n_type & N_STAB) {
+                switch(entry.n_type) {
+                    case N_SO: type = "N_SO"; break;
+                    case N_OSO: type = "N_OSO"; break;
+                    case N_BNSYM: type = "N_BNSYM"; break;
+                    case N_ENSYM: type = "N_ENSYM"; break;
+                    case N_FUN: type = "N_FUN"; break;
+                }
+            } else if((entry.n_type & N_TYPE) == N_SECT) {
+                type = "N_SECT";
+            }
+            fprintf(
+                stderr,
+                "%5llu %8llx %2llx %7s %2llu %4llx %16llx %s\n",
+                to_ull(j),
+                to_ull(entry.n_un.n_strx),
+                to_ull(entry.n_type),
+                type,
+                to_ull(entry.n_sect),
+                to_ull(entry.n_desc),
+                to_ull(entry.n_value),
+                stringtab == nullptr
+                    ? "Stringtab error"
+                    : entry.n_un.n_strx < stringsize
+                        ? stringtab.get() + entry.n_un.n_strx
+                        : "String index out of bounds"
+            );
+        }
+
+        void print_symbol_table() {
+            int i = 0;
+            for(const auto& command : load_commands) {
+                if(command.cmd == LC_SYMTAB) {
+                    auto symtab = load_symbol_table_command(command.file_offset);
+                    fprintf(stderr, "Load command %d\n", i);
+                    fprintf(stderr, "         cmd %llu\n", to_ull(symtab.cmd));
+                    fprintf(stderr, "     cmdsize %llu\n", to_ull(symtab.cmdsize));
+                    fprintf(stderr, "      symoff 0x%llu\n", to_ull(symtab.symoff));
+                    fprintf(stderr, "       nsyms %llu\n", to_ull(symtab.nsyms));
+                    fprintf(stderr, "      stroff 0x%llu\n", to_ull(symtab.stroff));
+                    fprintf(stderr, "     strsize %llu\n", to_ull(symtab.strsize));
+                    auto stringtab = load_string_table(symtab.stroff, symtab.strsize);
+                    for(std::size_t j = 0; j < symtab.nsyms; j++) {
+                        nlist_64 entry = bits == 32
+                                        ? load_symtab_entry<32>(symtab.symoff, j)
+                                        : load_symtab_entry<64>(symtab.symoff, j);
+                        print_symbol_table_entry(entry, stringtab, symtab.strsize, j);
+                    }
+                }
+                i++;
+            }
+        }
+
+        struct debug_map_entry {
+            uint64_t source_address;
+            uint64_t size;
+            std::string name;
+        };
+
+        struct symbol_entry {
+            uint64_t address;
+            std::string name;
+        };
+
+        // map from object file to a vector of symbols to resolve
+        using debug_map = std::unordered_map<std::string, std::vector<debug_map_entry>>;
+
+        // produce information similar to dsymutil -dump-debug-map
+        debug_map get_debug_map() {
+            // we have a bunch of symbols in our binary we need to pair up with symbols from various .o files
+            // first collect symbols and the objects they come from
+            debug_map debug_map;
+            const auto& symtab_info = get_symtab_info().unwrap();
+            const auto& symtab = symtab_info.symtab;
+            // TODO: Take timestamp into account?
+            std::string current_module;
+            optional<debug_map_entry> current_function;
+            for(std::size_t j = 0; j < symtab.nsyms; j++) {
+                nlist_64 entry = bits == 32
+                                ? load_symtab_entry<32>(symtab.symoff, j)
+                                : load_symtab_entry<64>(symtab.symoff, j);
+                // entry.n_type & N_STAB indicates symbolic debug info
+                if(!(entry.n_type & N_STAB)) {
+                    continue;
+                }
+                switch(entry.n_type) {
+                    case N_SO:
+                        // pass - these encode path and filename for the module, if applicable
+                        break;
+                    case N_OSO:
+                        // sets the module
+                        current_module = symtab_info.get_string(entry.n_un.n_strx);
+                        break;
+                    case N_BNSYM: break; // pass
+                    case N_ENSYM: break; // pass
+                    case N_FUN:
+                        {
+                            const char* str = symtab_info.get_string(entry.n_un.n_strx);
+                            if(str[0] == 0) {
+                                // end of function scope
+                                if(!current_function) { /**/ }
+                                current_function.unwrap().size = entry.n_value;
+                                debug_map[current_module].push_back(std::move(current_function).unwrap());
+                            } else {
+                                current_function = debug_map_entry{};
+                                current_function.unwrap().source_address = entry.n_value;
+                                current_function.unwrap().name = str;
+                            }
+                        }
+                        break;
+                }
+            }
+            return debug_map;
+        }
+
+        std::vector<symbol_entry> symbol_table() {
+            // we have a bunch of symbols in our binary we need to pair up with symbols from various .o files
+            // first collect symbols and the objects they come from
+            std::vector<symbol_entry> symbols;
+            const auto& symtab_info = get_symtab_info().unwrap();
+            const auto& symtab = symtab_info.symtab;
+            // TODO: Take timestamp into account?
+            for(std::size_t j = 0; j < symtab.nsyms; j++) {
+                nlist_64 entry = bits == 32
+                                ? load_symtab_entry<32>(symtab.symoff, j)
+                                : load_symtab_entry<64>(symtab.symoff, j);
+                if(entry.n_type & N_STAB) {
+                    continue;
+                }
+                if((entry.n_type & N_TYPE) == N_SECT) {
+                    symbols.push_back({
+                        entry.n_value,
+                        symtab_info.get_string(entry.n_un.n_strx)
+                    });
+                }
+            }
+            return symbols;
+        }
+
+        // produce information similar to dsymutil -dump-debug-map
+        static void print_debug_map(const debug_map& debug_map) {
+            for(const auto& entry : debug_map) {
+                std::cout<<entry.first<<": "<<std::endl;
+                for(const auto& symbol : entry.second) {
+                    std::cerr
+                        << "    "
+                        << symbol.name
+                        << " "
+                        << std::hex
+                        << symbol.source_address
+                        << " "
+                        << symbol.size
+                        << std::dec
+                        << std::endl;
+                }
+            }
+        }
+
     private:
         template<std::size_t Bits>
         void load_mach(
             bool allow_arch_mismatch
         ) {
             static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
+            bits = Bits;
             using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
             std::size_t header_size = sizeof(Mach_Header);
             Mach_Header header = load_bytes<Mach_Header>(file, load_base);
@@ -266,6 +492,41 @@ namespace detail {
             common.nsects = segment.nsects;
             common.flags = segment.flags;
             return common;
+        }
+
+        symtab_command load_symbol_table_command(std::uint32_t offset) const {
+            symtab_command symtab = load_bytes<symtab_command>(file, offset);
+            ASSERT(symtab.cmd == LC_SYMTAB);
+            if(should_swap()) {
+               swap_symtab_command(&symtab, NX_UnknownByteOrder);
+            }
+            return symtab;
+        }
+
+        template<std::size_t Bits>
+        nlist_64 load_symtab_entry(std::uint32_t symbol_base, std::size_t index) const {
+            using Nlist = typename std::conditional<Bits == 32, struct nlist, struct nlist_64>::type;
+            uint32_t offset = load_base + symbol_base + index * sizeof(Nlist);
+            Nlist entry = load_bytes<Nlist>(file, offset);
+            if(should_swap()) {
+               swap_nlist(entry);
+            }
+            // fields match just u64 instead of u32
+            nlist_64 common;
+            common.n_un.n_strx = entry.n_un.n_strx;
+            common.n_type = entry.n_type;
+            common.n_sect = entry.n_sect;
+            common.n_desc = entry.n_desc;
+            common.n_value = entry.n_value;
+            return common;
+        }
+
+        std::unique_ptr<char[]> load_string_table(std::uint32_t offset, std::uint32_t byte_count) const {
+            std::unique_ptr<char[]> buffer(new char[byte_count + 1]);
+            VERIFY(std::fseek(file, load_base + offset, SEEK_SET) == 0, "fseek error");
+            VERIFY(std::fread(buffer.get(), sizeof(char), byte_count, file) == byte_count, "fread error");
+            buffer[byte_count] = 0; // just out of an abundance of caution
+            return buffer;
         }
 
         bool should_swap() const {

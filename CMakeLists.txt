@@ -27,12 +27,12 @@ if(PROJECT_IS_TOP_LEVEL)
   if(CMAKE_GENERATOR STREQUAL "Ninja")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
       SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
-    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
       SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
     endif()
     if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
       SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always")
-    elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+    elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
       SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fcolor-diagnostics")
     endif()
   endif()
@@ -358,10 +358,13 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       # GIT_REPOSITORY https://github.com/davea42/libdwarf-code.git
       # GIT_TAG 6216e185863f41d6f19ab850caabfff7326020d7 # v0.8.0
       # GIT_TAG 8b0bd09d8c77d45a68cb1bb00a54186a92b683d9 # v0.9.0
+      # GIT_TAG c0cfba34ec80996426b5be2523f6447a2c9b7b39 # v0.9.0 + mach-o changes
       # Using a lightweight mirror that's optimized for clone + configure speed
-      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-lite.git
-      GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
+      # GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-lite.git
+      # GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
       # GIT_TAG 71090c680b4c943448ba87a0f1f864f174e4edda # v0.9.0
+      GIT_REPOSITORY https://github.com/flagarde/libdwarf-code.git
+      GIT_TAG d1a559b7af0840194dfa51f7e3013e0f80614032
       GIT_SHALLOW 1
     )
     FetchContent_MakeAvailable(libdwarf)
@@ -533,20 +536,13 @@ macro(add_test_dependencies exec_name)
   if(CPPTRACE_BUILD_TEST_RDYNAMIC)
     set_property(TARGET ${exec_name} PROPERTY ENABLE_EXPORTS ON)
   endif()
-  if(APPLE) # TODO: Temporary
-    add_custom_command(
-      TARGET ${exec_name}
-      POST_BUILD
-      COMMAND dsymutil $<TARGET_FILE:${exec_name}>
-    )
-  endif()
 endmacro()
 
 if(CPPTRACE_BUILD_TESTING)
   add_executable(test test/test.cpp)
   add_executable(demo test/demo.cpp)
   add_executable(c_demo test/ctrace_demo.cpp)
-  
+
   add_test_dependencies(test)
   add_test_dependencies(demo)
   add_test_dependencies(c_demo)
