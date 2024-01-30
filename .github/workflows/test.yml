@@ -72,7 +72,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: build
+        name: build-macos-${{matrix.compiler}}${{matrix.shared}}
         path: build
         retention-days: 2
   test-windows:

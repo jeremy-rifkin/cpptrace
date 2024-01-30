@@ -972,7 +972,7 @@ namespace libdwarf {
                         nullable<std::uint32_t>::null(),
                         nullable<std::uint32_t>::null(),
                         frame_info.object_path,
-                        "",
+                        symbol_name,
                         false
                     },
                     {}
