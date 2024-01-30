@@ -83,8 +83,8 @@ jobs:
            mkdir libdwarf
            cd libdwarf
            git init
-           git remote add origin https://github.com/flagarde/libdwarf-code.git
-           git fetch --depth 1 origin d1a559b7af0840194dfa51f7e3013e0f80614032
+           git remote add origin https://github.com/davea42/libdwarf-code.git
+           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
            git checkout FETCH_HEAD
            mkdir build
            cd build
