@@ -247,14 +247,6 @@ if(NOT CPPTRACE_BUILD_SHARED)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_STATIC_DEFINE)
 endif()
 
-# generate header file with export macros prefixed with BASE_NAME
-include(GenerateExportHeader)
-generate_export_header(
-  ${target_name}
-  BASE_NAME cpptrace
-  EXPORT_FILE_NAME include/cpptrace/cpptrace_export.hpp
-)
-
 # ---- Library Properties ----
 
 # Hide all symbols by default
