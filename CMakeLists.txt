@@ -541,7 +541,7 @@ endmacro()
 if(CPPTRACE_BUILD_TESTING)
   add_executable(test test/test.cpp)
   add_executable(demo test/demo.cpp)
-  add_executable(c_demo test/ctrace_demo.cpp)
+  add_executable(c_demo test/ctrace_demo.c)
 
   add_test_dependencies(test)
   add_test_dependencies(demo)
