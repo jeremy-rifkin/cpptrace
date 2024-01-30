@@ -1106,7 +1106,6 @@ namespace libdwarf {
                     resolver_object = get_resolver_for_object(object_name);
                     resolver = resolver_object.get();
                 }
-                // If there's no debug information it'll mark itself as not ok
                 for(const auto& entry : object_entry.second) {
                     try {
                         const auto& dlframe = entry.first.get();
