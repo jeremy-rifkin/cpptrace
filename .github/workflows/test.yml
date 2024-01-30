@@ -68,6 +68,13 @@ jobs:
     - name: build and test
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}}
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build
+        path: build
+        retention-days: 2
   test-windows:
     runs-on: windows-2022
     strategy:
