@@ -341,9 +341,52 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   if(CPPTRACE_USE_EXTERNAL_LIBDWARF)
     find_package(libdwarf REQUIRED)
   else()
+    include(FetchContent)
+    # set(ZSTD_BUILD_STATIC ON)
+    # set(ZSTD_BUILD_SHARED OFF)
+    cmake_policy(SET CMP0074 NEW)
+    FetchContent_Declare(
+        zstd
+        # URL "https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-1.5.5.tar.gz"
+        # DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        GIT_REPOSITORY https://github.com/facebook/zstd.git
+        GIT_TAG 63779c798237346c2b245c546c40b72a5a5913fe # v1.5.5
+        # GIT_SHALLOW 1
+        SOURCE_SUBDIR build/cmake
+    )
+    # FetchContent_MakeAvailable(zstd)
+    FetchContent_GetProperties(zstd)
+    if(NOT zstd_POPULATED)
+      message(WARNING "Good")
+      FetchContent_Populate(zstd)
+      set(ZSTD_BUILD_PROGRAMS OFF)
+      set(ZSTD_BUILD_CONTRIB OFF)
+      set(ZSTD_BUILD_TESTS OFF)
+      set(ZSTD_BUILD_STATIC ON)
+      set(ZSTD_BUILD_SHARED OFF)
+      set(ZSTD_LEGACY_SUPPORT OFF)
+      add_subdirectory("${zstd_SOURCE_DIR}/build/cmake" "${zstd_BINARY_DIR}")
+    endif()
+
+    if(TARGET libzstd_static)
+      add_library(ZSTD::ZSTD ALIAS libzstd_static)
+      set(ZSTD_FOUND TRUE)
+    else()
+      message(WARNING "FUCK")
+    endif()
+
+    if(NOT TARGET ZSTD::ZSTD)
+      message(WARNING "FUCK 2")
+    endif()
+
+    # get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+    # foreach(dir ${dirs})
+    #   message(WARNING "dir='${dir}'")
+    # endforeach()
+
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-    set(PIC_ALWAYS TRUE)
-    set(BUILD_DWARFDUMP FALSE)
+    # set(PIC_ALWAYS TRUE)
+    # set(BUILD_DWARFDUMP FALSE)
     include(FetchContent)
     FetchContent_Declare(
       libdwarf
@@ -355,11 +398,24 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       # GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-lite.git
       # GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
       # GIT_TAG 71090c680b4c943448ba87a0f1f864f174e4edda # v0.9.0
-      GIT_REPOSITORY https://github.com/flagarde/libdwarf-code.git
-      GIT_TAG d1a559b7af0840194dfa51f7e3013e0f80614032
+      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+      GIT_TAG cmake-changes-for-zlib-zstd
       GIT_SHALLOW 1
     )
-    FetchContent_MakeAvailable(libdwarf)
+    # FetchContent_MakeAvailable(libdwarf)
+    FetchContent_GetProperties(libdwarf)
+    if(NOT libdwarf_POPULATED)
+      set(PIC_ALWAYS TRUE)
+      set(BUILD_DWARFDUMP FALSE)
+      # set(ENABLE_DECOMPRESSION FALSE)
+      FetchContent_Populate(libdwarf)
+      add_subdirectory("${libdwarf_SOURCE_DIR}" "${libdwarf_BINARY_DIR}")
+      target_include_directories(
+        dwarf
+        PRIVATE
+        ${zstd_SOURCE_DIR}/lib
+      )
+    endif()
   endif()
   if(CPPTRACE_CONAN)
     target_link_libraries(${target_name} PRIVATE libdwarf::libdwarf)

@@ -26,8 +26,8 @@ jobs:
            mkdir libdwarf
            cd libdwarf
            git init
-           git remote add origin https://github.com/flagarde/libdwarf-code.git
-           git fetch --depth 1 origin d1a559b7af0840194dfa51f7e3013e0f80614032
+           git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
+           git fetch --depth 1 origin cmake-changes-for-zlib-zstd
            git checkout FETCH_HEAD
            mkdir build
            cd build
@@ -53,8 +53,8 @@ jobs:
            mkdir libdwarf
            cd libdwarf
            git init
-           git remote add origin https://github.com/flagarde/libdwarf-code.git
-           git fetch --depth 1 origin d1a559b7af0840194dfa51f7e3013e0f80614032
+           git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
+           git fetch --depth 1 origin cmake-changes-for-zlib-zstd
            git checkout FETCH_HEAD
            mkdir build
            cd build
