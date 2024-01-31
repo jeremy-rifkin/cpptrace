@@ -31,7 +31,16 @@ jobs:
            cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
            make -j
            sudo make install
-           cd ../../cpptrace
+           cd ../..
+           mkdir zstd
+           cd zstd
+           git init
+           git remote add origin https://github.com/facebook/zstd.git
+           git fetch --depth 1 origin 63779c798237346c2b245c546c40b72a5a5913fe # 1.5.5
+           git checkout FETCH_HEAD
+           make -j
+           sudo make install
+           cd ../cpptrace
     - name: build
       run: |
            python3 ci/build-in-all-configs.py --${{matrix.compiler}}
@@ -60,7 +69,16 @@ jobs:
            cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
            make -j
            sudo make install
-           cd ../../cpptrace
+           cd ../..
+           mkdir zstd
+           cd zstd
+           git init
+           git remote add origin https://github.com/facebook/zstd.git
+           git fetch --depth 1 origin 63779c798237346c2b245c546c40b72a5a5913fe # 1.5.5
+           git checkout FETCH_HEAD
+           make -j
+           sudo make install
+           cd ../cpptrace
     - name: build
       run: |
            python3 ci/build-in-all-configs.py --${{matrix.compiler}}
@@ -79,24 +97,30 @@ jobs:
            pip3 install colorama
     - name: libdwarf
       run: |
-           cd ..
-           mkdir libdwarf
-           cd libdwarf
-           git init
-           git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
-           git fetch --depth 1 origin cmake-changes-for-zlib-zstd
-           git checkout FETCH_HEAD
-           mkdir build
-           cd build
            if("${{matrix.compiler}}" -eq "gcc") {
+            cd ..
+            mkdir libdwarf
+            cd libdwarf
+            git init
+            git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
+            git fetch --depth 1 origin cmake-changes-for-zlib-zstd
+            git checkout FETCH_HEAD
+            mkdir build
+            cd build
             cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE -G"Unix Makefiles"
             make -j
             make install
-           } else {
-            cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
-            msbuild INSTALL.vcxproj
+            cd ../..
+            mkdir zstd
+            cd zstd
+            git init
+            git remote add origin https://github.com/facebook/zstd.git
+            git fetch --depth 1 origin 63779c798237346c2b245c546c40b72a5a5913fe # 1.5.5
+            git checkout FETCH_HEAD
+            make -j
+            make install
+            cd ../cpptrace
            }
-           cd ../../cpptrace
     - name: build
       run: |
            python3 ci/build-in-all-configs.py --${{matrix.compiler}}
