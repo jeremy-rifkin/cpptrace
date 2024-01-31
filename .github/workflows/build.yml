@@ -84,7 +84,7 @@ jobs:
            cd libdwarf
            git init
            git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
-           git fetch --depth 1 origin make-changes-for-zlib-zstd
+           git fetch --depth 1 origin cmake-changes-for-zlib-zstd
            git checkout FETCH_HEAD
            mkdir build
            cd build
