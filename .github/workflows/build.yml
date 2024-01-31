@@ -117,9 +117,12 @@ jobs:
             git remote add origin https://github.com/facebook/zstd.git
             git fetch --depth 1 origin 63779c798237346c2b245c546c40b72a5a5913fe # 1.5.5
             git checkout FETCH_HEAD
-            make -j
-            make install
-            cd ../cpptrace
+            cd build/cmake
+            mkdir build
+            cd build
+            cmake .. -DZSTD_BUILD_SHARED=On -DZSTD_LEGACY_SUPPORT=On
+            msbuild INSTALL.vcxproj
+            cd ../../../../cpptrace
            }
     - name: build
       run: |
