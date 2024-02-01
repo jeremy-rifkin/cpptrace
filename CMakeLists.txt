@@ -388,7 +388,7 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       # GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
       # GIT_TAG 71090c680b4c943448ba87a0f1f864f174e4edda # v0.9.0
       GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-      GIT_TAG cmake-changes-for-zlib-zstd
+      GIT_TAG b8cf3548112fd4cb68e8d4b89c6ce4348bc8745c
       GIT_SHALLOW 1
     )
     # FetchContent_MakeAvailable(libdwarf)
