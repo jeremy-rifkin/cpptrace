@@ -347,22 +347,17 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     find_package(libdwarf REQUIRED)
   else()
     include(FetchContent)
-    # set(ZSTD_BUILD_STATIC ON)
-    # set(ZSTD_BUILD_SHARED OFF)
     cmake_policy(SET CMP0074 NEW)
     FetchContent_Declare(
         zstd
-        # URL "https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-1.5.5.tar.gz"
-        # DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         GIT_REPOSITORY https://github.com/facebook/zstd.git
         GIT_TAG 63779c798237346c2b245c546c40b72a5a5913fe # v1.5.5
-        # GIT_SHALLOW 1
+        GIT_SHALLOW 1
         SOURCE_SUBDIR build/cmake
     )
     # FetchContent_MakeAvailable(zstd)
     FetchContent_GetProperties(zstd)
     if(NOT zstd_POPULATED)
-      message(WARNING "Good")
       FetchContent_Populate(zstd)
       set(ZSTD_BUILD_PROGRAMS OFF)
       set(ZSTD_BUILD_CONTRIB OFF)
@@ -376,18 +371,7 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     if(TARGET libzstd_static)
       add_library(ZSTD::ZSTD ALIAS libzstd_static)
       set(ZSTD_FOUND TRUE)
-    else()
-      message(WARNING "FUCK")
     endif()
-
-    if(NOT TARGET ZSTD::ZSTD)
-      message(WARNING "FUCK 2")
-    endif()
-
-    # get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
-    # foreach(dir ${dirs})
-    #   message(WARNING "dir='${dir}'")
-    # endforeach()
 
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     # set(PIC_ALWAYS TRUE)
