@@ -4,6 +4,7 @@
 # Dependencies
 if(@CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF@)
   include(CMakeFindDependencyMacro)
+  find_dependency(zstd REQUIRED)
   find_dependency(libdwarf REQUIRED)
 endif()
 

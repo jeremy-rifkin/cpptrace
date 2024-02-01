@@ -23,11 +23,20 @@ jobs:
     - name: libdwarf
       run: |
            cd ..
+           mkdir zstd
+           cd zstd
+           git init
+           git remote add origin https://github.com/facebook/zstd.git
+           git fetch --depth 1 origin 63779c798237346c2b245c546c40b72a5a5913fe # 1.5.5
+           git checkout FETCH_HEAD
+           make -j
+           sudo make install
+           cd ..
            mkdir libdwarf
            cd libdwarf
            git init
-           git remote add origin https://github.com/flagarde/libdwarf-code.git
-           git fetch --depth 1 origin d1a559b7af0840194dfa51f7e3013e0f80614032
+           git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
+           git fetch --depth 1 origin b8cf3548112fd4cb68e8d4b89c6ce4348bc8745c
            git checkout FETCH_HEAD
            mkdir build
            cd build
@@ -50,11 +59,20 @@ jobs:
     - name: libdwarf
       run: |
            cd ..
+           mkdir zstd
+           cd zstd
+           git init
+           git remote add origin https://github.com/facebook/zstd.git
+           git fetch --depth 1 origin 63779c798237346c2b245c546c40b72a5a5913fe # 1.5.5
+           git checkout FETCH_HEAD
+           make -j
+           sudo make install
+           cd ..
            mkdir libdwarf
            cd libdwarf
            git init
-           git remote add origin https://github.com/flagarde/libdwarf-code.git
-           git fetch --depth 1 origin d1a559b7af0840194dfa51f7e3013e0f80614032
+           git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
+           git fetch --depth 1 origin b8cf3548112fd4cb68e8d4b89c6ce4348bc8745c
            git checkout FETCH_HEAD
            mkdir build
            cd build
@@ -95,24 +113,34 @@ jobs:
            pip3 install colorama
     - name: libdwarf
       run: |
-           cd ..
-           mkdir libdwarf
-           cd libdwarf
-           git init
-           git remote add origin https://github.com/davea42/libdwarf-code.git
-           git fetch --depth 1 origin 6216e185863f41d6f19ab850caabfff7326020d7
-           git checkout FETCH_HEAD
-           mkdir build
-           cd build
            if("${{matrix.compiler}}" -eq "gcc") {
+            cd ..
+            mkdir zstd
+            cd zstd
+            git init
+            git remote add origin https://github.com/facebook/zstd.git
+            git fetch --depth 1 origin 63779c798237346c2b245c546c40b72a5a5913fe # 1.5.5
+            git checkout FETCH_HEAD
+            cd build/cmake
+            mkdir build
+            cd build
+            cmake .. -DZSTD_BUILD_SHARED=On -DZSTD_BUILD_SHARED=Off -DZSTD_LEGACY_SUPPORT=Off -DZSTD_BUILD_PROGRAMS=Off -DZSTD_BUILD_CONTRIB=Off -DZSTD_BUILD_TESTS=Off -G"Unix Makefiles"
+            make -j
+            make install
+            cd ../../../..
+            mkdir libdwarf
+            cd libdwarf
+            git init
+            git remote add origin https://github.com/jeremy-rifkin/libdwarf-code.git
+            git fetch --depth 1 origin b8cf3548112fd4cb68e8d4b89c6ce4348bc8745c
+            git checkout FETCH_HEAD
+            mkdir build
+            cd build
             cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE -G"Unix Makefiles"
             make -j
             make install
-           } else {
-            cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
-            msbuild INSTALL.vcxproj
+            cd ../../cpptrace
            }
-           cd ../../cpptrace
     - name: build and test
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}}

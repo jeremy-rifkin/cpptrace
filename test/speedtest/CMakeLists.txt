@@ -36,6 +36,7 @@ FetchContent_MakeAvailable(googletest)
 
 set(cpptrace_DIR "../../build/foo/lib/cmake/cpptrace")
 set(libdwarf_DIR "../../build/foo/lib/cmake/libdwarf")
+set(zstd_DIR "../../build/foo/lib/cmake/zstd")
 find_package(cpptrace REQUIRED)
 
 add_executable(speedtest speedtest.cpp)
