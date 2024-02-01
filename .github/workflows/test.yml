@@ -136,8 +136,9 @@ jobs:
             cd build/cmake
             mkdir build
             cd build
-            cmake .. -DZSTD_BUILD_SHARED=On -DZSTD_LEGACY_SUPPORT=On
-            msbuild INSTALL.vcxproj
+            cmake .. -DZSTD_BUILD_SHARED=On -DZSTD_LEGACY_SUPPORT=On -G"Unix Makefiles"
+            make -j
+            make install
             cd ../../../../cpptrace
            }
     - name: build and test
