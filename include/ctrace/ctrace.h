@@ -5,6 +5,33 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifdef _WIN32
+#define CPPTRACE_EXPORT_ATTR __declspec(dllexport)
+#define CPPTRACE_IMPORT_ATTR __declspec(dllimport)
+#define CPPTRACE_NO_EXPORT_ATTR
+#define CPPTRACE_DEPRECATED_ATTR __declspec(deprecated)
+#else
+#define CPPTRACE_EXPORT_ATTR __attribute__((visibility("default")))
+#define CPPTRACE_IMPORT_ATTR __attribute__((visibility("default")))
+#define CPPTRACE_NO_EXPORT_ATTR __attribute__((visibility("hidden")))
+#define CPPTRACE_DEPRECATE_ATTR __attribute__((__deprecated__))
+#endif
+
+#ifdef CPPTRACE_STATIC_DEFINE
+#  define CPPTRACE_EXPORT
+#  define CPPTRACE_NO_EXPORT
+#else
+#  ifndef CPPTRACE_EXPORT
+#    ifdef cpptrace_lib_EXPORTS
+        /* We are building this library */
+#      define CPPTRACE_EXPORT CPPTRACE_EXPORT_ATTR
+#    else
+        /* We are using this library */
+#      define CPPTRACE_EXPORT CPPTRACE_IMPORT_ATTR
+#    endif
+#  endif
+#endif
+
 #if defined(__cplusplus)
  #define CTRACE_BEGIN_DEFINITIONS extern "C" {
  #define CTRACE_END_DEFINITIONS }
@@ -97,44 +124,44 @@ CTRACE_BEGIN_DEFINITIONS
     } ctrace_cache_mode;
 
     // ctrace::string:
-    ctrace_owning_string ctrace_generate_owning_string(const char* raw_string);
-    void ctrace_free_owning_string(ctrace_owning_string* string);
+    CPPTRACE_EXPORT ctrace_owning_string ctrace_generate_owning_string(const char* raw_string);
+    CPPTRACE_EXPORT void ctrace_free_owning_string(ctrace_owning_string* string);
 
     // ctrace::generation:
-    ctrace_raw_trace    ctrace_generate_raw_trace(size_t skip, size_t max_depth);
-    ctrace_object_trace ctrace_generate_object_trace(size_t skip, size_t max_depth);
-    ctrace_stacktrace   ctrace_generate_trace(size_t skip, size_t max_depth);
+    CPPTRACE_EXPORT ctrace_raw_trace    ctrace_generate_raw_trace(size_t skip, size_t max_depth);
+    CPPTRACE_EXPORT ctrace_object_trace ctrace_generate_object_trace(size_t skip, size_t max_depth);
+    CPPTRACE_EXPORT ctrace_stacktrace   ctrace_generate_trace(size_t skip, size_t max_depth);
 
     // ctrace::freeing:
-    void ctrace_free_raw_trace(ctrace_raw_trace* trace);
-    void ctrace_free_object_trace(ctrace_object_trace* trace);
-    void ctrace_free_stacktrace(ctrace_stacktrace* trace);
+    CPPTRACE_EXPORT void ctrace_free_raw_trace(ctrace_raw_trace* trace);
+    CPPTRACE_EXPORT void ctrace_free_object_trace(ctrace_object_trace* trace);
+    CPPTRACE_EXPORT void ctrace_free_stacktrace(ctrace_stacktrace* trace);
 
     // ctrace::resolve:
-    ctrace_stacktrace ctrace_raw_trace_resolve(const ctrace_raw_trace* trace);
-    ctrace_object_trace ctrace_raw_trace_resolve_object_trace(const ctrace_raw_trace* trace);
-    ctrace_stacktrace ctrace_object_trace_resolve(const ctrace_object_trace* trace);
+    CPPTRACE_EXPORT ctrace_stacktrace ctrace_raw_trace_resolve(const ctrace_raw_trace* trace);
+    CPPTRACE_EXPORT ctrace_object_trace ctrace_raw_trace_resolve_object_trace(const ctrace_raw_trace* trace);
+    CPPTRACE_EXPORT ctrace_stacktrace ctrace_object_trace_resolve(const ctrace_object_trace* trace);
 
     // ctrace::safe:
-    size_t ctrace_safe_generate_raw_trace(ctrace_frame_ptr* buffer, size_t size, size_t skip, size_t max_depth);
-    void ctrace_get_safe_object_frame(ctrace_frame_ptr address, ctrace_safe_object_frame* out);
+    CPPTRACE_EXPORT size_t ctrace_safe_generate_raw_trace(ctrace_frame_ptr* buffer, size_t size, size_t skip, size_t max_depth);
+    CPPTRACE_EXPORT void ctrace_get_safe_object_frame(ctrace_frame_ptr address, ctrace_safe_object_frame* out);
 
     // ctrace::io:
-    ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);
-    void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color);
+    CPPTRACE_EXPORT ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);
+    CPPTRACE_EXPORT void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color);
 
     // utility::demangle:
-    ctrace_owning_string ctrace_demangle(const char* mangled);
+    CPPTRACE_EXPORT ctrace_owning_string ctrace_demangle(const char* mangled);
 
     // utility::io:
-    int ctrace_stdin_fileno(void);
-    int ctrace_stderr_fileno(void);
-    int ctrace_stdout_fileno(void);
-    ctrace_bool ctrace_isatty(int fd);
-    
+    CPPTRACE_EXPORT int ctrace_stdin_fileno(void);
+    CPPTRACE_EXPORT int ctrace_stderr_fileno(void);
+    CPPTRACE_EXPORT int ctrace_stdout_fileno(void);
+    CPPTRACE_EXPORT ctrace_bool ctrace_isatty(int fd);
+
     // utility::cache:
-    void ctrace_set_cache_mode(ctrace_cache_mode mode);
-    ctrace_cache_mode ctrace_get_cache_mode(void);
+    CPPTRACE_EXPORT void ctrace_set_cache_mode(ctrace_cache_mode mode);
+    CPPTRACE_EXPORT ctrace_cache_mode ctrace_get_cache_mode(void);
 
 CTRACE_END_DEFINITIONS
 
