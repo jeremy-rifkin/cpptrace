@@ -368,10 +368,10 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       add_subdirectory("${zstd_SOURCE_DIR}/build/cmake" "${zstd_BINARY_DIR}")
     endif()
 
-    if(TARGET libzstd_static)
-      add_library(ZSTD::ZSTD ALIAS libzstd_static)
-      set(ZSTD_FOUND TRUE)
-    endif()
+    # if(TARGET libzstd_static)
+    #   add_library(ZSTD::ZSTD ALIAS libzstd_static)
+    #   set(ZSTD_FOUND TRUE)
+    # endif()
 
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     # set(PIC_ALWAYS TRUE)
@@ -388,7 +388,7 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       # GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
       # GIT_TAG 71090c680b4c943448ba87a0f1f864f174e4edda # v0.9.0
       GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-      GIT_TAG b8cf3548112fd4cb68e8d4b89c6ce4348bc8745c
+      GIT_TAG 2d8b0a15349ca634b212a11f2b2a97b9a85890a3
       GIT_SHALLOW 1
     )
     # FetchContent_MakeAvailable(libdwarf)
