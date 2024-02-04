@@ -459,6 +459,11 @@ namespace cpptrace {
             }
         }
 
+        CPPTRACE_FORCE_NO_INLINE
+        raw_trace get_raw_trace_and_absorb(std::size_t skip) noexcept {
+            return get_raw_trace_and_absorb(skip + 1, SIZE_MAX);
+        }
+
         lazy_trace_holder::lazy_trace_holder(const lazy_trace_holder& other) : resolved(other.resolved) {
             if(other.resolved) {
                 new (&resolved_trace) stacktrace(other.resolved_trace);
@@ -539,9 +544,6 @@ namespace cpptrace {
         }
     }
 
-    lazy_exception::lazy_exception(std::size_t skip, std::size_t max_depth) noexcept
-            : trace_holder(detail::get_raw_trace_and_absorb(skip + 1, max_depth)) {}
-
     const char* lazy_exception::what() const noexcept {
         if(what_string.empty()) {
             what_string = message() + std::string(":\n") + trace_holder.get_resolved_trace().to_string();
@@ -585,7 +587,7 @@ namespace cpptrace {
         } catch(cpptrace::exception&) {
             throw; // already a cpptrace::exception
         } catch(...) {
-            throw nested_exception(std::current_exception(), skip + 1);
+            throw nested_exception(std::current_exception(), detail::get_raw_trace_and_absorb(skip + 1));
         }
     }
 }

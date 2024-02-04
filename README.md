@@ -320,13 +320,13 @@ interface or type system but this seems to be the best way to do this.
 ```cpp
 namespace cpptrace {
     class lazy_exception : public exception {
-        mutable detail::lazy_trace_holder trace_holder; // basically std::variant<raw_trace, stacktrace>, more docs later
+        // lazy_trace_holder is basically a std::variant<raw_trace, stacktrace>, more docs later
+        mutable detail::lazy_trace_holder trace_holder;
         mutable std::string what_string;
-    protected:
-        explicit lazy_exception(std::size_t skip, std::size_t max_depth) noexcept;
-        explicit lazy_exception(std::size_t skip) noexcept;
     public:
-        explicit lazy_exception() noexcept : lazy_exception(1) {}
+        explicit lazy_exception(
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept : trace_holder(std::move(trace)) {}
         const char* what() const noexcept override;
         const char* message() const noexcept override;
         const stacktrace& trace() const noexcept override;
@@ -341,19 +341,22 @@ well as a number of traced exception classes resembling `<stdexcept>`:
 
 ```cpp
 namespace cpptrace {
-    class CPPTRACE_EXPORT exception_with_message : public lazy_exception {
+    class exception_with_message : public lazy_exception {
         mutable std::string user_message;
-    protected:
-        explicit exception_with_message(std::string&& message_arg, std::size_t skip) noexcept;
-        explicit exception_with_message(std::string&& message_arg, std::size_t skip, std::size_t max_depth) noexcept;
     public:
-        explicit exception_with_message(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
-
+        explicit exception_with_message(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept : lazy_exception(std::move(trace)), user_message(std::move(message_arg)) {}
         const char* message() const noexcept override;
     };
 
-    // All stdexcept errors have analogs here. Same constructor as exception_with_message.
+    // All stdexcept errors have analogs here. All have the constructor:
+    // explicit the_error(
+    //     std::string&& message_arg,
+    //     raw_trace&& trace = detail::get_raw_trace_and_absorb()
+    // ) noexcept
+    //     : exception_with_message(std::move(message_arg), std::move(trace)) {}
     class logic_error      : public exception_with_message { ... };
     class domain_error     : public exception_with_message { ... };
     class invalid_argument : public exception_with_message { ... };
