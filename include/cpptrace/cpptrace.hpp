@@ -238,7 +238,6 @@ namespace cpptrace {
 
     // utilities:
     CPPTRACE_EXPORT std::string demangle(const std::string& name);
-    CPPTRACE_EXPORT void absorb_trace_exceptions(bool absorb);
     CPPTRACE_EXPORT bool isatty(int fd);
 
     CPPTRACE_EXPORT extern const int stdin_fileno;
@@ -246,6 +245,9 @@ namespace cpptrace {
     CPPTRACE_EXPORT extern const int stdout_fileno;
 
     CPPTRACE_EXPORT void register_terminate_handler();
+
+    // configuration:
+    CPPTRACE_EXPORT void absorb_trace_exceptions(bool absorb);
 
     enum class cache_mode {
         // Only minimal lookup tables
@@ -260,6 +262,7 @@ namespace cpptrace {
         CPPTRACE_EXPORT void set_cache_mode(cache_mode mode);
     }
 
+    // tracing exceptions:
     namespace detail {
         // This is a helper utility, if the library weren't C++11 an std::variant would be used
         class CPPTRACE_EXPORT lazy_trace_holder {
