@@ -300,7 +300,12 @@ extern "C" {
     }
 
     void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color) {
-        if(use_color) cpptrace::detail::enable_virtual_terminal_processing_if_needed();
+        if(
+            use_color && (
+                (to == stdout && cpptrace::isatty(cpptrace::stdout_fileno)) ||
+                (to == stderr && cpptrace::isatty(cpptrace::stderr_fileno))
+            )
+        ) cpptrace::detail::enable_virtual_terminal_processing_if_needed();
         ctrace::ffprintf(to, "Stack trace (most recent call first):\n");
         if(trace->count == 0 || !trace->frames) {
             ctrace::ffprintf(to, "<empty trace>\n");

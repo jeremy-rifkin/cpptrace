@@ -167,7 +167,11 @@ namespace cpptrace {
     }
 
     void stacktrace::print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const {
-        if(color) {
+        if(
+            color && (
+                (&stream == &std::cout && isatty(stdout_fileno)) || (&stream == &std::cerr && isatty(stderr_fileno))
+            )
+        ) {
             detail::enable_virtual_terminal_processing_if_needed();
         }
         stream<<(header ? header : "Stack trace (most recent call first):")<<std::endl;
