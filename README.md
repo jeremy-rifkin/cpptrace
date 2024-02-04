@@ -245,14 +245,6 @@ namespace cpptrace {
 `cpptrace::demangle` provides a helper function for name demangling, since it has to implement that helper internally
 anyways.
 
-The library makes an attempt to fail silently and continue during trace generation if any errors are encountered.
-`cpptrace::absorb_trace_exceptions` can be used to configure whether these exceptions are absorbed silently internally
-or wether they're rethrown to the caller.
-
-`cpptrace::experimental::set_cache_mode` can be used to control time-memory tradeoffs within the library. By default
-speed is prioritized. If using this function, set the cache mode at the very start of your program before any traces are
-performed.
-
 `cpptrace::isatty` and the fileno definitions are useful for deciding whether to use color when printing stack taces.
 
 `cpptrace::register_terminate_handler()` is a helper function to set a custom `std::terminate` handler that prints a
@@ -261,7 +253,6 @@ stack trace from a cpptrace exception (more info below) and otherwise behaves li
 ```cpp
 namespace cpptrace {
     std::string demangle(const std::string& name);
-    void absorb_trace_exceptions(bool absorb);
     bool isatty(int fd);
 
     extern const int stdin_fileno;
@@ -269,6 +260,25 @@ namespace cpptrace {
     extern const int stdout_fileno;
 
     void register_terminate_handler();
+}
+```
+
+### Configuration
+
+`cpptrace::absorb_trace_exceptions`: Configure whether the library silently absorbs internal exceptions and continues.
+Default is true.
+
+`cpptrace::enable_inlined_call_resolution`: Configure whether the library will attempt to resolve inlined call
+information for release builds. Default is true.
+
+`cpptrace::experimental::set_cache_mode`: Control time-memory tradeoffs within the library. By default speed is
+prioritized. If using this function, set the cache mode at the very start of your program before any traces are
+performed.
+
+```cpp
+namespace cpptrace {
+    void absorb_trace_exceptions(bool absorb);
+    void enable_inlined_call_resolution(bool enable);
 
     enum class cache_mode {
         // Only minimal lookup tables

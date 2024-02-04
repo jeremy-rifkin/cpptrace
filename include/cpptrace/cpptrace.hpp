@@ -248,6 +248,7 @@ namespace cpptrace {
 
     // configuration:
     CPPTRACE_EXPORT void absorb_trace_exceptions(bool absorb);
+    CPPTRACE_EXPORT void enable_inlined_call_resolution(bool enable);
 
     enum class cache_mode {
         // Only minimal lookup tables

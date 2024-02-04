@@ -406,7 +406,9 @@ namespace libdwarf {
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram);
             const auto name = subprogram_symbol(die, dwversion);
-            get_inlines_info(cu_die, die, pc, dwversion, inlines);
+            if(detail::should_resolve_inlined_calls()) {
+                get_inlines_info(cu_die, die, pc, dwversion, inlines);
+            }
             return name;
         }
 
