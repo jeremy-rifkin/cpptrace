@@ -125,7 +125,9 @@ CTRACE_FORMAT_EPILOGUE
     }
 
     static cpptrace::stacktrace cpp_convert(const ctrace_stacktrace* ptrace) {
-        if(!ptrace || !ptrace->frames) return { };
+        if(!ptrace || !ptrace->frames) {
+            return { };
+        }
         std::vector<cpptrace::stacktrace_frame> new_frames;
         new_frames.reserve(ptrace->count);
         for(std::size_t i = 0; i < ptrace->count; ++i) {
@@ -152,7 +154,9 @@ extern "C" {
     }
 
     void ctrace_free_owning_string(ctrace_owning_string* string) {
-        if(!string) return;
+        if(!string) {
+            return;
+        }
         ctrace::free_owning_string(*string);
         string->data = nullptr;
     }
@@ -200,7 +204,9 @@ extern "C" {
 
     // ctrace::freeing:
     void ctrace_free_raw_trace(ctrace_raw_trace* trace) {
-        if(!trace) return;
+        if(!trace) {
+            return;
+        }
         ctrace_frame_ptr* frames = trace->frames;
         delete[] frames;
         trace->frames = nullptr;
@@ -208,7 +214,9 @@ extern "C" {
     }
 
     void ctrace_free_object_trace(ctrace_object_trace* trace) {
-        if(!trace || !trace->frames) return;
+        if(!trace || !trace->frames) {
+            return;
+        }
         ctrace_object_frame* frames = trace->frames;
         for(std::size_t i = 0; i < trace->count; ++i) {
             const char* path = frames[i].obj_path;
@@ -221,7 +229,9 @@ extern "C" {
     }
 
     void ctrace_free_stacktrace(ctrace_stacktrace* trace) {
-        if(!trace || !trace->frames) return;
+        if(!trace || !trace->frames) {
+            return;
+        }
         ctrace_stacktrace_frame* frames = trace->frames;
         for(std::size_t i = 0; i < trace->count; ++i) {
             ctrace::free_owning_string(frames[i].filename);
@@ -235,7 +245,9 @@ extern "C" {
 
     // ctrace::resolve:
     ctrace_stacktrace ctrace_raw_trace_resolve(const ctrace_raw_trace* trace) {
-        if(!trace || !trace->frames) return { nullptr, 0 };
+        if(!trace || !trace->frames) {
+            return { nullptr, 0 };
+        }
         try {
             std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
             std::copy(trace->frames, trace->frames + trace->count, frames.begin());
@@ -248,7 +260,9 @@ extern "C" {
     }
 
     ctrace_object_trace ctrace_raw_trace_resolve_object_trace(const ctrace_raw_trace* trace) {
-        if(!trace || !trace->frames) return { nullptr, 0 };
+        if(!trace || !trace->frames) {
+            return { nullptr, 0 };
+        }
         try {
             std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
             std::copy(trace->frames, trace->frames + trace->count, frames.begin());
@@ -261,7 +275,9 @@ extern "C" {
     }
 
     ctrace_stacktrace ctrace_object_trace_resolve(const ctrace_object_trace* trace) {
-        if(!trace || !trace->frames) return { nullptr, 0 };
+        if(!trace || !trace->frames) {
+            return { nullptr, 0 };
+        }
         try {
             std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
             std::transform(
@@ -293,7 +309,9 @@ extern "C" {
 
     // ctrace::io:
     ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color) {
-        if(!trace || !trace->frames) return ctrace::generate_owning_string("<empty trace>");
+        if(!trace || !trace->frames) {
+            return ctrace::generate_owning_string("<empty trace>");
+        }
         auto cpp_trace = ctrace::cpp_convert(trace);
         std::string trace_string = cpp_trace.to_string(bool(use_color));
         return ctrace::generate_owning_string(trace_string);
@@ -305,7 +323,9 @@ extern "C" {
                 (to == stdout && cpptrace::isatty(cpptrace::stdout_fileno)) ||
                 (to == stderr && cpptrace::isatty(cpptrace::stderr_fileno))
             )
-        ) cpptrace::detail::enable_virtual_terminal_processing_if_needed();
+        ) {
+            cpptrace::detail::enable_virtual_terminal_processing_if_needed();
+        }
         ctrace::ffprintf(to, "Stack trace (most recent call first):\n");
         if(trace->count == 0 || !trace->frames) {
             ctrace::ffprintf(to, "<empty trace>\n");
@@ -366,7 +386,9 @@ extern "C" {
 
     // utility::demangle:
     ctrace_owning_string ctrace_demangle(const char* mangled) {
-        if(!mangled) return ctrace::generate_owning_string("");
+        if(!mangled) {
+            return ctrace::generate_owning_string("");
+        }
         std::string demangled = cpptrace::demangle(mangled);
         return ctrace::generate_owning_string(demangled);
     }
@@ -391,7 +413,9 @@ extern "C" {
     // utility::cache:
     void ctrace_set_cache_mode(ctrace_cache_mode mode) {
         static constexpr auto cache_max = cpptrace::cache_mode::prioritize_speed;
-        if(mode > unsigned(cache_max)) return;
+        if(mode > unsigned(cache_max)) {
+            return;
+        }
         auto cache_mode = static_cast<cpptrace::cache_mode>(mode);
         cpptrace::experimental::set_cache_mode(cache_mode);
     }
