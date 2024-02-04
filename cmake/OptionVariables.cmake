@@ -14,6 +14,7 @@
 # | CPPTRACE_INCLUDES_WITH_SYSTEM   | Not Top-Level | ON                                            |
 # | CPPTRACE_INSTALL_CMAKEDIR       | Always        | ${CMAKE_INSTALL_LIBDIR}/cmake/${package_name} |
 # | CPPTRACE_USE_EXTERNAL_LIBDWARF  | Always        | OFF                                           |
+# | CPPTRACE_USE_EXTERNAL_ZSTD      | Always        | OFF                                           |
 # | ...                             |               |                                               |
 # ---------------------------------------------------------------------------------------------------
 
