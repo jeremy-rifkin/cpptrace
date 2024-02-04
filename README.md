@@ -23,6 +23,7 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
     - [Object Traces](#object-traces)
     - [Raw Traces](#raw-traces)
     - [Utilities](#utilities)
+    - [Configuration](#configuration)
     - [Traced Exceptions](#traced-exceptions)
   - [Wrapping std::exceptions](#wrapping-stdexceptions)
   - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
