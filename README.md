@@ -128,7 +128,9 @@ Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc i
 The original motivation for cpptrace was to support projects using older C++ standards and as the library has grown its
 functionality has extended beyond the standard library's implementation.
 
-Cpptrace also provides additional functionality including being able to
+Cpptrace also provides additional functionality including showing inlined function calls, allowing generation of
+lightweight "raw traces" that can be resolved later, offering exception objects that embed a lightweight trace when
+thrown, and providing an API for safe tracing from signal handlers.
 
 # In-Depth Documentation
 
