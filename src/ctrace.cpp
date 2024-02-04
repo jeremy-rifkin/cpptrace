@@ -395,4 +395,8 @@ extern "C" {
         auto cache_mode = cpptrace::detail::get_cache_mode();
         return static_cast<ctrace_cache_mode>(cache_mode);
     }
+
+    void enable_inlined_call_resolution(ctrace_bool enable) {
+        cpptrace::enable_inlined_call_resolution(enable);
+    }
 }

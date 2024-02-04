@@ -150,18 +150,18 @@ CTRACE_BEGIN_DEFINITIONS
     CPPTRACE_EXPORT ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);
     CPPTRACE_EXPORT void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color);
 
-    // utility::demangle:
+    // ctrace::utility:
     CPPTRACE_EXPORT ctrace_owning_string ctrace_demangle(const char* mangled);
-
-    // utility::io:
     CPPTRACE_EXPORT int ctrace_stdin_fileno(void);
     CPPTRACE_EXPORT int ctrace_stderr_fileno(void);
     CPPTRACE_EXPORT int ctrace_stdout_fileno(void);
     CPPTRACE_EXPORT ctrace_bool ctrace_isatty(int fd);
 
-    // utility::cache:
+    // ctrace::config:
     CPPTRACE_EXPORT void ctrace_set_cache_mode(ctrace_cache_mode mode);
     CPPTRACE_EXPORT ctrace_cache_mode ctrace_get_cache_mode(void);
+
+    CPPTRACE_EXPORT void enable_inlined_call_resolution(ctrace_bool enable);
 
 CTRACE_END_DEFINITIONS
 
