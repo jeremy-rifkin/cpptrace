@@ -7,6 +7,10 @@ on:
 jobs:
   test-linux-fetchcontent:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: test
@@ -17,11 +21,15 @@ jobs:
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}}
            make
            ./main
   test-linux-findpackage:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: test
@@ -29,7 +37,7 @@ jobs:
            tag=$(git rev-parse --abbrev-ref HEAD)
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
            sudo make -j install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
@@ -40,6 +48,10 @@ jobs:
            ./main
   test-linux-add_subdirectory:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: build
@@ -49,12 +61,16 @@ jobs:
            cp -rv cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
            make
            ./main
 
   test-macos-fetchcontent:
     runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: test
@@ -65,11 +81,15 @@ jobs:
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}}
            make
            ./main
   test-macos-findpackage:
     runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: test
@@ -78,7 +98,7 @@ jobs:
            echo $tag
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
            sudo make -j install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
@@ -89,6 +109,10 @@ jobs:
            ./main
   test-macos-add_subdirectory:
     runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: test
@@ -98,12 +122,16 @@ jobs:
            cp -rv cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
            make
            ./main
 
   test-mingw-fetchcontent:
     runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: test
@@ -114,11 +142,15 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}}
            make
            .\main.exe
   test-mingw-add_subdirectory:
     runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: test
@@ -128,11 +160,15 @@ jobs:
            cp -Recurse cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles"
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}}
            make
            .\main.exe
   test-windows-fetchcontent:
     runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
@@ -145,11 +181,15 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag"
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}}
            msbuild demo_project.sln
            .\Debug\main.exe
   test-windows-add_subdirectory:
     runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
     steps:
     - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
@@ -161,6 +201,6 @@ jobs:
            cp -Recurse cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
            msbuild demo_project.sln
            .\Debug\main.exe
