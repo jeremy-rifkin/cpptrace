@@ -162,10 +162,10 @@ jobs:
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} "-GUnix Makefiles" -DCMAKE_INSTALL_PREFIX=C:/foo
            make -j install
            cd ../..
-           cp -rv cpptrace/test/findpackage-integration .
+           mv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
            cd findpackage-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo "-GUnix Makefiles"
            make
            ./main
   test-mingw-add_subdirectory:
