@@ -145,6 +145,29 @@ jobs:
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}}
            make
            .\main.exe
+  test-mingw-findpackage:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [On, Off]
+    steps:
+    - uses: actions/checkout@v4
+    - name: test
+      run: |
+           $tag=$(git rev-parse --abbrev-ref HEAD)
+           echo $tag
+           mkdir build
+           cd build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCMAKE_INSTALL_PREFIX=C:/foo
+           sudo make -j install
+           cd ../..
+           cp -rv cpptrace/test/findpackage-integration .
+           mkdir findpackage-integration/build
+           cd findpackage-integration/build
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo
+           make
+           ./main
   test-mingw-add_subdirectory:
     runs-on: windows-2022
     strategy:
