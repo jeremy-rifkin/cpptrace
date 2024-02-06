@@ -142,7 +142,7 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}}
            make
            .\main.exe
   test-mingw-findpackage:
@@ -159,8 +159,8 @@ jobs:
            echo $tag
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCMAKE_INSTALL_PREFIX=C:/foo
-           sudo make -j install
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} "-GUnix Makefiles" -DCMAKE_INSTALL_PREFIX=C:/foo
+           make -j install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
@@ -183,7 +183,7 @@ jobs:
            cp -Recurse cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_BUILD_TYPE=g++ "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}}
            make
            .\main.exe
   test-windows-fetchcontent:
