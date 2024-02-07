@@ -137,7 +137,7 @@ CTRACE_BEGIN_DEFINITIONS
 
     /* ctrace::io: */
     CPPTRACE_EXPORT ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);
-    CPPTRACE_EXPORT void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color);
+    CPPTRACE_EXPORT void ctrace_print_stacktrace(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color);
 
     /* ctrace::utility: */
     CPPTRACE_EXPORT ctrace_owning_string ctrace_demangle(const char* mangled);
@@ -156,7 +156,7 @@ CTRACE_BEGIN_DEFINITIONS
         ctrace_prioritize_speed = 2
     } ctrace_cache_mode;
     CPPTRACE_EXPORT void ctrace_set_cache_mode(ctrace_cache_mode mode);
-    CPPTRACE_EXPORT void enable_inlined_call_resolution(ctrace_bool enable);
+    CPPTRACE_EXPORT void ctrace_enable_inlined_call_resolution(ctrace_bool enable);
 
 CTRACE_END_DEFINITIONS
 

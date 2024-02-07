@@ -11,6 +11,8 @@
 Cpptrace is a simple, portable, and self-contained C++ stacktrace library supporting C++11 and greater on Linux, macOS,
 and Windows including MinGW and Cygwin environments. The goal: Make stack traces simple for once.
 
+Cpptrace also has a C API, docs [here](docs/c-api.md).
+
 ## Table of Contents <!-- omit in toc -->
 
 - [30-Second Overview](#30-second-overview)
@@ -220,7 +222,7 @@ namespace cpptrace {
 
 ### Raw Traces
 
-Raw trace access: A vector of program counters. These are ideal for traces you want to resolve later.
+Raw trace access: A vector of program counters. These are ideal for fast and cheap traces you want to resolve later.
 
 Note it is important executables and shared libraries in memory aren't somehow unmapped otherwise libdl calls (and
 `GetModuleFileName` in windows) will fail to figure out where the program counter corresponds to.

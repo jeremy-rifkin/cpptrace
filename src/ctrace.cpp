@@ -317,7 +317,7 @@ extern "C" {
         return ctrace::generate_owning_string(trace_string);
     }
 
-    void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color) {
+    void ctrace_print_stacktrace(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color) {
         if(
             use_color && (
                 (to == stdout && cpptrace::isatty(cpptrace::stdout_fileno)) ||
@@ -420,7 +420,7 @@ extern "C" {
         cpptrace::experimental::set_cache_mode(cache_mode);
     }
 
-    void enable_inlined_call_resolution(ctrace_bool enable) {
+    void ctrace_enable_inlined_call_resolution(ctrace_bool enable) {
         cpptrace::enable_inlined_call_resolution(enable);
     }
 }
