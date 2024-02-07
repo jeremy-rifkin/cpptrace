@@ -244,7 +244,7 @@ extern "C" {
     }
 
     // ctrace::resolve:
-    ctrace_stacktrace ctrace_raw_trace_resolve(const ctrace_raw_trace* trace) {
+    ctrace_stacktrace ctrace_resolve_raw_trace(const ctrace_raw_trace* trace) {
         if(!trace || !trace->frames) {
             return { nullptr, 0 };
         }
@@ -259,7 +259,7 @@ extern "C" {
         }
     }
 
-    ctrace_object_trace ctrace_raw_trace_resolve_object_trace(const ctrace_raw_trace* trace) {
+    ctrace_object_trace ctrace_resolve_raw_trace_to_object_trace(const ctrace_raw_trace* trace) {
         if(!trace || !trace->frames) {
             return { nullptr, 0 };
         }
@@ -274,7 +274,7 @@ extern "C" {
         }
     }
 
-    ctrace_stacktrace ctrace_object_trace_resolve(const ctrace_object_trace* trace) {
+    ctrace_stacktrace ctrace_resolve_object_trace(const ctrace_object_trace* trace) {
         if(!trace || !trace->frames) {
             return { nullptr, 0 };
         }
@@ -418,11 +418,6 @@ extern "C" {
         }
         auto cache_mode = static_cast<cpptrace::cache_mode>(mode);
         cpptrace::experimental::set_cache_mode(cache_mode);
-    }
-
-    ctrace_cache_mode ctrace_get_cache_mode(void) {
-        auto cache_mode = cpptrace::detail::get_cache_mode();
-        return static_cast<ctrace_cache_mode>(cache_mode);
     }
 
     void enable_inlined_call_resolution(ctrace_bool enable) {

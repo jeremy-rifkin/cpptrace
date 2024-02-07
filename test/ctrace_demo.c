@@ -5,8 +5,8 @@
 
 void trace() {
     ctrace_raw_trace raw_trace = ctrace_generate_raw_trace(1, INT_MAX);
-    ctrace_object_trace obj_trace = ctrace_raw_trace_resolve_object_trace(&raw_trace);
-    ctrace_stacktrace trace = ctrace_object_trace_resolve(&obj_trace);
+    ctrace_object_trace obj_trace = ctrace_resolve_raw_trace_to_object_trace(&raw_trace);
+    ctrace_stacktrace trace = ctrace_resolve_object_trace(&obj_trace);
     ctrace_stacktrace_print(&trace, stdout, 1);
     ctrace_free_stacktrace(&trace);
     ctrace_free_object_trace(&obj_trace);

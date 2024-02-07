@@ -54,37 +54,35 @@
  #define CTRACE_FORCE_INLINE inline
 #endif
 
-// See `CPPTRACE_PATH_MAX` for more info.
+/* See `CPPTRACE_PATH_MAX` for more info. */
 #define CTRACE_PATH_MAX 4096
 
-// TODO: Add exports
-
 CTRACE_BEGIN_DEFINITIONS
-    typedef struct raw_trace ctrace_raw_trace;
-    typedef struct object_trace ctrace_object_trace;
-    typedef struct stacktrace ctrace_stacktrace;
 
-    // Represents a boolean value, ensures a consistent ABI.
+    typedef struct ctrace_raw_trace    ctrace_raw_trace;
+    typedef struct ctrace_object_trace ctrace_object_trace;
+    typedef struct ctrace_stacktrace   ctrace_stacktrace;
+
+    /* Represents a boolean value, ensures a consistent ABI. */
     typedef int8_t ctrace_bool;
-    // A type that can represent a pointer, alias for `uintptr_t`.
+    /* A type that can represent a pointer, alias for `uintptr_t`. */
     typedef uintptr_t ctrace_frame_ptr;
-    typedef struct object_frame ctrace_object_frame;
-    typedef struct stacktrace_frame ctrace_stacktrace_frame;
-    typedef struct safe_object_frame ctrace_safe_object_frame;
+    typedef struct ctrace_object_frame      ctrace_object_frame;
+    typedef struct ctrace_stacktrace_frame  ctrace_stacktrace_frame;
+    typedef struct ctrace_safe_object_frame ctrace_safe_object_frame;
 
-    // Type-safe null-terminated string wrapper
+    /* Type-safe null-terminated string wrapper */
     typedef struct {
         const char* data;
     } ctrace_owning_string;
 
-    struct object_frame {
+    struct ctrace_object_frame {
         ctrace_frame_ptr raw_address;
         ctrace_frame_ptr obj_address;
         const char* obj_path;
-        // const char* symbol;
     };
 
-    struct stacktrace_frame {
+    struct ctrace_stacktrace_frame {
         ctrace_frame_ptr address;
         uint32_t line;
         uint32_t column;
@@ -93,74 +91,71 @@ CTRACE_BEGIN_DEFINITIONS
         ctrace_bool is_inline;
     };
 
-    struct safe_object_frame {
+    struct ctrace_safe_object_frame {
         ctrace_frame_ptr raw_address;
         ctrace_frame_ptr relative_obj_address;
         char object_path[CTRACE_PATH_MAX + 1];
     };
 
-    struct raw_trace {
+    struct ctrace_raw_trace {
         ctrace_frame_ptr* frames;
         size_t count;
     };
 
-    struct object_trace {
+    struct ctrace_object_trace {
         ctrace_object_frame* frames;
         size_t count;
     };
 
-    struct stacktrace {
+    struct ctrace_stacktrace {
         ctrace_stacktrace_frame* frames;
         size_t count;
     };
 
-    typedef enum {
-        // Only minimal lookup tables
-        ctrace_prioritize_memory = 0,
-        // Build lookup tables but don't keep them around between trace calls
-        ctrace_hybrid = 1,
-        // Build lookup tables as needed
-        ctrace_prioritize_speed = 2
-    } ctrace_cache_mode;
-
-    // ctrace::string:
+    /* ctrace::string: */
     CPPTRACE_EXPORT ctrace_owning_string ctrace_generate_owning_string(const char* raw_string);
     CPPTRACE_EXPORT void ctrace_free_owning_string(ctrace_owning_string* string);
 
-    // ctrace::generation:
+    /* ctrace::generation: */
     CPPTRACE_EXPORT ctrace_raw_trace    ctrace_generate_raw_trace(size_t skip, size_t max_depth);
     CPPTRACE_EXPORT ctrace_object_trace ctrace_generate_object_trace(size_t skip, size_t max_depth);
     CPPTRACE_EXPORT ctrace_stacktrace   ctrace_generate_trace(size_t skip, size_t max_depth);
 
-    // ctrace::freeing:
+    /* ctrace::freeing: */
     CPPTRACE_EXPORT void ctrace_free_raw_trace(ctrace_raw_trace* trace);
     CPPTRACE_EXPORT void ctrace_free_object_trace(ctrace_object_trace* trace);
     CPPTRACE_EXPORT void ctrace_free_stacktrace(ctrace_stacktrace* trace);
 
-    // ctrace::resolve:
-    CPPTRACE_EXPORT ctrace_stacktrace ctrace_raw_trace_resolve(const ctrace_raw_trace* trace);
-    CPPTRACE_EXPORT ctrace_object_trace ctrace_raw_trace_resolve_object_trace(const ctrace_raw_trace* trace);
-    CPPTRACE_EXPORT ctrace_stacktrace ctrace_object_trace_resolve(const ctrace_object_trace* trace);
+    /* ctrace::resolve: */
+    CPPTRACE_EXPORT ctrace_stacktrace   ctrace_resolve_raw_trace(const ctrace_raw_trace* trace);
+    CPPTRACE_EXPORT ctrace_object_trace ctrace_resolve_raw_trace_to_object_trace(const ctrace_raw_trace* trace);
+    CPPTRACE_EXPORT ctrace_stacktrace   ctrace_resolve_object_trace(const ctrace_object_trace* trace);
 
-    // ctrace::safe:
+    /* ctrace::safe: */
     CPPTRACE_EXPORT size_t ctrace_safe_generate_raw_trace(ctrace_frame_ptr* buffer, size_t size, size_t skip, size_t max_depth);
     CPPTRACE_EXPORT void ctrace_get_safe_object_frame(ctrace_frame_ptr address, ctrace_safe_object_frame* out);
 
-    // ctrace::io:
+    /* ctrace::io: */
     CPPTRACE_EXPORT ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);
     CPPTRACE_EXPORT void ctrace_stacktrace_print(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color);
 
-    // ctrace::utility:
+    /* ctrace::utility: */
     CPPTRACE_EXPORT ctrace_owning_string ctrace_demangle(const char* mangled);
     CPPTRACE_EXPORT int ctrace_stdin_fileno(void);
     CPPTRACE_EXPORT int ctrace_stderr_fileno(void);
     CPPTRACE_EXPORT int ctrace_stdout_fileno(void);
     CPPTRACE_EXPORT ctrace_bool ctrace_isatty(int fd);
 
-    // ctrace::config:
+    /* ctrace::config: */
+    typedef enum {
+        /* Only minimal lookup tables */
+        ctrace_prioritize_memory = 0,
+        /* Build lookup tables but don't keep them around between trace calls */
+        ctrace_hybrid = 1,
+        /* Build lookup tables as needed */
+        ctrace_prioritize_speed = 2
+    } ctrace_cache_mode;
     CPPTRACE_EXPORT void ctrace_set_cache_mode(ctrace_cache_mode mode);
-    CPPTRACE_EXPORT ctrace_cache_mode ctrace_get_cache_mode(void);
-
     CPPTRACE_EXPORT void enable_inlined_call_resolution(ctrace_bool enable);
 
 CTRACE_END_DEFINITIONS
