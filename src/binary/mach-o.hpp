@@ -451,6 +451,8 @@ namespace detail {
                 off_t mach_header_offset = (off_t)arch.offset;
                 arch_offset += arch_size;
                 std::uint32_t magic = load_bytes<std::uint32_t>(file, mach_header_offset);
+                std::cerr<<"xxx: "<<arch.cputype<<" : "<<mhp->cputype<<std::endl;
+                std::cerr<<"     "<<arch.cpusubtype<<" : "<<static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK)<<std::endl;
                 if(
                     arch.cputype == mhp->cputype &&
                     static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) == arch.cpusubtype
