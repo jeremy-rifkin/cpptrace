@@ -243,8 +243,9 @@ endif()
 # ---- Generate Build Info Headers ----
 
 # used in export header generated below
-if(NOT CPPTRACE_BUILD_SHARED)
+if(build_type STREQUAL "STATIC")
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_STATIC_DEFINE)
+  set(CPPTRACE_STATIC_DEFINE TRUE)
 endif()
 
 # ---- Library Properties ----
