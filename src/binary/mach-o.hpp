@@ -26,6 +26,7 @@
 #include <crt_externs.h>
 #include <mach-o/nlist.h>
 #include <mach-o/stab.h>
+#include <mach-o/arch.h>
 
 namespace cpptrace {
 namespace detail {
@@ -176,7 +177,7 @@ namespace detail {
                 }
             }
             // somehow no __TEXT section was found...
-            PANIC("Couldn't find __TEXT section while parsing Mach-O object");
+            throw std::runtime_error("Couldn't find __TEXT section while parsing Mach-O object");
             return 0;
         }
 
@@ -410,7 +411,7 @@ namespace detail {
                 if(allow_arch_mismatch) {
                     return;
                 } else {
-                    PANIC("Mach-O file cpu type and subtype do not match current machine " + object_path);
+                    throw std::runtime_error("Mach-O file cpu type and subtype do not match current machine " + object_path);
                 }
             }
             cputype = header.cputype;
@@ -441,34 +442,64 @@ namespace detail {
             if(should_swap()) {
                 swap_fat_header(&header, NX_UnknownByteOrder);
             }
-            thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
+            // thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
+            // off_t arch_offset = (off_t)header_size;
+            // for(std::size_t i = 0; i < header.nfat_arch; i++) {
+            //     fat_arch arch = load_bytes<fat_arch>(file, arch_offset);
+            //     if(should_swap()) {
+            //         swap_fat_arch(&arch, 1, NX_UnknownByteOrder);
+            //     }
+            //     off_t mach_header_offset = (off_t)arch.offset;
+            //     arch_offset += arch_size;
+            //     std::uint32_t magic = load_bytes<std::uint32_t>(file, mach_header_offset);
+            //     std::cerr<<"xxx: "<<arch.cputype<<" : "<<mhp->cputype<<std::endl;
+            //     std::cerr<<"     "<<arch.cpusubtype<<" : "<<static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK)<<std::endl;
+            //     if(
+            //         arch.cputype == mhp->cputype &&
+            //         static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) == arch.cpusubtype
+            //     ) {
+            //         load_base = mach_header_offset;
+            //         fat_index = i;
+            //         if(is_magic_64(magic)) {
+            //             load_mach<64>(true);
+            //         } else {
+            //             load_mach<32>(true);
+            //         }
+            //         return;
+            //     }
+            // }
+            std::vector<fat_arch> fat_arches;
+            fat_arches.reserve(header.nfat_arch);
             off_t arch_offset = (off_t)header_size;
             for(std::size_t i = 0; i < header.nfat_arch; i++) {
                 fat_arch arch = load_bytes<fat_arch>(file, arch_offset);
                 if(should_swap()) {
                     swap_fat_arch(&arch, 1, NX_UnknownByteOrder);
                 }
-                off_t mach_header_offset = (off_t)arch.offset;
+                fat_arches.push_back(arch);
                 arch_offset += arch_size;
+            }
+            thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
+            fat_arch* best = NXFindBestFatArch(
+                mhp->cputype,
+                mhp->cpusubtype,
+                fat_arches.data(),
+                header.nfat_arch
+            );
+            if(best) {
+                off_t mach_header_offset = (off_t)best->offset;
                 std::uint32_t magic = load_bytes<std::uint32_t>(file, mach_header_offset);
-                std::cerr<<"xxx: "<<arch.cputype<<" : "<<mhp->cputype<<std::endl;
-                std::cerr<<"     "<<arch.cpusubtype<<" : "<<static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK)<<std::endl;
-                if(
-                    arch.cputype == mhp->cputype &&
-                    static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) == arch.cpusubtype
-                ) {
-                    load_base = mach_header_offset;
-                    fat_index = i;
-                    if(is_magic_64(magic)) {
-                        load_mach<64>(true);
-                    } else {
-                        load_mach<32>(true);
-                    }
-                    return;
+                load_base = mach_header_offset;
+                fat_index = best - fat_arches.data();
+                if(is_magic_64(magic)) {
+                    load_mach<64>(true);
+                } else {
+                    load_mach<32>(true);
                 }
+                return;
             }
             // If this is reached... something went wrong. The cpu we're on wasn't found.
-            PANIC("Couldn't find appropriate architecture in fat Mach-O");
+            throw std::runtime_error("Couldn't find appropriate architecture in fat Mach-O");
         }
 
         template<std::size_t Bits>
