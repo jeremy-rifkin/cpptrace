@@ -273,7 +273,7 @@ namespace cpptrace {
 `cpptrace::absorb_trace_exceptions`: Configure whether the library silently absorbs internal exceptions and continues.
 Default is true.
 
-`cpptrace::enable_inlined_call_resolution`: Configure whether the library will attempt to resolve inlined call
+`cpptrace::ctrace_enable_inlined_call_resolution`: Configure whether the library will attempt to resolve inlined call
 information for release builds. Default is true.
 
 `cpptrace::experimental::set_cache_mode`: Control time-memory tradeoffs within the library. By default speed is
@@ -283,7 +283,7 @@ performed.
 ```cpp
 namespace cpptrace {
     void absorb_trace_exceptions(bool absorb);
-    void enable_inlined_call_resolution(bool enable);
+    void ctrace_enable_inlined_call_resolution(bool enable);
 
     enum class cache_mode {
         // Only minimal lookup tables
