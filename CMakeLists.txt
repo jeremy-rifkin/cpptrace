@@ -377,13 +377,14 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       # GIT_REPOSITORY https://github.com/davea42/libdwarf-code.git
       # GIT_TAG 6216e185863f41d6f19ab850caabfff7326020d7 # v0.8.0
       # GIT_TAG 8b0bd09d8c77d45a68cb1bb00a54186a92b683d9 # v0.9.0
-      # GIT_TAG c0cfba34ec80996426b5be2523f6447a2c9b7b39 # v0.9.0 + mach-o changes
+      # GIT_TAG 8cdcc531f310d1c5ae61da469d8056bdd36b77e7 # v0.9.1 + some cmake changes
       # Using a lightweight mirror that's optimized for clone + configure speed
-      # GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-lite.git
+      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-lite.git
       # GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
       # GIT_TAG 71090c680b4c943448ba87a0f1f864f174e4edda # v0.9.0
-      GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
-      GIT_TAG 308b55331b564d4fdbe3bc6856712270e5b2395b
+      GIT_TAG 5c0cb251f94b27e90184e6b2d9a0c9c62593babc # v0.9.1 + some cmake changes
+      # GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+      # GIT_TAG 308b55331b564d4fdbe3bc6856712270e5b2395b
       GIT_SHALLOW 1
     )
     # FetchContent_MakeAvailable(libdwarf)
