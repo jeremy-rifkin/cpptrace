@@ -48,7 +48,7 @@ jobs:
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}}
   test-macos:
-    runs-on: macos-13
+    runs-on: macos-14
     strategy:
       fail-fast: false
       matrix:

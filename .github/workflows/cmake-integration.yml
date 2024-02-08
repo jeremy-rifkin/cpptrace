@@ -66,7 +66,7 @@ jobs:
            ./main
 
   test-macos-fetchcontent:
-    runs-on: macos-13
+    runs-on: macos-14
     strategy:
       fail-fast: false
       matrix:
@@ -85,7 +85,7 @@ jobs:
            make
            ./main
   test-macos-findpackage:
-    runs-on: macos-13
+    runs-on: macos-14
     strategy:
       fail-fast: false
       matrix:
@@ -108,7 +108,7 @@ jobs:
            make
            ./main
   test-macos-add_subdirectory:
-    runs-on: macos-13
+    runs-on: macos-14
     strategy:
       fail-fast: false
       matrix:
