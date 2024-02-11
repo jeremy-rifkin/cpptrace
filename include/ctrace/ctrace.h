@@ -8,13 +8,9 @@
 #ifdef _WIN32
 #define CPPTRACE_EXPORT_ATTR __declspec(dllexport)
 #define CPPTRACE_IMPORT_ATTR __declspec(dllimport)
-#define CPPTRACE_NO_EXPORT_ATTR
-#define CPPTRACE_DEPRECATED_ATTR __declspec(deprecated)
 #else
 #define CPPTRACE_EXPORT_ATTR __attribute__((visibility("default")))
 #define CPPTRACE_IMPORT_ATTR __attribute__((visibility("default")))
-#define CPPTRACE_NO_EXPORT_ATTR __attribute__((visibility("hidden")))
-#define CPPTRACE_DEPRECATE_ATTR __attribute__((__deprecated__))
 #endif
 
 #ifdef CPPTRACE_STATIC_DEFINE
