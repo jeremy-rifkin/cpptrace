@@ -659,12 +659,23 @@ the libraries are installed to `~/scratch/cpptrace-test/resources`.
 mkdir -p ~/scratch/cpptrace-test/resources
 
 cd ~/scratch/cpptrace-test
-git clone https://github.com/davea42/libdwarf-code.git
-cd libdwarf-code
-git checkout 6216e185863f41d6f19ab850caabfff7326020d7 # looks like some cmake stuff changed upstream, checking out the commit cpptrace currently uses
+git clone https://github.com/facebook/zstd.git
+cd zstd
+git checkout 63779c798237346c2b245c546c40b72a5a5913fe
+cd build/cmake
 mkdir build
 cd build
-cmake .. -DPIC_ALWAYS=On -DBUILD_DWARFDUMP=Off -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
+cmake .. -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources -DZSTD_BUILD_PROGRAMS=On -DZSTD_BUILD_CONTRIB=On -DZSTD_BUILD_TESTS=On -DZSTD_BUILD_STATIC=On -DZSTD_BUILD_SHARED=On -DZSTD_LEGACY_SUPPORT=On
+make -j
+make install
+
+cd ~/scratch/cpptrace-test
+git clone https://github.com/jeremy-rifkin/libdwarf-lite.git
+cd libdwarf-lite
+git checkout 5c0cb251f94b27e90184e6b2d9a0c9c62593babc
+mkdir build
+cd build
+cmake .. -DPIC_ALWAYS=On -DBUILD_DWARFDUMP=Off -DCMAKE_PREFIX_PATH=~/scratch/cpptrace-test/resources -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
 make -j
 make install
 
