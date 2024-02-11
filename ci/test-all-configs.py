@@ -110,7 +110,7 @@ def output_matches(raw_output: str, params: Tuple[str]):
 
     return not errored
 
-def run_command(*args: List[str]):
+def run_command(*args: List[str], always_output=False):
     global failed
     print(f"{Fore.CYAN}{Style.BRIGHT}Running Command \"{' '.join(args)}\"{Style.RESET_ALL}")
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -126,6 +126,11 @@ def run_command(*args: List[str]):
         return False
     else:
         print(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL}")
+        if always_output:
+            print("stdout:")
+            print(stdout.decode("utf-8"), end="")
+            print("stderr:")
+            print(stderr.decode("utf-8"), end="")
         return True
 
 def run_test(test_binary, params: Tuple[str]):
