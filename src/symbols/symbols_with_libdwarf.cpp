@@ -341,6 +341,7 @@ namespace libdwarf {
                 Dwarf_Signed dw_filecount;
                 VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
                 if(Dwarf_Signed(file_i) < dw_filecount) {
+                    // dwarf is using 1-indexing
                     filename = dw_srcfiles[file_i - 1];
                 }
                 dwarf_dealloc(cu_die.dbg, dw_srcfiles, DW_DLA_LIST);
@@ -356,6 +357,7 @@ namespace libdwarf {
                 char** dw_srcfiles = it->second.first;
                 Dwarf_Signed dw_filecount = it->second.second;
                 if(Dwarf_Signed(file_i) < dw_filecount) {
+                    // dwarf is using 1-indexing
                     filename = dw_srcfiles[file_i - 1];
                 }
             }
@@ -378,7 +380,13 @@ namespace libdwarf {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
                             const auto name = subprogram_symbol(die, dwversion);
                             const auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
-                            std::string file = file_i ? resolve_filename(cu_die, file_i.unwrap()) : "";
+                            // TODO: Somehow file_i can end up being 0 here, in a way I don't understand. The string
+                            // table is 1-indexed and the first string isn't the correct string. Somehow dwarfdump
+                            // resolves this correctly. And also somehow in testing a file name ends up getting used
+                            // here but I have no idea where it's coming from.
+                            std::string file = file_i && file_i.unwrap() > 0
+                                                    ? resolve_filename(cu_die, file_i.unwrap())
+                                                    : "";
                             const auto line = die.get_unsigned_attribute(DW_AT_call_line);
                             const auto col = die.get_unsigned_attribute(DW_AT_call_column);
                             inlines.push_back(stacktrace_frame{
