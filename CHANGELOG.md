@@ -1,12 +1,42 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.4.0](#v040)
 - [v0.3.1](#v031)
 - [v0.3.0](#v030)
 - [v0.2.1](#v021)
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.4.0
+
+What's new:
+- Cpptrace now has a C API! 🎉
+- Cpptrace is now able to parse macOS debug maps and resolve stack traces without dSYM files
+
+Most notable improvements:
+- Updated cpptrace exception objects to generate traces at the callsite for improved consistency with trace output. As
+  part fo this cpptrace exception objects have had their constructors updated.
+- Improved dwarf back-end robustness
+  - Fallback to the compilation-unit cache or walking compilation-units if aranges lookup fails
+- Eliminated reliance on a CMake-generated export header
+- Added a configuration to control resolution of inlined function calls
+- Made architecture selection in Mach-O universal binaries
+
+Other improvements:
+- Improved documentation for installation and usage
+- Generally improved README content and organization
+- Fixed an MSVC workaround producing dozens of warnings
+- Better handle compiler color diagnostic arguments if compiler families differ
+- Improvements for handling libdwarf's header placement
+- Fixed issue with libunwind resolution
+- `-Werror` is now used in CI
+- More library configurations are now tested in CI
+- Updated to libdwarf 9
+- Updated the library's CMake to acquire zstd through FetchContent
+- Fixed minor issue with stacktrace printing always trying to enable virtual terminal processing, even when not actually
+  printing to the terminal.
 
 # v0.3.1
 
