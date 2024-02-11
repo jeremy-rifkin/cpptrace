@@ -141,7 +141,6 @@ namespace detail {
 
     public:
         mach_o(const std::string& object_path) : object_path(object_path) {
-            fprintf(stderr, "new mach -------------------------------------- %s\n", object_path.c_str());
             file = std::fopen(object_path.c_str(), "rb");
             if(file == nullptr) {
                 throw file_error("Unable to read object file " + object_path);
@@ -167,13 +166,11 @@ namespace detail {
         }
 
         std::uintptr_t get_text_vmaddr() {
-            fprintf(stderr, "get_text_vmaddr------------- %s\n", object_path.c_str());
             for(const auto& command : load_commands) {
                 if(command.cmd == LC_SEGMENT_64 || command.cmd == LC_SEGMENT) {
                     auto segment = command.cmd == LC_SEGMENT_64
                                         ? load_segment_command<64>(command.file_offset)
                                         : load_segment_command<32>(command.file_offset);
-                    fprintf(stderr, "foo \"%s\", %d\n", segment.segname, std::strcmp(segment.segname, "__TEXT") == 0);
                     if(std::strcmp(segment.segname, "__TEXT") == 0) {
                         return segment.vmaddr;
                     }
@@ -181,6 +178,7 @@ namespace detail {
             }
             // somehow no __TEXT section was found...
             throw std::runtime_error("Couldn't find __TEXT section while parsing Mach-O object");
+            return 0;
         }
 
         std::size_t get_fat_index() const {
@@ -411,7 +409,6 @@ namespace detail {
             flags = header.flags;
             // handle load commands
             std::uint32_t ncmds = header.ncmds;
-            fprintf(stderr, "ncmds: %u\n", ncmds);
             std::uint32_t load_commands_offset = load_base + header_size;
             // iterate load commands
             std::uint32_t actual_offset = load_commands_offset;
@@ -481,7 +478,6 @@ namespace detail {
                 std::uint32_t magic = load_bytes<std::uint32_t>(file, mach_header_offset);
                 load_base = mach_header_offset;
                 fat_index = best - fat_arches.data();
-                fprintf(stderr, "INDEX: %llu\n", to_ull(fat_index));
                 if(is_magic_64(magic)) {
                     load_mach<64>();
                 } else {

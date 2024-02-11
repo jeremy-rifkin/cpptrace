@@ -80,9 +80,6 @@ jobs:
            make -j
            sudo make install
            cd ../../cpptrace
-           file /usr/lib/dyld
-           otool -l /usr/lib/dyld
-           uname -a
     - name: dependencies
       run: |
            pip3 install colorama

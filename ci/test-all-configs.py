@@ -110,7 +110,7 @@ def output_matches(raw_output: str, params: Tuple[str]):
 
     return not errored
 
-def run_command(*args: List[str], always_output=False):
+def run_command(*args: List[str]):
     global failed
     print(f"{Fore.CYAN}{Style.BRIGHT}Running Command \"{' '.join(args)}\"{Style.RESET_ALL}")
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -126,11 +126,6 @@ def run_command(*args: List[str], always_output=False):
         return False
     else:
         print(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL}")
-        if always_output:
-            print("stdout:")
-            print(stdout.decode("utf-8"), end="")
-            print("stderr:")
-            print(stderr.decode("utf-8"), end="")
         return True
 
 def run_test(test_binary, params: Tuple[str]):
@@ -260,8 +255,6 @@ def build_full_or_auto(matrix):
 
 def test(matrix):
     if platform.system() != "Windows":
-        if platform.system() == "Darwin":
-            run_command("otool", "-l", "./test", always_output=True)
         return run_test(
             "./test",
             (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
@@ -280,8 +273,6 @@ def test(matrix):
 
 def test_full_or_auto(matrix):
     if platform.system() != "Windows":
-        if platform.system() == "Darwin":
-            run_command("otool", "-l", "./test", always_output=True)
         return run_test(
             "./test",
             (matrix["compiler"],)
