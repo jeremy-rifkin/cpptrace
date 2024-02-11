@@ -18,7 +18,7 @@ Cpptrace provides a C API under the name ctrace, documented below.
 All ctrace declarations are in the `ctrace.h` header:
 
 ```c
-#include <cpptrace/ctrace.h>
+#include <ctrace/ctrace.h>
 ```
 
 ### Stack Traces
