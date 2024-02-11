@@ -56,7 +56,9 @@ namespace detail {
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
-            auto base = mach_o(object_path).get_text_vmaddr();
+            mach_o obj(object_path);
+            obj.print_segments();
+            auto base = obj.get_text_vmaddr();
             cache.insert(it, {object_path, base});
             return base;
         } else {
