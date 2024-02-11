@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 void trace() {
-    *(char*)0 = 2;
+    *(volatile char*)0 = 2;
 }
 
 void bar() {
