@@ -153,9 +153,9 @@ namespace detail {
             } else {
                 fat_index = 0;
                 if(is_magic_64(magic)) {
-                    load_mach<64>(false);
+                    load_mach<64>();
                 } else {
-                    load_mach<32>(false);
+                    load_mach<32>();
                 }
             }
         }
@@ -393,9 +393,7 @@ namespace detail {
 
     private:
         template<std::size_t Bits>
-        void load_mach(
-            bool allow_arch_mismatch
-        ) {
+        void load_mach() {
             static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
             bits = Bits;
             using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
@@ -404,17 +402,6 @@ namespace detail {
             magic = header.magic;
             if(should_swap()) {
                 swap_mach_header(header);
-            }
-            thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
-            if(
-                header.cputype != mhp->cputype ||
-                static_cast<cpu_subtype_t>(mhp->cpusubtype & ~CPU_SUBTYPE_MASK) != header.cpusubtype
-            ) {
-                if(allow_arch_mismatch) {
-                    return;
-                } else {
-                    throw std::runtime_error("Mach-O file cpu type and subtype do not match current machine " + object_path);
-                }
             }
             cputype = header.cputype;
             cpusubtype = header.cpusubtype;
@@ -496,9 +483,9 @@ namespace detail {
                 fat_index = best - fat_arches.data();
                 fprintf(stderr, "INDEX: %llu\n", to_ull(fat_index));
                 if(is_magic_64(magic)) {
-                    load_mach<64>(true);
+                    load_mach<64>();
                 } else {
-                    load_mach<32>(true);
+                    load_mach<32>();
                 }
                 return;
             }
