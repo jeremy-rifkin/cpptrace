@@ -242,7 +242,6 @@ endif()
 
 # ---- Generate Build Info Headers ----
 
-# used in export header generated below
 if(build_type STREQUAL "STATIC")
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_STATIC_DEFINE)
   set(CPPTRACE_STATIC_DEFINE TRUE)
@@ -408,7 +407,6 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     target_compile_definitions(${target_name} PRIVATE CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH)
   elseif(CPPTRACE_VCPKG)
     target_link_libraries(${target_name} PRIVATE libdwarf::dwarf)
-    target_compile_definitions(${target_name} PRIVATE CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH)
   elseif(CPPTRACE_USE_EXTERNAL_LIBDWARF)
     if(DEFINED LIBDWARF_LIBRARIES)
       target_link_libraries(${target_name} PRIVATE ${LIBDWARF_LIBRARIES})
