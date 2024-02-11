@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -1158,9 +1159,13 @@ namespace libdwarf {
             // most recent call first
             if(!entry.inlines.empty()) {
                 // insert in reverse order
-                final_trace.insert(final_trace.end(), entry.inlines.rbegin(), entry.inlines.rend());
+                final_trace.insert(
+                    final_trace.end(),
+                    std::make_move_iterator(entry.inlines.rbegin()),
+                    std::make_move_iterator(entry.inlines.rend())
+                );
             }
-            final_trace.push_back(entry.frame);
+            final_trace.push_back(std::move(entry.frame));
             if(!entry.inlines.empty()) {
                 // rotate line info due to quirk of how dwarf stores this stuff
                 // inclusive range
