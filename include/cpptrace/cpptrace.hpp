@@ -10,7 +10,28 @@
 #include <utility>
 #include <vector>
 
-#include <cpptrace/cpptrace_export.hpp>
+#ifdef _WIN32
+#define CPPTRACE_EXPORT_ATTR __declspec(dllexport)
+#define CPPTRACE_IMPORT_ATTR __declspec(dllimport)
+#else
+#define CPPTRACE_EXPORT_ATTR __attribute__((visibility("default")))
+#define CPPTRACE_IMPORT_ATTR __attribute__((visibility("default")))
+#endif
+
+#ifdef CPPTRACE_STATIC_DEFINE
+#  define CPPTRACE_EXPORT
+#  define CPPTRACE_NO_EXPORT
+#else
+#  ifndef CPPTRACE_EXPORT
+#    ifdef cpptrace_lib_EXPORTS
+        /* We are building this library */
+#      define CPPTRACE_EXPORT CPPTRACE_EXPORT_ATTR
+#    else
+        /* We are using this library */
+#      define CPPTRACE_EXPORT CPPTRACE_IMPORT_ATTR
+#    endif
+#  endif
+#endif
 
 #if __cplusplus >= 202002L
  #ifdef __has_include
@@ -213,7 +234,6 @@ namespace cpptrace {
 
     // utilities:
     CPPTRACE_EXPORT std::string demangle(const std::string& name);
-    CPPTRACE_EXPORT void absorb_trace_exceptions(bool absorb);
     CPPTRACE_EXPORT bool isatty(int fd);
 
     CPPTRACE_EXPORT extern const int stdin_fileno;
@@ -222,19 +242,24 @@ namespace cpptrace {
 
     CPPTRACE_EXPORT void register_terminate_handler();
 
+    // configuration:
+    CPPTRACE_EXPORT void absorb_trace_exceptions(bool absorb);
+    CPPTRACE_EXPORT void enable_inlined_call_resolution(bool enable);
+
     enum class cache_mode {
         // Only minimal lookup tables
-        prioritize_memory,
+        prioritize_memory = 0,
         // Build lookup tables but don't keep them around between trace calls
-        hybrid,
+        hybrid = 1,
         // Build lookup tables as needed
-        prioritize_speed
+        prioritize_speed = 2
     };
 
     namespace experimental {
         CPPTRACE_EXPORT void set_cache_mode(cache_mode mode);
     }
 
+    // tracing exceptions:
     namespace detail {
         // This is a helper utility, if the library weren't C++11 an std::variant would be used
         class CPPTRACE_EXPORT lazy_trace_holder {
@@ -260,6 +285,9 @@ namespace cpptrace {
         private:
             void clear();
         };
+
+        CPPTRACE_EXPORT raw_trace get_raw_trace_and_absorb(std::size_t skip, std::size_t max_depth) noexcept;
+        CPPTRACE_EXPORT raw_trace get_raw_trace_and_absorb(std::size_t skip = 0) noexcept;
     }
 
     // Interface for a traced exception object
@@ -272,17 +300,14 @@ namespace cpptrace {
 
     // Cpptrace traced exception object
     // I hate to have to expose anything about implementation detail but the idea here is that
-    // TODO: CPPTRACE_FORCE_NO_INLINE annotations
     class CPPTRACE_EXPORT lazy_exception : public exception {
         mutable detail::lazy_trace_holder trace_holder;
         mutable std::string what_string;
 
-    protected:
-        explicit lazy_exception(std::size_t skip, std::size_t max_depth) noexcept;
-        explicit lazy_exception(std::size_t skip) noexcept : lazy_exception(skip + 1, SIZE_MAX) {}
-
     public:
-        explicit lazy_exception() noexcept : lazy_exception(1) {}
+        explicit lazy_exception(
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept : trace_holder(std::move(trace)) {}
         // std::exception
         const char* what() const noexcept override;
         // cpptrace::exception
@@ -293,87 +318,105 @@ namespace cpptrace {
     class CPPTRACE_EXPORT exception_with_message : public lazy_exception {
         mutable std::string user_message;
 
-    protected:
-        explicit exception_with_message(
-            std::string&& message_arg,
-            std::size_t skip
-        ) noexcept : lazy_exception(skip + 1), user_message(std::move(message_arg)) {}
-
-        explicit exception_with_message(
-            std::string&& message_arg,
-            std::size_t skip,
-            std::size_t max_depth
-        ) noexcept : lazy_exception(skip + 1, max_depth), user_message(std::move(message_arg)) {}
-
     public:
-        explicit exception_with_message(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit exception_with_message(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept : lazy_exception(std::move(trace)), user_message(std::move(message_arg)) {}
 
         const char* message() const noexcept override;
     };
 
     class CPPTRACE_EXPORT logic_error : public exception_with_message {
     public:
-        explicit logic_error(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit logic_error(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : exception_with_message(std::move(message_arg), std::move(trace)) {}
     };
 
     class CPPTRACE_EXPORT domain_error : public exception_with_message {
     public:
-        explicit domain_error(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit domain_error(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : exception_with_message(std::move(message_arg), std::move(trace)) {}
     };
 
     class CPPTRACE_EXPORT invalid_argument : public exception_with_message {
     public:
-        explicit invalid_argument(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit invalid_argument(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : exception_with_message(std::move(message_arg), std::move(trace)) {}
     };
 
     class CPPTRACE_EXPORT length_error : public exception_with_message {
     public:
-        explicit length_error(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit length_error(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : exception_with_message(std::move(message_arg), std::move(trace)) {}
     };
 
     class CPPTRACE_EXPORT out_of_range : public exception_with_message {
     public:
-        explicit out_of_range(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit out_of_range(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : exception_with_message(std::move(message_arg), std::move(trace)) {}
     };
 
     class CPPTRACE_EXPORT runtime_error : public exception_with_message {
     public:
-        explicit runtime_error(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit runtime_error(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : exception_with_message(std::move(message_arg), std::move(trace)) {}
     };
 
     class CPPTRACE_EXPORT range_error : public exception_with_message {
     public:
-        explicit range_error(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit range_error(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : exception_with_message(std::move(message_arg), std::move(trace)) {}
     };
 
     class CPPTRACE_EXPORT overflow_error : public exception_with_message {
     public:
-        explicit overflow_error(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit overflow_error(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : exception_with_message(std::move(message_arg), std::move(trace)) {}
     };
 
     class CPPTRACE_EXPORT underflow_error : public exception_with_message {
     public:
-        explicit underflow_error(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
+        explicit underflow_error(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : exception_with_message(std::move(message_arg), std::move(trace)) {}
     };
 
     class CPPTRACE_EXPORT nested_exception : public lazy_exception {
         std::exception_ptr ptr;
         mutable std::string message_value;
     public:
-        explicit nested_exception(std::exception_ptr exception_ptr) noexcept
-            : lazy_exception(1), ptr(exception_ptr) {}
-        explicit nested_exception(std::exception_ptr exception_ptr, std::size_t skip) noexcept
-            : lazy_exception(skip + 1), ptr(exception_ptr) {}
+        explicit nested_exception(
+            std::exception_ptr exception_ptr,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : lazy_exception(std::move(trace)), ptr(exception_ptr) {}
 
         const char* message() const noexcept override;
         std::exception_ptr nested_ptr() const noexcept;

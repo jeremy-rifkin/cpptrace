@@ -14,6 +14,7 @@
 # | CPPTRACE_INCLUDES_WITH_SYSTEM   | Not Top-Level | ON                                            |
 # | CPPTRACE_INSTALL_CMAKEDIR       | Always        | ${CMAKE_INSTALL_LIBDIR}/cmake/${package_name} |
 # | CPPTRACE_USE_EXTERNAL_LIBDWARF  | Always        | OFF                                           |
+# | CPPTRACE_USE_EXTERNAL_ZSTD      | Always        | OFF                                           |
 # | ...                             |               |                                               |
 # ---------------------------------------------------------------------------------------------------
 
@@ -158,15 +159,18 @@ if(PROJECT_IS_TOP_LEVEL)
 endif()
 
 option(CPPTRACE_USE_EXTERNAL_LIBDWARF "" OFF)
+option(CPPTRACE_USE_EXTERNAL_ZSTD "" OFF)
 option(CPPTRACE_CONAN "" OFF)
 option(CPPTRACE_VCPKG "" OFF)
 option(CPPTRACE_SANITIZER_BUILD "" OFF)
+option(CPPTRACE_WERROR_BUILD "" OFF)
 
 mark_as_advanced(
   CPPTRACE_BACKTRACE_PATH
   CPPTRACE_ADDR2LINE_PATH
   CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
   CPPTRACE_SANITIZER_BUILD
+  CPPTRACE_WERROR_BUILD
   CPPTRACE_CONAN
   CPPTRACE_VCPKG
 )

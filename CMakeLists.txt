@@ -189,6 +189,7 @@ add_library(cpptrace::cpptrace ALIAS ${target_name})
 target_sources(
     ${target_name} PRIVATE
     include/cpptrace/cpptrace.hpp
+    include/ctrace/ctrace.h
 )
 
 # add /src files to target
@@ -196,6 +197,7 @@ target_sources(
     ${target_name} PRIVATE
     # src
     src/cpptrace.cpp
+    src/ctrace.cpp
     src/demangle/demangle_with_cxxabi.cpp
     src/demangle/demangle_with_winapi.cpp
     src/demangle/demangle_with_nothing.cpp
@@ -229,20 +231,21 @@ target_compile_options(
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
 
-# ---- Generate Build Info Headers ----
-
-# used in export header generated below
-if(NOT CPPTRACE_BUILD_SHARED)
-  target_compile_definitions(${target_name} PUBLIC CPPTRACE_STATIC_DEFINE)
+if(CPPTRACE_WERROR_BUILD)
+  target_compile_options(
+    ${target_name}
+    PRIVATE
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>
+    $<$<CXX_COMPILER_ID:MSVC>:/WX>
+  )
 endif()
 
-# generate header file with export macros prefixed with BASE_NAME
-include(GenerateExportHeader)
-generate_export_header(
-  ${target_name}
-  BASE_NAME cpptrace
-  EXPORT_FILE_NAME include/cpptrace/cpptrace_export.hpp
-)
+# ---- Generate Build Info Headers ----
+
+if(build_type STREQUAL "STATIC")
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_STATIC_DEFINE)
+  set(CPPTRACE_STATIC_DEFINE TRUE)
+endif()
 
 # ---- Library Properties ----
 
@@ -335,29 +338,111 @@ endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+  # First, dependencies: Zstd and zlib (currently relying on system zlib)
+  if(CPPTRACE_USE_EXTERNAL_ZSTD)
+    find_package(zstd)
+  else()
+    include(FetchContent)
+    cmake_policy(SET CMP0074 NEW)
+    FetchContent_Declare(
+        zstd
+        GIT_REPOSITORY https://github.com/facebook/zstd.git
+        GIT_TAG 63779c798237346c2b245c546c40b72a5a5913fe # v1.5.5
+        GIT_SHALLOW 1
+        SOURCE_SUBDIR build/cmake
+    )
+    # FetchContent_MakeAvailable(zstd)
+    FetchContent_GetProperties(zstd)
+    if(NOT zstd_POPULATED)
+      FetchContent_Populate(zstd)
+      set(ZSTD_BUILD_PROGRAMS OFF)
+      set(ZSTD_BUILD_CONTRIB OFF)
+      set(ZSTD_BUILD_TESTS OFF)
+      set(ZSTD_BUILD_STATIC ON)
+      set(ZSTD_BUILD_SHARED OFF)
+      set(ZSTD_LEGACY_SUPPORT OFF)
+      add_subdirectory("${zstd_SOURCE_DIR}/build/cmake" "${zstd_BINARY_DIR}")
+    endif()
+  endif()
+  # Libdwarf itself
   if(CPPTRACE_USE_EXTERNAL_LIBDWARF)
     find_package(libdwarf REQUIRED)
-    target_compile_definitions(${target_name} PRIVATE CPPTRACE_USE_EXTERNAL_LIBDWARF)
   else()
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-    set(PIC_ALWAYS TRUE)
-    set(BUILD_DWARFDUMP FALSE)
+    # set(PIC_ALWAYS TRUE)
+    # set(BUILD_DWARFDUMP FALSE)
     include(FetchContent)
     FetchContent_Declare(
       libdwarf
-      # GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+      # GIT_REPOSITORY https://github.com/davea42/libdwarf-code.git
       # GIT_TAG 6216e185863f41d6f19ab850caabfff7326020d7 # v0.8.0
+      # GIT_TAG 8b0bd09d8c77d45a68cb1bb00a54186a92b683d9 # v0.9.0
+      # GIT_TAG 8cdcc531f310d1c5ae61da469d8056bdd36b77e7 # v0.9.1 + some cmake changes
       # Using a lightweight mirror that's optimized for clone + configure speed
       GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-lite.git
-      GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65
+      # GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
+      # GIT_TAG 71090c680b4c943448ba87a0f1f864f174e4edda # v0.9.0
+      GIT_TAG 5c0cb251f94b27e90184e6b2d9a0c9c62593babc # v0.9.1 + some cmake changes
+      # GIT_REPOSITORY https://github.com/jeremy-rifkin/libdwarf-code.git
+      # GIT_TAG 308b55331b564d4fdbe3bc6856712270e5b2395b
       GIT_SHALLOW 1
     )
-    FetchContent_MakeAvailable(libdwarf)
+    # FetchContent_MakeAvailable(libdwarf)
+    FetchContent_GetProperties(libdwarf)
+    if(NOT libdwarf_POPULATED)
+      set(PIC_ALWAYS TRUE)
+      set(BUILD_DWARFDUMP FALSE)
+      # set(ENABLE_DECOMPRESSION FALSE)
+      FetchContent_Populate(libdwarf)
+      add_subdirectory("${libdwarf_SOURCE_DIR}" "${libdwarf_BINARY_DIR}")
+      target_include_directories(
+        dwarf
+        PRIVATE
+        ${zstd_SOURCE_DIR}/lib
+      )
+    endif()
   endif()
   if(CPPTRACE_CONAN)
     target_link_libraries(${target_name} PRIVATE libdwarf::libdwarf)
+    target_compile_definitions(${target_name} PRIVATE CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH)
   elseif(CPPTRACE_VCPKG)
-    target_link_libraries(${target_name} PRIVATE $<IF:$<TARGET_EXISTS:libdwarf::dwarf-static>,libdwarf::dwarf-static,libdwarf::dwarf-shared>)
+    target_link_libraries(${target_name} PRIVATE libdwarf::dwarf)
+  elseif(CPPTRACE_USE_EXTERNAL_LIBDWARF)
+    if(DEFINED LIBDWARF_LIBRARIES)
+      target_link_libraries(${target_name} PRIVATE ${LIBDWARF_LIBRARIES})
+    else()
+      # if LIBDWARF_LIBRARIES wasn't set by find_package, try looking for libdwarf::dwarf-static,
+      # libdwarf::dwarf-shared, libdwarf::dwarf, then libdwarf
+      # libdwarf v0.8.0 installs with the target libdwarf::dwarf somehow, despite creating libdwarf::dwarf-static or
+      # libdwarf::dwarf-shared under fetchcontent
+      if(TARGET libdwarf::dwarf-static)
+        set(LIBDWARF_LIBRARIES libdwarf::dwarf-static)
+      elseif(TARGET libdwarf::dwarf-shared)
+        set(LIBDWARF_LIBRARIES libdwarf::dwarf-shared)
+      elseif(TARGET libdwarf::dwarf)
+        set(LIBDWARF_LIBRARIES libdwarf::dwarf)
+      elseif(TARGET libdwarf)
+        set(LIBDWARF_LIBRARIES libdwarf)
+      else()
+        message(FATAL_ERROR "Couldn't find libdwarf target name to link against")
+      endif()
+      target_link_libraries(${target_name} PRIVATE ${LIBDWARF_LIBRARIES})
+    endif()
+    # There seems to be no consistency at all about where libdwarf decides to place its headers........ Figure out if
+    # it's libdwarf/libdwarf.h and libdwarf/dwarf.h or just libdwarf.h and dwarf.h
+    include(CheckIncludeFileCXX)
+    # libdwarf's cmake doesn't properly set variables to indicate where its libraries live
+    get_target_property(LIBDWARF_INTERFACE_INCLUDE_DIRECTORIES ${LIBDWARF_LIBRARIES} INTERFACE_INCLUDE_DIRECTORIES)
+    set(CMAKE_REQUIRED_INCLUDES ${LIBDWARF_INTERFACE_INCLUDE_DIRECTORIES})
+    CHECK_INCLUDE_FILE_CXX("libdwarf/libdwarf.h" LIBDWARF_IS_NESTED)
+    CHECK_INCLUDE_FILE_CXX("libdwarf.h" LIBDWARF_IS_NOT_NESTED)
+    # check_include_file("libdwarf/libdwarf.h" LIBDWARF_IS_NESTED)
+    # check_support(LIBDWARF_IS_NESTED nested_libdwarf_include.cpp "" "" "")
+    if(${LIBDWARF_IS_NESTED})
+      target_compile_definitions(${target_name} PRIVATE CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH)
+    elseif(NOT LIBDWARF_IS_NOT_NESTED)
+      message(FATAL_ERROR "Couldn't find libdwarf.h")
+    endif()
   else()
     target_link_libraries(${target_name} PRIVATE libdwarf::dwarf-static)
   endif()
@@ -471,44 +556,28 @@ endif()
 
 # =============================================== Demo/test ===============================================
 
+macro(add_test_dependencies exec_name)
+  target_compile_features(${exec_name} PRIVATE cxx_std_11)
+  target_link_libraries(${exec_name} PRIVATE ${target_name})
+  # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
+  check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
+  if(HAS_DWARF4)
+    target_compile_options(${exec_name} PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
+  endif()
+  # TODO: add debug info for mingw clang?
+  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
+    set_property(TARGET ${exec_name} PROPERTY ENABLE_EXPORTS ON)
+  endif()
+endmacro()
+
 if(CPPTRACE_BUILD_TESTING)
   add_executable(test test/test.cpp)
-  target_compile_features(test PRIVATE cxx_std_11)
-  target_link_libraries(test PRIVATE ${target_name})
-  # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
-  check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
-  if(HAS_DWARF4)
-    target_compile_options(test PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
-  endif()
-  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
-    set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
-  endif()
-  if(APPLE) # TODO: Temporary
-    add_custom_command(
-      TARGET test
-      POST_BUILD
-      COMMAND dsymutil $<TARGET_FILE:test>
-    )
-  endif()
-
   add_executable(demo test/demo.cpp)
-  target_compile_features(demo PRIVATE cxx_std_11)
-  target_link_libraries(demo PRIVATE ${target_name})
-  # Clang has been fast to adopt dwarf 5, other tools (e.g. addr2line from binutils) have not
-  check_cxx_compiler_flag("-gdwarf-4" HAS_DWARF4)
-  if(HAS_DWARF4)
-    target_compile_options(demo PRIVATE "$<$<CONFIG:Debug>:-gdwarf-4>")
-  endif()
-  if(CPPTRACE_BUILD_TEST_RDYNAMIC)
-    set_property(TARGET demo PROPERTY ENABLE_EXPORTS ON)
-  endif()
-  if(APPLE) # TODO: Temporary
-    add_custom_command(
-      TARGET demo
-      POST_BUILD
-      COMMAND dsymutil $<TARGET_FILE:demo>
-    )
-  endif()
+  add_executable(c_demo test/ctrace_demo.c)
+
+  add_test_dependencies(test)
+  add_test_dependencies(demo)
+  add_test_dependencies(c_demo)
 
   if(UNIX)
     add_executable(signal_demo test/signal_demo.cpp)

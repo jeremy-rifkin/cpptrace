@@ -58,6 +58,7 @@ namespace detail {
     static const stacktrace_frame null_frame {0, nullable<uint32_t>::null(), nullable<uint32_t>::null(), "", "", false};
 
     bool should_absorb_trace_exceptions();
+    bool should_resolve_inlined_calls();
     enum cache_mode get_cache_mode();
 }
 }

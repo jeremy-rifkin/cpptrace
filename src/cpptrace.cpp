@@ -58,7 +58,7 @@ namespace cpptrace {
             for(auto& frame : trace) {
                 frame.symbol = detail::demangle(frame.symbol);
             }
-            return stacktrace{std::move(trace)};
+            return {std::move(trace)};
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
@@ -91,7 +91,7 @@ namespace cpptrace {
             for(auto& frame : trace) {
                 frame.symbol = detail::demangle(frame.symbol);
             }
-            return stacktrace{std::move(trace)};
+            return {std::move(trace)};
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
@@ -167,7 +167,11 @@ namespace cpptrace {
     }
 
     void stacktrace::print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const {
-        if(color) {
+        if(
+            color && (
+                (&stream == &std::cout && isatty(stdout_fileno)) || (&stream == &std::cerr && isatty(stderr_fileno))
+            )
+        ) {
             detail::enable_virtual_terminal_processing_if_needed();
         }
         stream<<(header ? header : "Stack trace (most recent call first):")<<std::endl;
@@ -333,7 +337,7 @@ namespace cpptrace {
             for(auto& frame : trace) {
                 frame.symbol = detail::demangle(frame.symbol);
             }
-            return stacktrace{std::move(trace)};
+            return {std::move(trace)};
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
@@ -411,25 +415,34 @@ namespace cpptrace {
 
     namespace detail {
         std::atomic_bool absorb_trace_exceptions(true); // NOSONAR
+        std::atomic_bool resolve_inlined_calls(true); // NOSONAR
         std::atomic<enum cache_mode> cache_mode(cache_mode::prioritize_speed); // NOSONAR
     }
 
-     void absorb_trace_exceptions(bool absorb) {
+    void absorb_trace_exceptions(bool absorb) {
         detail::absorb_trace_exceptions = absorb;
     }
 
+     void enable_inlined_call_resolution(bool enable) {
+        detail::resolve_inlined_calls = enable;
+    }
+
     namespace experimental {
-         void set_cache_mode(cache_mode mode) {
+        void set_cache_mode(cache_mode mode) {
             detail::cache_mode = mode;
         }
     }
 
     namespace detail {
-         bool should_absorb_trace_exceptions() {
+        bool should_absorb_trace_exceptions() {
             return absorb_trace_exceptions;
         }
 
-         enum cache_mode get_cache_mode() {
+        bool should_resolve_inlined_calls() {
+            return resolve_inlined_calls;
+        }
+
+        enum cache_mode get_cache_mode() {
             return cache_mode;
         }
 
@@ -448,6 +461,11 @@ namespace cpptrace {
                 }
                 return raw_trace{};
             }
+        }
+
+        CPPTRACE_FORCE_NO_INLINE
+        raw_trace get_raw_trace_and_absorb(std::size_t skip) noexcept {
+            return get_raw_trace_and_absorb(skip + 1, SIZE_MAX);
         }
 
         lazy_trace_holder::lazy_trace_holder(const lazy_trace_holder& other) : resolved(other.resolved) {
@@ -530,9 +548,6 @@ namespace cpptrace {
         }
     }
 
-    lazy_exception::lazy_exception(std::size_t skip, std::size_t max_depth) noexcept
-            : trace_holder(detail::get_raw_trace_and_absorb(skip + 1, max_depth)) {}
-
     const char* lazy_exception::what() const noexcept {
         if(what_string.empty()) {
             what_string = message() + std::string(":\n") + trace_holder.get_resolved_trace().to_string();
@@ -576,7 +591,7 @@ namespace cpptrace {
         } catch(cpptrace::exception&) {
             throw; // already a cpptrace::exception
         } catch(...) {
-            throw nested_exception(std::current_exception(), skip + 1);
+            throw nested_exception(std::current_exception(), detail::get_raw_trace_and_absorb(skip + 1));
         }
     }
 }

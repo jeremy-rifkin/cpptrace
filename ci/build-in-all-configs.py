@@ -48,6 +48,8 @@ def build(matrix):
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
+            f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
+            f"-DCPPTRACE_WERROR_BUILD=On",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
@@ -63,6 +65,8 @@ def build(matrix):
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
+            f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
+            f"-DCPPTRACE_WERROR_BUILD=On",
             f"-D{matrix['unwind']}=On",
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
@@ -98,6 +102,8 @@ def build_full_or_auto(matrix):
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
+            f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
+            f"-DCPPTRACE_WERROR_BUILD=On",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
         ]
         if matrix["config"] != "":
@@ -113,6 +119,8 @@ def build_full_or_auto(matrix):
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
+            f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
+            f"-DCPPTRACE_WERROR_BUILD=On",
         ]
         if matrix["config"] != "":
             args.append(f"{matrix['config']}")

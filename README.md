@@ -11,6 +11,8 @@
 Cpptrace is a simple, portable, and self-contained C++ stacktrace library supporting C++11 and greater on Linux, macOS,
 and Windows including MinGW and Cygwin environments. The goal: Make stack traces simple for once.
 
+Cpptrace also has a C API, docs [here](docs/c-api.md).
+
 ## Table of Contents <!-- omit in toc -->
 
 - [30-Second Overview](#30-second-overview)
@@ -23,6 +25,7 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
     - [Object Traces](#object-traces)
     - [Raw Traces](#raw-traces)
     - [Utilities](#utilities)
+    - [Configuration](#configuration)
     - [Traced Exceptions](#traced-exceptions)
   - [Wrapping std::exceptions](#wrapping-stdexceptions)
   - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
@@ -33,6 +36,8 @@ and Windows including MinGW and Cygwin environments. The goal: Make stack traces
   - [CMake FetchContent](#cmake-fetchcontent)
   - [System-Wide Installation](#system-wide-installation)
   - [Local User Installation](#local-user-installation)
+  - [Use Without CMake](#use-without-cmake)
+  - [Installation Without Package Managers or FetchContent](#installation-without-package-managers-or-fetchcontent)
   - [Package Managers](#package-managers)
     - [Conan](#conan)
     - [Vcpkg](#vcpkg)
@@ -113,7 +118,7 @@ endif()
 Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
 information.
 
-On macos a little extra work to generate a .dSYM file is required, see [Platform Logistics](#platform-logistics) below.
+On macOS it is recommended to generate a .dSYM file, see [Platform Logistics](#platform-logistics) below.
 
 For other ways to use the library, such as through package managers, a system-wide installation, or on a platform
 without internet access see [Usage](#usage) below.
@@ -126,7 +131,9 @@ Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc i
 The original motivation for cpptrace was to support projects using older C++ standards and as the library has grown its
 functionality has extended beyond the standard library's implementation.
 
-Cpptrace also provides additional functionality including being able to
+Cpptrace also provides additional functionality including showing inlined function calls, allowing generation of
+lightweight "raw traces" that can be resolved later, offering exception objects that embed a lightweight trace when
+thrown, and providing an API for safe tracing from signal handlers.
 
 # In-Depth Documentation
 
@@ -137,9 +144,6 @@ be accessed from this object with `.frames` and also the trace can be printed wi
 method to get lightweight raw traces, which are just vectors of program counters, which can be resolved at a later time.
 
 **Note:** Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`) is generally required for good trace information.
-
-**Note:** Currently on Mac .dSYM files are required, which can be generated with `dsymutil yourbinary`. A cmake snippet
-for generating these is provided in [Platform Logistics](#platform-logistics) below.
 
 All functions are thread-safe unless otherwise noted.
 
@@ -218,7 +222,7 @@ namespace cpptrace {
 
 ### Raw Traces
 
-Raw trace access: A vector of program counters. These are ideal for traces you want to resolve later.
+Raw trace access: A vector of program counters. These are ideal for fast and cheap traces you want to resolve later.
 
 Note it is important executables and shared libraries in memory aren't somehow unmapped otherwise libdl calls (and
 `GetModuleFileName` in windows) will fail to figure out where the program counter corresponds to.
@@ -246,14 +250,6 @@ namespace cpptrace {
 `cpptrace::demangle` provides a helper function for name demangling, since it has to implement that helper internally
 anyways.
 
-The library makes an attempt to fail silently and continue during trace generation if any errors are encountered.
-`cpptrace::absorb_trace_exceptions` can be used to configure whether these exceptions are absorbed silently internally
-or wether they're rethrown to the caller.
-
-`cpptrace::experimental::set_cache_mode` can be used to control time-memory tradeoffs within the library. By default
-speed is prioritized. If using this function, set the cache mode at the very start of your program before any traces are
-performed.
-
 `cpptrace::isatty` and the fileno definitions are useful for deciding whether to use color when printing stack taces.
 
 `cpptrace::register_terminate_handler()` is a helper function to set a custom `std::terminate` handler that prints a
@@ -262,7 +258,6 @@ stack trace from a cpptrace exception (more info below) and otherwise behaves li
 ```cpp
 namespace cpptrace {
     std::string demangle(const std::string& name);
-    void absorb_trace_exceptions(bool absorb);
     bool isatty(int fd);
 
     extern const int stdin_fileno;
@@ -270,6 +265,25 @@ namespace cpptrace {
     extern const int stdout_fileno;
 
     void register_terminate_handler();
+}
+```
+
+### Configuration
+
+`cpptrace::absorb_trace_exceptions`: Configure whether the library silently absorbs internal exceptions and continues.
+Default is true.
+
+`cpptrace::ctrace_enable_inlined_call_resolution`: Configure whether the library will attempt to resolve inlined call
+information for release builds. Default is true.
+
+`cpptrace::experimental::set_cache_mode`: Control time-memory tradeoffs within the library. By default speed is
+prioritized. If using this function, set the cache mode at the very start of your program before any traces are
+performed.
+
+```cpp
+namespace cpptrace {
+    void absorb_trace_exceptions(bool absorb);
+    void ctrace_enable_inlined_call_resolution(bool enable);
 
     enum class cache_mode {
         // Only minimal lookup tables
@@ -311,13 +325,13 @@ interface or type system but this seems to be the best way to do this.
 ```cpp
 namespace cpptrace {
     class lazy_exception : public exception {
-        mutable detail::lazy_trace_holder trace_holder; // basically std::variant<raw_trace, stacktrace>, more docs later
+        // lazy_trace_holder is basically a std::variant<raw_trace, stacktrace>, more docs later
+        mutable detail::lazy_trace_holder trace_holder;
         mutable std::string what_string;
-    protected:
-        explicit lazy_exception(std::size_t skip, std::size_t max_depth) noexcept;
-        explicit lazy_exception(std::size_t skip) noexcept;
     public:
-        explicit lazy_exception() noexcept : lazy_exception(1) {}
+        explicit lazy_exception(
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept : trace_holder(std::move(trace)) {}
         const char* what() const noexcept override;
         const char* message() const noexcept override;
         const stacktrace& trace() const noexcept override;
@@ -332,19 +346,22 @@ well as a number of traced exception classes resembling `<stdexcept>`:
 
 ```cpp
 namespace cpptrace {
-    class CPPTRACE_EXPORT exception_with_message : public lazy_exception {
+    class exception_with_message : public lazy_exception {
         mutable std::string user_message;
-    protected:
-        explicit exception_with_message(std::string&& message_arg, std::size_t skip) noexcept;
-        explicit exception_with_message(std::string&& message_arg, std::size_t skip, std::size_t max_depth) noexcept;
     public:
-        explicit exception_with_message(std::string&& message_arg) noexcept
-            : exception_with_message(std::move(message_arg), 1) {}
-
+        explicit exception_with_message(
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept : lazy_exception(std::move(trace)), user_message(std::move(message_arg)) {}
         const char* message() const noexcept override;
     };
 
-    // All stdexcept errors have analogs here. Same constructor as exception_with_message.
+    // All stdexcept errors have analogs here. All have the constructor:
+    // explicit the_error(
+    //     std::string&& message_arg,
+    //     raw_trace&& trace = detail::get_raw_trace_and_absorb()
+    // ) noexcept
+    //     : exception_with_message(std::move(message_arg), std::move(trace)) {}
     class logic_error      : public exception_with_message { ... };
     class domain_error     : public exception_with_message { ... };
     class invalid_argument : public exception_with_message { ... };
@@ -429,8 +446,8 @@ namespace cpptrace {
 }
 ```
 
-**Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported
-`safe_generate_raw_trace` will just produce an empty trace and if object information can't be resolved in a signal-safe
+**Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported,
+`safe_generate_raw_trace` will just produce an empty trace, and if object information can't be resolved in a signal-safe
 way then `get_safe_object_frame` will not populate fields beyond the `raw_address`.
 
 **Another big note:** Calls to shared objects can be lazy-loaded where the first call to the shared object invokes
@@ -504,7 +521,7 @@ namespace cpptrace {
 | DWARF in separate binary (binary gnu debug link) | ️️✔️  |
 | DWARF in separate binary (split dwarf)           | ✔️      |
 | DWARF in dSYM                                    | ✔️      |
-| DWARF in via Mach-O debug map                    | Soon      |
+| DWARF in via Mach-O debug map                    | ✔️      |
 | Windows debug symbols in PDB                     | ✔️      |
 
 DWARF5 added DWARF package files. As far as I can tell no compiler implements these yet.
@@ -609,6 +626,75 @@ Using manually:
 g++ main.cpp -o main -g -Wall -I$HOME/wherever/include -L$HOME/wherever/lib -lcpptrace
 ```
 
+## Use Without CMake
+
+To use the library without cmake first follow the installation instructions at
+[System-Wide Installation](#system-wide-installation), [Local User Installation](#local-user-installation),
+or [Package Managers](#package-managers).
+
+In addition to any include or library paths you'll need to specify to tell the compiler where cpptrace was installed the
+typical dependencies for cpptrace are:
+
+| Compiler                | Platform         | Dependencies                       |
+| ----------------------- | ---------------- | ---------------------------------- |
+| gcc, clang, intel, etc. | Linux/macos/unix | `-lcpptrace -ldwarf -lz -ldl`      |
+| gcc                     | Windows          | `-lcpptrace -ldbghelp -ldwarf -lz` |
+| msvc                    | Windows          | `cpptrace.lib dbghelp.lib`         |
+| clang                   | Windows          | `-lcpptrace -ldbghelp`             |
+
+Dependencies may differ if different back-ends are manually selected.
+
+## Installation Without Package Managers or FetchContent
+
+Some users may prefer, or need to, to install cpptrace without package managers or fetchcontent (e.g. if their system
+does not have internet access). Below are instructions for how to install libdwarf and cpptrace.
+
+<details>
+    <summary>Installation Without Package Managers or FetchContent</summary>
+
+Here is an example for how to build cpptrace and libdwarf. `~/scratch/cpptrace-test` is used as a working directory and
+the libraries are installed to `~/scratch/cpptrace-test/resources`.
+
+```sh
+mkdir -p ~/scratch/cpptrace-test/resources
+
+cd ~/scratch/cpptrace-test
+git clone https://github.com/facebook/zstd.git
+cd zstd
+git checkout 63779c798237346c2b245c546c40b72a5a5913fe
+cd build/cmake
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources -DZSTD_BUILD_PROGRAMS=On -DZSTD_BUILD_CONTRIB=On -DZSTD_BUILD_TESTS=On -DZSTD_BUILD_STATIC=On -DZSTD_BUILD_SHARED=On -DZSTD_LEGACY_SUPPORT=On
+make -j
+make install
+
+cd ~/scratch/cpptrace-test
+git clone https://github.com/jeremy-rifkin/libdwarf-lite.git
+cd libdwarf-lite
+git checkout 5c0cb251f94b27e90184e6b2d9a0c9c62593babc
+mkdir build
+cd build
+cmake .. -DPIC_ALWAYS=On -DBUILD_DWARFDUMP=Off -DCMAKE_PREFIX_PATH=~/scratch/cpptrace-test/resources -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
+make -j
+make install
+
+cd ~/scratch/cpptrace-test
+git clone https://github.com/jeremy-rifkin/cpptrace.git
+cd cpptrace
+git checkout v0.3.1
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On -DCPPTRACE_USE_EXTERNAL_LIBDWARF=On -DCMAKE_PREFIX_PATH=~/scratch/cpptrace-test/resources -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
+make -j
+make install
+```
+
+The `~/scratch/cpptrace-test/resources` directory also serves as a bundle you can ship with all the installed files for
+cpptrace and its dependencies.
+
+</details>
+
 ## Package Managers
 
 ### Conan
@@ -659,7 +745,7 @@ if(WIN32)
 endif()
 ```
 
-Generating a .dSYM file on macos:
+On macOS it's recommended to generate a dSYM file containing debug information for your program:
 
 In xcode cmake this can be done with
 
@@ -812,7 +898,6 @@ and time-memory tradeoffs. If you find the current implementation is either slow
 to explore some of these options.
 
 A couple things I'd like to improve in the future:
-- On MacOS .dSYM files are required
 - On Windows when collecting symbols with dbghelp (msvc/clang) parameter types are almost perfect but due to limitations
   in dbghelp the library cannot accurately show const and volatile qualifiers or rvalue references (these appear as
   pointers).
