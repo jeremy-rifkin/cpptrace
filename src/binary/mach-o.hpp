@@ -178,7 +178,6 @@ namespace detail {
             }
             // somehow no __TEXT section was found...
             throw std::runtime_error("Couldn't find __TEXT section while parsing Mach-O object");
-            return 0;
         }
 
         std::size_t get_fat_index() const {
