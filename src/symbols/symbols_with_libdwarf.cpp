@@ -638,6 +638,7 @@ namespace libdwarf {
                     );
 
                     // TODO: Make any attempt to note PC ranges? Handle line end sequence?
+                    line_entries.reserve(line_count);
                     for(int i = 0; i < line_count; i++) {
                         Dwarf_Line line = line_buffer[i];
                         Dwarf_Addr low_addr = 0;
