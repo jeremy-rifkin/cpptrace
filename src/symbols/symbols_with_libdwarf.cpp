@@ -75,6 +75,7 @@ namespace libdwarf {
         Dwarf_Unsigned version;
         Dwarf_Line_Context line_context;
         // sorted by low_addr
+        // TODO: Make this optional at some point, it may not be generated if cache mode switches during program exec...
         std::vector<line_entry> line_entries;
     };
 
@@ -93,7 +94,7 @@ namespace libdwarf {
         Dwarf_Arange* aranges = nullptr;
         Dwarf_Signed arange_count = 0;
         // Map from CU -> Line context
-        std::unordered_map<Dwarf_Off, line_table_info> line_contexts;
+        std::unordered_map<Dwarf_Off, line_table_info> line_tables;
         // Map from CU -> Sorted subprograms vector
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
         // Vector of ranges and their corresponding CU offsets
@@ -190,7 +191,7 @@ namespace libdwarf {
         ~dwarf_resolver() {
             // TODO: Maybe redundant since dwarf_finish(dbg); will clean up the line stuff anyway but may as well just
             // for thoroughness
-            for(auto& entry : line_contexts) {
+            for(auto& entry : line_tables) {
                 dwarf_srclines_dealloc_b(entry.second.line_context);
             }
             for(auto& entry : srcfiles_cache) {
@@ -214,7 +215,7 @@ namespace libdwarf {
             ok(other.ok),
             aranges(other.aranges),
             arange_count(other.arange_count),
-            line_contexts(std::move(other.line_contexts)),
+            line_tables(std::move(other.line_tables)),
             subprograms_cache(std::move(other.subprograms_cache)),
             cu_cache(std::move(other.cu_cache)),
             generated_cu_cache(other.generated_cu_cache),
@@ -230,7 +231,7 @@ namespace libdwarf {
             ok = other.ok;
             aranges = other.aranges;
             arange_count = other.arange_count;
-            line_contexts = std::move(other.line_contexts);
+            line_tables = std::move(other.line_tables);
             subprograms_cache = std::move(other.subprograms_cache);
             cu_cache = std::move(other.cu_cache);
             generated_cu_cache = other.generated_cu_cache;
@@ -335,6 +336,7 @@ namespace libdwarf {
             return "";
         }
 
+        // despite (some) dwarf using 1-indexing, file_i should be the 0-based index
         std::string resolve_filename(const die_object& cu_die, Dwarf_Unsigned file_i) {
             std::string filename;
             if(get_cache_mode() == cache_mode::prioritize_memory) {
@@ -343,7 +345,7 @@ namespace libdwarf {
                 VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
                 if(Dwarf_Signed(file_i) < dw_filecount) {
                     // dwarf is using 1-indexing
-                    filename = dw_srcfiles[file_i - 1];
+                    filename = dw_srcfiles[file_i];
                 }
                 dwarf_dealloc(cu_die.dbg, dw_srcfiles, DW_DLA_LIST);
             } else {
@@ -359,7 +361,7 @@ namespace libdwarf {
                 Dwarf_Signed dw_filecount = it->second.second;
                 if(Dwarf_Signed(file_i) < dw_filecount) {
                     // dwarf is using 1-indexing
-                    filename = dw_srcfiles[file_i - 1];
+                    filename = dw_srcfiles[file_i];
                 }
             }
             return filename;
@@ -380,14 +382,26 @@ namespace libdwarf {
                     [this, &cu_die, pc, dwversion, &inlines] (const die_object& die) {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
                             const auto name = subprogram_symbol(die, dwversion);
-                            const auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
-                            // TODO: Somehow file_i can end up being 0 here, in a way I don't understand. The string
-                            // table is 1-indexed and the first string isn't the correct string. Somehow dwarfdump
-                            // resolves this correctly. And also somehow in testing a file name ends up getting used
-                            // here but I have no idea where it's coming from.
-                            std::string file = file_i && file_i.unwrap() > 0
-                                                    ? resolve_filename(cu_die, file_i.unwrap())
-                                                    : "";
+                            auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
+                            if(file_i) {
+                                // for dwarf 2, 3, 4, and experimental line table version 0xfe06 1-indexing is used
+                                // for dwarf 5 0-indexing is used
+                                auto line_table_opt = get_line_table(cu_die);
+                                if(line_table_opt) {
+                                    auto& line_table = line_table_opt.unwrap().get();
+                                    if(line_table.version != 5) {
+                                        if(file_i.unwrap() == 0) {
+                                            file_i.reset(); // 0 means no name to be found
+                                        } else {
+                                            // decrement to 0-based index
+                                            file_i.unwrap()--;
+                                        }
+                                    }
+                                } else {
+                                    // silently continue
+                                }
+                            }
+                            std::string file = file_i ? resolve_filename(cu_die, file_i.unwrap()) : "";
                             const auto line = die.get_unsigned_attribute(DW_AT_call_line);
                             const auto col = die.get_unsigned_attribute(DW_AT_call_column);
                             inlines.push_back(stacktrace_frame{
@@ -578,24 +592,20 @@ namespace libdwarf {
             }
         }
 
+        // returns a reference to a CU's line table, may be invalidated if the line_tables map is modified
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        void retrieve_line_info(
-            const die_object& die,
-            Dwarf_Addr pc,
-            stacktrace_frame& frame
-        ) {
-            auto off = die.get_global_offset();
-            auto it = line_contexts.find(off);
-            if(it != line_contexts.end()) {
-                // auto& entry = it->second;
-                // line_context = entry.line_context;
+        optional<std::reference_wrapper<line_table_info>> get_line_table(const die_object& cu_die) {
+            auto off = cu_die.get_global_offset();
+            auto it = line_tables.find(off);
+            if(it != line_tables.end()) {
+                return it->second;
             } else {
                 Dwarf_Unsigned version;
                 Dwarf_Small table_count;
                 Dwarf_Line_Context line_context;
                 int ret = wrap(
                     dwarf_srclines_b,
-                    die.get(),
+                    cu_die.get(),
                     &version,
                     &table_count,
                     &line_context
@@ -604,7 +614,7 @@ namespace libdwarf {
                 VERIFY(/*table_count >= 0 &&*/ table_count <= 2, "Unknown dwarf line table count");
                 if(ret == DW_DLV_NO_ENTRY) {
                     // TODO: Failing silently for now
-                    return;
+                    return nullopt;
                 }
                 VERIFY(ret == DW_DLV_OK);
 
@@ -672,11 +682,22 @@ namespace libdwarf {
                     });
                 }
 
-                it = line_contexts.insert({off, {version, line_context, std::move(line_entries)}}).first;
+                it = line_tables.insert({off, {version, line_context, std::move(line_entries)}}).first;
+                return it->second;
             }
+        }
 
-            auto& table_info = it->second;
-
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+        void retrieve_line_info(
+            const die_object& cu_die,
+            Dwarf_Addr pc,
+            stacktrace_frame& frame
+        ) {
+            auto table_info_opt = get_line_table(cu_die);
+            if(!table_info_opt) {
+                return; // failing silently for now
+            }
+            auto& table_info = table_info_opt.unwrap().get();
             if(get_cache_mode() == cache_mode::prioritize_speed) {
                 // Lookup in the table
                 auto& line_entries = table_info.line_entries;
