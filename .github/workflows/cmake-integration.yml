@@ -167,9 +167,6 @@ jobs:
            cd findpackage-integration/build
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo "-GUnix Makefiles"
            make
-           if("${{matrix.shared}}" -eq "On") {
-            cp C:/foo/bin/libcpptrace.dll .
-           }
            ./main
   test-mingw-add_subdirectory:
     runs-on: windows-2022
@@ -235,9 +232,6 @@ jobs:
            cd findpackage-integration/build
            cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo
            msbuild demo_project.sln
-           if("${{matrix.shared}}" -eq "On") {
-            cp C:/foo/bin/cpptrace.dll .
-           }
            .\Debug\main.exe
   test-windows-add_subdirectory:
     runs-on: windows-2022
