@@ -455,7 +455,7 @@ non-signal-safe functions such as `malloc()`. To avoid this, call these routines
 to "warm up" the library.
 
 Because signal-safe tracing is an involved process, I have written up a comprehensive overview of
-what is involved at [signal-safe-tracing.md](signal-safe-tracing.md).
+what is involved at [signal-safe-tracing.md](docs/signal-safe-tracing.md).
 
 ## Utility Types
 
