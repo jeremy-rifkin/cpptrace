@@ -1140,11 +1140,13 @@ namespace libdwarf {
                     resolver = resolver_object.get();
                 }
                 for(const auto& entry : object_entry.second) {
+                    const auto& dlframe = entry.first.get();
+                    auto& frame = entry.second.get();
                     try {
-                        const auto& dlframe = entry.first.get();
-                        auto& frame = entry.second.get();
                         frame = resolver->resolve_frame(dlframe);
                     } catch(...) {
+                        frame.frame.address = dlframe.raw_address;
+                        frame.frame.filename = dlframe.object_path;
                         if(!should_absorb_trace_exceptions()) {
                             throw;
                         }
