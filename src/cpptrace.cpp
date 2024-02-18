@@ -455,7 +455,7 @@ namespace cpptrace {
                     // TODO: Append to message somehow
                     std::fprintf(
                         stderr,
-                        "Cpptrace: Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                        "Cpptrace: Exception occurred while resolving trace in cpptrace::exception object:\n%s\n",
                         e.what()
                     );
                 }
@@ -520,7 +520,7 @@ namespace cpptrace {
                         // TODO: Append to message somehow?
                         std::fprintf(
                             stderr,
-                            "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                            "Exception occurred while resolving trace in cpptrace::exception object:\n%s\n",
                             e.what()
                         );
                     }

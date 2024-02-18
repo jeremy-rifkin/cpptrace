@@ -138,7 +138,7 @@ void do_signal_safe_trace(cpptrace::frame_ptr* buffer, std::size_t size) {
     pipe_t input_pipe;
     pipe(input_pipe.data);
     const pid_t pid = fork();
-    if(pid == -1) { return; /* Some error ocurred */ }
+    if(pid == -1) { return; /* Some error occurred */ }
     if(pid == 0) { // child
         dup2(input_pipe.read_end, STDIN_FILENO);
         close(input_pipe.read_end);
@@ -160,7 +160,7 @@ void do_signal_safe_trace(cpptrace::frame_ptr* buffer, std::size_t size) {
 
 void handler(int signo, siginfo_t* info, void* context) {
     // Print basic message
-    const char* message = "SIGSEGV ocurred:\n";
+    const char* message = "SIGSEGV occurred:\n";
     write(STDERR_FILENO, message, strlen(message));
     // Generate trace
     constexpr std::size_t N = 100;
