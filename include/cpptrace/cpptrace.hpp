@@ -293,7 +293,7 @@ namespace cpptrace {
     // Interface for a traced exception object
     class CPPTRACE_EXPORT exception : public std::exception {
     public:
-        virtual const char* what() const noexcept = 0;
+        const char* what() const noexcept override = 0;
         virtual const char* message() const noexcept = 0;
         virtual const stacktrace& trace() const noexcept = 0;
     };
