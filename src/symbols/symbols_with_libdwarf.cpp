@@ -186,7 +186,7 @@ namespace libdwarf {
         }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        ~dwarf_resolver() {
+        ~dwarf_resolver() override {
             // TODO: Maybe redundant since dwarf_finish(dbg); will clean up the line stuff anyway but may as well just
             // for thoroughness
             for(auto& entry : line_contexts) {
