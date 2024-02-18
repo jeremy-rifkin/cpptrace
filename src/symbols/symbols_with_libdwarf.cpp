@@ -1003,7 +1003,7 @@ namespace libdwarf {
             // get symbol entries from debug map, as well as the various object files used to make this binary
             for(auto& entry : source_debug_map) {
                 // object it came from
-                target_objects.push_back({std::move(entry.first)});
+                target_objects.push_back({entry.first});
                 // push the symbols
                 auto& map_entry_symbols = entry.second;
                 symbols.reserve(symbols.size() + map_entry_symbols.size());
