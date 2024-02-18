@@ -198,7 +198,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.10.0
+      uses: ilammy/msvc-dev-cmd@v1.13.0
     - name: test
       run: |
            $tag=$(git rev-parse --abbrev-ref HEAD)
@@ -219,7 +219,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.10.0
+      uses: ilammy/msvc-dev-cmd@v1.13.0
     - name: test
       run: |
            $tag=$(git rev-parse --abbrev-ref HEAD)
@@ -248,7 +248,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.10.0
+      uses: ilammy/msvc-dev-cmd@v1.13.0
     - name: test
       run: |
            cd ..

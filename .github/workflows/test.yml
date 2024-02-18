@@ -107,7 +107,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.10.0
+      uses: ilammy/msvc-dev-cmd@v1.13.0
     - name: dependencies
       run: |
            pip3 install colorama
