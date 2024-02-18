@@ -186,7 +186,7 @@ namespace libdwarf {
         }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        ~dwarf_resolver() {
+        ~dwarf_resolver() override {
             // TODO: Maybe redundant since dwarf_finish(dbg); will clean up the line stuff anyway but may as well just
             // for thoroughness
             for(auto& entry : line_contexts) {
@@ -928,7 +928,7 @@ namespace libdwarf {
         optional<std::unordered_map<std::string, uint64_t>> symbols;
         std::unique_ptr<symbol_resolver> resolver;
 
-        target_object(std::string object_path) : object_path(object_path) {}
+        target_object(std::string object_path) : object_path(std::move(object_path)) {}
 
         std::unique_ptr<symbol_resolver>& get_resolver() {
             if(!resolver) {
@@ -1003,7 +1003,7 @@ namespace libdwarf {
             // get symbol entries from debug map, as well as the various object files used to make this binary
             for(auto& entry : source_debug_map) {
                 // object it came from
-                target_objects.push_back({std::move(entry.first)});
+                target_objects.push_back({entry.first});
                 // push the symbols
                 auto& map_entry_symbols = entry.second;
                 symbols.reserve(symbols.size() + map_entry_symbols.size());

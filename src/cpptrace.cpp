@@ -174,10 +174,10 @@ namespace cpptrace {
         ) {
             detail::enable_virtual_terminal_processing_if_needed();
         }
-        stream<<(header ? header : "Stack trace (most recent call first):")<<std::endl;
+        stream<<(header ? header : "Stack trace (most recent call first):") << '\n';
         std::size_t counter = 0;
         if(frames.empty()) {
-            stream<<"<empty trace>"<<std::endl;
+            stream<<"<empty trace>" << '\n';
             return;
         }
         const auto reset   = color ? ESC "0m" : "";
@@ -237,7 +237,7 @@ namespace cpptrace {
                 }
             }
             if(newline_at_end || &frame != &frames.back()) {
-                stream << std::endl;
+                stream << '\n';
             }
             counter++;
         }
