@@ -250,7 +250,7 @@ namespace cpptrace {
 `cpptrace::demangle` provides a helper function for name demangling, since it has to implement that helper internally
 anyways.
 
-`cpptrace::isatty` and the fileno definitions are useful for deciding whether to use color when printing stack taces.
+`cpptrace::isatty` and the fileno definitions are useful for deciding whether to use color when printing stack traces.
 
 `cpptrace::register_terminate_handler()` is a helper function to set a custom `std::terminate` handler that prints a
 stack trace from a cpptrace exception (more info below) and otherwise behaves like the normal terminate handler.
