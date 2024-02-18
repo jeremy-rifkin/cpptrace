@@ -413,7 +413,7 @@ namespace cpptrace {
         mutable std::string message_value;
     public:
         explicit nested_exception(
-            std::exception_ptr exception_ptr,
+            const std::exception_ptr& exception_ptr,
             raw_trace&& trace = detail::get_raw_trace_and_absorb()
         ) noexcept
             : lazy_exception(std::move(trace)), ptr(exception_ptr) {}

@@ -928,7 +928,7 @@ namespace libdwarf {
         optional<std::unordered_map<std::string, uint64_t>> symbols;
         std::unique_ptr<symbol_resolver> resolver;
 
-        target_object(std::string object_path) : object_path(object_path) {}
+        target_object(std::string object_path) : object_path(std::move(object_path)) {}
 
         std::unique_ptr<symbol_resolver>& get_resolver() {
             if(!resolver) {
