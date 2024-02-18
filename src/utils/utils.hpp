@@ -280,7 +280,7 @@ namespace detail {
             return *this;
         }
 
-        void swap(optional& other) {
+        void swap(optional& other) noexcept {
             if(holds_value && other.holds_value) {
                 std::swap(uvalue, other.uvalue);
             } else if(holds_value && !other.holds_value) {
