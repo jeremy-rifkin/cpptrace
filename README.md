@@ -118,7 +118,7 @@ endif()
 Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
 information.
 
-On macOS it is recommended to generate a .dSYM file, see [Platform Logistics](#platform-logistics) below.
+On macOS it is recommended to generate a `.dSYM` file, see [Platform Logistics](#platform-logistics) below.
 
 For other ways to use the library, such as through package managers, a system-wide installation, or on a platform
 without internet access see [Usage](#usage) below.
@@ -728,9 +728,11 @@ target_link_libraries(main PRIVATE cpptrace::cpptrace)
 
 # Platform Logistics
 
-Windows and macos require a little extra work to get everything in the right place
+Windows and macOS require a little extra work to get everything in the right place.
 
-Copying the library .dll on windows:
+## Windows
+
+Copying the library `.dll` on Windows:
 
 ```cmake
 # Copy the cpptrace.dll on windows to the same directory as the executable for your_target.
@@ -745,18 +747,22 @@ if(WIN32)
 endif()
 ```
 
-On macOS it's recommended to generate a dSYM file containing debug information for your program:
+## macOS
 
-In xcode cmake this can be done with
+On macOS, it is recommended to generate a `dSYM` file containing debug information for your program.
+This is not required as cpptrace makes a good effort at finding and reading the debug information
+without this, but having a `dSYM` file is the most robust method.
+
+When using Xcode with CMake, this can be done with:
 
 ```cmake
 set_target_properties(your_target PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
 ```
 
-And outside xcode this can be done with `dsymutil yourbinary`:
+Outside of Xcode, this can be done with `dsymutil yourbinary`:
 
 ```cmake
-# Create a .dSYM file on macos. Currently required, but hopefully not for long
+# Create a .dSYM file on macOS
 if(APPLE)
   add_custom_command(
     TARGET your_target
