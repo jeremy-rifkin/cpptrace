@@ -338,40 +338,39 @@ endif()
 
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
-  # First, dependencies: Zstd and zlib (currently relying on system zlib)
-  if(CPPTRACE_USE_EXTERNAL_ZSTD)
-    find_package(zstd)
-  else()
-    include(FetchContent)
-    cmake_policy(SET CMP0074 NEW)
-    FetchContent_Declare(
-        zstd
-        GIT_REPOSITORY https://github.com/facebook/zstd.git
-        GIT_TAG 63779c798237346c2b245c546c40b72a5a5913fe # v1.5.5
-        GIT_SHALLOW 1
-        SOURCE_SUBDIR build/cmake
-    )
-    # FetchContent_MakeAvailable(zstd)
-    FetchContent_GetProperties(zstd)
-    if(NOT zstd_POPULATED)
-      FetchContent_Populate(zstd)
-      set(ZSTD_BUILD_PROGRAMS OFF)
-      set(ZSTD_BUILD_CONTRIB OFF)
-      set(ZSTD_BUILD_TESTS OFF)
-      set(ZSTD_BUILD_STATIC ON)
-      set(ZSTD_BUILD_SHARED OFF)
-      set(ZSTD_LEGACY_SUPPORT OFF)
-      add_subdirectory("${zstd_SOURCE_DIR}/build/cmake" "${zstd_BINARY_DIR}")
-    endif()
-  endif()
-  # Libdwarf itself
   if(CPPTRACE_USE_EXTERNAL_LIBDWARF)
     find_package(libdwarf REQUIRED)
   else()
+    include(FetchContent)
+    # First, dependencies: Zstd and zlib (currently relying on system zlib)
+    if(CPPTRACE_USE_EXTERNAL_ZSTD)
+      find_package(zstd)
+    else()
+      cmake_policy(SET CMP0074 NEW)
+      FetchContent_Declare(
+          zstd
+          GIT_REPOSITORY https://github.com/facebook/zstd.git
+          GIT_TAG 63779c798237346c2b245c546c40b72a5a5913fe # v1.5.5
+          GIT_SHALLOW 1
+          SOURCE_SUBDIR build/cmake
+      )
+      # FetchContent_MakeAvailable(zstd)
+      FetchContent_GetProperties(zstd)
+      if(NOT zstd_POPULATED)
+        FetchContent_Populate(zstd)
+        set(ZSTD_BUILD_PROGRAMS OFF)
+        set(ZSTD_BUILD_CONTRIB OFF)
+        set(ZSTD_BUILD_TESTS OFF)
+        set(ZSTD_BUILD_STATIC ON)
+        set(ZSTD_BUILD_SHARED OFF)
+        set(ZSTD_LEGACY_SUPPORT OFF)
+        add_subdirectory("${zstd_SOURCE_DIR}/build/cmake" "${zstd_BINARY_DIR}")
+      endif()
+    endif()
+    # Libdwarf itself
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     # set(PIC_ALWAYS TRUE)
     # set(BUILD_DWARFDUMP FALSE)
-    include(FetchContent)
     FetchContent_Declare(
       libdwarf
       # GIT_REPOSITORY https://github.com/davea42/libdwarf-code.git
