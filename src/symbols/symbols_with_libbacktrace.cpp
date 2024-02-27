@@ -22,7 +22,7 @@ namespace detail {
 namespace libbacktrace {
     int full_callback(void* data, std::uintptr_t address, const char* file, int line, const char* symbol) {
         stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
-        frame.address = address;
+        frame.raw_address = address;
         frame.line = line;
         frame.filename = file ? file : "";
         frame.symbol = symbol ? symbol : "";
@@ -31,7 +31,7 @@ namespace libbacktrace {
 
     void syminfo_callback(void* data, std::uintptr_t address, const char* symbol, std::uintptr_t, std::uintptr_t) {
         stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
-        frame.address = address;
+        frame.raw_address = address;
         frame.line = 0;
         frame.filename = "";
         frame.symbol = symbol ? symbol : "";

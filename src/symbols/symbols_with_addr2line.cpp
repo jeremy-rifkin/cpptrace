@@ -269,7 +269,8 @@ namespace addr2line {
         // TODO: Refactor better
         std::vector<stacktrace_frame> trace(frames.size(), null_frame);
         for(std::size_t i = 0; i < frames.size(); i++) {
-            trace[i].address = frames[i].raw_address;
+            trace[i].raw_address = frames[i].raw_address;
+            trace[i].object_address = frames[i].object_address;
             // Set what is known for now, and resolutions from addr2line should overwrite
             trace[i].filename = frames[i].object_path;
         }
