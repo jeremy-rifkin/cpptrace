@@ -632,8 +632,8 @@ To use the library without cmake first follow the installation instructions at
 [System-Wide Installation](#system-wide-installation), [Local User Installation](#local-user-installation),
 or [Package Managers](#package-managers).
 
-In addition to any include or library paths you'll need to specify to tell the compiler where cpptrace was installed the
-typical dependencies for cpptrace are:
+In addition to any include or library paths you'll need to specify to tell the compiler where cpptrace was installed.
+The typical dependencies for cpptrace are:
 
 | Compiler                | Platform         | Dependencies                              |
 | ----------------------- | ---------------- | ----------------------------------------- |
