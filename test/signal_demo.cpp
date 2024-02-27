@@ -35,7 +35,7 @@ struct pipe_t {
 static_assert(sizeof(pipe_t) == 2 * sizeof(int), "Unexpected struct packing");
 
 void handler(int signo, siginfo_t* info, void* context) {
-    const char* message = "SIGSEGV ocurred:\n";
+    const char* message = "SIGSEGV occurred:\n";
     write(STDERR_FILENO, message, strlen(message));
     cpptrace::frame_ptr buffer[100];
     std::size_t count = cpptrace::safe_generate_raw_trace(buffer, 100);

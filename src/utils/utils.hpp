@@ -280,7 +280,7 @@ namespace detail {
             return *this;
         }
 
-        void swap(optional& other) {
+        void swap(optional& other) noexcept {
             if(holds_value && other.holds_value) {
                 std::swap(uvalue, other.uvalue);
             } else if(holds_value && !other.holds_value) {
@@ -409,7 +409,7 @@ namespace detail {
         optional<D> deleter;
     public:
         raii_wrapper(T obj, D deleter) : obj(obj), deleter(deleter) {}
-        raii_wrapper(raii_wrapper&& other) noexcept : obj(std::move(other.obj)), deleter(other.deleter) {
+        raii_wrapper(raii_wrapper&& other) noexcept : obj(std::move(other.obj)), deleter(std::move(other.deleter)) {
             other.deleter = nullopt;
         }
         raii_wrapper(const raii_wrapper&) = delete;

@@ -17,7 +17,7 @@ What's new:
 
 Most notable improvements:
 - Updated cpptrace exception objects to generate traces at the callsite for improved consistency with trace output. As
-  part fo this cpptrace exception objects have had their constructors updated.
+  part of this cpptrace exception objects have had their constructors updated.
 - Improved dwarf back-end robustness
   - Fallback to the compilation-unit cache or walking compilation-units if aranges lookup fails
 - Eliminated reliance on a CMake-generated export header

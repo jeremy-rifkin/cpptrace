@@ -293,7 +293,7 @@ namespace cpptrace {
     // Interface for a traced exception object
     class CPPTRACE_EXPORT exception : public std::exception {
     public:
-        virtual const char* what() const noexcept = 0;
+        const char* what() const noexcept override = 0;
         virtual const char* message() const noexcept = 0;
         virtual const stacktrace& trace() const noexcept = 0;
     };
@@ -413,7 +413,7 @@ namespace cpptrace {
         mutable std::string message_value;
     public:
         explicit nested_exception(
-            std::exception_ptr exception_ptr,
+            const std::exception_ptr& exception_ptr,
             raw_trace&& trace = detail::get_raw_trace_and_absorb()
         ) noexcept
             : lazy_exception(std::move(trace)), ptr(exception_ptr) {}

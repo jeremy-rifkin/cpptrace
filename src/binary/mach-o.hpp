@@ -372,7 +372,7 @@ namespace detail {
         // produce information similar to dsymutil -dump-debug-map
         static void print_debug_map(const debug_map& debug_map) {
             for(const auto& entry : debug_map) {
-                std::cout<<entry.first<<": "<<std::endl;
+                std::cout<<entry.first<<": "<< '\n';
                 for(const auto& symbol : entry.second) {
                     std::cerr
                         << "    "
@@ -383,7 +383,7 @@ namespace detail {
                         << " "
                         << symbol.size
                         << std::dec
-                        << std::endl;
+                        << '\n';
                 }
             }
         }

@@ -174,10 +174,10 @@ namespace cpptrace {
         ) {
             detail::enable_virtual_terminal_processing_if_needed();
         }
-        stream<<(header ? header : "Stack trace (most recent call first):")<<std::endl;
+        stream<<(header ? header : "Stack trace (most recent call first):") << '\n';
         std::size_t counter = 0;
         if(frames.empty()) {
-            stream<<"<empty trace>"<<std::endl;
+            stream<<"<empty trace>" << '\n';
             return;
         }
         const auto reset   = color ? ESC "0m" : "";
@@ -237,7 +237,7 @@ namespace cpptrace {
                 }
             }
             if(newline_at_end || &frame != &frames.back()) {
-                stream << std::endl;
+                stream << '\n';
             }
             counter++;
         }
@@ -455,7 +455,7 @@ namespace cpptrace {
                     // TODO: Append to message somehow
                     std::fprintf(
                         stderr,
-                        "Cpptrace: Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                        "Cpptrace: Exception occurred while resolving trace in cpptrace::exception object:\n%s\n",
                         e.what()
                     );
                 }
@@ -520,7 +520,7 @@ namespace cpptrace {
                         // TODO: Append to message somehow?
                         std::fprintf(
                             stderr,
-                            "Exception ocurred while resolving trace in cpptrace::exception object:\n%s\n",
+                            "Exception occurred while resolving trace in cpptrace::exception object:\n%s\n",
                             e.what()
                         );
                     }

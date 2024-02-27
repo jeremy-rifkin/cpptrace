@@ -60,7 +60,7 @@ def run_matrix(matrix, exclude, fn):
             #    results[config_tuple] = matrix_config["compiler"] != "g++-10"
             #else:
             #    results[config_tuple] = not (matrix_config["compiler"] == "clang++-14" and matrix_config["symbols"] == "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE")
-    # I had an idea for printing 2d slices of the n-dimentional matrix, but it didn't pan out as much as I'd hoped
+    # I had an idea for printing 2d slices of the n-dimensional matrix, but it didn't pan out as much as I'd hoped
     dimensions = len(values)
     # # Output diagnostic tables
     # print("Results:", results)
