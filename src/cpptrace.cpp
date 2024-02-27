@@ -120,7 +120,7 @@ namespace cpptrace {
             << "0x"
             << std::setw(2 * sizeof(frame_ptr))
             << std::setfill('0')
-            << frame.address
+            << frame.raw_address
             << std::dec
             << std::setfill(' ');
         if(!frame.symbol.empty()) {
@@ -204,7 +204,7 @@ namespace cpptrace {
                     << "0x"
                     << std::setw(2 * sizeof(frame_ptr))
                     << std::setfill('0')
-                    << frame.address
+                    << frame.raw_address
                     << std::dec
                     << std::setfill(' ')
                     << reset;

@@ -406,6 +406,7 @@ namespace libdwarf {
                             const auto col = die.get_unsigned_attribute(DW_AT_call_column);
                             inlines.push_back(stacktrace_frame{
                                 0,
+                                0, // TODO: Could put an object address here...
                                 {static_cast<std::uint32_t>(line.value_or(0))},
                                 {static_cast<std::uint32_t>(col.value_or(0))},
                                 file,
@@ -901,6 +902,7 @@ namespace libdwarf {
                 return {
                     {
                         frame_info.raw_address,
+                        frame_info.object_address,
                         nullable<std::uint32_t>::null(),
                         nullable<std::uint32_t>::null(),
                         frame_info.object_path,
@@ -912,7 +914,8 @@ namespace libdwarf {
             }
             stacktrace_frame frame = null_frame;
             frame.filename = frame_info.object_path;
-            frame.address = frame_info.raw_address;
+            frame.raw_address = frame_info.raw_address;
+            frame.object_address = frame_info.object_address;
             if(trace_dwarf) {
                 std::fprintf(
                     stderr,
@@ -941,6 +944,7 @@ namespace libdwarf {
             return {
                 {
                     frame_info.raw_address,
+                    frame_info.object_address,
                     nullable<std::uint32_t>::null(),
                     nullable<std::uint32_t>::null(),
                     frame_info.object_path,
@@ -1145,7 +1149,8 @@ namespace libdwarf {
                     try {
                         frame = resolver->resolve_frame(dlframe);
                     } catch(...) {
-                        frame.frame.address = dlframe.raw_address;
+                        frame.frame.raw_address = dlframe.raw_address;
+                        frame.frame.object_address = dlframe.object_address;
                         frame.frame.filename = dlframe.object_path;
                         if(!should_absorb_trace_exceptions()) {
                             throw;
@@ -1166,6 +1171,7 @@ namespace libdwarf {
                     frame = {
                         {
                             dlframe.raw_address,
+                            dlframe.object_address,
                             nullable<std::uint32_t>::null(),
                             nullable<std::uint32_t>::null(),
                             dlframe.object_path,

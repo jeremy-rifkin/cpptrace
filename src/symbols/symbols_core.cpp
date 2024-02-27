@@ -63,7 +63,7 @@ namespace detail {
         std::vector<frame_ptr> addresses;
         for(const auto& frame : vec) {
             if(frame.symbol.empty() || frame.filename.empty()) {
-                addresses.push_back(frame.address);
+                addresses.push_back(frame.raw_address);
             }
         }
         std::vector<stacktrace_frame> new_frames = resolver(addresses);

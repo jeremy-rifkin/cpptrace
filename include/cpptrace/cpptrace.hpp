@@ -147,7 +147,8 @@ namespace cpptrace {
     };
 
     struct CPPTRACE_EXPORT stacktrace_frame {
-        frame_ptr address;
+        frame_ptr raw_address;
+        frame_ptr object_address;
         nullable<std::uint32_t> line;
         nullable<std::uint32_t> column;
         std::string filename;
@@ -155,7 +156,8 @@ namespace cpptrace {
         bool is_inline;
 
         bool operator==(const stacktrace_frame& other) const {
-            return address == other.address
+            return raw_address == other.raw_address
+                && object_address == other.object_address
                 && line == other.line
                 && column == other.column
                 && filename == other.filename

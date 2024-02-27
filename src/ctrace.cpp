@@ -112,7 +112,8 @@ CTRACE_FORMAT_EPILOGUE
             frames,
             [] (const cpptrace::stacktrace_frame& frame) -> ctrace_stacktrace_frame {
                 ctrace_stacktrace_frame new_frame;
-                new_frame.address   = frame.address;
+                new_frame.raw_address    = frame.raw_address;
+                new_frame.object_address = frame.object_address;
                 new_frame.line      = frame.line.value_or(invalid_pos);
                 new_frame.column    = frame.column.value_or(invalid_pos);
                 new_frame.filename  = generate_owning_string(frame.filename).data;
@@ -135,7 +136,8 @@ CTRACE_FORMAT_EPILOGUE
             static constexpr auto null_v = nullable_type::null().raw_value;
             const ctrace_stacktrace_frame& old_frame = ptrace->frames[i];
             cpptrace::stacktrace_frame new_frame;
-            new_frame.address   = old_frame.address;
+            new_frame.raw_address    = old_frame.raw_address;
+            new_frame.object_address = old_frame.object_address;
             new_frame.line      = nullable_type{is_empty(old_frame.line)   ? null_v : old_frame.line};
             new_frame.column    = nullable_type{is_empty(old_frame.column) ? null_v : old_frame.column};
             new_frame.filename  = old_frame.filename;
@@ -348,7 +350,7 @@ extern "C" {
                 (void)std::fprintf(to, "%s0x%0*llx%s",
                     blue,
                     int(ptr_len),
-                    cpptrace::detail::to_ull(frames[i].address),
+                    cpptrace::detail::to_ull(frames[i].raw_address),
                     reset);
             }
             if(!ctrace::is_empty(frames[i].symbol)) {

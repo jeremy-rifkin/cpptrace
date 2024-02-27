@@ -55,7 +55,15 @@ namespace detail {
         return str;
     }
 
-    static const stacktrace_frame null_frame {0, nullable<uint32_t>::null(), nullable<uint32_t>::null(), "", "", false};
+    static const stacktrace_frame null_frame {
+        0,
+        0,
+        nullable<uint32_t>::null(),
+        nullable<uint32_t>::null(),
+        "",
+        "",
+        false
+    };
 
     bool should_absorb_trace_exceptions();
     bool should_resolve_inlined_calls();
