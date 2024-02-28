@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.4.1](#v041)
 - [v0.4.0](#v040)
 - [v0.3.1](#v031)
 - [v0.3.0](#v030)
@@ -8,6 +9,22 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.4.1
+
+Changes:
+- Renamed `stacktrace_frame.address` -> `stacktrace_frame.raw_address`
+- Added `stacktrace_frame.object_address`
+- Fixed segfault due to an edge case with dwarf file table indices
+- For the libdwarf back-end: At least show object frame information if resolution fails
+- Extremely small performance improvements
+- Small documentation updates
+- Small fix for conan
+- Updated cmake to not FetchContent zstd when using CPPTRACE_USE_EXTERNAL_LIBDWARF
+- CI improvements
+  - Test the default configuration first before doing the exhaustive and slow matrix of all configurations.
+  - Cleanup of duplicated prerequisite installation code
+  - Cleanup of built and test python scripts
 
 # v0.4.0
 
