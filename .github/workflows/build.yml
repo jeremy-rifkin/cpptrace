@@ -66,7 +66,7 @@ jobs:
            python3 ci/build-in-all-configs.py --${{matrix.compiler}} --default-config
   build-linux-all-configurations:
     runs-on: ubuntu-22.04
-    needs: [build-linux, build-macos, build-windows]
+    needs: build-linux
     strategy:
       fail-fast: false
       matrix:
@@ -86,7 +86,7 @@ jobs:
            python3 ci/build-in-all-configs.py --${{matrix.compiler}}
   build-macos-all-configurations:
     runs-on: macos-14
-    needs: [build-linux, build-macos, build-windows]
+    needs: build-macos
     strategy:
       fail-fast: false
       matrix:
@@ -105,7 +105,7 @@ jobs:
            python3 ci/build-in-all-configs.py --${{matrix.compiler}}
   build-windows-all-configurations:
     runs-on: windows-2022
-    needs: [build-linux, build-macos, build-windows]
+    needs: build-windows
     strategy:
       fail-fast: false
       matrix:
