@@ -159,7 +159,8 @@ namespace cpptrace {
     using frame_ptr = std::uintptr_t;
 
     struct stacktrace_frame {
-        frame_ptr address;
+        frame_ptr raw_address; // address in memory
+        frame_ptr object_address; // address in the object file
         // nullable<T> represents a nullable integer. More docs later.
         nullable<std::uint32_t> line;
         nullable<std::uint32_t> column;

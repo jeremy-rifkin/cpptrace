@@ -34,7 +34,8 @@ the parameters.
 typedef struct ctrace_stacktrace ctrace_stacktrace;
 
 struct ctrace_stacktrace_frame {
-    ctrace_frame_ptr address;
+    ctrace_frame_ptr raw_address;
+    ctrace_frame_ptr object_address;
     uint32_t line;
     uint32_t column;
     const char* filename;
