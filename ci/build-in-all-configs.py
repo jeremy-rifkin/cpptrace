@@ -138,6 +138,145 @@ def build_full_or_auto(matrix):
 
     return succeeded
 
+def run_linux_matrix(compilers: list):
+    matrix = {
+        "compiler": compilers,
+        "target": ["Debug"],
+        "std": ["11", "20"],
+        "unwind": [
+            "CPPTRACE_UNWIND_WITH_UNWIND",
+            "CPPTRACE_UNWIND_WITH_EXECINFO",
+            "CPPTRACE_UNWIND_WITH_LIBUNWIND",
+            "CPPTRACE_UNWIND_WITH_NOTHING",
+        ],
+        "symbols": [
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+            "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+            "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
+        ],
+        "demangle": [
+            "CPPTRACE_DEMANGLE_WITH_CXXABI",
+            "CPPTRACE_DEMANGLE_WITH_NOTHING",
+        ],
+    }
+    exclude = []
+    run_matrix(matrix, exclude, build)
+
+def run_linux_default(compilers: list):
+    matrix = {
+        "compiler": compilers,
+        "target": ["Debug"],
+        "std": ["11", "20"],
+        "config": [""]
+    }
+    exclude = []
+    run_matrix(matrix, exclude, build_full_or_auto)
+
+def run_macos_matrix(compilers: list):
+    matrix = {
+        "compiler": compilers,
+        "target": ["Debug"],
+        "std": ["11", "20"],
+        "unwind": [
+            "CPPTRACE_UNWIND_WITH_UNWIND",
+            "CPPTRACE_UNWIND_WITH_EXECINFO",
+            "CPPTRACE_UNWIND_WITH_NOTHING",
+        ],
+        "symbols": [
+            #"CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+            "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+            "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
+        ],
+        "demangle": [
+            "CPPTRACE_DEMANGLE_WITH_CXXABI",
+            "CPPTRACE_DEMANGLE_WITH_NOTHING",
+        ]
+    }
+    exclude = []
+    run_matrix(matrix, exclude, build)
+
+def run_macos_default(compilers: list):
+    matrix = {
+        "compiler": compilers,
+        "target": ["Debug"],
+        "std": ["11", "20"],
+        "config": [""]
+    }
+    exclude = []
+    run_matrix(matrix, exclude, build_full_or_auto)
+
+def run_windows_matrix(compilers: list):
+    matrix = {
+        "compiler": compilers,
+        "target": ["Debug"],
+        "std": ["11", "20"],
+        "unwind": [
+            "CPPTRACE_UNWIND_WITH_WINAPI",
+            "CPPTRACE_UNWIND_WITH_DBGHELP",
+            "CPPTRACE_UNWIND_WITH_UNWIND",
+            "CPPTRACE_UNWIND_WITH_NOTHING",
+        ],
+        "symbols": [
+            "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+            "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+            "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
+        ],
+        "demangle": [
+            #"CPPTRACE_DEMANGLE_WITH_CXXABI",
+            "CPPTRACE_DEMANGLE_WITH_NOTHING",
+        ]
+    }
+    exclude = [
+        {
+            "demangle": "CPPTRACE_DEMANGLE_WITH_CXXABI",
+            "compiler": "cl"
+        },
+        {
+            "unwind": "CPPTRACE_UNWIND_WITH_UNWIND",
+            "compiler": "cl"
+        },
+        {
+            "unwind": "CPPTRACE_UNWIND_WITH_UNWIND",
+            "compiler": "clang++"
+        },
+        {
+            "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+            "compiler": "cl"
+        },
+        {
+            "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+            "compiler": "clang++"
+        },
+        {
+            "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+            "compiler": "cl"
+        },
+        {
+            "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+            "compiler": "clang++"
+        },
+        {
+            "symbols": "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+            "compiler": "g++"
+        },
+    ]
+    run_matrix(matrix, exclude, build)
+
+def run_windows_default(compilers: list):
+    matrix = {
+        "compiler": compilers,
+        "target": ["Debug"],
+        "std": ["11", "20"],
+        "config": [""]
+    }
+    exclude = []
+    run_matrix(matrix, exclude, build_full_or_auto)
+
 def main():
     parser = argparse.ArgumentParser(
         prog="Build in all configs",
@@ -159,6 +298,10 @@ def main():
         "--all",
         action="store_true"
     )
+    parser.add_argument(
+        "--default-config",
+        action="store_true"
+    )
     args = parser.parse_args()
 
     if platform.system() == "Linux":
@@ -167,75 +310,20 @@ def main():
             compilers.append("clang++-14")
         if args.gcc or args.all:
             compilers.append("g++-10")
-        matrix = {
-            "compiler": compilers,
-            "target": ["Debug"],
-            "std": ["11", "20"],
-            "unwind": [
-                "CPPTRACE_UNWIND_WITH_UNWIND",
-                "CPPTRACE_UNWIND_WITH_EXECINFO",
-                "CPPTRACE_UNWIND_WITH_LIBUNWIND",
-                "CPPTRACE_UNWIND_WITH_NOTHING",
-            ],
-            "symbols": [
-                "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
-                "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
-                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
-                "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
-                "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
-            ],
-            "demangle": [
-                "CPPTRACE_DEMANGLE_WITH_CXXABI",
-                "CPPTRACE_DEMANGLE_WITH_NOTHING",
-            ],
-        }
-        exclude = []
-        run_matrix(matrix, exclude, build)
-        matrix = {
-            "compiler": compilers,
-            "target": ["Debug"],
-            "std": ["11", "20"],
-            "config": [""]
-        }
-        exclude = []
-        run_matrix(matrix, exclude, build_full_or_auto)
+        if args.default_config:
+            run_linux_default(compilers)
+        else:
+            run_linux_matrix(compilers)
     if platform.system() == "Darwin":
         compilers = []
         if args.clang or args.all:
             compilers.append("clang++")
         if args.gcc or args.all:
             compilers.append("g++-12")
-        matrix = {
-            "compiler": compilers,
-            "target": ["Debug"],
-            "std": ["11", "20"],
-            "unwind": [
-                "CPPTRACE_UNWIND_WITH_UNWIND",
-                "CPPTRACE_UNWIND_WITH_EXECINFO",
-                "CPPTRACE_UNWIND_WITH_NOTHING",
-            ],
-            "symbols": [
-                #"CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
-                "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
-                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
-                "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
-                "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
-            ],
-            "demangle": [
-                "CPPTRACE_DEMANGLE_WITH_CXXABI",
-                "CPPTRACE_DEMANGLE_WITH_NOTHING",
-            ]
-        }
-        exclude = []
-        run_matrix(matrix, exclude, build)
-        matrix = {
-            "compiler": compilers,
-            "target": ["Debug"],
-            "std": ["11", "20"],
-            "config": [""]
-        }
-        exclude = []
-        run_matrix(matrix, exclude, build_full_or_auto)
+        if args.default_config:
+            run_macos_default(compilers)
+        else:
+            run_macos_matrix(compilers)
     if platform.system() == "Windows":
         compilers = []
         if args.clang or args.all:
@@ -244,70 +332,10 @@ def main():
             compilers.append("cl")
         if args.gcc or args.all:
             compilers.append("g++")
-        matrix = {
-            "compiler": compilers,
-            "target": ["Debug"],
-            "std": ["11", "20"],
-            "unwind": [
-                "CPPTRACE_UNWIND_WITH_WINAPI",
-                "CPPTRACE_UNWIND_WITH_DBGHELP",
-                "CPPTRACE_UNWIND_WITH_UNWIND",
-                "CPPTRACE_UNWIND_WITH_NOTHING",
-            ],
-            "symbols": [
-                "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
-                "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
-                "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
-                "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
-            ],
-            "demangle": [
-                #"CPPTRACE_DEMANGLE_WITH_CXXABI",
-                "CPPTRACE_DEMANGLE_WITH_NOTHING",
-            ]
-        }
-        exclude = [
-            {
-                "demangle": "CPPTRACE_DEMANGLE_WITH_CXXABI",
-                "compiler": "cl"
-            },
-            {
-                "unwind": "CPPTRACE_UNWIND_WITH_UNWIND",
-                "compiler": "cl"
-            },
-            {
-                "unwind": "CPPTRACE_UNWIND_WITH_UNWIND",
-                "compiler": "clang++"
-            },
-            {
-                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
-                "compiler": "cl"
-            },
-            {
-                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
-                "compiler": "clang++"
-            },
-            {
-                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
-                "compiler": "cl"
-            },
-            {
-                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
-                "compiler": "clang++"
-            },
-            {
-                "symbols": "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
-                "compiler": "g++"
-            },
-        ]
-        run_matrix(matrix, exclude, build)
-        matrix = {
-            "compiler": compilers,
-            "target": ["Debug"],
-            "std": ["11", "20"],
-            "config": [""]
-        }
-        exclude = []
-        run_matrix(matrix, exclude, build_full_or_auto)
+        if args.default_config:
+            run_windows_default(compilers)
+        else:
+            run_windows_matrix(compilers)
 
     global failed
     if failed:

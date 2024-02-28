@@ -23,7 +23,7 @@ jobs:
            cpptrace/ci/setup-prerequisites.sh
     - name: build
       run: |
-           python3 ci/build-in-all-configs.py --${{matrix.compiler}}
+           python3 ci/build-in-all-configs.py --${{matrix.compiler}} --default-config
   build-macos:
     runs-on: macos-14
     strategy:
@@ -41,9 +41,71 @@ jobs:
            cpptrace/ci/setup-prerequisites.sh
     - name: build
       run: |
-           python3 ci/build-in-all-configs.py --${{matrix.compiler}}
+           python3 ci/build-in-all-configs.py --${{matrix.compiler}} --default-config
   build-windows:
     runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, clang, gcc]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.13.0
+    - name: dependencies
+      run: |
+           pip3 install colorama
+    - name: libdwarf
+      run: |
+           if("${{matrix.compiler}}" -eq "gcc") {
+            cd ..
+            cpptrace/ci/setup-prerequisites-mingw.ps1
+           }
+    - name: build
+      run: |
+           python3 ci/build-in-all-configs.py --${{matrix.compiler}} --default-config
+  build-linux-all-configurations:
+    runs-on: ubuntu-22.04
+    needs: build-linux
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    steps:
+    - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev
+           pip3 install colorama
+    - name: libdwarf
+      run: |
+           cd ..
+           cpptrace/ci/setup-prerequisites.sh
+    - name: build
+      run: |
+           python3 ci/build-in-all-configs.py --${{matrix.compiler}}
+  build-macos-all-configurations:
+    runs-on: macos-14
+    needs: build-macos
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    steps:
+    - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+           pip3 install colorama
+    - name: libdwarf
+      run: |
+           cd ..
+           cpptrace/ci/setup-prerequisites.sh
+    - name: build
+      run: |
+           python3 ci/build-in-all-configs.py --${{matrix.compiler}}
+  build-windows-all-configurations:
+    runs-on: windows-2022
+    needs: build-windows
     strategy:
       fail-fast: false
       matrix:
