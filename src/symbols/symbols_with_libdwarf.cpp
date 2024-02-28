@@ -1006,6 +1006,7 @@ namespace libdwarf {
                 return {
                     {
                         frame_info.raw_address,
+                        frame_info.object_address,
                         nullable<std::uint32_t>::null(),
                         nullable<std::uint32_t>::null(),
                         frame_info.object_path,
@@ -1100,6 +1101,7 @@ namespace libdwarf {
             return {
                 {
                     frame_info.raw_address,
+                    frame_info.object_address,
                     nullable<std::uint32_t>::null(),
                     nullable<std::uint32_t>::null(),
                     frame_info.object_path,
