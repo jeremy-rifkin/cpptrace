@@ -17,6 +17,7 @@ namespace libdl {
         if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread-safe
             return {
                 addr,
+                addr - reinterpret_cast<std::uintptr_t>(info.dli_fbase) + get_module_image_base(info.dli_fname),
                 nullable<std::uint32_t>::null(),
                 nullable<std::uint32_t>::null(),
                 info.dli_fname ? info.dli_fname : "",
@@ -26,6 +27,7 @@ namespace libdl {
         } else {
             return {
                 addr,
+                0,
                 nullable<std::uint32_t>::null(),
                 nullable<std::uint32_t>::null(),
                 "",
