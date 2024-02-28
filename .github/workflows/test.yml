@@ -26,7 +26,7 @@ jobs:
            cpptrace/ci/setup-prerequisites.sh
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}}
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
   test-macos:
     runs-on: macos-14
     strategy:
@@ -45,18 +45,7 @@ jobs:
            pip3 install colorama
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}}
-    # - name: bundle artifacts
-    #   if: always()
-    #   run: |
-    #        tar czfH bundle.tar.gz build
-    # - name: upload artifacts
-    #   uses: actions/upload-artifact@v4
-    #   if: always()
-    #   with:
-    #     name: build-macos-${{matrix.compiler}}${{matrix.shared}}
-    #     path: bundle.tar.gz
-    #     retention-days: 2
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
   test-windows:
     runs-on: windows-2022
     strategy:
@@ -64,6 +53,71 @@ jobs:
       matrix:
         compiler: [msvc, clang, gcc]
         shared: [--shared, ""]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.13.0
+    - name: dependencies
+      run: |
+           pip3 install colorama
+    - name: libdwarf
+      run: |
+           if("${{matrix.compiler}}" -eq "gcc") {
+            cd ..
+            cpptrace/ci/setup-prerequisites-mingw.ps1
+           }
+    - name: build and test
+      run: |
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
+  test-linux-all-configurations:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        shared: [--shared, ""]
+    needs: test-linux
+    steps:
+    - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev
+           pip3 install colorama
+    - name: libdwarf
+      run: |
+           cd ..
+           cpptrace/ci/setup-prerequisites.sh
+    - name: build and test
+      run: |
+           python3 ci/test-all-configs.py --${{matrix.compiler}}
+  test-macos-all-configurations:
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        shared: [--shared, ""]
+    needs: test-macos
+    steps:
+    - uses: actions/checkout@v4
+    - name: libdwarf
+      run: |
+           cd ..
+           cpptrace/ci/setup-prerequisites.sh
+    - name: dependencies
+      run: |
+           pip3 install colorama
+    - name: build and test
+      run: |
+           python3 ci/test-all-configs.py --${{matrix.compiler}}
+  test-windows-all-configurations:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, clang, gcc]
+        shared: [--shared, ""]
+    needs: test-windows
     steps:
     - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
