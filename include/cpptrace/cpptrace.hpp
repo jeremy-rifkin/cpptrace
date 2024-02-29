@@ -240,6 +240,12 @@ namespace cpptrace {
 
     // utilities:
     CPPTRACE_EXPORT std::string demangle(const std::string& name);
+    CPPTRACE_EXPORT std::string get_snippet(
+        const std::string& path,
+        std::size_t line,
+        std::size_t context_size,
+        bool color = false
+    );
     CPPTRACE_EXPORT bool isatty(int fd);
 
     CPPTRACE_EXPORT extern const int stdin_fileno;

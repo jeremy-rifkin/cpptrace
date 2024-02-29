@@ -1,5 +1,6 @@
 #include "snippet.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <mutex>
 #include <unordered_map>
@@ -88,14 +89,27 @@ namespace detail {
         }
     }
 
-    std::string get_snippet(const std::string& path, std::size_t target_line, bool color) {
+    std::string get_snippet(const std::string& path, std::size_t target_line, std::size_t context_size, bool color) {
         target_line--;
         const auto& manager = get_manager(path);
         if(!manager.ok()) {
             return "";
         }
-        auto begin = target_line <= 3 ? 0 : target_line - 3;
-        auto end = std::min(target_line + 3, manager.num_lines() - 1);
+        auto begin = target_line <= context_size ? 0 : target_line - context_size;
+        auto original_begin = begin;
+        auto end = std::min(target_line + context_size, manager.num_lines() - 1);
+        std::vector<std::string> lines;
+        for(auto line = begin; line <= end; line++) {
+            lines.push_back(manager.get_line(line));
+        }
+        // trim blank lines
+        while(begin < target_line && lines[begin - original_begin].empty()) {
+            begin++;
+        }
+        while(end > target_line && lines[end - original_begin].empty()) {
+            end--;
+        }
+        // make the snippet
         std::string snippet;
         constexpr std::size_t margin_width = 8;
         for(auto line = begin; line <= end; line++) {
@@ -107,7 +121,7 @@ namespace detail {
             if(color && line == target_line) {
                 snippet += RESET;
             }
-            snippet += manager.get_line(line) + "\n";
+            snippet += lines[line - original_begin] + "\n";
         }
         return snippet;
     }

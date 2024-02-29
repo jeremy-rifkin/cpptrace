@@ -278,7 +278,7 @@ namespace cpptrace {
                 stream << '\n';
             }
             if(frame.line.has_value() && !frame.filename.empty()) {
-                stream << detail::get_snippet(frame.filename, frame.line.value(), color);
+                stream << detail::get_snippet(frame.filename, frame.line.value(), 2, color);
             }
             counter++;
         }
@@ -397,6 +397,10 @@ namespace cpptrace {
 
     std::string demangle(const std::string& name) {
         return detail::demangle(name);
+    }
+
+    std::string get_snippet(const std::string& path, std::size_t line, std::size_t context_size, bool color) {
+        return detail::get_snippet(path, line, context_size, color);
     }
 
     bool isatty(int fd) {
