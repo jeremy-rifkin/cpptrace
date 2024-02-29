@@ -375,11 +375,18 @@ namespace libdwarf {
             std::vector<stacktrace_frame>& inlines
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
-            auto child = die.get_child();
-            if(child) {
+            // get_inlines_info is recursive and recurses into dies with pc ranges matching the pc we're looking for,
+            // however, because I wouldn't want anything stack overflowing I'm breaking the recursion out into a loop
+            optional<std::reference_wrapper<const die_object>> current_die = die;
+            while(current_die.has_value()) {
+                auto child = current_die.unwrap().get().get_child();
+                if(!child) {
+                    break;
+                }
+                optional<std::reference_wrapper<const die_object>> target_die;
                 walk_die_list(
                     child,
-                    [this, &cu_die, pc, dwversion, &inlines] (const die_object& die) {
+                    [this, &cu_die, pc, dwversion, &inlines, &target_die] (const die_object& die) {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
                             const auto name = subprogram_symbol(die, dwversion);
                             auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
@@ -413,11 +420,15 @@ namespace libdwarf {
                                 name,
                                 true
                             });
-                            get_inlines_info(cu_die, die, pc, dwversion, inlines);
+                            target_die = die;
+                            return false;
+                        } else {
+                            return true;
                         }
-                        return true;
                     }
                 );
+                // recursing into the found target as-if by get_inlines_info(cu_die, die, pc, dwversion, inlines);
+                current_die = target_die;
             }
         }
 
