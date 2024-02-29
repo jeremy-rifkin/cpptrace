@@ -921,9 +921,7 @@ A couple things I'd like to improve in the future:
   pointers).
 
 A couple features I'd like to add in the future:
-- ~~Tracing from signal handlers~~
 - Tracing other thread's stacks
-- ~~Showing inlined calls in the stack trace~~
 
 # License
 
