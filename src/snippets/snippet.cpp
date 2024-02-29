@@ -35,7 +35,7 @@ namespace detail {
                     build_line_table();
                     loaded_contents = true;
                 }
-            } catch(const std::ifstream::failure& e) {
+            } catch(const std::ifstream::failure&) {
                 // ...
             }
         }
