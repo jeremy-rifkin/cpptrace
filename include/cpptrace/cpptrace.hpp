@@ -179,6 +179,9 @@ namespace cpptrace {
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
+        void print_with_snippets() const;
+        void print_with_snippets(std::ostream& stream) const;
+        void print_with_snippets(std::ostream& stream, bool color) const;
         void clear();
         bool empty() const noexcept;
         std::string to_string(bool color = false) const;
@@ -194,6 +197,7 @@ namespace cpptrace {
         inline const_iterator cend() const noexcept { return frames.cend(); }
     private:
         void print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const;
+        void print_with_snippets(std::ostream& stream, bool color, bool newline_at_end, const char* header) const;
         friend void print_terminate_trace();
     };
 

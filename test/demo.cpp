@@ -7,6 +7,7 @@
 
 void trace() {
     cpptrace::generate_trace().print();
+    cpptrace::generate_trace().print_with_snippets();
     throw cpptrace::logic_error("foobar");
 }
 

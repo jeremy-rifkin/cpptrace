@@ -20,6 +20,7 @@
 #include "utils/utils.hpp"
 #include "binary/object.hpp"
 #include "binary/safe_dl.hpp"
+#include "snippets/snippet.hpp"
 
 #define ESC     "\033["
 #define RESET   ESC "0m"
@@ -248,6 +249,45 @@ namespace cpptrace {
             print_frame(stream, color, frame_number_width, counter, frame);
             if(newline_at_end || &frame != &frames.back()) {
                 stream << '\n';
+            }
+            counter++;
+        }
+    }
+
+    void stacktrace::print_with_snippets() const {
+        print_with_snippets(std::cerr, true);
+    }
+
+    void stacktrace::print_with_snippets(std::ostream& stream) const {
+        print_with_snippets(stream, true);
+    }
+
+    void stacktrace::print_with_snippets(std::ostream& stream, bool color) const {
+        print_with_snippets(stream, color, true, nullptr);
+    }
+
+    void stacktrace::print_with_snippets(std::ostream& stream, bool color, bool newline_at_end, const char* header) const {
+        if(
+            color && (
+                (&stream == &std::cout && isatty(stdout_fileno)) || (&stream == &std::cerr && isatty(stderr_fileno))
+            )
+        ) {
+            detail::enable_virtual_terminal_processing_if_needed();
+        }
+        stream<<(header ? header : "Stack trace (most recent call first):") << '\n';
+        std::size_t counter = 0;
+        if(frames.empty()) {
+            stream<<"<empty trace>" << '\n';
+            return;
+        }
+        const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
+        for(const auto& frame : frames) {
+            print_frame(stream, color, frame_number_width, counter, frame);
+            if(newline_at_end || &frame != &frames.back()) {
+                stream << '\n';
+            }
+            if(frame.line.has_value() && !frame.filename.empty()) {
+                stream << detail::get_snippet(frame.filename, frame.line.value(), color);
             }
             counter++;
         }
