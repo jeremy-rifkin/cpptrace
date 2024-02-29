@@ -41,6 +41,15 @@
 
 #include <cpptrace/cpptrace.hpp>
 
+#define ESC     "\033["
+#define RESET   ESC "0m"
+#define RED     ESC "31m"
+#define GREEN   ESC "32m"
+#define YELLOW  ESC "33m"
+#define BLUE    ESC "34m"
+#define MAGENTA ESC "35m"
+#define CYAN    ESC "36m"
+
 namespace cpptrace {
 namespace detail {
     // Placed here instead of utils because it's used by error.hpp and utils.hpp

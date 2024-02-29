@@ -251,6 +251,9 @@ namespace cpptrace {
 `cpptrace::demangle` provides a helper function for name demangling, since it has to implement that helper internally
 anyways.
 
+`cpptrace::get_snippet` gets a text snippet, if possible, from for the given source file for +/- `context_size` lines
+around `line`.
+
 `cpptrace::isatty` and the fileno definitions are useful for deciding whether to use color when printing stack traces.
 
 `cpptrace::register_terminate_handler()` is a helper function to set a custom `std::terminate` handler that prints a
@@ -259,6 +262,12 @@ stack trace from a cpptrace exception (more info below) and otherwise behaves li
 ```cpp
 namespace cpptrace {
     std::string demangle(const std::string& name);
+    std::string get_snippet(
+        const std::string& path,
+        std::size_t line,
+        std::size_t context_size,
+        bool color = false
+    );
     bool isatty(int fd);
 
     extern const int stdin_fileno;

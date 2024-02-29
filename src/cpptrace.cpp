@@ -20,15 +20,7 @@
 #include "utils/utils.hpp"
 #include "binary/object.hpp"
 #include "binary/safe_dl.hpp"
-
-#define ESC     "\033["
-#define RESET   ESC "0m"
-#define RED     ESC "31m"
-#define GREEN   ESC "32m"
-#define YELLOW  ESC "33m"
-#define BLUE    ESC "34m"
-#define MAGENTA ESC "35m"
-#define CYAN    ESC "36m"
+#include "snippets/snippet.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
@@ -173,10 +165,10 @@ namespace cpptrace {
         std::size_t counter,
         const stacktrace_frame& frame
     ) {
-        const auto reset   = color ? ESC "0m" : "";
-        const auto green   = color ? ESC "32m" : "";
-        const auto yellow  = color ? ESC "33m" : "";
-        const auto blue    = color ? ESC "34m" : "";
+        const auto reset   = color ? RESET : "";
+        const auto green   = color ? GREEN : "";
+        const auto yellow  = color ? YELLOW : "";
+        const auto blue    = color ? BLUE : "";
         stream
             << '#'
             << std::setw(static_cast<int>(frame_number_width))
@@ -248,6 +240,45 @@ namespace cpptrace {
             print_frame(stream, color, frame_number_width, counter, frame);
             if(newline_at_end || &frame != &frames.back()) {
                 stream << '\n';
+            }
+            counter++;
+        }
+    }
+
+    void stacktrace::print_with_snippets() const {
+        print_with_snippets(std::cerr, true);
+    }
+
+    void stacktrace::print_with_snippets(std::ostream& stream) const {
+        print_with_snippets(stream, true);
+    }
+
+    void stacktrace::print_with_snippets(std::ostream& stream, bool color) const {
+        print_with_snippets(stream, color, true, nullptr);
+    }
+
+    void stacktrace::print_with_snippets(std::ostream& stream, bool color, bool newline_at_end, const char* header) const {
+        if(
+            color && (
+                (&stream == &std::cout && isatty(stdout_fileno)) || (&stream == &std::cerr && isatty(stderr_fileno))
+            )
+        ) {
+            detail::enable_virtual_terminal_processing_if_needed();
+        }
+        stream<<(header ? header : "Stack trace (most recent call first):") << '\n';
+        std::size_t counter = 0;
+        if(frames.empty()) {
+            stream<<"<empty trace>" << '\n';
+            return;
+        }
+        const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
+        for(const auto& frame : frames) {
+            print_frame(stream, color, frame_number_width, counter, frame);
+            if(newline_at_end || &frame != &frames.back()) {
+                stream << '\n';
+            }
+            if(frame.line.has_value() && !frame.filename.empty()) {
+                stream << detail::get_snippet(frame.filename, frame.line.value(), 2, color);
             }
             counter++;
         }
@@ -366,6 +397,10 @@ namespace cpptrace {
 
     std::string demangle(const std::string& name) {
         return detail::demangle(name);
+    }
+
+    std::string get_snippet(const std::string& path, std::size_t line, std::size_t context_size, bool color) {
+        return detail::get_snippet(path, line, context_size, color);
     }
 
     bool isatty(int fd) {
