@@ -7,6 +7,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "../utils/common.hpp"
+
 namespace cpptrace {
 namespace detail {
     constexpr std::int64_t max_size = 1024 * 1024 * 10; // 10 MiB
@@ -97,14 +99,13 @@ namespace detail {
         std::string snippet;
         constexpr std::size_t margin_width = 8;
         for(auto line = begin; line <= end; line++) {
-            #define ESC     "\033["
             if(color && line == target_line) {
-                snippet += ESC "33m";
+                snippet += YELLOW;
             }
             auto line_str = std::to_string(line);
             snippet += std::string(margin_width - line_str.size(), ' ') + line_str + ": ";
             if(color && line == target_line) {
-                snippet += ESC "0m";
+                snippet += RESET;
             }
             snippet += manager.get_line(line) + "\n";
         }

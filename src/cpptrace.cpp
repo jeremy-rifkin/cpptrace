@@ -22,15 +22,6 @@
 #include "binary/safe_dl.hpp"
 #include "snippets/snippet.hpp"
 
-#define ESC     "\033["
-#define RESET   ESC "0m"
-#define RED     ESC "31m"
-#define GREEN   ESC "32m"
-#define YELLOW  ESC "33m"
-#define BLUE    ESC "34m"
-#define MAGENTA ESC "35m"
-#define CYAN    ESC "36m"
-
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
     raw_trace raw_trace::current(std::size_t skip) {
@@ -174,10 +165,10 @@ namespace cpptrace {
         std::size_t counter,
         const stacktrace_frame& frame
     ) {
-        const auto reset   = color ? ESC "0m" : "";
-        const auto green   = color ? ESC "32m" : "";
-        const auto yellow  = color ? ESC "33m" : "";
-        const auto blue    = color ? ESC "34m" : "";
+        const auto reset   = color ? RESET : "";
+        const auto green   = color ? GREEN : "";
+        const auto yellow  = color ? YELLOW : "";
+        const auto blue    = color ? BLUE : "";
         stream
             << '#'
             << std::setw(static_cast<int>(frame_number_width))
