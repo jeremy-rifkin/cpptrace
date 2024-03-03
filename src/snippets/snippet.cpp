@@ -14,11 +14,16 @@ namespace cpptrace {
 namespace detail {
     constexpr std::int64_t max_size = 1024 * 1024 * 10; // 10 MiB
 
+    struct line_range {
+        std::size_t begin;
+        std::size_t end; // one past the end
+    };
+
     class snippet_manager {
         bool loaded_contents;
         std::string contents;
-        // for index i, gives the index in `contents` of one past the end of the line (i.e. the \n or contents.end())
-        std::vector<std::size_t> line_table;
+        // 1-based indexing
+        std::vector<line_range> line_table;
     public:
         snippet_manager(const std::string& path) : loaded_contents(false) {
             std::ifstream file;
@@ -43,13 +48,12 @@ namespace detail {
             }
         }
 
-        std::string get_line(std::size_t line) const { // 0-indexed line TODO: reconsider
-            if(!loaded_contents || line >= line_table.size()) {
+        // takes a 1-index line
+        std::string get_line(std::size_t line) const {
+            if(!loaded_contents || line > line_table.size()) {
                 return "";
-            } else if(line == 0) {
-                return contents.substr(0, line_table[line]);
-            }  else {
-                return contents.substr(line_table[line - 1] + 1, line_table[line] - line_table[line - 1] - 1);
+            } else {
+                return contents.substr(line_table[line].begin, line_table[line].end - line_table[line].begin);
             }
         }
 
@@ -62,15 +66,21 @@ namespace detail {
         }
     private:
         void build_line_table() {
-            std::size_t pos = 0;
+            line_table.push_back({0, 0});
+            std::size_t pos = 0; // stores the start of the current line
             while(true) {
-                std::size_t new_pos = contents.find('\n', pos);
-                if(new_pos == std::string::npos) {
-                    line_table.push_back(contents.size());
+                // find the end of the current line
+                std::size_t terminator_pos = contents.find('\n', pos);
+                if(terminator_pos == std::string::npos) {
+                    line_table.push_back({pos, contents.size()});
                     break;
                 } else {
-                    line_table.push_back(new_pos);
-                    pos = new_pos + 1;
+                    std::size_t end_pos = terminator_pos; // one past the end of the current line
+                    if(end_pos > 0 && contents[end_pos - 1] == '\r') {
+                        end_pos--;
+                    }
+                    line_table.push_back({pos, end_pos});
+                    pos = terminator_pos + 1;
                 }
             }
         }
@@ -92,13 +102,13 @@ namespace detail {
     // how wide the margin for the line number should be
     constexpr std::size_t margin_width = 8;
 
+    // 1-indexed line
     std::string get_snippet(const std::string& path, std::size_t target_line, std::size_t context_size, bool color) {
-        target_line--;
         const auto& manager = get_manager(path);
         if(!manager.ok()) {
             return "";
         }
-        auto begin = target_line <= context_size ? 0 : target_line - context_size;
+        auto begin = target_line <= context_size + 1 ? 1 : target_line - context_size;
         auto original_begin = begin;
         auto end = std::min(target_line + context_size, manager.num_lines() - 1);
         std::vector<std::string> lines;
