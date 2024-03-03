@@ -32,6 +32,13 @@ FAQ: What's the worst that could happen if you call `cpptrace::generate_trace().
 signal handler? In many cases you might be able to get away with it but you risk deadlocking or
 memory corruption.
 
+> [!IMPORTANT]
+> Currently signal-safe stack unwinding is only possible with `libunwind`, more details later.
+
+> [!CAUTION]
+> Calls to shared objects can be lazy-loaded where the first call to the shared object invokes non-signal-safe functions
+> such as `malloc()`. Because of this, the signal safe api must be "warmed up" ahead of a signal handler.
+
 # API
 
 Cpptrace provides APIs for generating raw trace information safely and then also safely resolving
@@ -53,6 +60,8 @@ namespace cpptrace {
 
     // signal-safe
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out);
+    // signal-safe
+    bool can_signal_safe_unwind();
 }
 ```
 
@@ -87,12 +96,6 @@ way then `get_safe_object_frame` will not populate fields beyond the `raw_addres
 Currently the only back-end that can unwind safely is libunwind. Currently, the only way I know to get `dladdr`'s
 information in a signal-safe manner is `_dl_find_object`, which doesn't exist on macos (or windows of course). If anyone
 knows ways to do these safely on other platforms, I'd be much appreciative.
-
-# A pitfall to be aware of
-
-Calls to functions in shared objects can be lazy-loaded where the first call to the shared object invokes
-non-signal-safe functions such as `malloc()`. To avoid this, call these safe cpptrace routines in `main()` ahead of a
-signal handler to "warm up" the library.
 
 # Signal-Safe Tracing With `fork()` + `exec()`
 

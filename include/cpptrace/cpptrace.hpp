@@ -239,6 +239,7 @@ namespace cpptrace {
     };
     // signal-safe
     CPPTRACE_EXPORT void get_safe_object_frame(frame_ptr address, safe_object_frame* out);
+    CPPTRACE_EXPORT bool can_signal_safe_unwind();
 
     // utilities:
     CPPTRACE_EXPORT std::string demangle(const std::string& name);

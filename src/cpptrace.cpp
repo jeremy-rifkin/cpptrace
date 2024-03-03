@@ -399,6 +399,10 @@ namespace cpptrace {
         detail::get_safe_object_frame(address, out);
     }
 
+    bool can_signal_safe_unwind() {
+        return detail::has_safe_unwind();
+    }
+
     std::string demangle(const std::string& name) {
         return detail::demangle(name);
     }

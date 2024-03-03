@@ -70,6 +70,10 @@ namespace detail {
         }
         return i;
     }
+
+    bool has_safe_unwind() {
+        return true;
+    }
 }
 }
 

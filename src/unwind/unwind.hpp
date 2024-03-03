@@ -20,6 +20,8 @@ namespace detail {
 
     CPPTRACE_FORCE_NO_INLINE
     std::size_t safe_capture_frames(frame_ptr* buffer, std::size_t size, std::size_t skip, std::size_t max_depth);
+
+    bool has_safe_unwind();
 }
 }
 

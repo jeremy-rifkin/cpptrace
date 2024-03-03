@@ -161,6 +161,10 @@ namespace detail {
     #if IS_MSVC
     #pragma warning(pop)
     #endif
+
+    bool has_safe_unwind() {
+        return false;
+    }
 }
 }
 

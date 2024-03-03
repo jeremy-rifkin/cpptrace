@@ -15,6 +15,10 @@ namespace detail {
     std::size_t safe_capture_frames(frame_ptr*, std::size_t, std::size_t, std::size_t) {
         return 0;
     }
+
+    bool has_safe_unwind() {
+        return false;
+    }
 }
 }
 

@@ -42,6 +42,8 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
     - [Conan](#conan)
     - [Vcpkg](#vcpkg)
 - [Platform Logistics](#platform-logistics)
+  - [Windows](#windows)
+  - [macOS](#macos)
 - [Library Back-Ends](#library-back-ends)
   - [Summary of Library Configurations](#summary-of-library-configurations)
 - [Testing Methodology](#testing-methodology)
@@ -454,16 +456,20 @@ namespace cpptrace {
         object_frame resolve() const; // To be called outside a signal handler. Not signal safe.
     };
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out);
+    bool can_signal_safe_unwind();
 }
 ```
 
-**Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported,
-`safe_generate_raw_trace` will just produce an empty trace, and if object information can't be resolved in a signal-safe
-way then `get_safe_object_frame` will not populate fields beyond the `raw_address`.
+> [!IMPORTANT]
+> Currently signal-safe stack unwinding is only possible with `libunwind`, which must be
+> [manually enabled](#library-back-ends). If signal-safe unwinding isn't supported, `safe_generate_raw_trace` will just
+> produce an empty trace. `can_signal_safe_unwind` can be used to check for signal-safe unwinding support. If object
+> information can't be resolved in a signal-safe way then `get_safe_object_frame` will not populate fields beyond the
+> `raw_address`.
 
-**Another big note:** Calls to shared objects can be lazy-loaded where the first call to the shared object invokes
-non-signal-safe functions such as `malloc()`. To avoid this, call these routines in `main()` ahead of a signal handler
-to "warm up" the library.
+> [!CAUTION]
+> Calls to shared objects can be lazy-loaded where the first call to the shared object invokes non-signal-safe functions
+> such as `malloc()`. To avoid this, call these routines in `main()` ahead of a signal handler to "warm up" the library.
 
 Because signal-safe tracing is an involved process, I have written up a comprehensive overview of
 what is involved at [signal-safe-tracing.md](docs/signal-safe-tracing.md).

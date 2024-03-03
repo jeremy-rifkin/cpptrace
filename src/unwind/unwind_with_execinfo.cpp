@@ -35,6 +35,10 @@ namespace detail {
         // Can't safe trace with execinfo
         return 0;
     }
+
+    bool has_safe_unwind() {
+        return false;
+    }
 }
 }
 
