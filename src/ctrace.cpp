@@ -88,18 +88,15 @@ CTRACE_FORMAT_EPILOGUE
         free_owning_string(owned_string.data);
     }
 
+    static ctrace_object_frame convert_object_frame(const cpptrace::object_frame& frame) {
+        const char* new_path = generate_owning_string(frame.object_path).data;
+        return { frame.raw_address, frame.object_address, new_path };
+    }
+
     static ctrace_object_trace c_convert(const std::vector<cpptrace::object_frame>& trace) {
         std::size_t count = trace.size();
         auto* frames = new ctrace_object_frame[count];
-        std::transform(
-            trace.begin(),
-            trace.end(),
-            frames,
-            [] (const cpptrace::object_frame& frame) -> ctrace_object_frame {
-                const char* new_path = generate_owning_string(frame.object_path).data;
-                return { frame.raw_address, frame.object_address, new_path };
-            }
-        );
+        std::transform(trace.begin(), trace.end(), frames, convert_object_frame);
         return { frames, count };
     }
 
@@ -424,5 +421,14 @@ extern "C" {
 
     void ctrace_enable_inlined_call_resolution(ctrace_bool enable) {
         cpptrace::enable_inlined_call_resolution(enable);
+    }
+
+    ctrace_object_frame ctrace_get_object_info(const ctrace_stacktrace_frame* frame) {
+        try {
+            cpptrace::object_frame new_frame = cpptrace::detail::get_frame_object_info(frame->raw_address);
+            return ctrace::convert_object_frame(new_frame);
+        } catch(...) {
+            return {0, 0, nullptr};
+        }
     }
 }

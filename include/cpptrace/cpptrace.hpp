@@ -168,6 +168,8 @@ namespace cpptrace {
             return !operator==(other);
         }
 
+        object_frame get_object_info() const;
+
         std::string to_string() const;
         friend std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);
     };

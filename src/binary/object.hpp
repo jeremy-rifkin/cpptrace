@@ -65,57 +65,47 @@ namespace detail {
     }
     #endif
     #ifdef CPPTRACE_HAS_DL_FIND_OBJECT
-    inline std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addrs) {
+    inline object_frame get_frame_object_info(frame_ptr address) {
         // Use _dl_find_object when we can, it's orders of magnitude faster
-        std::vector<object_frame> frames;
-        frames.reserve(addrs.size());
-        for(const frame_ptr addr : addrs) {
-            object_frame frame;
-            frame.raw_address = addr;
-            frame.object_address = 0;
-            dl_find_object result;
-            if(_dl_find_object(reinterpret_cast<void*>(addr), &result) == 0) { // thread safe
-                if(result.dlfo_link_map->l_name != nullptr && result.dlfo_link_map->l_name[0] != 0) {
-                    frame.object_path = result.dlfo_link_map->l_name;
+        object_frame frame;
+        frame.raw_address = address;
+        frame.object_address = 0;
+        dl_find_object result;
+        if(_dl_find_object(reinterpret_cast<void*>(address), &result) == 0) { // thread safe
+            if(result.dlfo_link_map->l_name != nullptr && result.dlfo_link_map->l_name[0] != 0) {
+                frame.object_path = result.dlfo_link_map->l_name;
+            } else {
+                // empty l_name, this means it's the currently running executable
+                // TODO: Caching and proper handling
+                char buffer[CPPTRACE_PATH_MAX + 1]{};
+                auto res = readlink("/proc/self/exe", buffer, CPPTRACE_PATH_MAX);
+                if(res == -1) {
+                    // error handling?
                 } else {
-                    // empty l_name, this means it's the currently running executable
-                    // TODO: Caching and proper handling
-                    char buffer[CPPTRACE_PATH_MAX + 1]{};
-                    auto res = readlink("/proc/self/exe", buffer, CPPTRACE_PATH_MAX);
-                    if(res == -1) {
-                        // error handling?
-                    } else {
-                        frame.object_path = buffer;
-                    }
+                    frame.object_path = buffer;
                 }
-                frame.object_address = addr
-                                     - to_frame_ptr(result.dlfo_link_map->l_addr)
-                                     + get_module_image_base(frame.object_path);
             }
-            frames.push_back(frame);
+            frame.object_address = address
+                                    - to_frame_ptr(result.dlfo_link_map->l_addr)
+                                    + get_module_image_base(frame.object_path);
         }
-        return frames;
+        return frame;
     }
     #else
-    // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-    inline std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addrs) {
+    // dladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
+    inline object_frame get_frame_object_info(frame_ptr address) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
-        std::vector<object_frame> frames;
-        frames.reserve(addrs.size());
-        for(const frame_ptr addr : addrs) {
-            Dl_info info;
-            object_frame frame;
-            frame.raw_address = addr;
-            frame.object_address = 0;
-            if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread safe
-                frame.object_path = info.dli_fname;
-                frame.object_address = addr
-                                     - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
-                                     + get_module_image_base(info.dli_fname);
-            }
-            frames.push_back(frame);
+        Dl_info info;
+        object_frame frame;
+        frame.raw_address = address;
+        frame.object_address = 0;
+        if(dladdr(reinterpret_cast<void*>(address), &info)) { // thread safe
+            frame.object_path = info.dli_fname;
+            frame.object_address = address
+                                    - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
+                                    + get_module_image_base(info.dli_fname);
         }
-        return frames;
+        return frame;
     }
     #endif
     #else
@@ -156,34 +146,36 @@ namespace detail {
         }
     }
 
-    // aladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
-    inline std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addrs) {
-        // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
+    inline object_frame get_frame_object_info(frame_ptr address) {
+        object_frame frame;
+        frame.raw_address = address;
+        frame.object_address = 0;
+        HMODULE handle;
+        // Multithread safe as long as another thread doesn't come along and free the module
+        if(GetModuleHandleExA(
+            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+            reinterpret_cast<const char*>(address),
+            &handle
+        )) {
+            frame.object_path = get_module_name(handle);
+            frame.object_address = address
+                                - reinterpret_cast<std::uintptr_t>(handle)
+                                + get_module_image_base(frame.object_path);
+        } else {
+            std::fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
+        }
+        return frame;
+    }
+    #endif
+
+    inline std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addresses) {
         std::vector<object_frame> frames;
-        frames.reserve(addrs.size());
-        for(const frame_ptr addr : addrs) {
-            object_frame frame;
-            frame.raw_address = addr;
-            frame.object_address = 0;
-            HMODULE handle;
-            // Multithread safe as long as another thread doesn't come along and free the module
-            if(GetModuleHandleExA(
-                GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-                reinterpret_cast<const char*>(addr),
-                &handle
-            )) {
-                frame.object_path = get_module_name(handle);
-                frame.object_address = addr
-                                    - reinterpret_cast<std::uintptr_t>(handle)
-                                    + get_module_image_base(frame.object_path);
-            } else {
-                std::fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
-            }
-            frames.push_back(frame);
+        frames.reserve(addresses.size());
+        for(const frame_ptr address : addresses) {
+            frames.push_back(get_frame_object_info(address));
         }
         return frames;
     }
-    #endif
 
     inline object_frame resolve_safe_object_frame(const safe_object_frame& frame) {
         return {

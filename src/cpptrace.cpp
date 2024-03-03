@@ -100,6 +100,10 @@ namespace cpptrace {
         return frames.empty();
     }
 
+    object_frame stacktrace_frame::get_object_info() const {
+        return detail::get_frame_object_info(raw_address);
+    }
+
     std::string stacktrace_frame::to_string() const {
         std::ostringstream oss;
         oss << *this;

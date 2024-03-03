@@ -52,6 +52,9 @@ ctrace_stacktrace ctrace_generate_trace(size_t skip, size_t max_depth);
 ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);
 void ctrace_print_stacktrace(const ctrace_stacktrace* trace, FILE* to, ctrace_bool use_color);
 void ctrace_free_stacktrace(ctrace_stacktrace* trace);
+
+// object_address is stored but if the object_path is needed this can be used
+ctrace_object_frame ctrace_get_object_info(const ctrace_stacktrace_frame* frame);
 ```
 
 ### Object Traces

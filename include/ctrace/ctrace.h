@@ -143,6 +143,8 @@ CTRACE_BEGIN_DEFINITIONS
     CPPTRACE_EXPORT int ctrace_stdout_fileno(void);
     CPPTRACE_EXPORT ctrace_bool ctrace_isatty(int fd);
 
+    CPPTRACE_EXPORT ctrace_object_frame ctrace_get_object_info(const ctrace_stacktrace_frame* frame);
+
     /* ctrace::config: */
     typedef enum {
         /* Only minimal lookup tables */

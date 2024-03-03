@@ -169,6 +169,7 @@ namespace cpptrace {
         bool is_inline;
         bool operator==(const stacktrace_frame& other) const;
         bool operator!=(const stacktrace_frame& other) const;
+        object_frame get_object_info() const; // object_address is stored but if the object_path is needed this can be used
         std::string to_string() const;
         /* operator<<(ostream, ..) and std::format support exist for this object */
     };
