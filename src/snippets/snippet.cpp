@@ -89,6 +89,9 @@ namespace detail {
         }
     }
 
+    // how wide the margin for the line number should be
+    constexpr std::size_t margin_width = 8;
+
     std::string get_snippet(const std::string& path, std::size_t target_line, std::size_t context_size, bool color) {
         target_line--;
         const auto& manager = get_manager(path);
@@ -111,13 +114,12 @@ namespace detail {
         }
         // make the snippet
         std::string snippet;
-        constexpr std::size_t margin_width = 8;
         for(auto line = begin; line <= end; line++) {
             if(color && line == target_line) {
                 snippet += YELLOW;
             }
             auto line_str = std::to_string(line);
-            snippet += std::string(margin_width - line_str.size(), ' ') + line_str + ": ";
+            snippet += std::string(margin_width - std::min(line_str.size(), margin_width), ' ') + line_str + ": ";
             if(color && line == target_line) {
                 snippet += RESET;
             }
