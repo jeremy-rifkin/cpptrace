@@ -100,24 +100,39 @@ CTRACE_FORMAT_EPILOGUE
         return { frames, count };
     }
 
+    static ctrace_stacktrace_frame convert_stacktrace_frame(const cpptrace::stacktrace_frame& frame) {
+        ctrace_stacktrace_frame new_frame;
+        new_frame.raw_address    = frame.raw_address;
+        new_frame.object_address = frame.object_address;
+        new_frame.line      = frame.line.value_or(invalid_pos);
+        new_frame.column    = frame.column.value_or(invalid_pos);
+        new_frame.filename  = generate_owning_string(frame.filename).data;
+        new_frame.symbol    = generate_owning_string(cpptrace::detail::demangle(frame.symbol)).data;
+        new_frame.is_inline = ctrace_bool(frame.is_inline);
+        return new_frame;
+    }
+
+    static cpptrace::stacktrace_frame convert_stacktrace_frame(const ctrace_stacktrace_frame& frame) {
+        using nullable_type = cpptrace::nullable<std::uint32_t>;
+        static constexpr auto null_v = nullable_type::null().raw_value;
+        cpptrace::stacktrace_frame new_frame;
+        new_frame.raw_address    = frame.raw_address;
+        new_frame.object_address = frame.object_address;
+        new_frame.line      = nullable_type{is_empty(frame.line)   ? null_v : frame.line};
+        new_frame.column    = nullable_type{is_empty(frame.column) ? null_v : frame.column};
+        new_frame.filename  = frame.filename;
+        new_frame.symbol    = frame.symbol;
+        new_frame.is_inline = bool(frame.is_inline);
+        return new_frame;
+    }
+
     static ctrace_stacktrace c_convert(const std::vector<cpptrace::stacktrace_frame>& trace) {
         std::size_t count = trace.size();
         auto* frames = new ctrace_stacktrace_frame[count];
         std::transform(
             trace.begin(),
-            trace.end(),
-            frames,
-            [] (const cpptrace::stacktrace_frame& frame) -> ctrace_stacktrace_frame {
-                ctrace_stacktrace_frame new_frame;
-                new_frame.raw_address    = frame.raw_address;
-                new_frame.object_address = frame.object_address;
-                new_frame.line      = frame.line.value_or(invalid_pos);
-                new_frame.column    = frame.column.value_or(invalid_pos);
-                new_frame.filename  = generate_owning_string(frame.filename).data;
-                new_frame.symbol    = generate_owning_string(cpptrace::detail::demangle(frame.symbol)).data;
-                new_frame.is_inline = ctrace_bool(frame.is_inline);
-                return new_frame;
-            }
+            trace.end(), frames,
+            static_cast<ctrace_stacktrace_frame(*)(const cpptrace::stacktrace_frame&)>(convert_stacktrace_frame)
         );
         return { frames, count };
     }
@@ -129,18 +144,7 @@ CTRACE_FORMAT_EPILOGUE
         std::vector<cpptrace::stacktrace_frame> new_frames;
         new_frames.reserve(ptrace->count);
         for(std::size_t i = 0; i < ptrace->count; ++i) {
-            using nullable_type = cpptrace::nullable<std::uint32_t>;
-            static constexpr auto null_v = nullable_type::null().raw_value;
-            const ctrace_stacktrace_frame& old_frame = ptrace->frames[i];
-            cpptrace::stacktrace_frame new_frame;
-            new_frame.raw_address    = old_frame.raw_address;
-            new_frame.object_address = old_frame.object_address;
-            new_frame.line      = nullable_type{is_empty(old_frame.line)   ? null_v : old_frame.line};
-            new_frame.column    = nullable_type{is_empty(old_frame.column) ? null_v : old_frame.column};
-            new_frame.filename  = old_frame.filename;
-            new_frame.symbol    = old_frame.symbol;
-            new_frame.is_inline = bool(old_frame.is_inline);
-            new_frames.push_back(std::move(new_frame));
+            new_frames.push_back(convert_stacktrace_frame(ptrace->frames[i]));
         }
         return cpptrace::stacktrace{std::move(new_frames)};
     }
