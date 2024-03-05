@@ -898,6 +898,7 @@ Other useful configurations:
   the fault of your project. Defaults to On.
 - `CPPTRACE_INSTALL_CMAKEDIR`: Override for the installation path for the cmake configs.
 - `CPPTRACE_USE_EXTERNAL_LIBDWARF=On/Off`: Get libdwarf from `find_package` rather than `FetchContent`.
+- `CPPTRACE_POSITION_INDEPENDENT_CODE=On/Off`: Compile the library as a position independent code (PIE). Defaults to On.
 
 Testing:
 - `CPPTRACE_BUILD_TESTING` Build small demo and test program
