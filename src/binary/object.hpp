@@ -68,6 +68,27 @@ namespace detail {
     }
     #endif
     #else
+    inline std::string get_module_name(HMODULE handle) {
+        static std::mutex mutex;
+        std::lock_guard<std::mutex> lock(mutex);
+        static std::unordered_map<HMODULE, std::string> cache;
+        auto it = cache.find(handle);
+        if(it == cache.end()) {
+            char path[MAX_PATH];
+            if(GetModuleFileNameA(handle, path, sizeof(path))) {
+                ///std::fprintf(stderr, "path: %s base: %p\n", path, handle);
+                cache.insert(it, {handle, path});
+                return path;
+            } else {
+                std::fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
+                cache.insert(it, {handle, ""});
+                return "";
+            }
+        } else {
+            return it->second;
+        }
+    }
+
     inline object_frame get_frame_object_info(frame_ptr address) {
         object_frame frame;
         frame.raw_address = address;
