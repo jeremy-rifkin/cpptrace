@@ -4,7 +4,6 @@
 #include "../utils/common.hpp"
 #include "../utils/utils.hpp"
 
-#include <mutex>
 #include <unordered_set>
 
 #include <windows.h>
@@ -14,7 +13,6 @@ namespace cpptrace {
 namespace detail {
     struct dbghelp_syminit_manager {
         std::unordered_set<HANDLE> set;
-        std::mutex mutex;
 
         ~dbghelp_syminit_manager() {
             for(auto handle : set) {
@@ -26,7 +24,6 @@ namespace detail {
 
         void init(HANDLE proc) {
             if(set.count(proc) == 0) {
-                std::lock_guard<std::mutex> lock(mutex);
                 if(!SymInitialize(proc, NULL, TRUE)) {
                     throw std::logic_error(stringf("SymInitialize failed %llu", to_ull(GetLastError())));
                 }
@@ -35,6 +32,7 @@ namespace detail {
         }
     };
 
+    // Thread-safety: Must only be called from symbols_with_dbghelp while the dbghelp_lock lock is held
     inline dbghelp_syminit_manager& get_syminit_manager() {
         static dbghelp_syminit_manager syminit_manager;
         return syminit_manager;
