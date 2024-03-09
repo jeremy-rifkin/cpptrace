@@ -16,10 +16,10 @@
 
 namespace cpptrace {
 namespace detail {
-    class file_error : public std::exception {
+    class internal_error : public std::exception {
         std::string msg;
     public:
-        file_error(std::string path) : msg("Unable to read file " + std::move(path)) {}
+        internal_error(std::string message) : msg(std::move(message)) {}
         const char* what() const noexcept override {
             return msg.c_str();
         }

@@ -901,7 +901,9 @@ namespace libdwarf {
                         retrieve_symbol(vec_it->die, pc, vec_it->dwversion, frame, inlines);
                     }
                 } else {
-                    ASSERT(cu_cache.size() == 0, "Vec should be empty?");
+                    // I've had this happen for _start, where there is a cached CU for the object but _start is outside
+                    // of the CU's PC range
+                    // ASSERT(cu_cache.size() == 0, "Vec should be empty?");
                 }
             }
         }

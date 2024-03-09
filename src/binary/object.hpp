@@ -44,9 +44,14 @@ namespace detail {
                     frame.object_path = buffer;
                 }
             }
-            frame.object_address = address
-                                    - to_frame_ptr(result.dlfo_link_map->l_addr)
-                                    + get_module_image_base(frame.object_path);
+            auto base = get_module_image_base(frame.object_path);
+            if(base.has_value()) {
+                frame.object_address = address
+                                        - to_frame_ptr(result.dlfo_link_map->l_addr)
+                                        + base.unwrap_value();
+            } else {
+                base.drop_error();
+            }
         }
         return frame;
     }
@@ -60,9 +65,14 @@ namespace detail {
         frame.object_address = 0;
         if(dladdr(reinterpret_cast<void*>(address), &info)) { // thread safe
             frame.object_path = info.dli_fname;
-            frame.object_address = address
-                                    - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
-                                    + get_module_image_base(info.dli_fname);
+            auto base = get_module_image_base(info.dli_fname);
+            if(base.has_value()) {
+                frame.object_address = address
+                                        - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
+                                        + base.unwrap_value();
+            } else {
+                base.drop_error();
+            }
         }
         return frame;
     }
@@ -101,9 +111,14 @@ namespace detail {
             &handle
         )) {
             frame.object_path = get_module_name(handle);
-            frame.object_address = address
-                                    - reinterpret_cast<std::uintptr_t>(handle)
-                                    + get_module_image_base(frame.object_path);
+            auto base = get_module_image_base(frame.object_path);
+            if(base.has_value()) {
+                frame.object_address = address
+                                        - reinterpret_cast<std::uintptr_t>(handle)
+                                        + base.unwrap_value();
+            } else {
+                base.drop_error();
+            }
         } else {
             std::fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
         }
@@ -121,9 +136,13 @@ namespace detail {
     }
 
     inline object_frame resolve_safe_object_frame(const safe_object_frame& frame) {
+        auto base = get_module_image_base(frame.object_path);
+        if(base.is_error()) {
+            throw base.unwrap_error();
+        }
         return {
             frame.raw_address,
-            frame.address_relative_to_object_start + get_module_image_base(frame.object_path),
+            frame.address_relative_to_object_start + base.unwrap_value(),
             frame.object_path
         };
     }

@@ -191,15 +191,6 @@ namespace detail {
     static_assert(n_digits(11) == 2, "n_digits utility producing the wrong result");
     static_assert(n_digits(1024) == 4, "n_digits utility producing the wrong result");
 
-    // TODO: Re-evaluate use of off_t
-    template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
-    T load_bytes(std::FILE* object_file, off_t offset) {
-        T object;
-        VERIFY(std::fseek(object_file, offset, SEEK_SET) == 0, "fseek error");
-        VERIFY(std::fread(&object, sizeof(T), 1, object_file) == 1, "fread error");
-        return object;
-    }
-
     struct nullopt_t {};
 
     static constexpr nullopt_t nullopt;
@@ -308,44 +299,198 @@ namespace detail {
             holds_value = false;
         }
 
-        T& unwrap() & {
+        NODISCARD T& unwrap() & {
             if(!holds_value) {
-                throw std::runtime_error{"Optional does not contain a value"};
+                ASSERT(false, "Illegal unwrap: Optional does not contain a value");
             }
             return uvalue;
         }
 
-        const T& unwrap() const & {
+        NODISCARD const T& unwrap() const & {
             if(!holds_value) {
-                throw std::runtime_error{"Optional does not contain a value"};
+                ASSERT(false, "Illegal unwrap: Optional does not contain a value");
             }
             return uvalue;
         }
 
-        T&& unwrap() && {
+        NODISCARD T unwrap() && {
             if(!holds_value) {
-                throw std::runtime_error{"Optional does not contain a value"};
+                ASSERT(false, "Illegal unwrap: Optional does not contain a value");
             }
             return std::move(uvalue);
         }
 
-        const T&& unwrap() const && {
-            if(!holds_value) {
-                throw std::runtime_error{"Optional does not contain a value"};
-            }
-            return std::move(uvalue);
-        }
+        // NODISCARD const T unwrap() const && {
+        //     if(!holds_value) {
+        //         ASSERT(false, "Illegal unwrap: Optional does not contain a value");
+        //     }
+        //     return std::move(uvalue);
+        // }
 
         template<typename U>
-        T value_or(U&& default_value) const & {
+        NODISCARD T value_or(U&& default_value) const & {
             return holds_value ? uvalue : static_cast<T>(std::forward<U>(default_value));
         }
 
         template<typename U>
-        T value_or(U&& default_value) && {
+        NODISCARD T value_or(U&& default_value) && {
             return holds_value ? std::move(uvalue) : static_cast<T>(std::forward<U>(default_value));
         }
     };
+
+    template<typename T, typename E, typename std::enable_if<!std::is_same<T, E>::value, int>::type = 0>
+    class Result {
+        // Not using a union because I don't want to have to deal with that
+        optional<T> value_;
+        optional<E> error_;
+    public:
+        Result(T value) : value_(std::move(value)) {}
+        Result(E error) : error_(std::move(error)) {}
+
+        bool has_value() const {
+            ASSERT(value_.has_value() != error_.has_value(), "Illegal state for Result");
+            return value_.has_value();
+        }
+
+        bool is_error() const {
+            ASSERT(value_.has_value() != error_.has_value(), "Illegal state for Result");
+            return error_.has_value();
+        }
+
+        explicit operator bool() const {
+            return has_value();
+        }
+
+        NODISCARD optional<T> value() const & {
+            return value_;
+        }
+
+        NODISCARD optional<E> error() const & {
+            return error_;
+        }
+
+        NODISCARD optional<T> value() && {
+            return std::move(value_);
+        }
+
+        NODISCARD optional<E> error() && {
+            return std::move(error_);
+        }
+
+        NODISCARD T& unwrap_value() & {
+            return value_.unwrap();
+        }
+
+        NODISCARD const T& unwrap_value() const & {
+            return value_.unwrap();
+        }
+
+        NODISCARD T unwrap_value() && {
+            return std::move(value_).unwrap();
+        }
+
+        // NODISCARD const T unwrap() const && {
+        //     return std::move(value_).unwrap();
+        // }
+
+        NODISCARD E& unwrap_error() & {
+            return error_.unwrap();
+        }
+
+        NODISCARD const E& unwrap_error() const & {
+            return error_.unwrap();
+        }
+
+        NODISCARD E unwrap_error() && {
+            return std::move(error_).unwrap();
+        }
+
+        // NODISCARD const E unwrap_error() const && {
+        //     return std::move(error_).unwrap();
+        // }
+
+
+        // NODISCARD const T& value() const & {
+        //     ASSERT(has_value());
+        //     return value_.unwrap();
+        // }
+
+        // NODISCARD const E& error() const & {
+        //     ASSERT(is_error());
+        //     return error_.unwrap();
+        // }
+
+        // NODISCARD T value() && {
+        //     ASSERT(has_value());
+        //     return std::move(value_).unwrap();
+        // }
+
+        // NODISCARD E error() && {
+        //     ASSERT(is_error());
+        //     return std::move(error_).unwrap();
+        // }
+
+        // NODISCARD T& unwrap() & {
+        //     return value_.unwrap();
+        // }
+
+        // NODISCARD const T& unwrap() const & {
+        //     return value_.unwrap();
+        // }
+
+        // NODISCARD T unwrap() && {
+        //     return std::move(value_).unwrap();
+        // }
+
+        // NODISCARD const T unwrap() const && {
+        //     return std::move(value_).unwrap();
+        // }
+
+        // NODISCARD E& unwrap_error() & {
+        //     return error_.unwrap();
+        // }
+
+        // NODISCARD const E& unwrap_error() const & {
+        //     return error_.unwrap();
+        // }
+
+        // NODISCARD E unwrap_error() && {
+        //     return std::move(error_).unwrap();
+        // }
+
+        // NODISCARD const E unwrap_error() const && {
+        //     return std::move(error_).unwrap();
+        // }
+
+        template<typename U>
+        NODISCARD T value_or(U&& default_value) const & {
+            return value_.unwrap_or(std::forward<U>(default_value));
+        }
+
+        template<typename U>
+        NODISCARD T value_or(U&& default_value) && {
+            return std::move(value_).unwrap_or(std::forward<U>(default_value));
+        }
+
+        void drop_error() const {
+            if(is_error()) {
+                std::fprintf(stderr, "%s", unwrap_error().what());
+            }
+        }
+    };
+
+    // TODO: Re-evaluate use of off_t
+    template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
+    Result<T, internal_error> load_bytes(std::FILE* object_file, off_t offset) {
+        T object;
+        if(std::fseek(object_file, offset, SEEK_SET) != 0) {
+            return internal_error("fseek error");
+        }
+        if(std::fread(&object, sizeof(T), 1, object_file) != 1) {
+            return internal_error("fread error");
+        }
+        return object;
+    }
 
     // shamelessly stolen from stackoverflow
     inline bool directory_exists(const std::string& path) {
