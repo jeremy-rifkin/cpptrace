@@ -25,6 +25,11 @@ namespace detail {
         }
     };
 
+    class file_error : public internal_error {
+    public:
+        file_error(std::string path) : internal_error("Unable to read file " + std::move(path)) {}
+    };
+
     // Lightweight std::source_location.
     struct source_location {
         const char* const file;
@@ -56,7 +61,7 @@ namespace detail {
         const char* action = assert_actions[static_cast<std::underlying_type<assert_type>::type>(type)];
         const char* name   = assert_names[static_cast<std::underlying_type<assert_type>::type>(type)];
         if(message == "") {
-            throw std::logic_error(
+            throw internal_error(
                 stringf(
                     "Cpptrace %s failed at %s:%d: %s\n"
                     "    %s(%s);\n",
@@ -65,7 +70,7 @@ namespace detail {
                 )
             );
         } else {
-            throw std::logic_error(
+            throw internal_error(
                 stringf(
                     "Cpptrace %s failed at %s:%d: %s: %s\n"
                     "    %s(%s);\n",
@@ -82,14 +87,14 @@ namespace detail {
         const std::string& message = ""
     ) {
         if(message == "") {
-            throw std::logic_error(
+            throw internal_error(
                 stringf(
                     "Cpptrace panic %s:%d: %s\n",
                     location.file, location.line, signature
                 )
             );
         } else {
-            throw std::logic_error(
+            throw internal_error(
                 stringf(
                     "Cpptrace panic %s:%d: %s: %s\n",
                     location.file, location.line, signature, message.c_str()

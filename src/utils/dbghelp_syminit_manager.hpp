@@ -25,7 +25,7 @@ namespace detail {
         void init(HANDLE proc) {
             if(set.count(proc) == 0) {
                 if(!SymInitialize(proc, NULL, TRUE)) {
-                    throw std::logic_error(stringf("SymInitialize failed %llu", to_ull(GetLastError())));
+                    throw internal_error(stringf("SymInitialize failed %llu", to_ull(GetLastError())));
                 }
                 set.insert(proc);
             }

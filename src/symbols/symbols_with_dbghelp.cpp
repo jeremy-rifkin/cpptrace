@@ -70,7 +70,7 @@ namespace dbghelp {
             if(FAILABLE) {
                 return (T)-1;
             } else {
-                throw std::logic_error(
+                throw internal_error(
                     std::string("SymGetTypeInfo failed: ")
                     + std::system_error(GetLastError(), std::system_category()).what()
                 );
@@ -85,7 +85,7 @@ namespace dbghelp {
         if(
             !SymGetTypeInfo(proc, modbase, type_index, static_cast<::IMAGEHLP_SYMBOL_TYPE_INFO>(SymType), &info)
         ) {
-            throw std::logic_error(
+            throw internal_error(
                 std::string("SymGetTypeInfo failed: ")
                 + std::system_error(GetLastError(), std::system_category()).what()
             );
@@ -247,7 +247,7 @@ namespace dbghelp {
                             children
                         )
                     ) {
-                        throw std::logic_error(
+                        throw internal_error(
                             std::string("SymGetTypeInfo failed: ")
                             + std::system_error(GetLastError(), std::system_category()).what()
                         );
@@ -255,7 +255,7 @@ namespace dbghelp {
                     // get children type
                     std::string extent = "(";
                     if(children->Start != 0) {
-                        throw std::logic_error("Error: children->Start == 0");
+                        throw internal_error("Error: children->Start == 0");
                     }
                     for(std::size_t i = 0; i < n_children; i++) {
                         extent += (i == 0 ? "" : ", ") + resolve_type(children->ChildId[i], proc, modbase);
@@ -413,7 +413,7 @@ namespace dbghelp {
             get_syminit_manager().init(proc);
         } else {
             if(!SymInitialize(proc, NULL, TRUE)) {
-                throw std::logic_error("Cpptrace SymInitialize failed");
+                throw internal_error("Cpptrace SymInitialize failed");
             }
         }
         for(const auto frame : frames) {
@@ -430,7 +430,7 @@ namespace dbghelp {
         }
         if(get_cache_mode() != cache_mode::prioritize_speed) {
             if(!SymCleanup(proc)) {
-                throw std::logic_error("Cpptrace SymCleanup failed");
+                throw internal_error("Cpptrace SymCleanup failed");
             }
         }
         return trace;
