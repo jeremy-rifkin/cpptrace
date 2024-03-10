@@ -338,6 +338,9 @@ namespace detail {
         }
     };
 
+    // TODO: Less stupid implementation with optionals
+    // TODO: Better dump error
+    // TODO: Explicit constructors for value, then add Ok()/Error() helpers
     template<typename T, typename E, typename std::enable_if<!std::is_same<T, E>::value, int>::type = 0>
     class Result {
         // Not using a union because I don't want to have to deal with that
@@ -464,12 +467,12 @@ namespace detail {
 
         template<typename U>
         NODISCARD T value_or(U&& default_value) const & {
-            return value_.unwrap_or(std::forward<U>(default_value));
+            return value_.value_or(std::forward<U>(default_value));
         }
 
         template<typename U>
         NODISCARD T value_or(U&& default_value) && {
-            return std::move(value_).unwrap_or(std::forward<U>(default_value));
+            return std::move(value_).value_or(std::forward<U>(default_value));
         }
 
         void drop_error() const {
@@ -478,6 +481,8 @@ namespace detail {
             }
         }
     };
+
+    struct monostate {};
 
     // TODO: Re-evaluate use of off_t
     template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
@@ -529,6 +534,8 @@ namespace detail {
         return static_cast<U>(v);
     }
 
+    // TODO: Rework some stuff here. Not sure deleters should be optional or moved.
+    // Also allow file_wrapper file = std::fopen(object_path.c_str(), "rb");
     template<
         typename T,
         typename D
@@ -602,6 +609,8 @@ namespace detail {
     inline void file_deleter(std::FILE* ptr) {
         fclose(ptr);
     }
+
+    using file_wrapper = raii_wrapper<std::FILE*, void(*)(std::FILE*)>;
 }
 }
 
