@@ -25,7 +25,7 @@
 namespace cpptrace {
 namespace detail {
     #if IS_LINUX
-    inline std::uintptr_t get_module_image_base(const std::string& object_path) {
+    inline Result<std::uintptr_t, internal_error> get_module_image_base(const std::string& object_path) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
         static std::unordered_map<std::string, std::uintptr_t> cache;
@@ -34,14 +34,18 @@ namespace detail {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
             auto base = elf_get_module_image_base(object_path);
-            cache.insert(it, {object_path, base});
+            // TODO: Cache the error
+            if(base.is_error()) {
+                return base.unwrap_error();
+            }
+            cache.insert(it, {object_path, base.unwrap_value()});
             return base;
         } else {
             return it->second;
         }
     }
     #elif IS_APPLE
-    inline std::uintptr_t get_module_image_base(const std::string& object_path) {
+    inline Result<std::uintptr_t, internal_error> get_module_image_base(const std::string& object_path) {
         // We have to parse the Mach-O to find the offset of the text section.....
         // I don't know how addresses are handled if there is more than one __TEXT load command. I'm assuming for
         // now that there is only one, and I'm using only the first section entry within that load command.
@@ -52,15 +56,23 @@ namespace detail {
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
-            auto base = mach_o(object_path).get_text_vmaddr();
-            cache.insert(it, {object_path, base});
+            auto obj = mach_o::open_mach_o(object_path);
+            // TODO: Cache the error
+            if(!obj) {
+                return obj.unwrap_error();
+            }
+            auto base = obj.unwrap_value().get_text_vmaddr();
+            if(!base) {
+                return base.unwrap_error();
+            }
+            cache.insert(it, {object_path, base.unwrap_value()});
             return base;
         } else {
             return it->second;
         }
     }
     #else // Windows
-    inline std::uintptr_t get_module_image_base(const std::string& object_path) {
+    inline Result<std::uintptr_t, internal_error> get_module_image_base(const std::string& object_path) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
         static std::unordered_map<std::string, std::uintptr_t> cache;
@@ -69,7 +81,11 @@ namespace detail {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
             auto base = pe_get_module_image_base(object_path);
-            cache.insert(it, {object_path, base});
+            // TODO: Cache the error
+            if(!base) {
+                return base.unwrap_error();
+            }
+            cache.insert(it, {object_path, base.unwrap_value()});
             return base;
         } else {
             return it->second;

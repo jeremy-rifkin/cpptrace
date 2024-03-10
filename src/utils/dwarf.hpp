@@ -28,7 +28,7 @@ namespace libdwarf {
         char* msg = dwarf_errmsg(error);
         (void)dbg;
         // dwarf_dealloc_error(dbg, error);
-        throw std::runtime_error(stringf("Cpptrace dwarf error %u %s\n", ev, msg));
+        throw internal_error(stringf("Cpptrace dwarf error %u %s\n", ev, msg));
     }
 
     struct die_object {

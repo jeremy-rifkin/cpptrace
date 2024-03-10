@@ -35,6 +35,14 @@
  #error "Unsupported compiler"
 #endif
 
+#if IS_GCC || IS_CLANG
+ #define NODISCARD __attribute__((warn_unused_result))
+// #elif IS_MSVC && _MSC_VER >= 1700
+//  #define NODISCARD _Check_return_
+#else
+ #define NODISCARD
+#endif
+
 #include <cstdio>
 #include <stdexcept>
 #include <string>
