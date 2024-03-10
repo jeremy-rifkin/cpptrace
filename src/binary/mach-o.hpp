@@ -583,7 +583,7 @@ namespace detail {
                 return monostate{};
             }
             // If this is reached... something went wrong. The cpu we're on wasn't found.
-            throw internal_error("Couldn't find appropriate architecture in fat Mach-O");
+            return internal_error("Couldn't find appropriate architecture in fat Mach-O");
         }
 
         template<std::size_t Bits>

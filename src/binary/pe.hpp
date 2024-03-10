@@ -26,7 +26,7 @@ namespace detail {
         }
     }
 
-    inline std::uintptr_t pe_get_module_image_base(const std::string& object_path) {
+    inline Result<std::uintptr_t, internal_error> pe_get_module_image_base(const std::string& object_path) {
         // https://drive.google.com/file/d/0B3_wGJkuWLytbnIxY1J5WUs4MEk/view?pli=1&resourcekey=0-n5zZ2UW39xVTH8ZSu6C2aQ
         // https://0xrick.github.io/win-internals/pe3/
         // Endianness should always be little for dos and pe headers
@@ -37,18 +37,37 @@ namespace detail {
             throw file_error("Unable to read object file " + object_path);
         }
         auto magic = load_bytes<std::array<char, 2>>(file, 0);
-        VERIFY(std::memcmp(magic.data(), "MZ", 2) == 0, "File is not a PE file " + object_path);
-        DWORD e_lfanew = pe_byteswap_if_needed(load_bytes<DWORD>(file, 0x3c)); // dos header + 0x3c
-        DWORD nt_header_offset = e_lfanew;
+        if(!magic) {
+            return magic.unwrap_error();
+        }
+        if(std::memcmp(magic.unwrap_value().data(), "MZ", 2) != 0) {
+            return internal_error("File is not a PE file " + object_path);
+        }
+        auto e_lfanew = load_bytes<DWORD>(file, 0x3c); // dos header + 0x3c
+        if(!e_lfanew) {
+            return e_lfanew.unwrap_error();
+        }
+        DWORD nt_header_offset = pe_byteswap_if_needed(e_lfanew.unwrap_value());
         auto signature = load_bytes<std::array<char, 4>>(file, nt_header_offset); // nt header + 0
-        VERIFY(std::memcmp(signature.data(), "PE\0\0", 4) == 0, "File is not a PE file " + object_path);
-        WORD size_of_optional_header = pe_byteswap_if_needed(
-            load_bytes<WORD>(file, nt_header_offset + 4 + 0x10) // file header + 0x10
-        );
-        VERIFY(size_of_optional_header != 0);
-        WORD optional_header_magic = pe_byteswap_if_needed(
-            load_bytes<WORD>(file, nt_header_offset + 0x18) // optional header + 0x0
-        );
+        if(!signature) {
+            return signature.unwrap_error();
+        }
+        if(std::memcmp(signature.unwrap_value().data(), "PE\0\0", 4) != 0) {
+            return internal_error("File is not a PE file " + object_path);
+        }
+        auto size_of_optional_header_raw = load_bytes<WORD>(file, nt_header_offset + 4 + 0x10); // file header + 0x10
+        if(!size_of_optional_header_raw) {
+            return size_of_optional_header_raw.unwrap_error();
+        }
+        WORD size_of_optional_header = pe_byteswap_if_needed(size_of_optional_header_raw.unwrap_value());
+        if(size_of_optional_header == 0) {
+            return internal_error("Unexpected optional header size for PE file");
+        }
+        auto optional_header_magic_raw = load_bytes<WORD>(file, nt_header_offset + 0x18); // optional header + 0x0
+        if(!optional_header_magic_raw) {
+            return optional_header_magic_raw.unwrap_error();
+        }
+        WORD optional_header_magic = pe_byteswap_if_needed(optional_header_magic_raw.unwrap_value());
         VERIFY(
             optional_header_magic == IMAGE_NT_OPTIONAL_HDR_MAGIC,
             "PE file does not match expected bit-mode " + object_path
@@ -56,19 +75,19 @@ namespace detail {
         // finally get image base
         if(optional_header_magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
             // 32 bit
-            return to<std::uintptr_t>(
-                pe_byteswap_if_needed(
-                    load_bytes<DWORD>(file, nt_header_offset + 0x18 + 0x1c) // optional header + 0x1c
-                )
-            );
+            auto bytes = load_bytes<DWORD>(file, nt_header_offset + 0x18 + 0x1c); // optional header + 0x1c
+            if(!bytes) {
+                return bytes.unwrap_error();
+            }
+            return to<std::uintptr_t>(pe_byteswap_if_needed(bytes.unwrap_value()));
         } else {
             // 64 bit
             // I get an "error: 'QWORD' was not declared in this scope" for some reason when using QWORD
-            return to<std::uintptr_t>(
-                pe_byteswap_if_needed(
-                    load_bytes<unsigned __int64>(file, nt_header_offset + 0x18 + 0x18) // optional header + 0x18
-                )
-            );
+            auto bytes = load_bytes<unsigned __int64>(file, nt_header_offset + 0x18 + 0x18); // optional header + 0x18
+            if(!bytes) {
+                return bytes.unwrap_error();
+            }
+            return to<std::uintptr_t>(pe_byteswap_if_needed(bytes.unwrap_value()));
         }
     }
 }

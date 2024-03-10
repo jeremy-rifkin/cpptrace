@@ -138,7 +138,7 @@ namespace detail {
     inline object_frame resolve_safe_object_frame(const safe_object_frame& frame) {
         auto base = get_module_image_base(frame.object_path);
         if(base.is_error()) {
-            throw base.unwrap_error();
+            throw base.unwrap_error(); // This throw is intentional
         }
         return {
             frame.raw_address,
