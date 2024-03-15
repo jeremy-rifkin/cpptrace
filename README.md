@@ -141,13 +141,17 @@ thrown, and providing an API for safe tracing from signal handlers.
 
 # In-Depth Documentation
 
+## Prerequisites
+
+> [!IMPORTANT]
+> Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`/`-DBUILD_TYPE=Debug`/`-DBUILD_TYPE=RelWithDebInfo`) is required for complete
+> trace information.
+
 ## `namespace cpptrace`
 
 `cpptrace::generate_trace()` can be used to generate a stacktrace object at the current call site. Resolved frames can
 be accessed from this object with `.frames` and also the trace can be printed with `.print()`. Cpptrace also provides a
 method to get lightweight raw traces, which are just vectors of program counters, which can be resolved at a later time.
-
-**Note:** Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`) is generally required for good trace information.
 
 All functions are thread-safe unless otherwise noted.
 
