@@ -161,6 +161,9 @@ The core resolved stack trace object. Generate a trace with `cpptrace::generate_
 `cpptrace::stacktrace::current()`. On top of a set of helper functions `struct stacktrace` allows
 direct access to frames as well as iterators.
 
+`cpptrace::stacktrace::print` can be used to print a stacktrace. `cpptrace::stacktrace::print_with_snippets` can be used
+to print a stack trace with source code snippets.
+
 ```cpp
 namespace cpptrace {
     // Some type sufficient for an instruction pointer, currently always an alias to std::uintptr_t
@@ -190,6 +193,9 @@ namespace cpptrace {
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
+        void print_with_snippets() const;
+        void print_with_snippets(std::ostream& stream) const;
+        void print_with_snippets(std::ostream& stream, bool color) const;
         std::string to_string(bool color = false) const;
         void clear();
         bool empty() const noexcept;
