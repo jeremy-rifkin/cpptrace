@@ -95,6 +95,9 @@ Additional notable features:
 - Utilities for demangling
 - Utilities for catching `std::exception`s and wrapping them in traced exceptions
 - Signal-safe stack tracing
+- Source code snippets in traces
+
+![Snippets](res/snippets.png)
 
 ## CMake FetchContent Usage
 
