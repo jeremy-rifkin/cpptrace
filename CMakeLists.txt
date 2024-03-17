@@ -288,6 +288,8 @@ target_compile_features(
     PRIVATE cxx_std_11
 )
 
+target_compile_definitions(${target_name} PRIVATE NOMINMAX)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
   SET(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
   SET(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
