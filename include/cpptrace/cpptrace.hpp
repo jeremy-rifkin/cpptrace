@@ -118,7 +118,7 @@ namespace cpptrace {
             return *this;
         }
         bool has_value() const noexcept {
-            return raw_value != std::numeric_limits<T>::max();
+            return raw_value != (std::numeric_limits<T>::max)();
         }
         T& value() noexcept {
             return raw_value;
@@ -133,7 +133,7 @@ namespace cpptrace {
             std::swap(raw_value, other.raw_value);
         }
         void reset() noexcept {
-            raw_value = std::numeric_limits<T>::max();
+            raw_value = (std::numeric_limits<T>::max)();
         }
         bool operator==(const nullable& other) const noexcept {
             return raw_value == other.raw_value;
@@ -142,7 +142,7 @@ namespace cpptrace {
             return raw_value != other.raw_value;
         }
         constexpr static nullable null() noexcept {
-            return { std::numeric_limits<T>::max() };
+            return { (std::numeric_limits<T>::max)() };
         }
     };
 
