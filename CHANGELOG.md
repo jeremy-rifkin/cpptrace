@@ -11,6 +11,13 @@
 - [v0.1.1](#v011)
 - [v0.1](#v01)
 
+# v0.5.1
+
+Fixes:
+- Fix MSVC warning treated as error for 32-bit windows
+- Fix MSVC issue with min/max macros
+- Fix potential null dereference issue identified by eyalgolan1337
+
 # v0.5.0
 
 New:
