@@ -455,7 +455,9 @@ namespace detail {
     }
 
     inline void file_deleter(std::FILE* ptr) {
-        fclose(ptr);
+        if(ptr) {
+            fclose(ptr);
+        }
     }
 }
 }
