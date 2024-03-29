@@ -674,7 +674,8 @@ The typical dependencies for cpptrace are:
 
 Note: Newer libdwarf requires `-lzstd`, older libdwarf does not.
 
-If you are linking statically, you will additionally need to specify `-DCPPTRACE_STATIC_DEFINE`.
+> [!IMPORTANT]
+> If you are linking statically, you will additionally need to specify `-DCPPTRACE_STATIC_DEFINE`.
 
 Dependencies may differ if different back-ends are manually selected.
 
