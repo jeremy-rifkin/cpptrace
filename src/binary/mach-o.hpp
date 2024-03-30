@@ -179,7 +179,7 @@ namespace detail {
             if(result.is_error()) {
                 return result.unwrap_error();
             } else {
-                return std::move(obj);
+                return obj;
             }
         }
 
