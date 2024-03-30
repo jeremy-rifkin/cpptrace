@@ -196,7 +196,7 @@ namespace microfmt {
             }
         };
 
-        inline int parse_int(std::string::const_iterator begin, std::string::const_iterator end) {
+        inline int parse_int(const char* begin, const char* end) {
             int x = 0;
             for(auto it = begin; it != end; it++) {
                 MICROFMT_ASSERT(isdigit(*it));
@@ -207,12 +207,12 @@ namespace microfmt {
         }
 
         template<std::size_t N>
-        std::string format(const std::string& format_string, std::array<format_value, N> args) {
+        std::string format(const char* fmt_begin, const char* fmt_end, std::array<format_value, N> args) {
             std::string str;
             std::size_t arg_i = 0;
-            auto it = format_string.begin();
+            auto it = fmt_begin;
             auto peek = [&] (std::size_t dist = 1) -> char { // 0 on failure
-                if(it != format_string.end()) {
+                if(it != fmt_end) {
                     return *(it + dist);
                 } else {
                     return 0;
@@ -220,7 +220,7 @@ namespace microfmt {
             };
             auto read_number = [&] () -> int { // -1 on failure
                 auto scan = it;
-                while(scan != format_string.end() && isdigit(*scan)) {
+                while(scan != fmt_end && isdigit(*scan)) {
                     scan++;
                 }
                 if(scan != it) {
@@ -231,7 +231,7 @@ namespace microfmt {
                     return -1;
                 }
             };
-            while(it != format_string.end()) {
+            while(it != fmt_end) {
                 if(*it == '{') {
                     if(peek() == '{') {
                         // try to handle escape
@@ -240,7 +240,7 @@ namespace microfmt {
                     } else {
                         // parse format string
                         it++;
-                        MICROFMT_ASSERT(it != format_string.end());
+                        MICROFMT_ASSERT(it != fmt_end);
                         format_options options;
                         // try to parse alignment
                         if(*it == '<' || *it == '>') {
@@ -298,18 +298,27 @@ namespace microfmt {
     }
 
     template<typename... Args>
-    std::string format(const std::string& format_string, Args... args) {
-        return detail::format<sizeof...(args)>(format_string, {detail::format_value(args)...});
+    #if defined(__cpp_lib_string_view) && __cpp_lib_string_view >= 201606L
+    std::string format(std::string_view fmt, Args&&... args) {
+    #else
+    std::string format(const std::string& fmt, Args&&... args) {
+    #endif
+        return detail::format<sizeof...(args)>(fmt.begin(), fmt.end(), {detail::format_value(args)...});
     }
 
     template<typename... Args>
-    void print(const std::string& format_string, Args... args) {
-        std::cout<<format(format_string, args...);
+    std::string format(const char* fmt, Args&&... args) {
+        return detail::format<sizeof...(args)>(fmt, fmt + std::strlen(fmt), {detail::format_value(args)...});
     }
 
-    template<typename... Args>
-    void print(std::ostream& ostream, const std::string& format_string, Args... args) {
-        ostream<<format(format_string, args...);
+    template<typename S, typename... Args>
+    void print(const S& fmt, Args&&... args) {
+        std::cout<<format(fmt, args...);
+    }
+
+    template<typename S, typename... Args>
+    void print(std::ostream& ostream, const S& fmt, Args&&... args) {
+        ostream<<format(fmt, args...);
     }
 }
 
