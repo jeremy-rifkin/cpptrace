@@ -20,9 +20,10 @@ namespace detail {
     class internal_error : public std::exception {
         std::string msg;
     public:
-        internal_error(std::string message) : msg(std::move(message)) {}
+        internal_error(std::string message) : msg("Cpptrace internal error: " + std::move(message)) {}
         template<typename... Args>
-        internal_error(const char* format, Args&&... args) : msg(microfmt::format(format, args...)) {}
+        internal_error(const char* format, Args&&... args)
+            : msg("Cpptrace internal error: " + microfmt::format(format, args...)) {}
         const char* what() const noexcept override {
             return msg.c_str();
         }
@@ -75,23 +76,27 @@ namespace detail {
         }
     }
 
-    [[noreturn]] inline void panic(
-        const char* signature,
-        source_location location,
-        const std::string& message = ""
-    ) {
-        if(message == "") {
-            throw internal_error(
-                "Cpptrace panic {}:{}: {}\n",
-                location.file, location.line, signature
-            );
-        } else {
-            throw internal_error(
-                "Cpptrace panic {}:{}: {}: {}\n",
-                location.file, location.line, signature, message.c_str()
-            );
-        }
-    }
+    // [[noreturn]] inline void panic(
+    //     const char* signature,
+    //     source_location location,
+    //     const std::string& message = ""
+    // ) {
+    //     if(message == "") {
+    //         throw internal_error(
+    //             stringf(
+    //                 "Cpptrace panic %s:%d: %s\n",
+    //                 location.file, location.line, signature
+    //             )
+    //         );
+    //     } else {
+    //         throw internal_error(
+    //             stringf(
+    //                 "Cpptrace panic %s:%d: %s: %s\n",
+    //                 location.file, location.line, signature, message.c_str()
+    //             )
+    //         );
+    //     }
+    // }
 
     template<typename T>
     void nullfn() {
@@ -107,7 +112,7 @@ namespace detail {
     }
 
     // Check condition in both debug and release. std::runtime_error on failure.
-    #define VERIFY(c, ...) ( \
+    /*#define VERIFY(c, ...) ( \
             (::cpptrace::detail::as_bool(c)) \
                 ? static_cast<void>(0) \
                 : (::cpptrace::detail::assert_fail)( \
@@ -116,7 +121,7 @@ namespace detail {
                     CPPTRACE_PFUNC, \
                     {}, \
                     ##__VA_ARGS__) \
-    )
+    )*/
 
     // Workaround a compiler warning
     template<typename T>
@@ -128,8 +133,8 @@ namespace detail {
         return "";
     }
 
-    // Check condition in both debug and release. std::runtime_error on failure.
-    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, {}, ::cpptrace::detail::as_string(__VA_ARGS__)))
+    // // Check condition in both debug and release. std::runtime_error on failure.
+    // #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, {}, ::cpptrace::detail::as_string(__VA_ARGS__)))
 
     #ifndef NDEBUG
      // Check condition in both debug. std::runtime_error on failure.

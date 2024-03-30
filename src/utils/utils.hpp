@@ -331,6 +331,26 @@ namespace detail {
         }
     };
 
+    template<typename T>
+    struct OkResult {
+        T value;
+    };
+
+    template<typename T>
+    struct ErrorResult {
+        T value;
+    };
+
+    template<typename T>
+    OkResult<T> Ok(T value) {
+        return {value};
+    }
+
+    template<typename T>
+    ErrorResult<T> Error(T value) {
+        return {value};
+    }
+
     // TODO: Better dump error
     // TODO: Explicit constructors for value, then add Ok()/Error() helpers
     template<typename T, typename E, typename std::enable_if<!std::is_same<T, E>::value, int>::type = 0>
@@ -345,6 +365,10 @@ namespace detail {
     public:
         Result(T value) : value_(std::move(value)), active(member::value) {}
         Result(E error) : error_(std::move(error)), active(member::error) {}
+        template<typename U>
+        Result(OkResult<U>&& value) : value_(std::move(value.value)), active(member::value) {}
+        template<typename U>
+        Result(ErrorResult<U>&& error) : error_(std::move(error.value)), active(member::error) {}
         Result(Result&& other) : active(other.active) {
             if(other.active == member::value) {
                 new (&value_) T(std::move(other.value_));
@@ -428,10 +452,11 @@ namespace detail {
             return has_value() ? std::move(value_) : static_cast<T>(std::forward<U>(default_value));
         }
 
-        void drop_error() const {
+        const Result& drop_error() const {
             if(is_error()) {
                 std::fprintf(stderr, "%s\n", unwrap_error().what());
             }
+            return *this;
         }
     };
 

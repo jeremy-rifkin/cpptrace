@@ -17,19 +17,56 @@
  #include <dwarf.h>
 #endif
 
+#define CONCAT_IMPL( x, y ) x##y
+#define CONCAT( x, y ) CONCAT_IMPL( x, y )
+
 namespace cpptrace {
 namespace detail {
 namespace libdwarf {
     static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
 
-    [[noreturn]] void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
+    static NODISCARD ErrorResult<internal_error> handle_dwarf_error(Dwarf_Debug, Dwarf_Error error) {
         Dwarf_Unsigned ev = dwarf_errno(error);
         char* msg = dwarf_errmsg(error);
-        (void)dbg;
-        // dwarf_dealloc_error(dbg, error);
-        throw internal_error("Cpptrace dwarf error {} {}", ev, msg);
+        return {internal_error("Cpptrace dwarf error {} {}", ev, msg)};
     }
+
+    #define CHECK_OK_IMPL(res_var, expr) \
+        Result<int, internal_error> res_var = (expr); \
+        if(!res_var) { \
+            return std::move(res_var).unwrap_error(); \
+        } else if(res_var.unwrap_value() != DW_DLV_OK) { \
+            return Error( \
+                internal_error( \
+                    "dwarf error: {} didn't evaluate to DW_DLV_OK, instead got {}", \
+                    #expr, \
+                    res_var.unwrap_value() \
+                ) \
+            ); \
+        }
+
+    // Check if the expression is an error or not DW_DLV_OK and error if either
+    #define CHECK_OK(expr) CHECK_OK_IMPL(CONCAT(res, __COUNTER__), (expr))
+
+    #define PROP_ASSIGN_IMPL(var, res_var, expr) \
+        auto res_var = (expr); \
+        if(!res_var) { \
+            return std::move(res_var).unwrap_error(); \
+        } \
+        auto var = res_var.unwrap_value();
+
+    // If the expression is an error, return the error. Otherwise assign the value to the variable.
+    #define PROP_ASSIGN(var, expr) PROP_ASSIGN_IMPL(var, CONCAT(res, __COUNTER__), (expr))
+
+    #define PROP_IMPL(res_var, expr) \
+        auto res_var = (expr); \
+        if(!res_var) { \
+            return std::move(res_var).unwrap_error(); \
+        }
+
+    // If the expression is an error, return the error. Otherwise assign the value to the variable.
+    #define PROP(expr) PROP_IMPL(CONCAT(res, __COUNTER__), (expr))
 
     struct die_object {
         Dwarf_Debug dbg = nullptr;
@@ -51,18 +88,28 @@ namespace libdwarf {
                 int
             >::type = 0
         >
-        int wrap(int (*f)(Args...), Args2&&... args) const {
+        Result<int, internal_error> wrap(int (*f)(Args...), Args2&&... args) const {
             Dwarf_Error error = nullptr;
             int ret = f(std::forward<Args2>(args)..., &error);
             if(ret == DW_DLV_ERROR) {
-                handle_dwarf_error(dbg, error);
+                return handle_dwarf_error(dbg, error);
             }
-            return ret;
+            return Ok(ret);
         }
 
+    public:
         die_object(Dwarf_Debug dbg, Dwarf_Die die) : dbg(dbg), die(die) {
             ASSERT(dbg != nullptr);
         }
+
+    // public:
+        // Result<die_object, internal_error> create(Dwarf_Debug dbg, Dwarf_Die die) {
+        //     if(die == nullptr) {
+        //         return internal_error("Error creating dwarf die object: Nullptr");
+        //     } else {
+        //         return die_object(dbg, die);
+        //     }
+        // }
 
         ~die_object() {
             if(die) {
@@ -87,39 +134,42 @@ namespace libdwarf {
             return *this;
         }
 
-        die_object clone() const {
-            Dwarf_Off global_offset = get_global_offset();
+        Result<die_object, internal_error> clone() const {
+            auto global_offset = get_global_offset();
+            if(!global_offset) {
+                return global_offset.unwrap_error();
+            }
             Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
             Dwarf_Die die_copy = nullptr;
-            VERIFY(wrap(dwarf_offdie_b, dbg, global_offset, is_info, &die_copy) == DW_DLV_OK);
-            return {dbg, die_copy};
+            CHECK_OK(wrap(dwarf_offdie_b, dbg, global_offset.unwrap_value(), is_info, &die_copy));
+            return die_object(dbg, die_copy);
         }
 
-        die_object get_child() const {
+        Result<die_object, internal_error> get_child() const {
             Dwarf_Die child = nullptr;
-            int ret = wrap(dwarf_child, die, &child);
+            PROP_ASSIGN(ret, wrap(dwarf_child, die, &child));
             if(ret == DW_DLV_OK) {
                 return die_object(dbg, child);
             } else if(ret == DW_DLV_NO_ENTRY) {
                 return die_object(dbg, nullptr);
             } else {
-                PANIC();
+                return internal_error("dwarf error: Unexpected return from dwarf_child {}", ret);
             }
         }
 
-        die_object get_sibling() const {
+        Result<die_object, internal_error> get_sibling() const {
             Dwarf_Die sibling = nullptr;
-            int ret = wrap(dwarf_siblingof_b, dbg, die, true, &sibling);
+            PROP_ASSIGN(ret, wrap(dwarf_siblingof_b, dbg, die, true, &sibling));
             if(ret == DW_DLV_OK) {
                 return die_object(dbg, sibling);
             } else if(ret == DW_DLV_NO_ENTRY) {
                 return die_object(dbg, nullptr);
             } else {
-                PANIC();
+                return internal_error("dwarf error: Unexpected return from dwarf_siblingof_b {}", ret);
             }
         }
 
-        operator bool() const {
+        explicit operator bool() const {
             return die != nullptr;
         }
 
@@ -127,79 +177,83 @@ namespace libdwarf {
             return die;
         }
 
-        std::string get_name() const {
+        Result<std::string, internal_error> get_name() const {
             char empty[] = "";
             char* name = empty;
-            int ret = wrap(dwarf_diename, die, &name);
+            PROP_ASSIGN(ret, wrap(dwarf_diename, die, &name));
             auto wrapper = raii_wrap(name, [this] (char* str) { dwarf_dealloc(dbg, str, DW_DLA_STRING); });
             std::string str;
             if(ret != DW_DLV_NO_ENTRY) {
                 str = name;
             }
-            return name;
+            return std::string(name);
         }
 
-        optional<std::string> get_string_attribute(Dwarf_Half attr_num) const {
+        Result<optional<std::string>, internal_error> get_string_attribute(Dwarf_Half attr_num) const {
             Dwarf_Attribute attr;
-            if(wrap(dwarf_attr, die, attr_num, &attr) == DW_DLV_OK) {
+            auto ret = wrap(dwarf_attr, die, attr_num, &attr);
+            if(ret.is_error()) {
+                ret.drop_error();
+            } else if(ret.unwrap_value() == DW_DLV_OK) {
                 auto attwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
                 char* raw_str;
-                VERIFY(wrap(dwarf_formstring, attr, &raw_str) == DW_DLV_OK);
+                CHECK_OK(wrap(dwarf_formstring, attr, &raw_str));
                 auto strwrapper = raii_wrap(raw_str, [this] (char* str) { dwarf_dealloc(dbg, str, DW_DLA_STRING); });
                 std::string str = raw_str;
-                return str;
-            } else {
-                return nullopt;
+                return Ok(str);
             }
+            return Ok(nullopt);
         }
 
-        optional<Dwarf_Unsigned> get_unsigned_attribute(Dwarf_Half attr_num) const {
+        Result<optional<Dwarf_Unsigned>, internal_error> get_unsigned_attribute(Dwarf_Half attr_num) const {
             Dwarf_Attribute attr;
-            if(wrap(dwarf_attr, die, attr_num, &attr) == DW_DLV_OK) {
+            auto ret = wrap(dwarf_attr, die, attr_num, &attr);
+            if (ret.is_error()) {
+                ret.drop_error();
+            } else if(ret.unwrap_value() == DW_DLV_OK) {
                 auto attwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
-                // Dwarf_Half form = 0;
-                // VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
                 Dwarf_Unsigned val;
-                VERIFY(wrap(dwarf_formudata, attr, &val) == DW_DLV_OK);
-                return val;
-            } else {
-                return nullopt;
+                CHECK_OK(wrap(dwarf_formudata, attr, &val));
+                return Ok(val);
             }
+            return Ok(nullopt);
         }
 
-        bool has_attr(Dwarf_Half attr_num) const {
+        Result<bool, internal_error> has_attr(Dwarf_Half attr_num) const {
             Dwarf_Bool present = false;
-            VERIFY(wrap(dwarf_hasattr, die, attr_num, &present) == DW_DLV_OK);
+            CHECK_OK(wrap(dwarf_hasattr, die, attr_num, &present));
             return present;
         }
 
-        Dwarf_Half get_tag() const {
+        Result<Dwarf_Half, internal_error> get_tag() const {
             Dwarf_Half tag = 0;
-            VERIFY(wrap(dwarf_tag, die, &tag) == DW_DLV_OK);
+            CHECK_OK(wrap(dwarf_tag, die, &tag));
             return tag;
         }
 
         const char* get_tag_name() const {
             const char* tag_name;
-            if(dwarf_get_TAG_name(get_tag(), &tag_name) == DW_DLV_OK) {
+            auto tag = get_tag();
+            if(!tag) {
+                tag.drop_error();
+            } else if(dwarf_get_TAG_name(tag.unwrap_value(), &tag_name) == DW_DLV_OK) {
                 return tag_name;
-            } else {
-                return "<unknown tag name>";
             }
+            return "<unknown tag name>";
         }
 
-        Dwarf_Off get_global_offset() const {
+        Result<Dwarf_Off, internal_error> get_global_offset() const {
             Dwarf_Off off;
-            VERIFY(wrap(dwarf_dieoffset, die, &off) == DW_DLV_OK);
+            CHECK_OK(wrap(dwarf_dieoffset, die, &off));
             return off;
         }
 
-        die_object resolve_reference_attribute(Dwarf_Half attr_num) const {
+        Result<die_object, internal_error> resolve_reference_attribute(Dwarf_Half attr_num) const {
             Dwarf_Attribute attr;
-            VERIFY(dwarf_attr(die, attr_num, &attr, nullptr) == DW_DLV_OK);
+            CHECK_OK(dwarf_attr(die, attr_num, &attr, nullptr));
             auto wrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
             Dwarf_Half form = 0;
-            VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
+            CHECK_OK(wrap(dwarf_whatform, attr, &form));
             switch(form) {
                 case DW_FORM_ref1:
                 case DW_FORM_ref2:
@@ -209,77 +263,86 @@ namespace libdwarf {
                     {
                         Dwarf_Off off = 0;
                         Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(die);
-                        VERIFY(wrap(dwarf_formref, attr, &off, &is_info) == DW_DLV_OK);
+                        CHECK_OK(wrap(dwarf_formref, attr, &off, &is_info));
                         Dwarf_Off global_offset = 0;
-                        VERIFY(wrap(dwarf_convert_to_global_offset, attr, off, &global_offset) == DW_DLV_OK);
+                        CHECK_OK(wrap(dwarf_convert_to_global_offset, attr, off, &global_offset));
                         Dwarf_Die target = nullptr;
-                        VERIFY(wrap(dwarf_offdie_b, dbg, global_offset, is_info, &target) == DW_DLV_OK);
+                        CHECK_OK(wrap(dwarf_offdie_b, dbg, global_offset, is_info, &target));
                         return die_object(dbg, target);
                     }
                 case DW_FORM_ref_addr:
                     {
                         Dwarf_Off off;
-                        VERIFY(wrap(dwarf_global_formref, attr, &off) == DW_DLV_OK);
+                        CHECK_OK(wrap(dwarf_global_formref, attr, &off));
                         int is_info = dwarf_get_die_infotypes_flag(die);
                         Dwarf_Die target = nullptr;
-                        VERIFY(wrap(dwarf_offdie_b, dbg, off, is_info, &target) == DW_DLV_OK);
+                        CHECK_OK(wrap(dwarf_offdie_b, dbg, off, is_info, &target));
                         return die_object(dbg, target);
                     }
                 case DW_FORM_ref_sig8:
                     {
                         Dwarf_Sig8 signature;
-                        VERIFY(wrap(dwarf_formsig8, attr, &signature) == DW_DLV_OK);
+                        CHECK_OK(wrap(dwarf_formsig8, attr, &signature));
                         Dwarf_Die target = nullptr;
                         Dwarf_Bool targ_is_info = false;
-                        VERIFY(wrap(dwarf_find_die_given_sig8, dbg, &signature, &target, &targ_is_info) == DW_DLV_OK);
+                        CHECK_OK(wrap(dwarf_find_die_given_sig8, dbg, &signature, &target, &targ_is_info));
                         return die_object(dbg, target);
                     }
                 default:
-                    PANIC(microfmt::format("unknown form for attribute {} {}\n", attr_num, form));
+                    return internal_error(microfmt::format("unknown form for attribute {} {}", attr_num, form));
             }
         }
 
-        Dwarf_Unsigned get_ranges_offset(Dwarf_Attribute attr) const {
+        Result<Dwarf_Unsigned, internal_error> get_ranges_offset(Dwarf_Attribute attr) const {
             Dwarf_Unsigned off = 0;
             Dwarf_Half form = 0;
-            VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
+            CHECK_OK(wrap(dwarf_whatform, attr, &form));
             if (form == DW_FORM_rnglistx) {
-                VERIFY(wrap(dwarf_formudata, attr, &off) == DW_DLV_OK);
+                CHECK_OK(wrap(dwarf_formudata, attr, &off));
             } else {
-                VERIFY(wrap(dwarf_global_formref, attr, &off) == DW_DLV_OK);
+                CHECK_OK(wrap(dwarf_global_formref, attr, &off));
             }
             return off;
         }
 
         template<typename F>
         // callback should return true to keep going
-        void dwarf5_ranges(F callback) const {
+        NODISCARD
+        Result<monostate, internal_error> dwarf5_ranges(F callback) const {
             Dwarf_Attribute attr = nullptr;
-            if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
-                return;
+            auto ranges_res = wrap(dwarf_attr, die, DW_AT_ranges, &attr);
+            if(ranges_res.is_error()) {
+                return ranges_res.unwrap_error();
+            } else if(ranges_res.unwrap_value() != DW_DLV_OK) {
+                return internal_error("Unexpected value from dwarf_attr: " + std::to_string(ranges_res.unwrap_value()));
             }
             auto attrwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
-            Dwarf_Unsigned offset = get_ranges_offset(attr);
+            PROP_ASSIGN(offset, get_ranges_offset(attr));
             Dwarf_Half form = 0;
-            VERIFY(wrap(dwarf_whatform, attr, &form) == DW_DLV_OK);
+            CHECK_OK(wrap(dwarf_whatform, attr, &form));
             // get .debug_rnglists info
             Dwarf_Rnglists_Head head = nullptr;
             Dwarf_Unsigned rnglists_entries = 0;
             Dwarf_Unsigned dw_global_offset_of_rle_set = 0;
-            int res = wrap(
-                dwarf_rnglists_get_rle_head,
-                attr,
-                form,
-                offset,
-                &head,
-                &rnglists_entries,
-                &dw_global_offset_of_rle_set
+            PROP_ASSIGN(
+                res,
+                wrap(
+                    dwarf_rnglists_get_rle_head,
+                    attr,
+                    form,
+                    offset,
+                    &head,
+                    &rnglists_entries,
+                    &dw_global_offset_of_rle_set
+                )
             );
             auto headwrapper = raii_wrap(head, [] (Dwarf_Rnglists_Head head) { dwarf_dealloc_rnglists_head(head); });
             if(res == DW_DLV_NO_ENTRY) {
-                return;
+                return monostate{}; // I guess normal
             }
-            VERIFY(res == DW_DLV_OK);
+            if(res != DW_DLV_OK) {
+                return internal_error("dwarf_rnglists_get_rle_head not ok");
+            }
             for(std::size_t i = 0 ; i < rnglists_entries; i++) {
                 unsigned entrylen = 0;
                 unsigned rle_value_out = 0;
@@ -288,22 +351,27 @@ namespace libdwarf {
                 Dwarf_Bool unavailable = 0;
                 Dwarf_Unsigned cooked1 = 0;
                 Dwarf_Unsigned cooked2 = 0;
-                res = wrap(
-                    dwarf_get_rnglists_entry_fields_a,
-                    head,
-                    i,
-                    &entrylen,
-                    &rle_value_out,
-                    &raw1,
-                    &raw2,
-                    &unavailable,
-                    &cooked1,
-                    &cooked2
+                PROP_ASSIGN(
+                    res2,
+                    wrap(
+                        dwarf_get_rnglists_entry_fields_a,
+                        head,
+                        i,
+                        &entrylen,
+                        &rle_value_out,
+                        &raw1,
+                        &raw2,
+                        &unavailable,
+                        &cooked1,
+                        &cooked2
+                    )
                 );
-                if(res == DW_DLV_NO_ENTRY) {
+                if(res2 == DW_DLV_NO_ENTRY) {
                     continue;
                 }
-                VERIFY(res == DW_DLV_OK);
+                if(res2 != DW_DLV_OK) {
+                    return internal_error("dwarf_get_rnglists_entry_fields_a not ok");
+                }
                 if(unavailable) {
                     continue;
                 }
@@ -320,35 +388,33 @@ namespace libdwarf {
                     case DW_RLE_startx_length:
                     case DW_RLE_start_length:
                         if(!callback(cooked1, cooked2)) {
-                            return;
+                            return monostate{};
                         }
                         break;
                     default:
-                        PANIC("Something is wrong");
+                        return internal_error("rle_value_out: something is wrong");
                         break;
                 }
             }
+            return monostate{};
         }
 
         template<typename F>
         // callback should return true to keep going
-        void dwarf4_ranges(Dwarf_Addr lowpc, F callback) const {
+        NODISCARD
+        Result<monostate, internal_error> dwarf4_ranges(Dwarf_Addr lowpc, F callback) const {
             Dwarf_Attribute attr = nullptr;
-            if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
-                return;
-            }
+            CHECK_OK(wrap(dwarf_attr, die, DW_AT_ranges, &attr));
             auto attrwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
             Dwarf_Unsigned offset;
-            if(wrap(dwarf_global_formref, attr, &offset) != DW_DLV_OK) {
-                return;
-            }
+            CHECK_OK(wrap(dwarf_global_formref, attr, &offset));
             Dwarf_Addr baseaddr = 0;
             if(lowpc != (std::numeric_limits<Dwarf_Addr>::max)()) {
                 baseaddr = lowpc;
             }
             Dwarf_Ranges* ranges = nullptr;
             Dwarf_Signed count = 0;
-            VERIFY(
+            CHECK_OK(
                 wrap(
                     dwarf_get_ranges_b,
                     dbg,
@@ -358,7 +424,7 @@ namespace libdwarf {
                     &ranges,
                     &count,
                     nullptr
-                ) == DW_DLV_OK
+                )
             );
             auto rangeswrapper = raii_wrap(
                 ranges,
@@ -367,7 +433,7 @@ namespace libdwarf {
             for(int i = 0; i < count; i++) {
                 if(ranges[i].dwr_type == DW_RANGES_ENTRY) {
                     if(!callback(baseaddr + ranges[i].dwr_addr1, baseaddr + ranges[i].dwr_addr2)) {
-                        return;
+                        return monostate{};
                     }
                 } else if(ranges[i].dwr_type == DW_RANGES_ADDRESS_SELECTION) {
                     baseaddr = ranges[i].dwr_addr2;
@@ -376,63 +442,76 @@ namespace libdwarf {
                     baseaddr = lowpc;
                 }
             }
+            return monostate{};
         }
 
         template<typename F>
         // callback should return true to keep going
-        void dwarf_ranges(int version, optional<Dwarf_Addr> pc, F callback) const {
+        NODISCARD
+        Result<monostate, internal_error> dwarf_ranges(int version, optional<Dwarf_Addr> pc, F callback) const {
             Dwarf_Addr lowpc = (std::numeric_limits<Dwarf_Addr>::max)();
-            if(wrap(dwarf_lowpc, die, &lowpc) == DW_DLV_OK) {
+            PROP_ASSIGN(res, wrap(dwarf_lowpc, die, &lowpc));
+            if(res == DW_DLV_OK) {
                 if(pc.has_value() && pc.unwrap() == lowpc) {
                     callback(lowpc, lowpc + 1);
-                    return;
+                    return monostate{};
                 }
                 Dwarf_Addr highpc = 0;
                 enum Dwarf_Form_Class return_class;
-                if(wrap(dwarf_highpc_b, die, &highpc, nullptr, &return_class) == DW_DLV_OK) {
+                PROP_ASSIGN(res2, wrap(dwarf_highpc_b, die, &highpc, nullptr, &return_class));
+                if(res2 == DW_DLV_OK) {
                     if(return_class == DW_FORM_CLASS_CONSTANT) {
                         highpc += lowpc;
                     }
                     if(!callback(lowpc, highpc)) {
-                        return;
+                        return monostate{};
                     }
                 }
             }
             if(version >= 5) {
-                dwarf5_ranges(callback);
+                return dwarf5_ranges(callback);
             } else {
-                dwarf4_ranges(lowpc, callback);
+                return dwarf4_ranges(lowpc, callback);
             }
         }
 
-        std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> get_rangelist_entries(int version) const {
-            std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> vec;
-            dwarf_ranges(version, nullopt, [&vec] (Dwarf_Addr low, Dwarf_Addr high) {
-                // Simple coalescing optimization:
-                // Sometimes the range list entries are really continuous: [100, 200), [200, 300)
-                // Other times there's just one byte of separation [300, 399), [400, 500)
-                // Those are the main two cases I've observed.
-                // This will not catch all cases, presumably, as the range lists aren't sorted. But compilers/linkers
-                // seem to like to emit the ranges in sorted order.
-                if(!vec.empty() && low - vec.back().second <= 1) {
-                    vec.back().second = high;
-                } else {
-                    vec.push_back({low, high});
-                }
-                return true;
-            });
+        struct address_range {
+            Dwarf_Addr low;
+            Dwarf_Addr high;
+        };
+
+        Result<std::vector<address_range>, internal_error> get_rangelist_entries(int version) const {
+            std::vector<address_range> vec;
+            PROP(
+                dwarf_ranges(version, nullopt, [&vec] (Dwarf_Addr low, Dwarf_Addr high) {
+                    // Simple coalescing optimization:
+                    // Sometimes the range list entries are really continuous: [100, 200), [200, 300)
+                    // Other times there's just one byte of separation [300, 399), [400, 500)
+                    // Those are the main two cases I've observed.
+                    // This will not catch all cases, presumably, as the range lists aren't sorted.
+                    //  But compilers/linkers seem to like to emit the ranges in sorted order.
+                    if(!vec.empty() && low - vec.back().high <= 1) {
+                        vec.back().high = high;
+                    } else {
+                        vec.push_back({low, high});
+                    }
+                    return true;
+                })
+            );
             return vec;
         }
 
-        Dwarf_Bool pc_in_die(int version, Dwarf_Addr pc) const {
+        Result<Dwarf_Bool, internal_error> pc_in_die(int version, Dwarf_Addr pc) const {
             bool found = false;
-            dwarf_ranges(version, pc, [&found, pc] (Dwarf_Addr low, Dwarf_Addr high) {
-                if(pc >= low && pc < high) {
-                    found = true;
-                    return false;
-                }
-                return true;
-            });
+            PROP(
+                dwarf_ranges(version, pc, [&found, pc] (Dwarf_Addr low, Dwarf_Addr high) {
+                    if(pc >= low && pc < high) {
+                        found = true;
+                        return false;
+                    }
+                    return true;
+                })
+            );
             return found;
         }
 
@@ -440,9 +519,9 @@ namespace libdwarf {
             std::fprintf(
                 stderr,
                 "%08llx %s %s\n",
-                to_ull(get_global_offset()),
+                to_ull(get_global_offset().value_or(0)),
                 get_tag_name(),
-                get_name().c_str()
+                get_name().drop_error().value_or("<name error>").c_str()
             );
         }
     };
@@ -457,13 +536,22 @@ namespace libdwarf {
         // TODO: Refactor so there is only one fn call
         bool continue_traversal = true;
         if(fn(die)) {
-            die_object current = die.get_sibling();
-            while(current) {
-                if(fn(current)) {
-                    current = current.get_sibling();
-                } else {
-                    continue_traversal = false;
-                    break;
+            auto sibling = die.get_sibling();
+            if(!sibling) {
+                sibling.drop_error();
+            } else {
+                die_object current = std::move(sibling).unwrap_value();
+                while(current) {
+                    if(fn(current)) {
+                        auto sibling = current.get_sibling();
+                        if(!sibling) {
+                            sibling.drop_error();
+                        }
+                        current = std::move(sibling).unwrap_value();
+                    } else {
+                        continue_traversal = false;
+                        break;
+                    }
                 }
             }
         }
@@ -481,8 +569,10 @@ namespace libdwarf {
             die,
             [&fn](const die_object& die) {
                 auto child = die.get_child();
-                if(child) {
-                    if(!walk_die_list_recursive(child, fn)) {
+                if(child.is_error()) {
+                    child.drop_error();
+                } else if(child.unwrap_value()) {
+                    if(!walk_die_list_recursive(child.unwrap_value(), fn)) {
                         return false;
                     }
                 }

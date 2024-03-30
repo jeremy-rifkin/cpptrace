@@ -120,13 +120,13 @@ namespace libdwarf {
                 int
             >::type = 0
         >
-        int wrap(int (*f)(Args...), Args2&&... args) const {
+        Result<int, internal_error> wrap(int (*f)(Args...), Args2&&... args) const {
             Dwarf_Error error = nullptr;
             int ret = f(std::forward<Args2>(args)..., &error);
             if(ret == DW_DLV_ERROR) {
-                handle_dwarf_error(dbg, error);
+                return handle_dwarf_error(dbg, error);
             }
-            return ret;
+            return Ok(ret);
         }
 
     public:
@@ -178,14 +178,17 @@ namespace libdwarf {
                 nullptr,
                 &dbg
             );
-            if(ret == DW_DLV_OK) {
+            if(!ret) {
+                ret.drop_error();
+                ok = false;
+            } else if(ret.unwrap_value() == DW_DLV_OK) {
                 ok = true;
-            } else if(ret == DW_DLV_NO_ENTRY) {
+            } else if(ret.unwrap_value() == DW_DLV_NO_ENTRY) {
                 // fail, no debug info
                 ok = false;
             } else {
                 ok = false;
-                PANIC("Unknown return code from dwarf_init_path");
+                ASSERT(false, "Unknown return code from dwarf_init_path");
             }
 
             if(ok) {
@@ -256,7 +259,7 @@ namespace libdwarf {
             Dwarf_Unsigned next_cu_header;
             Dwarf_Half header_cu_type;
             while(true) {
-                int ret = wrap(
+                auto ret = wrap(
                     dwarf_next_cu_header_d,
                     dbg,
                     true,
@@ -271,20 +274,29 @@ namespace libdwarf {
                     &next_cu_header,
                     &header_cu_type
                 );
-                if(ret == DW_DLV_NO_ENTRY) {
+                if(!ret) {
+                    ret.drop_error();
+                    return;
+                }
+                if(ret.unwrap_value() == DW_DLV_NO_ENTRY) {
                     if(dump_dwarf) {
                         std::fprintf(stderr, "End walk_dbg\n");
                     }
                     return;
                 }
-                if(ret != DW_DLV_OK) {
-                    PANIC("Unexpected return code from dwarf_next_cu_header_d");
+                if(ret.unwrap_value() != DW_DLV_OK) {
+                    ASSERT(false, "Unexpected return code from dwarf_next_cu_header_d");
                     return;
                 }
                 // 0 passed as the die to the first call of dwarf_siblingof_b immediately after dwarf_next_cu_header_d
                 // to fetch the cu die
                 die_object cu_die(dbg, nullptr);
-                cu_die = cu_die.get_sibling();
+                auto sibling = cu_die.get_sibling();
+                if(sibling.is_error()) {
+                    sibling.drop_error();
+                    break;
+                }
+                cu_die = std::move(sibling).unwrap_value();
                 if(!cu_die) {
                     break;
                 }
@@ -304,8 +316,17 @@ namespace libdwarf {
                     Dwarf_Half dwversion = 0;
                     dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
                     auto ranges_vec = cu_die.get_rangelist_entries(dwversion);
-                    for(auto range : ranges_vec) {
-                        cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
+                    if(!ranges_vec) {
+                        ranges_vec.drop_error();
+                        return true;
+                    }
+                    for(auto range : ranges_vec.unwrap_value()) {
+                        auto cu = cu_die.clone();
+                        if(!cu) {
+                            ranges_vec.drop_error();
+                            return true;
+                        }
+                        cu_cache.push_back({std::move(cu).unwrap_value(), dwversion, range.low, range.high});
                     }
                     return true;
                 });
@@ -316,52 +337,75 @@ namespace libdwarf {
             }
         }
 
-        std::string subprogram_symbol(
+        Result<std::string, internal_error> subprogram_symbol(
             const die_object& die,
             Dwarf_Half dwversion
         ) {
-            ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
+            auto tag = die.get_tag();
+            ASSERT(tag && (tag.unwrap_value() == DW_TAG_subprogram || tag.unwrap_value() == DW_TAG_inlined_subroutine));
             optional<std::string> name;
-            if(auto linkage_name = die.get_string_attribute(DW_AT_linkage_name)) {
-                name = std::move(linkage_name);
-            } else if(auto linkage_name = die.get_string_attribute(DW_AT_MIPS_linkage_name)) {
-                name = std::move(linkage_name);
-            } else if(auto linkage_name = die.get_string_attribute(DW_AT_name)) {
-                name = std::move(linkage_name);
+            auto linkage_name = die.get_string_attribute(DW_AT_linkage_name);
+            if(!linkage_name) {
+                linkage_name.drop_error();
+            }
+            if(linkage_name.has_value() && linkage_name.unwrap_value()) {
+                name = std::move(linkage_name).unwrap_value();
+            } {
+                auto linkage_name = die.get_string_attribute(DW_AT_MIPS_linkage_name);
+                if(!linkage_name) {
+                    linkage_name.drop_error();
+                }
+                if(linkage_name.has_value() && linkage_name.unwrap_value()) {
+                    name = std::move(linkage_name).unwrap_value();
+                } else {
+                    auto linkage_name = die.get_string_attribute(DW_AT_name);
+                    if(!linkage_name) {
+                        linkage_name.drop_error();
+                    }
+                    if(linkage_name.has_value() && linkage_name.unwrap_value()) {
+                        name = std::move(linkage_name).unwrap_value();
+                    }
+                }
             }
             if(name.has_value()) {
                 return std::move(name).unwrap();
             } else {
                 if(die.has_attr(DW_AT_specification)) {
-                    die_object spec = die.resolve_reference_attribute(DW_AT_specification);
-                    return subprogram_symbol(spec, dwversion);
+                    auto spec = die.resolve_reference_attribute(DW_AT_specification);
+                    if(!spec) {
+                        return std::move(spec).unwrap_error();
+                    }
+                    return subprogram_symbol(std::move(spec).unwrap_value(), dwversion);
                 } else if(die.has_attr(DW_AT_abstract_origin)) {
-                    die_object spec = die.resolve_reference_attribute(DW_AT_abstract_origin);
-                    return subprogram_symbol(spec, dwversion);
+                    auto spec = die.resolve_reference_attribute(DW_AT_abstract_origin);
+                    if(!spec) {
+                        return std::move(spec).unwrap_error();
+                    }
+                    return subprogram_symbol(std::move(spec).unwrap_value(), dwversion);
                 }
             }
-            return "";
+            return Ok("");
         }
 
         // despite (some) dwarf using 1-indexing, file_i should be the 0-based index
-        std::string resolve_filename(const die_object& cu_die, Dwarf_Unsigned file_i) {
+        Result<std::string, internal_error> resolve_filename(const die_object& cu_die, Dwarf_Unsigned file_i) {
             std::string filename;
             if(get_cache_mode() == cache_mode::prioritize_memory) {
                 char** dw_srcfiles;
                 Dwarf_Signed dw_filecount;
-                VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
+                CHECK_OK(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount));
                 if(Dwarf_Signed(file_i) < dw_filecount) {
                     // dwarf is using 1-indexing
                     filename = dw_srcfiles[file_i];
                 }
                 dwarf_dealloc(cu_die.dbg, dw_srcfiles, DW_DLA_LIST);
             } else {
-                auto off = cu_die.get_global_offset();
+                PROP_ASSIGN(off, cu_die.get_global_offset());
                 auto it = srcfiles_cache.find(off);
                 if(it == srcfiles_cache.end()) {
                     char** dw_srcfiles;
                     Dwarf_Signed dw_filecount;
-                    VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
+                    CHECK_OK(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount));
                     it = srcfiles_cache.insert(it, {off, {dw_srcfiles, dw_filecount}});
                 }
                 char** dw_srcfiles = it->second.first;
@@ -381,50 +425,69 @@ namespace libdwarf {
             Dwarf_Half dwversion,
             std::vector<stacktrace_frame>& inlines
         ) {
-            ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
+            auto tag = die.get_tag();
+            ASSERT(tag && (tag.unwrap_value() == DW_TAG_subprogram || tag.unwrap_value() == DW_TAG_inlined_subroutine));
             // get_inlines_info is recursive and recurses into dies with pc ranges matching the pc we're looking for,
             // however, because I wouldn't want anything stack overflowing I'm breaking the recursion out into a loop
             optional<std::reference_wrapper<const die_object>> current_die = die;
             while(current_die.has_value()) {
                 auto child = current_die.unwrap().get().get_child();
-                if(!child) {
+                if(!child.has_value() || !child.unwrap_value()) {
                     break;
                 }
                 optional<std::reference_wrapper<const die_object>> target_die;
                 walk_die_list(
-                    child,
+                    child.unwrap_value(),
                     [this, &cu_die, pc, dwversion, &inlines, &target_die] (const die_object& die) {
-                        if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
+                        auto tag = die.get_tag();
+                        if(!tag) {
+                            tag.drop_error();
+                            return true;
+                        }
+                        if(tag.unwrap_value() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
                             const auto name = subprogram_symbol(die, dwversion);
-                            auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
+                            auto file_i_r = die.get_unsigned_attribute(DW_AT_call_file);
+                            if(!file_i_r) {
+                                file_i_r.drop_error();
+                                return true;
+                            }
+                            auto file_i = std::move(file_i_r).unwrap_value();
                             if(file_i) {
                                 // for dwarf 2, 3, 4, and experimental line table version 0xfe06 1-indexing is used
                                 // for dwarf 5 0-indexing is used
                                 auto line_table_opt = get_line_table(cu_die);
-                                if(line_table_opt) {
-                                    auto& line_table = line_table_opt.unwrap().get();
-                                    if(line_table.version != 5) {
-                                        if(file_i.unwrap() == 0) {
-                                            file_i.reset(); // 0 means no name to be found
-                                        } else {
-                                            // decrement to 0-based index
-                                            file_i.unwrap()--;
-                                        }
+                                if(!line_table_opt) {
+                                    line_table_opt.drop_error();
+                                    return true;
+                                }
+                                auto& line_table = line_table_opt.unwrap_value().get();
+                                if(line_table.version != 5) {
+                                    if(file_i.unwrap() == 0) {
+                                        file_i.reset(); // 0 means no name to be found
+                                    } else {
+                                        // decrement to 0-based index
+                                        file_i.unwrap()--;
                                     }
-                                } else {
-                                    // silently continue
                                 }
                             }
-                            std::string file = file_i ? resolve_filename(cu_die, file_i.unwrap()) : "";
+                            std::string file = file_i ? resolve_filename(cu_die, file_i.unwrap()).value_or("") : "";
                             const auto line = die.get_unsigned_attribute(DW_AT_call_line);
+                            if(!line) {
+                                line.drop_error();
+                                return true;
+                            }
                             const auto col = die.get_unsigned_attribute(DW_AT_call_column);
+                            if(!col) {
+                                col.drop_error();
+                                return true;
+                            }
                             inlines.push_back(stacktrace_frame{
                                 0,
                                 0, // TODO: Could put an object address here...
-                                {static_cast<std::uint32_t>(line.value_or(0))},
-                                {static_cast<std::uint32_t>(col.value_or(0))},
+                                {static_cast<std::uint32_t>(line.unwrap_value().value_or(0))},
+                                {static_cast<std::uint32_t>(col.unwrap_value().value_or(0))},
                                 file,
-                                name,
+                                name.value_or(""),
                                 true
                             });
                             target_die = die;
@@ -439,15 +502,16 @@ namespace libdwarf {
             }
         }
 
-        std::string retrieve_symbol_for_subprogram(
+        Result<std::string, internal_error> retrieve_symbol_for_subprogram(
             const die_object& cu_die,
             const die_object& die,
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
             std::vector<stacktrace_frame>& inlines
         ) {
-            ASSERT(die.get_tag() == DW_TAG_subprogram);
-            const auto name = subprogram_symbol(die, dwversion);
+            auto tag = die.get_tag();
+            ASSERT(tag && tag.unwrap_value() == DW_TAG_subprogram);
+            auto name = subprogram_symbol(die, dwversion);
             if(detail::should_resolve_inlined_calls()) {
                 get_inlines_info(cu_die, die, pc, dwversion, inlines);
             }
@@ -469,42 +533,52 @@ namespace libdwarf {
                 die,
                 [this, &cu_die, pc, dwversion, &frame, &inlines, &found] (const die_object& die) {
                     if(dump_dwarf) {
-                        std::fprintf(
-                            stderr,
-                            "-------------> %08llx %s %s\n",
-                            to_ull(die.get_global_offset()),
+                        microfmt::print(
+                            std::cerr,
+                            "-------------> {8:0h} {} {}\n",
+                            die.get_global_offset().value_or(0),
                             die.get_tag_name(),
-                            die.get_name().c_str()
+                            die.get_name().value_or("<error>")
                         );
                     }
-                    if(!(die.get_tag() == DW_TAG_namespace || die.pc_in_die(dwversion, pc))) {
+                    auto tag = die.get_tag();
+                    if(!tag) {
+                        tag.drop_error();
+                        return true;
+                    }
+                    if(!(tag.unwrap_value() == DW_TAG_namespace || die.pc_in_die(dwversion, pc))) {
                         if(dump_dwarf) {
-                            std::fprintf(stderr, "pc not in die\n");
+                            microfmt::print(std::cerr, "pc not in die\n");
                         }
                     } else {
                         if(trace_dwarf) {
-                            std::fprintf(
-                                stderr,
-                                "%s %08llx %s\n",
-                                die.get_tag() == DW_TAG_namespace ? "pc maybe in die (namespace)" : "pc in die",
-                                to_ull(die.get_global_offset()),
+                            microfmt::print(
+                                std::cerr,
+                                "{} {8:0h} {}\n",
+                                tag.unwrap_value() == DW_TAG_namespace ? "pc maybe in die (namespace)" : "pc in die",
+                                die.get_global_offset().value_or(0),
                                 die.get_tag_name()
                             );
                         }
-                        if(die.get_tag() == DW_TAG_subprogram) {
-                            frame.symbol = retrieve_symbol_for_subprogram(cu_die, die, pc, dwversion, inlines);
+                        if(tag.unwrap_value() == DW_TAG_subprogram) {
+                            frame.symbol = retrieve_symbol_for_subprogram(cu_die, die, pc, dwversion, inlines)
+                                .value_or("");
                             found = true;
                             return false;
                         }
                         auto child = die.get_child();
-                        if(child) {
-                            if(retrieve_symbol_walk(cu_die, child, pc, dwversion, frame, inlines)) {
+                        if(!child) {
+                            child.drop_error();
+                            return true;
+                        }
+                        if(child.unwrap_value()) {
+                            if(retrieve_symbol_walk(cu_die, child.unwrap_value(), pc, dwversion, frame, inlines)) {
                                 found = true;
                                 return false;
                             }
                         } else {
                             if(dump_dwarf) {
-                                std::fprintf(stderr, "(no child)\n");
+                                microfmt::print(std::cerr, "(no child)\n");
                             }
                         }
                     }
@@ -512,7 +586,7 @@ namespace libdwarf {
                 }
             );
             if(dump_dwarf) {
-                std::fprintf(stderr, "End walk_die_list\n");
+                microfmt::print(std::cerr, "End walk_die_list\n");
             }
             return found;
         }
@@ -526,20 +600,38 @@ namespace libdwarf {
             walk_die_list(
                 die,
                 [this, dwversion, &vec] (const die_object& die) {
-                    switch(die.get_tag()) {
+                    auto tag = die.get_tag();
+                    if(!tag) {
+                        tag.drop_error();
+                        return true;
+                    }
+                    switch(tag.unwrap_value()) {
                         case DW_TAG_subprogram:
                             {
                                 auto ranges_vec = die.get_rangelist_entries(dwversion);
+                                if(!ranges_vec) {
+                                    ranges_vec.drop_error();
+                                    return true;
+                                }
                                 // TODO: Feels super inefficient and some day should maybe use an interval tree.
-                                for(auto range : ranges_vec) {
-                                    vec.push_back({ die.clone(), range.first, range.second });
+                                for(auto range : ranges_vec.unwrap_value()) {
+                                    auto d = die.clone();
+                                    if(!d) {
+                                        d.drop_error();
+                                        return true;
+                                    }
+                                    vec.push_back({ std::move(d).unwrap_value(), range.low, range.high });
                                 }
                                 // Walk children to get things like lambdas
                                 // TODO: Somehow find a way to get better names here? For gcc it's just "operator()"
                                 // On clang it's better
                                 auto child = die.get_child();
-                                if(child) {
-                                    preprocess_subprograms(child, dwversion, vec);
+                                if(!child) {
+                                    child.drop_error();
+                                    return true;
+                                }
+                                if(child.unwrap_value()) {
+                                    preprocess_subprograms(child.unwrap_value(), dwversion, vec);
                                 }
                             }
                             break;
@@ -551,8 +643,12 @@ namespace libdwarf {
                         case DW_TAG_compile_unit:
                             {
                                 auto child = die.get_child();
-                                if(child) {
-                                    preprocess_subprograms(child, dwversion, vec);
+                                if(!child) {
+                                    child.drop_error();
+                                    return true;
+                                }
+                                if(child.unwrap_value()) {
+                                    preprocess_subprograms(child.unwrap_value(), dwversion, vec);
                                 }
                             }
                             break;
@@ -579,7 +675,10 @@ namespace libdwarf {
                 retrieve_symbol_walk(cu_die, cu_die, pc, dwversion, frame, inlines);
             } else {
                 auto off = cu_die.get_global_offset();
-                auto it = subprograms_cache.find(off);
+                if(!off) {
+                    return;
+                }
+                auto it = subprograms_cache.find(off.unwrap_value());
                 if(it == subprograms_cache.end()) {
                     // TODO: Refactor. Do the sort in the preprocess function and return the vec directly.
                     std::vector<subprogram_entry> vec;
@@ -587,8 +686,8 @@ namespace libdwarf {
                     std::sort(vec.begin(), vec.end(), [] (const subprogram_entry& a, const subprogram_entry& b) {
                         return a.low < b.low;
                     });
-                    subprograms_cache.emplace(off, std::move(vec));
-                    it = subprograms_cache.find(off);
+                    subprograms_cache.emplace(off.unwrap_value(), std::move(vec));
+                    it = subprograms_cache.find(off.unwrap_value());
                 }
                 auto& vec = it->second;
                 auto vec_it = first_less_than_or_equal(
@@ -603,7 +702,8 @@ namespace libdwarf {
                 if(vec_it != vec.end()) {
                     //vec_it->die.print();
                     if(vec_it->die.pc_in_die(dwversion, pc)) {
-                        frame.symbol = retrieve_symbol_for_subprogram(cu_die, vec_it->die, pc, dwversion, inlines);
+                        frame.symbol = retrieve_symbol_for_subprogram(cu_die, vec_it->die, pc, dwversion, inlines)
+                            .value_or("");
                     }
                 } else {
                     ASSERT(vec.size() == 0, "Vec should be empty?");
@@ -613,29 +713,35 @@ namespace libdwarf {
 
         // returns a reference to a CU's line table, may be invalidated if the line_tables map is modified
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        optional<std::reference_wrapper<line_table_info>> get_line_table(const die_object& cu_die) {
-            auto off = cu_die.get_global_offset();
+        Result<std::reference_wrapper<line_table_info>, internal_error> get_line_table(const die_object& cu_die) {
+            PROP_ASSIGN(off, cu_die.get_global_offset());
             auto it = line_tables.find(off);
             if(it != line_tables.end()) {
-                return it->second;
+                return std::reference_wrapper<line_table_info>{it->second};
             } else {
                 Dwarf_Unsigned version;
                 Dwarf_Small table_count;
                 Dwarf_Line_Context line_context;
-                int ret = wrap(
-                    dwarf_srclines_b,
-                    cu_die.get(),
-                    &version,
-                    &table_count,
-                    &line_context
+                PROP_ASSIGN(
+                    ret,
+                    wrap(
+                        dwarf_srclines_b,
+                        cu_die.get(),
+                        &version,
+                        &table_count,
+                        &line_context
+                    )
                 );
                 static_assert(std::is_unsigned<decltype(table_count)>::value, "Expected unsigned Dwarf_Small");
-                VERIFY(/*table_count >= 0 &&*/ table_count <= 2, "Unknown dwarf line table count");
-                if(ret == DW_DLV_NO_ENTRY) {
-                    // TODO: Failing silently for now
-                    return nullopt;
+                if(table_count > 2) {
+                    return internal_error("Unknown dwarf line table count");
                 }
-                VERIFY(ret == DW_DLV_OK);
+                if(ret == DW_DLV_NO_ENTRY) {
+                    return internal_error("dwarf_srclines_b DW_DLV_NO_ENTRY");
+                }
+                if(ret != DW_DLV_OK) {
+                    return internal_error("dwarf_srclines_b not ok");
+                }
 
                 std::vector<line_entry> line_entries;
 
@@ -645,7 +751,7 @@ namespace libdwarf {
                     Dwarf_Signed line_count = 0;
                     Dwarf_Line* linebuf_actuals = nullptr;
                     Dwarf_Signed linecount_actuals = 0;
-                    VERIFY(
+                    CHECK_OK(
                         wrap(
                             dwarf_srclines_two_level_from_linecontext,
                             line_context,
@@ -653,7 +759,7 @@ namespace libdwarf {
                             &line_count,
                             &linebuf_actuals,
                             &linecount_actuals
-                        ) == DW_DLV_OK
+                        )
                     );
 
                     // TODO: Make any attempt to note PC ranges? Handle line end sequence?
@@ -661,12 +767,12 @@ namespace libdwarf {
                     for(int i = 0; i < line_count; i++) {
                         Dwarf_Line line = line_buffer[i];
                         Dwarf_Addr low_addr = 0;
-                        VERIFY(wrap(dwarf_lineaddr, line, &low_addr) == DW_DLV_OK);
+                        CHECK_OK(wrap(dwarf_lineaddr, line, &low_addr));
                         // scan ahead for the last line entry matching this pc
                         int j;
                         for(j = i + 1; j < line_count; j++) {
                             Dwarf_Addr addr = 0;
-                            VERIFY(wrap(dwarf_lineaddr, line_buffer[j], &addr) == DW_DLV_OK);
+                            CHECK_OK(wrap(dwarf_lineaddr, line_buffer[j], &addr));
                             if(addr != low_addr) {
                                 break;
                             }
@@ -703,7 +809,7 @@ namespace libdwarf {
                 }
 
                 it = line_tables.insert({off, {version, line_context, std::move(line_entries)}}).first;
-                return it->second;
+                return std::reference_wrapper<line_table_info>{it->second};
             }
         }
 
@@ -715,9 +821,10 @@ namespace libdwarf {
         ) {
             auto table_info_opt = get_line_table(cu_die);
             if(!table_info_opt) {
-                return; // failing silently for now
+                table_info_opt.drop_error();
+                return;
             }
-            auto& table_info = table_info_opt.unwrap().get();
+            auto& table_info = table_info_opt.unwrap_value().get();
             if(get_cache_mode() == cache_mode::prioritize_speed) {
                 // Lookup in the table
                 auto& line_entries = table_info.line_entries;
@@ -735,21 +842,42 @@ namespace libdwarf {
                     // line number
                     if(!table_it->line_number) {
                         Dwarf_Unsigned line_number = 0;
-                        VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
+                        auto res = wrap(dwarf_lineno, line, &line_number);
+                        if(!res) {
+                            res.drop_error();
+                            return;
+                        } else if(res.unwrap_value() != DW_DLV_OK) {
+                            ASSERT(false, "dwarf call not ok");
+                            return;
+                        }
                         table_it->line_number = static_cast<std::uint32_t>(line_number);
                     }
                     frame.line = table_it->line_number.unwrap();
                     // column number
                     if(!table_it->column_number) {
                         Dwarf_Unsigned column_number = 0;
-                        VERIFY(wrap(dwarf_lineoff_b, line, &column_number) == DW_DLV_OK);
+                        auto res = wrap(dwarf_lineoff_b, line, &column_number);
+                        if(!res) {
+                            res.drop_error();
+                            return;
+                        } else if(res.unwrap_value() != DW_DLV_OK) {
+                            ASSERT(false, "dwarf call not ok");
+                            return;
+                        }
                         table_it->column_number = static_cast<std::uint32_t>(column_number);
                     }
                     frame.column = table_it->column_number.unwrap();
                     // filename
                     if(!table_it->path) {
                         char* filename = nullptr;
-                        VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
+                        auto res = wrap(dwarf_linesrc, line, &filename);
+                        if(!res) {
+                            res.drop_error();
+                            return;
+                        } else if(res.unwrap_value() != DW_DLV_OK) {
+                            ASSERT(false, "dwarf call not ok");
+                            return;
+                        }
                         auto wrapper = raii_wrap(
                             filename,
                             [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
@@ -765,22 +893,34 @@ namespace libdwarf {
                 Dwarf_Signed line_count = 0;
                 Dwarf_Line* linebuf_actuals = nullptr;
                 Dwarf_Signed linecount_actuals = 0;
-                VERIFY(
-                    wrap(
-                        dwarf_srclines_two_level_from_linecontext,
-                        line_context,
-                        &line_buffer,
-                        &line_count,
-                        &linebuf_actuals,
-                        &linecount_actuals
-                    ) == DW_DLV_OK
+                auto res = wrap(
+                    dwarf_srclines_two_level_from_linecontext,
+                    line_context,
+                    &line_buffer,
+                    &line_count,
+                    &linebuf_actuals,
+                    &linecount_actuals
                 );
+                if(!res) {
+                    res.drop_error();
+                    return;
+                } else if(res.unwrap_value() != DW_DLV_OK) {
+                    ASSERT(false, "dwarf call not ok");
+                    return;
+                }
                 Dwarf_Addr last_lineaddr = 0;
                 Dwarf_Line last_line = nullptr;
                 for(int i = 0; i < line_count; i++) {
                     Dwarf_Line line = line_buffer[i];
                     Dwarf_Addr lineaddr = 0;
-                    VERIFY(wrap(dwarf_lineaddr, line, &lineaddr) == DW_DLV_OK);
+                    auto res = wrap(dwarf_lineaddr, line, &lineaddr);
+                    if(!res) {
+                        res.drop_error();
+                        return;
+                    } else if(res.unwrap_value() != DW_DLV_OK) {
+                        ASSERT(false, "dwarf call not ok");
+                        return;
+                    }
                     Dwarf_Line found_line = nullptr;
                     if(pc == lineaddr) {
                         // Multiple PCs may correspond to a line, find the last one
@@ -788,7 +928,14 @@ namespace libdwarf {
                         for(int j = i + 1; j < line_count; j++) {
                             Dwarf_Line line = line_buffer[j];
                             Dwarf_Addr lineaddr = 0;
-                            VERIFY(wrap(dwarf_lineaddr, line, &lineaddr) == DW_DLV_OK);
+                            auto res = wrap(dwarf_lineaddr, line, &lineaddr);
+                            if(!res) {
+                            res.drop_error();
+                                return;
+                            } else if(res.unwrap_value() != DW_DLV_OK) {
+                                ASSERT(false, "dwarf call not ok");
+                                return;
+                            }
                             if(pc == lineaddr) {
                                 found_line = line;
                             }
@@ -799,10 +946,24 @@ namespace libdwarf {
                     }
                     if(found_line) {
                         Dwarf_Unsigned line_number = 0;
-                        VERIFY(wrap(dwarf_lineno, found_line, &line_number) == DW_DLV_OK);
+                        auto res = wrap(dwarf_lineno, found_line, &line_number);
+                        if(!res) {
+                            res.drop_error();
+                            return;
+                        } else if(res.unwrap_value() != DW_DLV_OK) {
+                            ASSERT(false, "dwarf call not ok");
+                            return;
+                        }
                         frame.line = static_cast<std::uint32_t>(line_number);
                         char* filename = nullptr;
-                        VERIFY(wrap(dwarf_linesrc, found_line, &filename) == DW_DLV_OK);
+                        auto res2 = wrap(dwarf_linesrc, found_line, &filename);
+                        if(!res2) {
+                            res2.drop_error();
+                            return;
+                        } else if(res2.unwrap_value() != DW_DLV_OK) {
+                            ASSERT(false, "dwarf call not ok");
+                            return;
+                        }
                         auto wrapper = raii_wrap(
                             filename,
                             [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
@@ -810,7 +971,14 @@ namespace libdwarf {
                         frame.filename = filename;
                     } else {
                         Dwarf_Bool is_line_end;
-                        VERIFY(wrap(dwarf_lineendsequence, line, &is_line_end) == DW_DLV_OK);
+                        auto res = wrap(dwarf_lineendsequence, line, &is_line_end);
+                        if(!res) {
+                            res.drop_error();
+                            return;
+                        } else if(res.unwrap_value() != DW_DLV_OK) {
+                            ASSERT(false, "dwarf call not ok");
+                            return;
+                        }
                         if(is_line_end) {
                             last_lineaddr = 0;
                             last_line = nullptr;
@@ -837,17 +1005,40 @@ namespace libdwarf {
             if(aranges) {
                 // Try to find pc in aranges
                 Dwarf_Arange arange;
-                if(wrap(dwarf_get_arange, aranges, arange_count, pc, &arange) == DW_DLV_OK) {
+                auto res = wrap(dwarf_get_arange, aranges, arange_count, pc, &arange);
+                if(!res) {
+                    res.drop_error();
+                    return;
+                }
+                if(res.unwrap_value() == DW_DLV_OK) {
                     // Address in table, load CU die
                     Dwarf_Off cu_die_offset;
-                    VERIFY(wrap(dwarf_get_cu_die_offset, arange, &cu_die_offset) == DW_DLV_OK);
+                    auto res = wrap(dwarf_get_cu_die_offset, arange, &cu_die_offset);
+                    if(!res) {
+                        res.drop_error();
+                        return;
+                    } else if(res.unwrap_value() != DW_DLV_OK) {
+                        ASSERT(false, "dwarf call not ok");
+                        return;
+                    }
                     Dwarf_Die raw_die;
                     // Setting is_info = true for now, assuming in .debug_info rather than .debug_types
-                    VERIFY(wrap(dwarf_offdie_b, dbg, cu_die_offset, true, &raw_die) == DW_DLV_OK);
+                    auto res2 = wrap(dwarf_offdie_b, dbg, cu_die_offset, true, &raw_die);
+                    if(!res2) {
+                        res2.drop_error();
+                        return;
+                    } else if(res2.unwrap_value() != DW_DLV_OK) {
+                        ASSERT(false, "dwarf call not ok");
+                        return;
+                    }
                     die_object cu_die(dbg, raw_die);
                     Dwarf_Half offset_size = 0;
                     Dwarf_Half dwversion = 0;
-                    VERIFY(dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size) == DW_DLV_OK);
+                    int res3 = dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    if(res3 != DW_DLV_OK) {
+                        ASSERT(false, "dwarf call not ok");
+                        return;
+                    }
                     if(trace_dwarf) {
                         std::fprintf(stderr, "Found CU in aranges\n");
                         cu_die.print();
@@ -866,19 +1057,23 @@ namespace libdwarf {
                 walk_compilation_units([this, pc, &frame, &inlines] (const die_object& cu_die) {
                     Dwarf_Half offset_size = 0;
                     Dwarf_Half dwversion = 0;
-                    dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    auto res = dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                    if(res != DW_DLV_OK) {
+                        ASSERT(false, "dwarf call not ok");
+                        return true;
+                    }
                     //auto p = cu_die.get_pc_range(dwversion);
                     //cu_die.print();
                     //fprintf(stderr, "        %llx, %llx\n", p.first, p.second);
                     if(trace_dwarf) {
-                        std::fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
+                        microfmt::print(std::cerr, "CU: {} {}\n", dwversion, cu_die.get_name().value_or("<error>"));
                     }
                     if(cu_die.pc_in_die(dwversion, pc)) {
                         if(trace_dwarf) {
                             std::fprintf(
                                 stderr,
                                 "pc in die %08llx %s (now searching for %08llx)\n",
-                                to_ull(cu_die.get_global_offset()),
+                                to_ull(cu_die.get_global_offset().value_or(0)),
                                 cu_die.get_tag_name(),
                                 to_ull(pc)
                             );
