@@ -28,11 +28,6 @@ namespace detail {
         }
     };
 
-    class file_error : public internal_error {
-    public:
-        file_error(std::string path) : internal_error("Unable to read file " + std::move(path)) {}
-    };
-
     // Lightweight std::source_location.
     struct source_location {
         const char* const file;
