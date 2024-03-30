@@ -50,6 +50,14 @@
 #define MAGENTA ESC "35m"
 #define CYAN    ESC "36m"
 
+#if IS_GCC || IS_CLANG
+ #define NODISCARD __attribute__((warn_unused_result))
+// #elif IS_MSVC && _MSC_VER >= 1700
+//  #define NODISCARD _Check_return_
+#else
+ #define NODISCARD
+#endif
+
 namespace cpptrace {
 namespace detail {
     static const stacktrace_frame null_frame {
