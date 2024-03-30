@@ -9,7 +9,7 @@ set(package_name "cpptrace")
 
 project(
   cpptrace
-  VERSION 0.4.1
+  VERSION 0.5.1
   DESCRIPTION "Simple, portable, and self-contained stacktrace library for C++11 and newer "
   HOMEPAGE_URL "https://github.com/jeremy-rifkin/cpptrace"
   LANGUAGES C CXX
@@ -287,6 +287,8 @@ target_compile_features(
     ${target_name}
     PRIVATE cxx_std_11
 )
+
+target_compile_definitions(${target_name} PRIVATE NOMINMAX)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
   SET(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")

@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.5.0](#v050)
 - [v0.4.1](#v041)
 - [v0.4.0](#v040)
 - [v0.3.1](#v031)
@@ -9,6 +10,30 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.5.1
+
+Fixes:
+- Fix MSVC warning treated as error for 32-bit windows
+- Fix MSVC issue with min/max macros
+- Fix potential null dereference issue identified by eyalgolan1337
+
+# v0.5.0
+
+New:
+- Traces with source code snippets with `cpptrace::stacktrace::print_with_snippets`
+- Added `cpptrace::get_snippet` utility
+- Added `cpptrace::can_signal_safe_unwind` utility
+- Added `stacktrace_frame::get_object_info`
+
+Changes:
+- The library is now compiled with position-independent code by default
+
+Fixes:
+- Fixed issue with `_dl_find_object` implementation
+
+Misc:
+- Various refactoring, cleanup, and improvements
 
 # v0.4.1
 

@@ -28,7 +28,7 @@ namespace libdwarf {
         char* msg = dwarf_errmsg(error);
         (void)dbg;
         // dwarf_dealloc_error(dbg, error);
-        throw internal_error(stringf("Cpptrace dwarf error %u %s\n", ev, msg));
+        throw internal_error(microfmt::format("Cpptrace dwarf error {} {}\n", ev, msg));
     }
 
     struct die_object {
@@ -235,7 +235,7 @@ namespace libdwarf {
                         return die_object(dbg, target);
                     }
                 default:
-                    PANIC(stringf("unknown form for attribute %d %d\n", attr_num, form));
+                    PANIC(microfmt::format("unknown form for attribute {} {}\n", attr_num, form));
             }
         }
 
@@ -343,7 +343,7 @@ namespace libdwarf {
                 return;
             }
             Dwarf_Addr baseaddr = 0;
-            if(lowpc != std::numeric_limits<Dwarf_Addr>::max()) {
+            if(lowpc != (std::numeric_limits<Dwarf_Addr>::max)()) {
                 baseaddr = lowpc;
             }
             Dwarf_Ranges* ranges = nullptr;
@@ -381,7 +381,7 @@ namespace libdwarf {
         template<typename F>
         // callback should return true to keep going
         void dwarf_ranges(int version, optional<Dwarf_Addr> pc, F callback) const {
-            Dwarf_Addr lowpc = std::numeric_limits<Dwarf_Addr>::max();
+            Dwarf_Addr lowpc = (std::numeric_limits<Dwarf_Addr>::max)();
             if(wrap(dwarf_lowpc, die, &lowpc) == DW_DLV_OK) {
                 if(pc.has_value() && pc.unwrap() == lowpc) {
                     callback(lowpc, lowpc + 1);

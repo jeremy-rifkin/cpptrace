@@ -42,10 +42,11 @@ jobs:
            cpptrace/ci/setup-prerequisites.sh
     - name: dependencies
       run: |
-           pip3 install colorama
+           python3 -m venv env
+           env/bin/pip install colorama
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
+           env/bin/python ci/test-all-configs.py --${{matrix.compiler}} --default-config
   test-windows:
     runs-on: windows-2022
     strategy:
@@ -106,10 +107,11 @@ jobs:
            cpptrace/ci/setup-prerequisites.sh
     - name: dependencies
       run: |
-           pip3 install colorama
+           python3 -m venv env
+           env/bin/pip install colorama
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}}
+           env/bin/python ci/test-all-configs.py --${{matrix.compiler}}
   test-windows-all-configurations:
     runs-on: windows-2022
     strategy:

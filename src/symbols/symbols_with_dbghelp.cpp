@@ -325,6 +325,13 @@ namespace dbghelp {
 
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
     stacktrace_frame resolve_frame(HANDLE proc, frame_ptr addr) {
+        // The get_frame_object_info() ends up being inexpensive, at on my machine
+        //                                         debug           release
+        // uncached trace resolution (29 frames)   1.9-2.1 ms      1.4-1.8 ms
+        // cached trace resolution   (29 frames)   1.1-1.2 ms      0.2-0.4 ms
+        // get_frame_object_info()                 0.001-0.002 ms  0.0003-0.0006 ms
+        // At some point it might make sense to make an option to control this.
+        auto object_frame = get_frame_object_info(addr);
         const std::lock_guard<std::recursive_mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
         alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
         SYMBOL_INFO* symbol = (SYMBOL_INFO*)buffer;
@@ -345,7 +352,7 @@ namespace dbghelp {
                     std::fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
                     return {
                         addr,
-                        0,
+                        object_frame.object_address,
                         { static_cast<std::uint32_t>(line.LineNumber) },
                         nullable<std::uint32_t>::null(),
                         line.FileName,
@@ -378,7 +385,7 @@ namespace dbghelp {
                 signature = std::regex_replace(signature, comma_re, ", ");
                 return {
                     addr,
-                    0,
+                    object_frame.object_address,
                     { static_cast<std::uint32_t>(line.LineNumber) },
                     nullable<std::uint32_t>::null(),
                     line.FileName,
@@ -388,7 +395,7 @@ namespace dbghelp {
             } else {
                 return {
                     addr,
-                    0,
+                    object_frame.object_address,
                     nullable<std::uint32_t>::null(),
                     nullable<std::uint32_t>::null(),
                     "",
@@ -397,7 +404,15 @@ namespace dbghelp {
                 };
             }
         } else {
-            return { addr, 0, nullable<std::uint32_t>::null(), nullable<std::uint32_t>::null(), "", "", false };
+            return {
+                addr,
+                object_frame.object_address,
+                nullable<std::uint32_t>::null(),
+                nullable<std::uint32_t>::null(),
+                "",
+                "",
+                false
+            };
         }
     }
 

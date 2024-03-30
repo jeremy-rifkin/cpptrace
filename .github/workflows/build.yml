@@ -34,14 +34,15 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           pip3 install colorama
+           python3 -m venv env
+           env/bin/pip install colorama
     - name: libdwarf
       run: |
            cd ..
            cpptrace/ci/setup-prerequisites.sh
     - name: build
       run: |
-           python3 ci/build-in-all-configs.py --${{matrix.compiler}} --default-config
+           env/bin/python ci/build-in-all-configs.py --${{matrix.compiler}} --default-config
   build-windows:
     runs-on: windows-2022
     strategy:
@@ -95,14 +96,15 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           pip3 install colorama
+           python3 -m venv env
+           env/bin/pip install colorama
     - name: libdwarf
       run: |
            cd ..
            cpptrace/ci/setup-prerequisites.sh
     - name: build
       run: |
-           python3 ci/build-in-all-configs.py --${{matrix.compiler}}
+           env/bin/python ci/build-in-all-configs.py --${{matrix.compiler}}
   build-windows-all-configurations:
     runs-on: windows-2022
     needs: build-windows

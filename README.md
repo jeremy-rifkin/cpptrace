@@ -6,7 +6,7 @@
 <br/>
 [![Community Discord Link](https://img.shields.io/badge/Chat%20on%20the%20(very%20small)-Community%20Discord-blue?labelColor=2C3239&color=7289DA&style=flat&logo=discord&logoColor=959DA5)](https://discord.gg/frjaAZvqUZ)
 <br/>
-[![Try on Compiler Explorer](https://img.shields.io/badge/-Compiler%20Explorer-brightgreen?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAYAAAAmlE46AAAACXBIWXMAAACwAAAAsAEUaqtpAAABSElEQVQokYVTsU7DMBB9QMTCEJbOMLB5oF0tRfUPIPIJZctYJkZYu3WMxNL+ARUfQKpImcPgDYnsXWBgYQl61TkYyxI3Wef37j3fnQ/6vkcsikY9AbiWq0mpbevDBmLRqDEAA4CEHMADgFRwrwDmch6X2i73RCFVHvC/WCeCMAFpC2AFoPPu5x4md4rnAN4luS61nYWSgauNU8ydkr0bLTMYAoIYtWqxM4LtEumeERDtfUjlMDrp7L67iddyyJtOvUIu2rquVn4iiVSOKXYhiMSJWLwUJZLuQ2CWmVldV4MT11UmXgB8fr0dX3WP6VHMiVrscim6Da2mJxffzwSU2v6xWzSKmzQ4cUTOaCBTvWgU14xkzjhckKm/q3wnrRAcAhksxMZNAdxEf0fRKI6E8zqT1C0X28ccRpqAUltW5pu4sxv5Mb8B4AciE3bHMxz/+gAAAABJRU5ErkJggg==&labelColor=2C3239&style=flat&label=Try+it+on&color=30C452)](https://godbolt.org/z/5sEszzEPE)
+[![Try on Compiler Explorer](https://img.shields.io/badge/-Compiler%20Explorer-brightgreen?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAYAAAAmlE46AAAACXBIWXMAAACwAAAAsAEUaqtpAAABSElEQVQokYVTsU7DMBB9QMTCEJbOMLB5oF0tRfUPIPIJZctYJkZYu3WMxNL+ARUfQKpImcPgDYnsXWBgYQl61TkYyxI3Wef37j3fnQ/6vkcsikY9AbiWq0mpbevDBmLRqDEAA4CEHMADgFRwrwDmch6X2i73RCFVHvC/WCeCMAFpC2AFoPPu5x4md4rnAN4luS61nYWSgauNU8ydkr0bLTMYAoIYtWqxM4LtEumeERDtfUjlMDrp7L67iddyyJtOvUIu2rquVn4iiVSOKXYhiMSJWLwUJZLuQ2CWmVldV4MT11UmXgB8fr0dX3WP6VHMiVrscim6Da2mJxffzwSU2v6xWzSKmzQ4cUTOaCBTvWgU14xkzjhckKm/q3wnrRAcAhksxMZNAdxEf0fRKI6E8zqT1C0X28ccRpqAUltW5pu4sxv5Mb8B4AciE3bHMxz/+gAAAABJRU5ErkJggg==&labelColor=2C3239&style=flat&label=Try+it+on&color=30C452)](https://godbolt.org/z/c6TqTzqcf)
 
 Cpptrace is a simple, portable, and self-contained C++ stacktrace library supporting C++11 and greater on Linux, macOS,
 and Windows including MinGW and Cygwin environments. The goal: Make stack traces simple for once.
@@ -93,6 +93,9 @@ Additional notable features:
 - Utilities for demangling
 - Utilities for catching `std::exception`s and wrapping them in traced exceptions
 - Signal-safe stack tracing
+- Source code snippets in traces
+
+![Snippets](res/snippets.png)
 
 ## CMake FetchContent Usage
 
@@ -101,7 +104,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.4.1 # <HASH or TAG>
+  GIT_TAG        v0.5.1 # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace::cpptrace)
@@ -139,13 +142,17 @@ thrown, and providing an API for safe tracing from signal handlers.
 
 # In-Depth Documentation
 
+## Prerequisites
+
+> [!IMPORTANT]
+> Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`/`-DBUILD_TYPE=Debug`/`-DBUILD_TYPE=RelWithDebInfo`) is required for complete
+> trace information.
+
 ## `namespace cpptrace`
 
 `cpptrace::generate_trace()` can be used to generate a stacktrace object at the current call site. Resolved frames can
 be accessed from this object with `.frames` and also the trace can be printed with `.print()`. Cpptrace also provides a
 method to get lightweight raw traces, which are just vectors of program counters, which can be resolved at a later time.
-
-**Note:** Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`) is generally required for good trace information.
 
 All functions are thread-safe unless otherwise noted.
 
@@ -154,6 +161,9 @@ All functions are thread-safe unless otherwise noted.
 The core resolved stack trace object. Generate a trace with `cpptrace::generate_trace()` or
 `cpptrace::stacktrace::current()`. On top of a set of helper functions `struct stacktrace` allows
 direct access to frames as well as iterators.
+
+`cpptrace::stacktrace::print` can be used to print a stacktrace. `cpptrace::stacktrace::print_with_snippets` can be used
+to print a stack trace with source code snippets.
 
 ```cpp
 namespace cpptrace {
@@ -184,6 +194,9 @@ namespace cpptrace {
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;
+        void print_with_snippets() const;
+        void print_with_snippets(std::ostream& stream) const;
+        void print_with_snippets(std::ostream& stream, bool color) const;
         std::string to_string(bool color = false) const;
         void clear();
         bool empty() const noexcept;
@@ -554,7 +567,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.4.1 # <HASH or TAG>
+  GIT_TAG        v0.5.1 # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace::cpptrace)
@@ -570,7 +583,7 @@ information.
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.4.1
+git checkout v0.5.1
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -606,7 +619,7 @@ you when installing new libraries.
 
 ```ps1
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.4.1
+git checkout v0.5.1
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -624,7 +637,7 @@ To install just for the local user (or any custom prefix):
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.4.1
+git checkout v0.5.1
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/wherever
@@ -661,7 +674,8 @@ The typical dependencies for cpptrace are:
 
 Note: Newer libdwarf requires `-lzstd`, older libdwarf does not.
 
-If you are linking statically, you will additionally need to specify `-DCPPTRACE_STATIC_DEFINE`.
+> [!IMPORTANT]
+> If you are linking statically, you will additionally need to specify `-DCPPTRACE_STATIC_DEFINE`.
 
 Dependencies may differ if different back-ends are manually selected.
 
@@ -703,7 +717,7 @@ make install
 cd ~/scratch/cpptrace-test
 git clone https://github.com/jeremy-rifkin/cpptrace.git
 cd cpptrace
-git checkout v0.4.1
+git checkout v0.5.1
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On -DCPPTRACE_USE_EXTERNAL_LIBDWARF=On -DCMAKE_PREFIX_PATH=~/scratch/cpptrace-test/resources -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
@@ -723,7 +737,7 @@ cpptrace and its dependencies.
 Cpptrace is available through conan at https://conan.io/center/recipes/cpptrace.
 ```
 [requires]
-cpptrace/0.4.1
+cpptrace/0.5.1
 [generators]
 CMakeDeps
 CMakeToolchain

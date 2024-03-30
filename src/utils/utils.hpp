@@ -19,6 +19,7 @@
 
 #include "common.hpp"
 #include "error.hpp"
+#include "microfmt.hpp"
 
 #if IS_WINDOWS
  #include <windows.h>
@@ -607,7 +608,9 @@ namespace detail {
     }
 
     inline void file_deleter(std::FILE* ptr) {
-        fclose(ptr);
+        if(ptr) {
+            fclose(ptr);
+        }
     }
 
     using file_wrapper = raii_wrapper<std::FILE*, void(*)(std::FILE*)>;

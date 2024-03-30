@@ -44,14 +44,7 @@ namespace detail {
                     frame.object_path = buffer;
                 }
             }
-            auto base = get_module_image_base(frame.object_path);
-            if(base.has_value()) {
-                frame.object_address = address
-                                        - to_frame_ptr(result.dlfo_link_map->l_addr)
-                                        + base.unwrap_value();
-            } else {
-                base.drop_error();
-            }
+            frame.object_address = address - to_frame_ptr(result.dlfo_link_map->l_addr);
         }
         return frame;
     }
