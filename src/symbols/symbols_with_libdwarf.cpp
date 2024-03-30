@@ -149,8 +149,15 @@ namespace libdwarf {
                 }
                 use_buffer = false; // we resolved dSYM above as appropriate
             }
-            if(macho_is_fat(object_path)) {
-                universal_number = mach_o(object_path).get_fat_index();
+            auto result = macho_is_fat(object_path);
+            if(result.is_error()) {
+                result.drop_error();
+            } else if(result.unwrap_value()) {
+                auto obj = mach_o::open_mach_o(object_path);
+                if(!obj) {
+                    // TODO
+                }
+                universal_number = obj.unwrap_value().get_fat_index();
             }
             #endif
 
@@ -901,7 +908,9 @@ namespace libdwarf {
                         retrieve_symbol(vec_it->die, pc, vec_it->dwversion, frame, inlines);
                     }
                 } else {
-                    ASSERT(cu_cache.size() == 0, "Vec should be empty?");
+                    // I've had this happen for _start, where there is a cached CU for the object but _start is outside
+                    // of the CU's PC range
+                    // ASSERT(cu_cache.size() == 0, "Vec should be empty?");
                 }
             }
         }
@@ -992,7 +1001,11 @@ namespace libdwarf {
                 // the path doesn't exist
                 std::unordered_map<std::string, uint64_t> symbols;
                 this->symbols = symbols;
-                auto symbol_table = mach_o(object_path).symbol_table();
+                auto obj = mach_o::open_mach_o(object_path);
+                if(!obj) {
+                    // TODO
+                }
+                auto symbol_table = obj.unwrap_value().symbol_table();
                 for(const auto& symbol : symbol_table) {
                     symbols[symbol.name] = symbol.address;
                 }
@@ -1045,7 +1058,11 @@ namespace libdwarf {
         debug_map_resolver(const std::string& source_object_path) {
             // load mach-o
             // TODO: Cache somehow?
-            mach_o source_mach(source_object_path);
+            auto obj = mach_o::open_mach_o(source_object_path);
+            if(!obj) {
+                // TODO
+            }
+            mach_o& source_mach = obj.unwrap_value();
             auto source_debug_map = source_mach.get_debug_map();
             // get symbol entries from debug map, as well as the various object files used to make this binary
             for(auto& entry : source_debug_map) {

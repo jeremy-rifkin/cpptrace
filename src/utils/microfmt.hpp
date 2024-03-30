@@ -254,7 +254,7 @@ namespace microfmt {
                         } else if(*it == '{') { // try to parse variable width
                             MICROFMT_ASSERT(peek() == '}');
                             it += 2;
-                            MICROFMT_ASSERT(arg_i < N);
+                            MICROFMT_ASSERT(arg_i < args.size());
                             options.width = args[arg_i++].unwrap_int();
                         }
                         // try to parse fill/base
@@ -277,7 +277,7 @@ namespace microfmt {
                             }
                         }
                         MICROFMT_ASSERT(*it == '}');
-                        MICROFMT_ASSERT(arg_i < N);
+                        MICROFMT_ASSERT(arg_i < args.size());
                         args[arg_i++].write(str, options);
                     }
                 } else if(*it == '}') {

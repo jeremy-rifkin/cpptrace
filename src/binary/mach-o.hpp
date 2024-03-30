@@ -45,14 +45,14 @@ namespace detail {
     }
 
     inline bool file_is_mach_o(const std::string& object_path) noexcept {
-        try {
-            FILE* file = std::fopen(object_path.c_str(), "rb");
-            if(file == nullptr) {
-                return false;
-            }
-            auto magic = load_bytes<std::uint32_t>(file, 0);
-            return is_mach_o(magic);
-        } catch(...) {
+        auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
+        if(file == nullptr) {
+            return false;
+        }
+        auto magic = load_bytes<std::uint32_t>(file, 0);
+        if(magic) {
+            return is_mach_o(magic.unwrap_value());
+        } else {
             return false;
         }
     }
@@ -108,7 +108,7 @@ namespace detail {
     };
 
     class mach_o {
-        std::FILE* file = nullptr;
+        file_wrapper file;
         std::string object_path;
         std::uint32_t magic;
         cpu_type_t cputype;
@@ -127,11 +127,11 @@ namespace detail {
         struct symtab_info_data {
             symtab_command symtab;
             std::unique_ptr<char[]> stringtab;
-            const char* get_string(std::size_t index) const {
+            Result<const char*, internal_error> get_string(std::size_t index) const {
                 if(stringtab && index < symtab.strsize) {
                     return stringtab.get() + index;
                 } else {
-                    throw std::runtime_error("can't retrieve symbol from symtab");
+                    return internal_error("can't retrieve symbol from symtab");
                 }
             }
         };
@@ -139,45 +139,69 @@ namespace detail {
         bool tried_to_load_symtab = false;
         optional<symtab_info_data> symtab_info;
 
-    public:
-        mach_o(const std::string& object_path) : object_path(object_path) {
-            file = std::fopen(object_path.c_str(), "rb");
-            if(file == nullptr) {
-                throw file_error("Unable to read object file " + object_path);
-            }
-            magic = load_bytes<std::uint32_t>(file, 0);
-            VERIFY(is_mach_o(magic), "File is not Mach-O " + object_path);
+        mach_o(
+            file_wrapper file,
+            const std::string& object_path,
+            std::uint32_t magic
+        ) :
+            file(std::move(file)),
+            object_path(object_path),
+            magic(magic) {}
+
+        Result<monostate, internal_error> load() {
             if(magic == FAT_MAGIC || magic == FAT_CIGAM) {
-                load_fat_mach();
+                return load_fat_mach();
             } else {
                 fat_index = 0;
                 if(is_magic_64(magic)) {
-                    load_mach<64>();
+                    return load_mach<64>();
                 } else {
-                    load_mach<32>();
+                    return load_mach<32>();
                 }
             }
         }
 
-        ~mach_o() {
-            if(file) {
-                std::fclose(file);
+    public:
+        static inline NODISCARD Result<mach_o, internal_error> open_mach_o(const std::string& object_path) {
+            auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
+            if(file == nullptr) {
+                return internal_error("Unable to read object file {}", object_path);
+            }
+            auto magic = load_bytes<std::uint32_t>(file, 0);
+            if(!magic) {
+                return magic.unwrap_error();
+            }
+            if(!is_mach_o(magic.unwrap_value())) {
+                return internal_error("File is not mach-o {}", object_path);
+            }
+            mach_o obj(std::move(file), object_path, magic.unwrap_value());
+            auto result = obj.load();
+            if(result.is_error()) {
+                return result.unwrap_error();
+            } else {
+                return obj;
             }
         }
 
-        std::uintptr_t get_text_vmaddr() {
+        mach_o(mach_o&&) = default;
+        ~mach_o() = default;
+
+        Result<std::uintptr_t, internal_error> get_text_vmaddr() {
             for(const auto& command : load_commands) {
                 if(command.cmd == LC_SEGMENT_64 || command.cmd == LC_SEGMENT) {
                     auto segment = command.cmd == LC_SEGMENT_64
                                         ? load_segment_command<64>(command.file_offset)
                                         : load_segment_command<32>(command.file_offset);
-                    if(std::strcmp(segment.segname, "__TEXT") == 0) {
-                        return segment.vmaddr;
+                    if(segment.is_error()) {
+                        segment.drop_error();
+                    }
+                    if(std::strcmp(segment.unwrap_value().segname, "__TEXT") == 0) {
+                        return segment.unwrap_value().vmaddr;
                     }
                 }
             }
             // somehow no __TEXT section was found...
-            throw std::runtime_error("Couldn't find __TEXT section while parsing Mach-O object");
+            return internal_error("Couldn't find __TEXT section while parsing Mach-O object");
         }
 
         std::size_t get_fat_index() const {
@@ -189,10 +213,16 @@ namespace detail {
             int i = 0;
             for(const auto& command : load_commands) {
                 if(command.cmd == LC_SEGMENT_64 || command.cmd == LC_SEGMENT) {
-                    auto segment = command.cmd == LC_SEGMENT_64
+                    auto segment_load = command.cmd == LC_SEGMENT_64
                                         ? load_segment_command<64>(command.file_offset)
                                         : load_segment_command<32>(command.file_offset);
                     fprintf(stderr, "Load command %d\n", i);
+                    if(segment_load.is_error()) {
+                        fprintf(stderr, "         error\n");
+                        segment_load.drop_error();
+                        continue;
+                    }
+                    auto& segment = segment_load.unwrap_value();
                     fprintf(stderr, "         cmd %u\n", segment.cmd);
                     fprintf(stderr, "     cmdsize %u\n", segment.cmdsize);
                     fprintf(stderr, "     segname %s\n", segment.segname);
@@ -213,8 +243,16 @@ namespace detail {
                 for(const auto& command : load_commands) {
                     if(command.cmd == LC_SYMTAB) {
                         symtab_info_data info;
-                        info.symtab = load_symbol_table_command(command.file_offset);
-                        info.stringtab = load_string_table(info.symtab.stroff, info.symtab.strsize);
+                        auto symtab = load_symbol_table_command(command.file_offset);
+                        if(!symtab) {
+                            // TODO
+                        }
+                        info.symtab = symtab.unwrap_value();
+                        auto string = load_string_table(info.symtab.stroff, info.symtab.strsize);
+                        if(!string) {
+                            // TODO
+                        }
+                        info.stringtab = std::move(string).unwrap_value();
                         symtab_info = std::move(info);
                         break;
                     }
@@ -263,8 +301,14 @@ namespace detail {
             int i = 0;
             for(const auto& command : load_commands) {
                 if(command.cmd == LC_SYMTAB) {
-                    auto symtab = load_symbol_table_command(command.file_offset);
+                    auto symtab_load = load_symbol_table_command(command.file_offset);
                     fprintf(stderr, "Load command %d\n", i);
+                    if(symtab_load.is_error()) {
+                        fprintf(stderr, "         error\n");
+                        symtab_load.drop_error();
+                        continue;
+                    }
+                    auto& symtab = symtab_load.unwrap_value();
                     fprintf(stderr, "         cmd %llu\n", to_ull(symtab.cmd));
                     fprintf(stderr, "     cmdsize %llu\n", to_ull(symtab.cmdsize));
                     fprintf(stderr, "      symoff 0x%llu\n", to_ull(symtab.symoff));
@@ -272,11 +316,24 @@ namespace detail {
                     fprintf(stderr, "      stroff 0x%llu\n", to_ull(symtab.stroff));
                     fprintf(stderr, "     strsize %llu\n", to_ull(symtab.strsize));
                     auto stringtab = load_string_table(symtab.stroff, symtab.strsize);
+                    if(!stringtab) {
+                        stringtab.drop_error();
+                    }
                     for(std::size_t j = 0; j < symtab.nsyms; j++) {
-                        nlist_64 entry = bits == 32
+                        auto entry = bits == 32
                                         ? load_symtab_entry<32>(symtab.symoff, j)
                                         : load_symtab_entry<64>(symtab.symoff, j);
-                        print_symbol_table_entry(entry, stringtab, symtab.strsize, j);
+                        if(!entry) {
+                            fprintf(stderr, "error loading symtab entry\n");
+                            entry.drop_error();
+                            continue;
+                        }
+                        print_symbol_table_entry(
+                            entry.unwrap_value(),
+                            std::move(stringtab).value_or(std::unique_ptr<char[]>(nullptr)),
+                            symtab.strsize,
+                            j
+                        );
                     }
                 }
                 i++;
@@ -308,9 +365,13 @@ namespace detail {
             std::string current_module;
             optional<debug_map_entry> current_function;
             for(std::size_t j = 0; j < symtab.nsyms; j++) {
-                nlist_64 entry = bits == 32
+                auto load_entry = bits == 32
                                 ? load_symtab_entry<32>(symtab.symoff, j)
                                 : load_symtab_entry<64>(symtab.symoff, j);
+                if(!load_entry) {
+                    // TODO
+                }
+                auto& entry = load_entry.unwrap_value();
                 // entry.n_type & N_STAB indicates symbolic debug info
                 if(!(entry.n_type & N_STAB)) {
                     continue;
@@ -320,15 +381,24 @@ namespace detail {
                         // pass - these encode path and filename for the module, if applicable
                         break;
                     case N_OSO:
-                        // sets the module
-                        current_module = symtab_info.get_string(entry.n_un.n_strx);
+                        {
+                            // sets the module
+                            auto str = symtab_info.get_string(entry.n_un.n_strx);
+                            if(!str) {
+                                // TODO
+                            }
+                            current_module = str.unwrap_value();
+                        }
                         break;
                     case N_BNSYM: break; // pass
                     case N_ENSYM: break; // pass
                     case N_FUN:
                         {
-                            const char* str = symtab_info.get_string(entry.n_un.n_strx);
-                            if(str[0] == 0) {
+                            auto str = symtab_info.get_string(entry.n_un.n_strx);
+                            if(!str) {
+                                // TODO
+                            }
+                            if(str.unwrap_value()[0] == 0) {
                                 // end of function scope
                                 if(!current_function) { /**/ }
                                 current_function.unwrap().size = entry.n_value;
@@ -336,7 +406,7 @@ namespace detail {
                             } else {
                                 current_function = debug_map_entry{};
                                 current_function.unwrap().source_address = entry.n_value;
-                                current_function.unwrap().name = str;
+                                current_function.unwrap().name = str.unwrap_value();
                             }
                         }
                         break;
@@ -353,16 +423,24 @@ namespace detail {
             const auto& symtab = symtab_info.symtab;
             // TODO: Take timestamp into account?
             for(std::size_t j = 0; j < symtab.nsyms; j++) {
-                nlist_64 entry = bits == 32
+                auto load_entry = bits == 32
                                 ? load_symtab_entry<32>(symtab.symoff, j)
                                 : load_symtab_entry<64>(symtab.symoff, j);
+                if(!load_entry) {
+                    // TODO
+                }
+                auto& entry = load_entry.unwrap_value();
                 if(entry.n_type & N_STAB) {
                     continue;
                 }
                 if((entry.n_type & N_TYPE) == N_SECT) {
+                    auto str = symtab_info.get_string(entry.n_un.n_strx);
+                    if(!str) {
+                        // TODO
+                    }
                     symbols.push_back({
                         entry.n_value,
-                        symtab_info.get_string(entry.n_un.n_strx)
+                        str.unwrap_value()
                     });
                 }
             }
@@ -390,12 +468,16 @@ namespace detail {
 
     private:
         template<std::size_t Bits>
-        void load_mach() {
+        Result<monostate, internal_error> load_mach() {
             static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
             bits = Bits;
             using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
             std::size_t header_size = sizeof(Mach_Header);
-            Mach_Header header = load_bytes<Mach_Header>(file, load_base);
+            auto load_header = load_bytes<Mach_Header>(file, load_base);
+            if(!load_header) {
+                return load_header.unwrap_error();
+            }
+            Mach_Header& header = load_header.unwrap_value();
             magic = header.magic;
             if(should_swap()) {
                 swap_mach_header(header);
@@ -412,19 +494,28 @@ namespace detail {
             // iterate load commands
             std::uint32_t actual_offset = load_commands_offset;
             for(std::uint32_t i = 0; i < ncmds; i++) {
-                load_command cmd = load_bytes<load_command>(file, actual_offset);
+                auto load_cmd = load_bytes<load_command>(file, actual_offset);
+                if(!load_cmd) {
+                    return load_cmd.unwrap_error();
+                }
+                load_command& cmd = load_cmd.unwrap_value();
                 if(should_swap()) {
                     swap_load_command(&cmd, NX_UnknownByteOrder);
                 }
                 load_commands.push_back({ actual_offset, cmd.cmd, cmd.cmdsize });
                 actual_offset += cmd.cmdsize;
             }
+            return monostate{};
         }
 
-        void load_fat_mach() {
+        Result<monostate, internal_error> load_fat_mach() {
             std::size_t header_size = sizeof(fat_header);
             std::size_t arch_size = sizeof(fat_arch);
-            fat_header header = load_bytes<fat_header>(file, 0);
+            auto load_header = load_bytes<fat_header>(file, 0);
+            if(!load_header) {
+                return load_header.unwrap_error();
+            }
+            fat_header& header = load_header.unwrap_value();
             if(should_swap()) {
                 swap_fat_header(&header, NX_UnknownByteOrder);
             }
@@ -458,7 +549,11 @@ namespace detail {
             fat_arches.reserve(header.nfat_arch);
             off_t arch_offset = (off_t)header_size;
             for(std::size_t i = 0; i < header.nfat_arch; i++) {
-                fat_arch arch = load_bytes<fat_arch>(file, arch_offset);
+                auto load_arch = load_bytes<fat_arch>(file, arch_offset);
+                if(!load_arch) {
+                    return load_arch.unwrap_error();
+                }
+                fat_arch& arch = load_arch.unwrap_value();
                 if(should_swap()) {
                     swap_fat_arch(&arch, 1, NX_UnknownByteOrder);
                 }
@@ -474,24 +569,31 @@ namespace detail {
             );
             if(best) {
                 off_t mach_header_offset = (off_t)best->offset;
-                std::uint32_t magic = load_bytes<std::uint32_t>(file, mach_header_offset);
+                auto magic = load_bytes<std::uint32_t>(file, mach_header_offset);
+                if(!magic) {
+                    return magic.unwrap_error();
+                }
                 load_base = mach_header_offset;
                 fat_index = best - fat_arches.data();
-                if(is_magic_64(magic)) {
+                if(is_magic_64(magic.unwrap_value())) {
                     load_mach<64>();
                 } else {
                     load_mach<32>();
                 }
-                return;
+                return monostate{};
             }
             // If this is reached... something went wrong. The cpu we're on wasn't found.
-            throw std::runtime_error("Couldn't find appropriate architecture in fat Mach-O");
+            return internal_error("Couldn't find appropriate architecture in fat Mach-O");
         }
 
         template<std::size_t Bits>
-        segment_command_64 load_segment_command(std::uint32_t offset) const {
+        Result<segment_command_64, internal_error> load_segment_command(std::uint32_t offset) const {
             using Segment_Command = typename std::conditional<Bits == 32, segment_command, segment_command_64>::type;
-            Segment_Command segment = load_bytes<Segment_Command>(file, offset);
+            auto load_segment = load_bytes<Segment_Command>(file, offset);
+            if(!load_segment) {
+                return load_segment.unwrap_error();
+            }
+            Segment_Command& segment = load_segment.unwrap_value();
             ASSERT(segment.cmd == LC_SEGMENT_64 || segment.cmd == LC_SEGMENT);
             if(should_swap()) {
                swap_segment_command(segment);
@@ -513,8 +615,12 @@ namespace detail {
             return common;
         }
 
-        symtab_command load_symbol_table_command(std::uint32_t offset) const {
-            symtab_command symtab = load_bytes<symtab_command>(file, offset);
+        Result<symtab_command, internal_error> load_symbol_table_command(std::uint32_t offset) const {
+            auto load_symtab = load_bytes<symtab_command>(file, offset);
+            if(!load_symtab) {
+                return load_symtab.unwrap_error();
+            }
+            symtab_command& symtab = load_symtab.unwrap_value();
             ASSERT(symtab.cmd == LC_SYMTAB);
             if(should_swap()) {
                swap_symtab_command(&symtab, NX_UnknownByteOrder);
@@ -523,10 +629,14 @@ namespace detail {
         }
 
         template<std::size_t Bits>
-        nlist_64 load_symtab_entry(std::uint32_t symbol_base, std::size_t index) const {
+        Result<nlist_64, internal_error> load_symtab_entry(std::uint32_t symbol_base, std::size_t index) const {
             using Nlist = typename std::conditional<Bits == 32, struct nlist, struct nlist_64>::type;
             uint32_t offset = load_base + symbol_base + index * sizeof(Nlist);
-            Nlist entry = load_bytes<Nlist>(file, offset);
+            auto load_entry = load_bytes<Nlist>(file, offset);
+            if(!load_entry) {
+                return load_entry.unwrap_error();
+            }
+            Nlist& entry = load_entry.unwrap_value();
             if(should_swap()) {
                swap_nlist(entry);
             }
@@ -540,10 +650,14 @@ namespace detail {
             return common;
         }
 
-        std::unique_ptr<char[]> load_string_table(std::uint32_t offset, std::uint32_t byte_count) const {
+        Result<std::unique_ptr<char[]>, internal_error> load_string_table(std::uint32_t offset, std::uint32_t byte_count) const {
             std::unique_ptr<char[]> buffer(new char[byte_count + 1]);
-            VERIFY(std::fseek(file, load_base + offset, SEEK_SET) == 0, "fseek error");
-            VERIFY(std::fread(buffer.get(), sizeof(char), byte_count, file) == byte_count, "fread error");
+            if(std::fseek(file, load_base + offset, SEEK_SET) != 0) {
+                return internal_error("fseek error while loading mach-o symbol table");
+            }
+            if(std::fread(buffer.get(), sizeof(char), byte_count, file) != byte_count) {
+                return internal_error("fread error while loading mach-o symbol table");
+            }
             buffer[byte_count] = 0; // just out of an abundance of caution
             return buffer;
         }
@@ -553,13 +667,17 @@ namespace detail {
         }
     };
 
-    inline bool macho_is_fat(const std::string& object_path) {
+    inline Result<bool, internal_error> macho_is_fat(const std::string& object_path) {
         auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
-            throw file_error("Unable to read object file " + object_path);
+            return internal_error("Unable to read object file {}", object_path);
         }
-        std::uint32_t magic = load_bytes<std::uint32_t>(file, 0);
-        return is_fat_magic(magic);
+        auto magic = load_bytes<std::uint32_t>(file, 0);
+        if(!magic) {
+            return magic.unwrap_error();
+        } else {
+            return is_fat_magic(magic.unwrap_value());
+        }
     }
 }
 }

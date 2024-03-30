@@ -192,15 +192,6 @@ namespace detail {
     static_assert(n_digits(11) == 2, "n_digits utility producing the wrong result");
     static_assert(n_digits(1024) == 4, "n_digits utility producing the wrong result");
 
-    // TODO: Re-evaluate use of off_t
-    template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
-    T load_bytes(std::FILE* object_file, off_t offset) {
-        T object;
-        VERIFY(std::fseek(object_file, offset, SEEK_SET) == 0, "fseek error");
-        VERIFY(std::fread(&object, sizeof(T), 1, object_file) == 1, "fread error");
-        return object;
-    }
-
     struct nullopt_t {};
 
     static constexpr nullopt_t nullopt;
@@ -309,44 +300,155 @@ namespace detail {
             holds_value = false;
         }
 
-        T& unwrap() & {
-            if(!holds_value) {
-                throw std::runtime_error{"Optional does not contain a value"};
-            }
+        NODISCARD T& unwrap() & {
+            ASSERT(holds_value, "Optional does not contain a value");
             return uvalue;
         }
 
-        const T& unwrap() const & {
-            if(!holds_value) {
-                throw std::runtime_error{"Optional does not contain a value"};
-            }
+        NODISCARD const T& unwrap() const & {
+            ASSERT(holds_value, "Optional does not contain a value");
             return uvalue;
         }
 
-        T&& unwrap() && {
-            if(!holds_value) {
-                throw std::runtime_error{"Optional does not contain a value"};
-            }
+        NODISCARD T&& unwrap() && {
+            ASSERT(holds_value, "Optional does not contain a value");
             return std::move(uvalue);
         }
 
-        const T&& unwrap() const && {
-            if(!holds_value) {
-                throw std::runtime_error{"Optional does not contain a value"};
-            }
+        NODISCARD const T&& unwrap() const && {
+            ASSERT(holds_value, "Optional does not contain a value");
             return std::move(uvalue);
         }
 
         template<typename U>
-        T value_or(U&& default_value) const & {
+        NODISCARD T value_or(U&& default_value) const & {
             return holds_value ? uvalue : static_cast<T>(std::forward<U>(default_value));
         }
 
         template<typename U>
-        T value_or(U&& default_value) && {
+        NODISCARD T value_or(U&& default_value) && {
             return holds_value ? std::move(uvalue) : static_cast<T>(std::forward<U>(default_value));
         }
     };
+
+    // TODO: Better dump error
+    // TODO: Explicit constructors for value, then add Ok()/Error() helpers
+    template<typename T, typename E, typename std::enable_if<!std::is_same<T, E>::value, int>::type = 0>
+    class Result {
+        // Not using a union because I don't want to have to deal with that
+        union {
+            T value_;
+            E error_;
+        };
+        enum class member { value, error };
+        member active;
+    public:
+        Result(T value) : value_(std::move(value)), active(member::value) {}
+        Result(E error) : error_(std::move(error)), active(member::error) {}
+        Result(Result&& other) : active(other.active) {
+            if(other.active == member::value) {
+                new (&value_) T(std::move(other.value_));
+            } else {
+                new (&error_) E(std::move(other.error_));
+            }
+        }
+        ~Result() {
+            if(active == member::value) {
+                value_.~T();
+            } else {
+                error_.~E();
+            }
+        }
+
+        bool has_value() const {
+            return active == member::value;
+        }
+
+        bool is_error() const {
+            return active == member::error;
+        }
+
+        explicit operator bool() const {
+            return has_value();
+        }
+
+        NODISCARD optional<T> value() const & {
+            return has_value() ? value_ : nullopt;
+        }
+
+        NODISCARD optional<E> error() const & {
+            return is_error() ? error_ : nullopt;
+        }
+
+        NODISCARD optional<T> value() && {
+            return has_value() ? std::move(value_) : nullopt;
+        }
+
+        NODISCARD optional<E> error() && {
+            return is_error() ? std::move(error_) : nullopt;
+        }
+
+        NODISCARD T& unwrap_value() & {
+            ASSERT(has_value(), "Result does not contain a value");
+            return value_;
+        }
+
+        NODISCARD const T& unwrap_value() const & {
+            ASSERT(has_value(), "Result does not contain a value");
+            return value_;
+        }
+
+        NODISCARD T unwrap_value() && {
+            ASSERT(has_value(), "Result does not contain a value");
+            return std::move(value_);
+        }
+
+        NODISCARD E& unwrap_error() & {
+            ASSERT(is_error(), "Result does not contain an error");
+            return error_;
+        }
+
+        NODISCARD const E& unwrap_error() const & {
+            ASSERT(is_error(), "Result does not contain an error");
+            return error_;
+        }
+
+        NODISCARD E unwrap_error() && {
+            ASSERT(is_error(), "Result does not contain an error");
+            return std::move(error_);
+        }
+
+        template<typename U>
+        NODISCARD T value_or(U&& default_value) const & {
+            return has_value() ? value_ : static_cast<T>(std::forward<U>(default_value));
+        }
+
+        template<typename U>
+        NODISCARD T value_or(U&& default_value) && {
+            return has_value() ? std::move(value_) : static_cast<T>(std::forward<U>(default_value));
+        }
+
+        void drop_error() const {
+            if(is_error()) {
+                std::fprintf(stderr, "%s\n", unwrap_error().what());
+            }
+        }
+    };
+
+    struct monostate {};
+
+    // TODO: Re-evaluate use of off_t
+    template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
+    Result<T, internal_error> load_bytes(std::FILE* object_file, off_t offset) {
+        T object;
+        if(std::fseek(object_file, offset, SEEK_SET) != 0) {
+            return internal_error("fseek error");
+        }
+        if(std::fread(&object, sizeof(T), 1, object_file) != 1) {
+            return internal_error("fread error");
+        }
+        return object;
+    }
 
     // shamelessly stolen from stackoverflow
     inline bool directory_exists(const std::string& path) {
@@ -385,6 +487,8 @@ namespace detail {
         return static_cast<U>(v);
     }
 
+    // TODO: Rework some stuff here. Not sure deleters should be optional or moved.
+    // Also allow file_wrapper file = std::fopen(object_path.c_str(), "rb");
     template<
         typename T,
         typename D
@@ -460,6 +564,8 @@ namespace detail {
             fclose(ptr);
         }
     }
+
+    using file_wrapper = raii_wrapper<std::FILE*, void(*)(std::FILE*)>;
 }
 }
 
