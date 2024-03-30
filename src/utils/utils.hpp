@@ -301,32 +301,24 @@ namespace detail {
         }
 
         NODISCARD T& unwrap() & {
-            if(!holds_value) {
-                ASSERT(false, "Illegal unwrap: Optional does not contain a value");
-            }
+            ASSERT(holds_value, "Optional does not contain a value");
             return uvalue;
         }
 
         NODISCARD const T& unwrap() const & {
-            if(!holds_value) {
-                ASSERT(false, "Illegal unwrap: Optional does not contain a value");
-            }
+            ASSERT(holds_value, "Optional does not contain a value");
             return uvalue;
         }
 
-        NODISCARD T unwrap() && {
-            if(!holds_value) {
-                ASSERT(false, "Illegal unwrap: Optional does not contain a value");
-            }
+        NODISCARD T&& unwrap() && {
+            ASSERT(holds_value, "Optional does not contain a value");
             return std::move(uvalue);
         }
 
-        // NODISCARD const T unwrap() const && {
-        //     if(!holds_value) {
-        //         ASSERT(false, "Illegal unwrap: Optional does not contain a value");
-        //     }
-        //     return std::move(uvalue);
-        // }
+        NODISCARD const T&& unwrap() const && {
+            ASSERT(holds_value, "Optional does not contain a value");
+            return std::move(uvalue);
+        }
 
         template<typename U>
         NODISCARD T value_or(U&& default_value) const & {
@@ -339,26 +331,41 @@ namespace detail {
         }
     };
 
-    // TODO: Less stupid implementation with optionals
     // TODO: Better dump error
     // TODO: Explicit constructors for value, then add Ok()/Error() helpers
     template<typename T, typename E, typename std::enable_if<!std::is_same<T, E>::value, int>::type = 0>
     class Result {
         // Not using a union because I don't want to have to deal with that
-        optional<T> value_;
-        optional<E> error_;
+        union {
+            T value_;
+            E error_;
+        };
+        enum class member { value, error };
+        member active;
     public:
-        Result(T value) : value_(std::move(value)) {}
-        Result(E error) : error_(std::move(error)) {}
+        Result(T value) : value_(std::move(value)), active(member::value) {}
+        Result(E error) : error_(std::move(error)), active(member::error) {}
+        Result(Result&& other) : active(other.active) {
+            if(other.active == member::value) {
+                new (&value_) T(std::move(other.value_));
+            } else {
+                new (&error_) E(std::move(other.error_));
+            }
+        }
+        ~Result() {
+            if(active == member::value) {
+                value_.~T();
+            } else {
+                error_.~E();
+            }
+        }
 
         bool has_value() const {
-            ASSERT(value_.has_value() != error_.has_value(), "Illegal state for Result");
-            return value_.has_value();
+            return active == member::value;
         }
 
         bool is_error() const {
-            ASSERT(value_.has_value() != error_.has_value(), "Illegal state for Result");
-            return error_.has_value();
+            return active == member::error;
         }
 
         explicit operator bool() const {
@@ -366,119 +373,64 @@ namespace detail {
         }
 
         NODISCARD optional<T> value() const & {
-            return value_;
+            return has_value() ? value_ : nullopt;
         }
 
         NODISCARD optional<E> error() const & {
-            return error_;
+            return is_error() ? error_ : nullopt;
         }
 
         NODISCARD optional<T> value() && {
-            return std::move(value_);
+            return has_value() ? std::move(value_) : nullopt;
         }
 
         NODISCARD optional<E> error() && {
-            return std::move(error_);
+            return is_error() ? std::move(error_) : nullopt;
         }
 
         NODISCARD T& unwrap_value() & {
-            return value_.unwrap();
+            ASSERT(has_value(), "Result does not contain a value");
+            return value_;
         }
 
         NODISCARD const T& unwrap_value() const & {
-            return value_.unwrap();
+            ASSERT(has_value(), "Result does not contain a value");
+            return value_;
         }
 
         NODISCARD T unwrap_value() && {
-            return std::move(value_).unwrap();
+            ASSERT(has_value(), "Result does not contain a value");
+            return std::move(value_);
         }
 
-        // NODISCARD const T unwrap() const && {
-        //     return std::move(value_).unwrap();
-        // }
-
         NODISCARD E& unwrap_error() & {
-            return error_.unwrap();
+            ASSERT(is_error(), "Result does not contain an error");
+            return error_;
         }
 
         NODISCARD const E& unwrap_error() const & {
-            return error_.unwrap();
+            ASSERT(is_error(), "Result does not contain an error");
+            return error_;
         }
 
         NODISCARD E unwrap_error() && {
-            return std::move(error_).unwrap();
+            ASSERT(is_error(), "Result does not contain an error");
+            return std::move(error_);
         }
-
-        // NODISCARD const E unwrap_error() const && {
-        //     return std::move(error_).unwrap();
-        // }
-
-
-        // NODISCARD const T& value() const & {
-        //     ASSERT(has_value());
-        //     return value_.unwrap();
-        // }
-
-        // NODISCARD const E& error() const & {
-        //     ASSERT(is_error());
-        //     return error_.unwrap();
-        // }
-
-        // NODISCARD T value() && {
-        //     ASSERT(has_value());
-        //     return std::move(value_).unwrap();
-        // }
-
-        // NODISCARD E error() && {
-        //     ASSERT(is_error());
-        //     return std::move(error_).unwrap();
-        // }
-
-        // NODISCARD T& unwrap() & {
-        //     return value_.unwrap();
-        // }
-
-        // NODISCARD const T& unwrap() const & {
-        //     return value_.unwrap();
-        // }
-
-        // NODISCARD T unwrap() && {
-        //     return std::move(value_).unwrap();
-        // }
-
-        // NODISCARD const T unwrap() const && {
-        //     return std::move(value_).unwrap();
-        // }
-
-        // NODISCARD E& unwrap_error() & {
-        //     return error_.unwrap();
-        // }
-
-        // NODISCARD const E& unwrap_error() const & {
-        //     return error_.unwrap();
-        // }
-
-        // NODISCARD E unwrap_error() && {
-        //     return std::move(error_).unwrap();
-        // }
-
-        // NODISCARD const E unwrap_error() const && {
-        //     return std::move(error_).unwrap();
-        // }
 
         template<typename U>
         NODISCARD T value_or(U&& default_value) const & {
-            return value_.value_or(std::forward<U>(default_value));
+            return has_value() ? value_ : static_cast<T>(std::forward<U>(default_value));
         }
 
         template<typename U>
         NODISCARD T value_or(U&& default_value) && {
-            return std::move(value_).value_or(std::forward<U>(default_value));
+            return has_value() ? std::move(value_) : static_cast<T>(std::forward<U>(default_value));
         }
 
         void drop_error() const {
             if(is_error()) {
-                std::fprintf(stderr, "%s", unwrap_error().what());
+                std::fprintf(stderr, "%s\n", unwrap_error().what());
             }
         }
     };

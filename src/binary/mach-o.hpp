@@ -165,21 +165,21 @@ namespace detail {
         static inline NODISCARD Result<mach_o, internal_error> open_mach_o(const std::string& object_path) {
             auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
             if(file == nullptr) {
-                return internal_error("Unable to read object file " + object_path);
+                return internal_error("Unable to read object file {}", object_path);
             }
             auto magic = load_bytes<std::uint32_t>(file, 0);
             if(!magic) {
                 return magic.unwrap_error();
             }
             if(!is_mach_o(magic.unwrap_value())) {
-                return internal_error("File is not mach-o " + object_path);
+                return internal_error("File is not mach-o {}", object_path);
             }
             mach_o obj(std::move(file), object_path, magic.unwrap_value());
             auto result = obj.load();
             if(result.is_error()) {
                 return result.unwrap_error();
             } else {
-                return std::move(obj);
+                return obj;
             }
         }
 
@@ -670,7 +670,7 @@ namespace detail {
     inline Result<bool, internal_error> macho_is_fat(const std::string& object_path) {
         auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
-            return internal_error("Unable to read object file " + object_path);
+            return internal_error("Unable to read object file {}", object_path);
         }
         auto magic = load_bytes<std::uint32_t>(file, 0);
         if(!magic) {

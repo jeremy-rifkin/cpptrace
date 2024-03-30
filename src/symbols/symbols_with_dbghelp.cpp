@@ -71,8 +71,7 @@ namespace dbghelp {
                 return (T)-1;
             } else {
                 throw internal_error(
-                    std::string("SymGetTypeInfo failed: ")
-                    + std::system_error(GetLastError(), std::system_category()).what()
+                    "SymGetTypeInfo failed: {}", std::system_error(GetLastError(), std::system_category()).what()
                 );
             }
         }
@@ -86,8 +85,7 @@ namespace dbghelp {
             !SymGetTypeInfo(proc, modbase, type_index, static_cast<::IMAGEHLP_SYMBOL_TYPE_INFO>(SymType), &info)
         ) {
             throw internal_error(
-                std::string("SymGetTypeInfo failed: ")
-                + std::system_error(GetLastError(), std::system_category()).what()
+                "SymGetTypeInfo failed: {}", std::system_error(GetLastError(), std::system_category()).what()
             );
         }
         // special case to properly free a buffer and convert string to narrow chars, only used for
@@ -248,8 +246,8 @@ namespace dbghelp {
                         )
                     ) {
                         throw internal_error(
-                            std::string("SymGetTypeInfo failed: ")
-                            + std::system_error(GetLastError(), std::system_category()).what()
+                            "SymGetTypeInfo failed: {}",
+                            std::system_error(GetLastError(), std::system_category()).what()
                         );
                     }
                     // get children type

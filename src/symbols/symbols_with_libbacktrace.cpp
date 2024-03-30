@@ -38,7 +38,7 @@ namespace libbacktrace {
     }
 
     void error_callback(void*, const char* msg, int errnum) {
-        throw internal_error(microfmt::format("Libbacktrace error: {}, code {}\n", msg, errnum));
+        throw internal_error("Libbacktrace error: {}, code {}", msg, errnum);
     }
 
     backtrace_state* get_backtrace_state() {

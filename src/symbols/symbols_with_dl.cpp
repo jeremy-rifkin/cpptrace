@@ -15,9 +15,12 @@ namespace libdl {
     stacktrace_frame resolve_frame(const frame_ptr addr) {
         Dl_info info;
         if(dladdr(reinterpret_cast<void*>(addr), &info)) { // thread-safe
+            auto base = get_module_image_base(info.dli_fname);
             return {
                 addr,
-                addr - reinterpret_cast<std::uintptr_t>(info.dli_fbase) + get_module_image_base(info.dli_fname),
+                base.has_value()
+                    ? addr - reinterpret_cast<std::uintptr_t>(info.dli_fbase) + base.unwrap_value()
+                    : 0,
                 nullable<std::uint32_t>::null(),
                 nullable<std::uint32_t>::null(),
                 info.dli_fname ? info.dli_fname : "",

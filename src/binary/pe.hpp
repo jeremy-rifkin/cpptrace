@@ -34,14 +34,14 @@ namespace detail {
         errno_t ret = fopen_s(&file_ptr, object_path.c_str(), "rb");
         auto file = raii_wrap(std::move(file_ptr), file_deleter);
         if(ret != 0 || file == nullptr) {
-            throw file_error("Unable to read object file " + object_path);
+            throw internal_error("Unable to read object file {}", object_path);
         }
         auto magic = load_bytes<std::array<char, 2>>(file, 0);
         if(!magic) {
             return magic.unwrap_error();
         }
         if(std::memcmp(magic.unwrap_value().data(), "MZ", 2) != 0) {
-            return internal_error("File is not a PE file " + object_path);
+            return internal_error("File is not a PE file {}", object_path);
         }
         auto e_lfanew = load_bytes<DWORD>(file, 0x3c); // dos header + 0x3c
         if(!e_lfanew) {
@@ -53,7 +53,7 @@ namespace detail {
             return signature.unwrap_error();
         }
         if(std::memcmp(signature.unwrap_value().data(), "PE\0\0", 4) != 0) {
-            return internal_error("File is not a PE file " + object_path);
+            return internal_error("File is not a PE file {}", object_path);
         }
         auto size_of_optional_header_raw = load_bytes<WORD>(file, nt_header_offset + 4 + 0x10); // file header + 0x10
         if(!size_of_optional_header_raw) {

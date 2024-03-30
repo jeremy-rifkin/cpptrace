@@ -21,6 +21,8 @@ namespace detail {
         std::string msg;
     public:
         internal_error(std::string message) : msg(std::move(message)) {}
+        template<typename... Args>
+        internal_error(const char* format, Args&&... args) : msg(microfmt::format(format, args...)) {}
         const char* what() const noexcept override {
             return msg.c_str();
         }
@@ -63,21 +65,17 @@ namespace detail {
         const char* name   = assert_names[static_cast<std::underlying_type<assert_type>::type>(type)];
         if(message == "") {
             throw internal_error(
-                microfmt::format(
-                    "Cpptrace {} failed at {}:{}: {}\n"
-                    "    %s(%s);\n",
-                    action, location.file, location.line, signature,
-                    name, expression
-                )
+                "Cpptrace {} failed at {}:{}: {}\n"
+                "    %s(%s);\n",
+                action, location.file, location.line, signature,
+                name, expression
             );
         } else {
             throw internal_error(
-                microfmt::format(
-                    "Cpptrace {} failed at {}:{}: {}: {}\n"
-                    "    %s(%s);\n",
-                    action, location.file, location.line, signature, message.c_str(),
-                    name, expression
-                )
+                "Cpptrace {} failed at {}:{}: {}: {}\n"
+                "    %s(%s);\n",
+                action, location.file, location.line, signature, message.c_str(),
+                name, expression
             );
         }
     }
@@ -89,17 +87,13 @@ namespace detail {
     ) {
         if(message == "") {
             throw internal_error(
-                microfmt::format(
-                    "Cpptrace panic {}:{}: {}\n",
-                    location.file, location.line, signature
-                )
+                "Cpptrace panic {}:{}: {}\n",
+                location.file, location.line, signature
             );
         } else {
             throw internal_error(
-                microfmt::format(
-                    "Cpptrace panic {}:{}: {}: {}\n",
-                    location.file, location.line, signature, message.c_str()
-                )
+                "Cpptrace panic {}:{}: {}: {}\n",
+                location.file, location.line, signature, message.c_str()
             );
         }
     }
