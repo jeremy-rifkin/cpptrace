@@ -28,7 +28,7 @@ namespace libdwarf {
         char* msg = dwarf_errmsg(error);
         (void)dbg;
         // dwarf_dealloc_error(dbg, error);
-        throw std::runtime_error(stringf("Cpptrace dwarf error %u %s\n", ev, msg));
+        throw std::runtime_error(microfmt::format("Cpptrace dwarf error {} {}\n", ev, msg));
     }
 
     struct die_object {
@@ -235,7 +235,7 @@ namespace libdwarf {
                         return die_object(dbg, target);
                     }
                 default:
-                    PANIC(stringf("unknown form for attribute %d %d\n", attr_num, form));
+                    PANIC(microfmt::format("unknown form for attribute {} {}\n", attr_num, form));
             }
         }
 

@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "common.hpp"
+#include "microfmt.hpp"
 
 #if IS_MSVC
  #define CPPTRACE_PFUNC __FUNCSIG__
@@ -57,8 +58,8 @@ namespace detail {
         const char* name   = assert_names[static_cast<std::underlying_type<assert_type>::type>(type)];
         if(message == "") {
             throw std::logic_error(
-                stringf(
-                    "Cpptrace %s failed at %s:%d: %s\n"
+                microfmt::format(
+                    "Cpptrace {} failed at {}:{}: {}\n"
                     "    %s(%s);\n",
                     action, location.file, location.line, signature,
                     name, expression
@@ -66,8 +67,8 @@ namespace detail {
             );
         } else {
             throw std::logic_error(
-                stringf(
-                    "Cpptrace %s failed at %s:%d: %s: %s\n"
+                microfmt::format(
+                    "Cpptrace {} failed at {}:{}: {}: {}\n"
                     "    %s(%s);\n",
                     action, location.file, location.line, signature, message.c_str(),
                     name, expression
@@ -83,15 +84,15 @@ namespace detail {
     ) {
         if(message == "") {
             throw std::logic_error(
-                stringf(
-                    "Cpptrace panic %s:%d: %s\n",
+                microfmt::format(
+                    "Cpptrace panic {}:{}: {}\n",
                     location.file, location.line, signature
                 )
             );
         } else {
             throw std::logic_error(
-                stringf(
-                    "Cpptrace panic %s:%d: %s: %s\n",
+                microfmt::format(
+                    "Cpptrace panic {}:{}: {}: {}\n",
                     location.file, location.line, signature, message.c_str()
                 )
             );

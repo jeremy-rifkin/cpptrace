@@ -19,6 +19,7 @@
 
 #include "common.hpp"
 #include "error.hpp"
+#include "microfmt.hpp"
 
 #if IS_WINDOWS
  #include <windows.h>

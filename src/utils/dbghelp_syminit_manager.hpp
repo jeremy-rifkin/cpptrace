@@ -17,7 +17,7 @@ namespace detail {
         ~dbghelp_syminit_manager() {
             for(auto handle : set) {
                 if(!SymCleanup(handle)) {
-                    ASSERT(false, stringf("Cpptrace SymCleanup failed with code %llu\n", to_ull(GetLastError())));
+                    ASSERT(false, microfmt::format("Cpptrace SymCleanup failed with code {}\n", GetLastError()));
                 }
             }
         }
@@ -25,7 +25,7 @@ namespace detail {
         void init(HANDLE proc) {
             if(set.count(proc) == 0) {
                 if(!SymInitialize(proc, NULL, TRUE)) {
-                    throw std::logic_error(stringf("SymInitialize failed %llu", to_ull(GetLastError())));
+                    throw std::logic_error(microfmt::format("SymInitialize failed {}", GetLastError()));
                 }
                 set.insert(proc);
             }
