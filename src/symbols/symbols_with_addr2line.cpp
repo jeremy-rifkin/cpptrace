@@ -289,12 +289,15 @@ namespace addr2line {
                     }
                     std::string address_input;
                     for(const auto& pair : entries_vec) {
-                        address_input += to_hex(pair.first.get().object_address);
+                        address_input += microfmt::format(
+                            "{:h}{}",
+                            pair.first.get().object_address,
                         #if !IS_WINDOWS
-                            address_input += '\n';
+                            '\n'
                         #else
-                            address_input += ' ';
+                            ' '
                         #endif
+                        );
                     }
                     auto output = split(trim(resolve_addresses(address_input, object_name)), "\n");
                     VERIFY(output.size() == entries_vec.size());

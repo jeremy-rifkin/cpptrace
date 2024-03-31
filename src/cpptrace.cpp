@@ -4,8 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <iomanip>
-#include <iostream>
+#include <cstring>
 #include <new>
 #include <sstream>
 #include <stdexcept>
@@ -105,39 +104,29 @@ namespace cpptrace {
     }
 
     std::string stacktrace_frame::to_string() const {
-        std::ostringstream oss;
-        oss << *this;
-        return std::move(oss).str();
-    }
-
-    std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame) {
-        stream
-            << std::hex
-            << "0x"
-            << std::setw(2 * sizeof(frame_ptr))
-            << std::setfill('0')
-            << frame.raw_address
-            << std::dec
-            << std::setfill(' ');
-        if(!frame.symbol.empty()) {
-            stream
-                << " in "
-                << frame.symbol;
+        std::string str;
+        if(is_inline) {
+            str += microfmt::format("{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
+        } else {
+            str += microfmt::format("0x{<{}:0h}", 2 * sizeof(frame_ptr), raw_address);
         }
-        if(!frame.filename.empty()) {
-            stream
-                << " at "
-                << frame.filename;
-            if(frame.line.has_value()) {
-                stream
-                    << ":"
-                    << frame.line.value();
-                if(frame.column.has_value()) {
-                    stream << frame.column.value();
+        if(!symbol.empty()) {
+            str += microfmt::format(" in {}", symbol);
+        }
+        if(!filename.empty()) {
+            str += microfmt::format(" at {}", filename);
+            if(line.has_value()) {
+                str += microfmt::format(":{}", line.value());
+                if(column.has_value()) {
+                    str += microfmt::format(":{}", column.value());
                 }
             }
         }
-        return stream;
+        return str;
+    }
+
+    std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame) {
+        return stream << frame.to_string();
     }
 
     CPPTRACE_FORCE_NO_INLINE
@@ -173,56 +162,25 @@ namespace cpptrace {
         const auto green   = color ? GREEN : "";
         const auto yellow  = color ? YELLOW : "";
         const auto blue    = color ? BLUE : "";
-        stream
-            << '#'
-            << std::setw(static_cast<int>(frame_number_width))
-            << std::left
-            << counter
-            << std::right
-            << " ";
+        std::string line = microfmt::format("#{<{}} ", frame_number_width, counter);
         if(frame.is_inline) {
-            stream
-                << std::setw(2 * sizeof(frame_ptr) + 2)
-                << "(inlined)";
+            line += microfmt::format("{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
         } else {
-            stream
-                << std::hex
-                << blue
-                << "0x"
-                << std::setw(2 * sizeof(frame_ptr))
-                << std::setfill('0')
-                << frame.raw_address
-                << std::dec
-                << std::setfill(' ')
-                << reset;
+            line += microfmt::format("{}0x{<{}:0h}{}", blue, 2 * sizeof(frame_ptr), frame.raw_address, reset);
         }
         if(!frame.symbol.empty()) {
-            stream
-                << " in "
-                << yellow
-                << frame.symbol
-                << reset;
+            line += microfmt::format(" in {}{}{}", yellow, frame.symbol, reset);
         }
         if(!frame.filename.empty()) {
-            stream
-                << " at "
-                << green
-                << frame.filename
-                << reset;
+            line += microfmt::format(" at {}{}{}", green, frame.filename, reset);
             if(frame.line.has_value()) {
-                stream
-                    << ":"
-                    << blue
-                    << frame.line.value()
-                    << reset;
+                line += microfmt::format(":{}{}{}", blue, frame.line.value(), reset);
                 if(frame.column.has_value()) {
-                    stream << ':'
-                        << blue
-                        << std::to_string(frame.column.value())
-                        << reset;
+                    line += microfmt::format(":{}{}{}", blue, frame.column.value(), reset);
                 }
             }
         }
+        stream << line;
     }
 
     void stacktrace::print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const {
@@ -233,10 +191,10 @@ namespace cpptrace {
         ) {
             detail::enable_virtual_terminal_processing_if_needed();
         }
-        stream<<(header ? header : "Stack trace (most recent call first):") << '\n';
+        stream << (header ? header : "Stack trace (most recent call first):") << '\n';
         std::size_t counter = 0;
         if(frames.empty()) {
-            stream<<"<empty trace>" << '\n';
+            stream << "<empty trace>\n";
             return;
         }
         const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
@@ -269,10 +227,10 @@ namespace cpptrace {
         ) {
             detail::enable_virtual_terminal_processing_if_needed();
         }
-        stream<<(header ? header : "Stack trace (most recent call first):") << '\n';
+        stream << (header ? header : "Stack trace (most recent call first):") << '\n';
         std::size_t counter = 0;
         if(frames.empty()) {
-            stream<<"<empty trace>" << '\n';
+            stream << "<empty trace>" << '\n';
             return;
         }
         const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
@@ -433,29 +391,28 @@ namespace cpptrace {
         try {
             auto ptr = std::current_exception();
             if(ptr == nullptr) {
-                std::cerr << "terminate called without an active exception\n";
+                fputs("terminate called without an active exception", stderr);
                 print_terminate_trace();
             } else {
                 std::rethrow_exception(ptr);
             }
         } catch(cpptrace::exception& e) {
-            std::cerr << "Terminate called after throwing an instance of "
-                      << demangle(typeid(e).name())
-                      << ": "
-                      << e.message()
-                      << '\n';
+            microfmt::print(
+                stderr,
+                "Terminate called after throwing an instance of {}: {}\n",
+                demangle(typeid(e).name()),
+                e.message()
+            );
             e.trace().print(std::cerr, isatty(stderr_fileno));
         } catch(std::exception& e) {
-            std::cerr << "Terminate called after throwing an instance of "
-                      << demangle(typeid(e).name())
-                      << ": "
-                      << e.what()
-                      << '\n';
+            microfmt::print(
+                stderr, "Terminate called after throwing an instance of {}: {}\n", demangle(typeid(e).name()), e.what()
+            );
             print_terminate_trace();
         } catch(...) {
-            std::cerr << "Terminate called after throwing an instance of "
-                      << detail::exception_type_name()
-                      << "\n";
+            microfmt::print(
+                stderr, "Terminate called after throwing an instance of {}\n", detail::exception_type_name()
+            );
             print_terminate_trace();
         }
         std::flush(std::cerr);

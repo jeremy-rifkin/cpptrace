@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -319,6 +320,12 @@ namespace microfmt {
     template<typename S, typename... Args>
     void print(std::ostream& ostream, const S& fmt, Args&&... args) {
         ostream<<format(fmt, args...);
+    }
+
+    template<typename S, typename... Args>
+    void print(std::FILE* stream, const S& fmt, Args&&... args) {
+        auto str = format(fmt, args...);
+        fwrite(str.data(), 1, str.size(), stream);
     }
 }
 

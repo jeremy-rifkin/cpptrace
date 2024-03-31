@@ -130,7 +130,7 @@ namespace detail {
                 snippet += YELLOW;
             }
             auto line_str = std::to_string(line);
-            snippet += std::string(margin_width - std::min(line_str.size(), margin_width), ' ') + line_str + ": ";
+            snippet += microfmt::format("{>{}}: ", margin_width, line_str);
             if(color && line == target_line) {
                 snippet += RESET;
             }
