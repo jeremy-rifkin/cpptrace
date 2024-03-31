@@ -61,14 +61,14 @@ namespace detail {
         if(message == "") {
             throw internal_error(
                 "Cpptrace {} failed at {}:{}: {}\n"
-                "    %s(%s);\n",
+                "    {}({});\n",
                 action, location.file, location.line, signature,
                 name, expression
             );
         } else {
             throw internal_error(
                 "Cpptrace {} failed at {}:{}: {}: {}\n"
-                "    %s(%s);\n",
+                "    {}({});\n",
                 action, location.file, location.line, signature, message.c_str(),
                 name, expression
             );
