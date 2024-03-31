@@ -29,11 +29,6 @@
 // https://github.com/davea42/libdwarf-addr2line
 // https://github.com/ruby/ruby/blob/master/addr2line.c
 
-// TODO
-// Inlined calls
-// More utils to clean this up, some wrapper for unique_ptr
-// Ensure memory is being cleaned up properly
-
 #if false
  #define CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING CPPTRACE_FORCE_NO_INLINE
 #else
@@ -155,7 +150,8 @@ namespace libdwarf {
             } else if(result.unwrap_value()) {
                 auto obj = mach_o::open_mach_o(object_path);
                 if(!obj) {
-                    // TODO
+                    ok = false;
+                    return;
                 }
                 universal_number = obj.unwrap_value().get_fat_index();
             }
@@ -1007,10 +1003,13 @@ namespace libdwarf {
                 this->symbols = symbols;
                 auto obj = mach_o::open_mach_o(object_path);
                 if(!obj) {
-                    // TODO
+                    return this->symbols.unwrap();
                 }
                 auto symbol_table = obj.unwrap_value().symbol_table();
-                for(const auto& symbol : symbol_table) {
+                if(!symbol_table) {
+                    return this->symbols.unwrap();
+                }
+                for(const auto& symbol : symbol_table.unwrap_value()) {
                     symbols[symbol.name] = symbol.address;
                 }
                 this->symbols = std::move(symbols);
@@ -1064,12 +1063,15 @@ namespace libdwarf {
             // TODO: Cache somehow?
             auto obj = mach_o::open_mach_o(source_object_path);
             if(!obj) {
-                // TODO
+                return;
             }
             mach_o& source_mach = obj.unwrap_value();
             auto source_debug_map = source_mach.get_debug_map();
+            if(!source_debug_map) {
+                return;
+            }
             // get symbol entries from debug map, as well as the various object files used to make this binary
-            for(auto& entry : source_debug_map) {
+            for(auto& entry : source_debug_map.unwrap_value()) {
                 // object it came from
                 target_objects.push_back({entry.first});
                 // push the symbols

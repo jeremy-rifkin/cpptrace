@@ -193,7 +193,7 @@ namespace detail {
                                         ? load_segment_command<64>(command.file_offset)
                                         : load_segment_command<32>(command.file_offset);
                     if(segment.is_error()) {
-                        segment.drop_error();
+                        return std::move(segment).unwrap_error();
                     }
                     if(std::strcmp(segment.unwrap_value().segname, "__TEXT") == 0) {
                         return segment.unwrap_value().vmaddr;
@@ -236,7 +236,7 @@ namespace detail {
             }
         }
 
-        optional<symtab_info_data>& get_symtab_info() {
+        Result<std::reference_wrapper<optional<symtab_info_data>>, internal_error> get_symtab_info() {
             if(!symtab_info.has_value() && !tried_to_load_symtab) {
                 // don't try to load the symtab again if for some reason loading here fails
                 tried_to_load_symtab = true;
@@ -245,12 +245,12 @@ namespace detail {
                         symtab_info_data info;
                         auto symtab = load_symbol_table_command(command.file_offset);
                         if(!symtab) {
-                            // TODO
+                            return std::move(symtab).unwrap_error();
                         }
                         info.symtab = symtab.unwrap_value();
                         auto string = load_string_table(info.symtab.stroff, info.symtab.strsize);
                         if(!string) {
-                            // TODO
+                            return std::move(string).unwrap_error();
                         }
                         info.stringtab = std::move(string).unwrap_value();
                         symtab_info = std::move(info);
@@ -258,7 +258,7 @@ namespace detail {
                     }
                 }
             }
-            return symtab_info;
+            return std::reference_wrapper<optional<symtab_info_data>>{symtab_info};
         }
 
         void print_symbol_table_entry(
@@ -355,11 +355,18 @@ namespace detail {
         using debug_map = std::unordered_map<std::string, std::vector<debug_map_entry>>;
 
         // produce information similar to dsymutil -dump-debug-map
-        debug_map get_debug_map() {
+        Result<debug_map, internal_error> get_debug_map() {
             // we have a bunch of symbols in our binary we need to pair up with symbols from various .o files
             // first collect symbols and the objects they come from
             debug_map debug_map;
-            const auto& symtab_info = get_symtab_info().unwrap();
+            auto symtab_info_res = get_symtab_info();
+            if(!symtab_info_res) {
+                return std::move(symtab_info_res).unwrap_error();
+            }
+            if(!symtab_info_res.unwrap_value().get()) {
+                return internal_error("No symtab info");
+            }
+            const auto& symtab_info = symtab_info_res.unwrap_value().get().unwrap();
             const auto& symtab = symtab_info.symtab;
             // TODO: Take timestamp into account?
             std::string current_module;
@@ -369,7 +376,7 @@ namespace detail {
                                 ? load_symtab_entry<32>(symtab.symoff, j)
                                 : load_symtab_entry<64>(symtab.symoff, j);
                 if(!load_entry) {
-                    // TODO
+                    return std::move(load_entry).unwrap_error();
                 }
                 auto& entry = load_entry.unwrap_value();
                 // entry.n_type & N_STAB indicates symbolic debug info
@@ -385,7 +392,7 @@ namespace detail {
                             // sets the module
                             auto str = symtab_info.get_string(entry.n_un.n_strx);
                             if(!str) {
-                                // TODO
+                                return std::move(str).unwrap_error();
                             }
                             current_module = str.unwrap_value();
                         }
@@ -396,7 +403,7 @@ namespace detail {
                         {
                             auto str = symtab_info.get_string(entry.n_un.n_strx);
                             if(!str) {
-                                // TODO
+                                return std::move(str).unwrap_error();
                             }
                             if(str.unwrap_value()[0] == 0) {
                                 // end of function scope
@@ -415,11 +422,18 @@ namespace detail {
             return debug_map;
         }
 
-        std::vector<symbol_entry> symbol_table() {
+        Result<std::vector<symbol_entry>, internal_error> symbol_table() {
             // we have a bunch of symbols in our binary we need to pair up with symbols from various .o files
             // first collect symbols and the objects they come from
             std::vector<symbol_entry> symbols;
-            const auto& symtab_info = get_symtab_info().unwrap();
+            const auto& symtab_info_res = get_symtab_info();
+            if(!symtab_info_res) {
+                return std::move(symtab_info_res).unwrap_error();
+            }
+            if(!symtab_info_res.unwrap_value().get()) {
+                return internal_error("No symtab info");
+            }
+            const auto& symtab_info = symtab_info_res.unwrap_value().get().unwrap();
             const auto& symtab = symtab_info.symtab;
             // TODO: Take timestamp into account?
             for(std::size_t j = 0; j < symtab.nsyms; j++) {
@@ -427,7 +441,7 @@ namespace detail {
                                 ? load_symtab_entry<32>(symtab.symoff, j)
                                 : load_symtab_entry<64>(symtab.symoff, j);
                 if(!load_entry) {
-                    // TODO
+                    return std::move(load_entry).unwrap_error();
                 }
                 auto& entry = load_entry.unwrap_value();
                 if(entry.n_type & N_STAB) {
@@ -436,7 +450,7 @@ namespace detail {
                 if((entry.n_type & N_TYPE) == N_SECT) {
                     auto str = symtab_info.get_string(entry.n_un.n_strx);
                     if(!str) {
-                        // TODO
+                        return std::move(str).unwrap_error();
                     }
                     symbols.push_back({
                         entry.n_value,
