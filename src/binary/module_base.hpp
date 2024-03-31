@@ -36,7 +36,7 @@ namespace detail {
             auto base = elf_get_module_image_base(object_path);
             // TODO: Cache the error
             if(base.is_error()) {
-                return base.unwrap_error();
+                return std::move(base).unwrap_error();
             }
             cache.insert(it, {object_path, base.unwrap_value()});
             return base;
@@ -63,7 +63,7 @@ namespace detail {
             }
             auto base = obj.unwrap_value().get_text_vmaddr();
             if(!base) {
-                return base.unwrap_error();
+                return std::move(base).unwrap_error();
             }
             cache.insert(it, {object_path, base.unwrap_value()});
             return base;
@@ -83,7 +83,7 @@ namespace detail {
             auto base = pe_get_module_image_base(object_path);
             // TODO: Cache the error
             if(!base) {
-                return base.unwrap_error();
+                return std::move(base).unwrap_error();
             }
             cache.insert(it, {object_path, base.unwrap_value()});
             return base;
