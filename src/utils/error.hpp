@@ -20,9 +20,9 @@ namespace detail {
     class internal_error : public std::exception {
         std::string msg;
     public:
-        internal_error(std::string message) : msg(std::move(message)) {}
+        internal_error(std::string message) : msg("Cpptrace internal error: " + std::move(message)) {}
         template<typename... Args>
-        internal_error(const char* format, Args&&... args) : msg(microfmt::format(format, args...)) {}
+        internal_error(const char* format, Args&&... args) : internal_error(microfmt::format(format, args...)) {}
         const char* what() const noexcept override {
             return msg.c_str();
         }
