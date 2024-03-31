@@ -34,30 +34,30 @@ namespace detail {
         errno_t ret = fopen_s(&file_ptr, object_path.c_str(), "rb");
         auto file = raii_wrap(std::move(file_ptr), file_deleter);
         if(ret != 0 || file == nullptr) {
-            throw internal_error("Unable to read object file {}", object_path);
+            return internal_error("Unable to read object file {}", object_path);
         }
         auto magic = load_bytes<std::array<char, 2>>(file, 0);
         if(!magic) {
-            return magic.unwrap_error();
+            return std::move(magic).unwrap_error();
         }
         if(std::memcmp(magic.unwrap_value().data(), "MZ", 2) != 0) {
             return internal_error("File is not a PE file {}", object_path);
         }
         auto e_lfanew = load_bytes<DWORD>(file, 0x3c); // dos header + 0x3c
         if(!e_lfanew) {
-            return e_lfanew.unwrap_error();
+            return std::move(e_lfanew).unwrap_error();
         }
         DWORD nt_header_offset = pe_byteswap_if_needed(e_lfanew.unwrap_value());
         auto signature = load_bytes<std::array<char, 4>>(file, nt_header_offset); // nt header + 0
         if(!signature) {
-            return signature.unwrap_error();
+            return std::move(signature).unwrap_error();
         }
         if(std::memcmp(signature.unwrap_value().data(), "PE\0\0", 4) != 0) {
             return internal_error("File is not a PE file {}", object_path);
         }
         auto size_of_optional_header_raw = load_bytes<WORD>(file, nt_header_offset + 4 + 0x10); // file header + 0x10
         if(!size_of_optional_header_raw) {
-            return size_of_optional_header_raw.unwrap_error();
+            return std::move(size_of_optional_header_raw).unwrap_error();
         }
         WORD size_of_optional_header = pe_byteswap_if_needed(size_of_optional_header_raw.unwrap_value());
         if(size_of_optional_header == 0) {
@@ -65,7 +65,7 @@ namespace detail {
         }
         auto optional_header_magic_raw = load_bytes<WORD>(file, nt_header_offset + 0x18); // optional header + 0x0
         if(!optional_header_magic_raw) {
-            return optional_header_magic_raw.unwrap_error();
+            return std::move(optional_header_magic_raw).unwrap_error();
         }
         WORD optional_header_magic = pe_byteswap_if_needed(optional_header_magic_raw.unwrap_value());
         VERIFY(
@@ -77,7 +77,7 @@ namespace detail {
             // 32 bit
             auto bytes = load_bytes<DWORD>(file, nt_header_offset + 0x18 + 0x1c); // optional header + 0x1c
             if(!bytes) {
-                return bytes.unwrap_error();
+                return std::move(bytes).unwrap_error();
             }
             return to<std::uintptr_t>(pe_byteswap_if_needed(bytes.unwrap_value()));
         } else {
@@ -85,7 +85,7 @@ namespace detail {
             // I get an "error: 'QWORD' was not declared in this scope" for some reason when using QWORD
             auto bytes = load_bytes<unsigned __int64>(file, nt_header_offset + 0x18 + 0x18); // optional header + 0x18
             if(!bytes) {
-                return bytes.unwrap_error();
+                return std::move(bytes).unwrap_error();
             }
             return to<std::uintptr_t>(pe_byteswap_if_needed(bytes.unwrap_value()));
         }

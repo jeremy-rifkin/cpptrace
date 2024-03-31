@@ -426,7 +426,7 @@ namespace dbghelp {
             get_syminit_manager().init(proc);
         } else {
             if(!SymInitialize(proc, NULL, TRUE)) {
-                throw internal_error("Cpptrace SymInitialize failed");
+                throw internal_error("SymInitialize failed");
             }
         }
         for(const auto frame : frames) {
@@ -443,7 +443,7 @@ namespace dbghelp {
         }
         if(get_cache_mode() != cache_mode::prioritize_speed) {
             if(!SymCleanup(proc)) {
-                throw internal_error("Cpptrace SymCleanup failed");
+                throw internal_error("SymCleanup failed");
             }
         }
         return trace;
