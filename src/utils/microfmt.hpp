@@ -84,7 +84,7 @@ namespace microfmt {
                 // log_2(x) == 63 - clz(x)
                 // 1 + (63 - clz(value)) / (63 - clz(1 << shift))
                 // 63 - clz(1 << shift) is the same as shift
-                auto n_digits = 1 + (63 - clz(value)) / shift;
+                auto n_digits = static_cast<std::size_t>(1 + (63 - clz(value)) / shift);
                 std::string number;
                 number.resize(n_digits);
                 std::size_t i = n_digits - 1;
