@@ -493,7 +493,12 @@ namespace libdwarf {
                                 name.value_or(""),
                                 true
                             });
-                            current_obj_holder = die.clone();
+                            auto d = die.clone();
+                            if(!d) {
+                                d.drop_error();
+                                return false;
+                            }
+                            current_obj_holder = std::move(d).unwrap_value();
                             target_die = current_obj_holder;
                             return false;
                         } else {

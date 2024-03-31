@@ -314,7 +314,7 @@ namespace libdwarf {
             if(ranges_res.is_error()) {
                 return ranges_res.unwrap_error();
             } else if(ranges_res.unwrap_value() != DW_DLV_OK) {
-                return internal_error("Unexpected value from dwarf_attr: " + std::to_string(ranges_res.unwrap_value()));
+                return monostate{}; // normal
             }
             auto attrwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
             PROP_ASSIGN(offset, get_ranges_offset(attr));
@@ -404,10 +404,16 @@ namespace libdwarf {
         NODISCARD
         Result<monostate, internal_error> dwarf4_ranges(Dwarf_Addr lowpc, F callback) const {
             Dwarf_Attribute attr = nullptr;
-            CHECK_OK(wrap(dwarf_attr, die, DW_AT_ranges, &attr));
+            PROP_ASSIGN(res, wrap(dwarf_attr, die, DW_AT_ranges, &attr));
+            if(res != DW_DLV_OK) {
+                return monostate{}; // normal
+            }
             auto attrwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
             Dwarf_Unsigned offset;
-            CHECK_OK(wrap(dwarf_global_formref, attr, &offset));
+            PROP_ASSIGN(res2, wrap(dwarf_global_formref, attr, &offset));
+            if(res2 != DW_DLV_OK) {
+                return monostate{}; // normal
+            }
             Dwarf_Addr baseaddr = 0;
             if(lowpc != (std::numeric_limits<Dwarf_Addr>::max)()) {
                 baseaddr = lowpc;
