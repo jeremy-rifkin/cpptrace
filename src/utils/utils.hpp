@@ -2,6 +2,7 @@
 #define UTILS_HPP
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -325,11 +326,10 @@ namespace detail {
         }
     };
 
-    // TODO: Better dump error
-    // TODO: Explicit constructors for value, then add Ok()/Error() helpers
+    extern std::atomic_bool absorb_trace_exceptions;
+
     template<typename T, typename E, typename std::enable_if<!std::is_same<T, E>::value, int>::type = 0>
     class Result {
-        // Not using a union because I don't want to have to deal with that
         union {
             T value_;
             E error_;
@@ -338,7 +338,11 @@ namespace detail {
         member active;
     public:
         Result(T value) : value_(std::move(value)), active(member::value) {}
-        Result(E error) : error_(std::move(error)), active(member::error) {}
+        Result(E error) : error_(std::move(error)), active(member::error) {
+            if(!absorb_trace_exceptions.load()) {
+                std::fprintf(stderr, "%s\n", unwrap_error().what());
+            }
+        }
         Result(Result&& other) : active(other.active) {
             if(other.active == member::value) {
                 new (&value_) T(std::move(other.value_));
