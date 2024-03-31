@@ -107,12 +107,6 @@ namespace detail {
         return str.substr(left, right - left);
     }
 
-    inline std::string to_hex(std::uintptr_t addr) {
-        std::stringstream sstream;
-        sstream<<std::hex<<addr;
-        return std::move(sstream).str();
-    }
-
     inline bool is_little_endian() {
         std::uint16_t num = 0x1;
         const auto* ptr = (std::uint8_t*)&num;

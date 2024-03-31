@@ -429,6 +429,9 @@ namespace libdwarf {
             ASSERT(tag && (tag.unwrap_value() == DW_TAG_subprogram || tag.unwrap_value() == DW_TAG_inlined_subroutine));
             // get_inlines_info is recursive and recurses into dies with pc ranges matching the pc we're looking for,
             // however, because I wouldn't want anything stack overflowing I'm breaking the recursion out into a loop
+            // while looping when we find the target die we need to be able to store a die somewhere that doesn't die
+            // at the end of the list traversal, we'll use this as a holder for it
+            die_object current_obj_holder(dbg, nullptr);
             optional<std::reference_wrapper<const die_object>> current_die = die;
             while(current_die.has_value()) {
                 auto child = current_die.unwrap().get().get_child();
@@ -438,7 +441,7 @@ namespace libdwarf {
                 optional<std::reference_wrapper<const die_object>> target_die;
                 walk_die_list(
                     child.unwrap_value(),
-                    [this, &cu_die, pc, dwversion, &inlines, &target_die] (const die_object& die) {
+                    [this, &cu_die, pc, dwversion, &inlines, &target_die, &current_obj_holder] (const die_object& die) {
                         auto tag = die.get_tag();
                         if(!tag) {
                             tag.drop_error();
@@ -490,7 +493,8 @@ namespace libdwarf {
                                 name.value_or(""),
                                 true
                             });
-                            target_die = die;
+                            current_obj_holder = die.clone();
+                            target_die = current_obj_holder;
                             return false;
                         } else {
                             return true;
