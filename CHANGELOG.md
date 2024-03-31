@@ -1,6 +1,8 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.5.2](#v052)
+- [v0.5.1](#v051)
 - [v0.5.0](#v050)
 - [v0.4.1](#v041)
 - [v0.4.0](#v040)
@@ -10,6 +12,15 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.5.2
+
+Fixes:
+- Fixed bug with resolution of inlined calls
+
+Other changes:
+- Improved internal string formatting
+- Improved internal error handling
 
 # v0.5.1
 
