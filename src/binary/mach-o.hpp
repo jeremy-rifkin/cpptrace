@@ -426,7 +426,7 @@ namespace detail {
             // we have a bunch of symbols in our binary we need to pair up with symbols from various .o files
             // first collect symbols and the objects they come from
             std::vector<symbol_entry> symbols;
-            const auto& symtab_info_res = get_symtab_info();
+            auto symtab_info_res = get_symtab_info();
             if(!symtab_info_res) {
                 return std::move(symtab_info_res).unwrap_error();
             }

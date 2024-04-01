@@ -337,8 +337,14 @@ namespace detail {
         enum class member { value, error };
         member active;
     public:
-        Result(T value) : value_(std::move(value)), active(member::value) {}
-        Result(E error) : error_(std::move(error)), active(member::error) {
+        Result(T&& value) : value_(std::move(value)), active(member::value) {}
+        Result(E&& error) : error_(std::move(error)), active(member::error) {
+            if(!absorb_trace_exceptions.load()) {
+                std::fprintf(stderr, "%s\n", unwrap_error().what());
+            }
+        }
+        Result(T& value) : value_(T(value)), active(member::value) {}
+        Result(E& error) : error_(E(error)), active(member::error) {
             if(!absorb_trace_exceptions.load()) {
                 std::fprintf(stderr, "%s\n", unwrap_error().what());
             }
