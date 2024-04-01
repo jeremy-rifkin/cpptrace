@@ -302,18 +302,25 @@ namespace microfmt {
         }
     }
 
-    template<typename... Args>
     #if defined(__cpp_lib_string_view) && __cpp_lib_string_view >= 201606L
+    template<typename... Args>
     std::string format(std::string_view fmt, Args&&... args) {
-    #else
-    std::string format(const std::string& fmt, Args&&... args) {
-    #endif
         return detail::format<sizeof...(args)>(fmt.begin(), fmt.end(), {detail::format_value(args)...});
     }
+
+    inline std::string format(std::string_view fmt) {
+        return std::string(fmt);
+    }
+    #endif
 
     template<typename... Args>
     std::string format(const char* fmt, Args&&... args) {
         return detail::format<sizeof...(args)>(fmt, fmt + std::strlen(fmt), {detail::format_value(args)...});
+    }
+
+    // working around an old msvc bug https://godbolt.org/z/88T8hrzzq mre: https://godbolt.org/z/drd8echbP
+    inline std::string format(const char* fmt) {
+        return std::string(fmt);
     }
 
     template<typename S, typename... Args>
