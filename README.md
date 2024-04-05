@@ -19,7 +19,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [CMake FetchContent Usage](#cmake-fetchcontent-usage)
 - [FAQ](#faq)
   - [What about C++23 `<stacktrace>`?](#what-about-c23-stacktrace)
-  - [What does cpptrace have over other C++ stacktrace libraries](#what-does-cpptrace-have-over-other-c-stacktrace-libraries)
+  - [What does cpptrace have over other C++ stacktrace libraries?](#what-does-cpptrace-have-over-other-c-stacktrace-libraries)
 - [In-Depth Documentation](#in-depth-documentation)
   - [Prerequisites](#prerequisites)
   - [`namespace cpptrace`](#namespace-cpptrace)
@@ -145,7 +145,7 @@ Cpptrace provides functionality beyond what the standard library provides and wh
 - Providing traced exception objects
 - Providing an API for signal-safe stacktrace generation
 
-## What does cpptrace have over other C++ stacktrace libraries
+## What does cpptrace have over other C++ stacktrace libraries?
 
 Other C++ stacktrace libraries, such as boost stacktrace and backward-cpp, fall short when it comes to portability and
 ease of use. In testing, I found neither to provide adaquate coverage of various environments. Even when they can be
