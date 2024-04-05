@@ -19,7 +19,9 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [CMake FetchContent Usage](#cmake-fetchcontent-usage)
 - [FAQ](#faq)
   - [What about C++23 `<stacktrace>`?](#what-about-c23-stacktrace)
+  - [What does cpptrace have over other C++ stacktrace libraries](#what-does-cpptrace-have-over-other-c-stacktrace-libraries)
 - [In-Depth Documentation](#in-depth-documentation)
+  - [Prerequisites](#prerequisites)
   - [`namespace cpptrace`](#namespace-cpptrace)
     - [Stack Traces](#stack-traces)
     - [Object Traces](#object-traces)
@@ -136,9 +138,22 @@ Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc i
 The original motivation for cpptrace was to support projects using older C++ standards and as the library has grown its
 functionality has extended beyond the standard library's implementation.
 
-Cpptrace also provides additional functionality including showing inlined function calls, allowing generation of
-lightweight "raw traces" that can be resolved later, offering exception objects that embed a lightweight trace when
-thrown, and providing an API for safe tracing from signal handlers.
+Cpptrace provides functionality beyond what the standard library provides and what implementations provide, such as:
+- Walking inlined function calls
+- Providing a lightweight interface for "raw traces"
+- Resolving function parameter types
+- Providing traced exception objects
+- Providing an API for signal-safe stacktrace generation
+
+## What does cpptrace have over other C++ stacktrace libraries
+
+Other C++ stacktrace libraries, such as boost stacktrace and backward-cpp, fall short when it comes to portability and
+ease of use. In testing, I found neither to provide adaquate coverage of various environments. Even when they can be
+made to work in an environment they require manual configuration from the end-user, possibly requiring manual
+installation of third-party dependencies. This is a highly undesirable burden to impose on users, especially when it is
+for a software package which just provides diagnostics as opposed to core functionality. Additionally, cpptrace provides
+support for resolving inlined calls by default for DWARF symbols (boost does not do this, backward-cpp can do this but
+only for some back-ends), better support for resolving full function signatures, and nicer API, among other features.
 
 # In-Depth Documentation
 
