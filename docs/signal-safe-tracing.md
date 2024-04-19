@@ -147,6 +147,9 @@ void do_signal_safe_trace(cpptrace::frame_ptr* buffer, std::size_t size) {
         close(input_pipe.read_end);
         close(input_pipe.write_end);
         execl("signal_tracer", "signal_tracer", nullptr);
+        const char* exec_failure_message = "exec(signal_tracer) failed: Make sure the signal_tracer executable is in "
+            "the current working directory and the binary's permissions are correct.\n";
+        write(STDERR_FILENO, exec_failure_message, strlen(exec_failure_message));
         _exit(1);
     }
     // Resolve to safe_object_frames and write those to the pipe

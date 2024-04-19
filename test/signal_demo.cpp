@@ -52,6 +52,9 @@ void handler(int signo, siginfo_t* info, void* context) {
             "signal_tracer",
             nullptr
         );
+        const char* exec_failure_message = "exec(signal_tracer) failed: Make sure the signal_tracer executable is in "
+            "the current working directory and the binary's permissions are correct.\n";
+        write(STDERR_FILENO, exec_failure_message, strlen(exec_failure_message));
         _exit(1);
     }
     for(std::size_t i = 0; i < count; i++) {
