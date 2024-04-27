@@ -10,7 +10,7 @@
 #include <cstring>
 #include <iostream>
 #include <string>
-#if defined(__cpp_lib_string_view) && __cpp_lib_string_view >= 201606L
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
 #include <string_view>
 #endif
 #ifdef _MSC_VER
@@ -28,24 +28,22 @@ namespace microfmt {
             throw std::runtime_error("Microfmt check failed" __FILE__ ":" STR(__LINE__) ": " #expr); \
         }
 
-        #ifdef _MSC_VER
         inline std::uint64_t clz(std::uint64_t value) {
-            unsigned long out = 0;
-            #ifdef _WIN64
-            _BitScanForward64(&out, value);
+            #ifdef _MSC_VER
+             unsigned long out = 0;
+             #ifdef _WIN64
+              _BitScanReverse64(&out, value);
+             #else
+              if(_BitScanReverse(&out, std::uint32_t(value >> 32))) {
+                  return 63 - int(out + 32);
+              }
+              _BitScanReverse(&out, std::uint32_t(value));
+             #endif
+             return 63 - out;
             #else
-            if(_BitScanForward(&out, std::uint32_t(value >> 32))) {
-                return 63 ^ int(out + 32);
-            }
-            _BitScanForward(&out, std::uint32_t(value));
+             return __builtin_clzll(value);
             #endif
-            return out;
         }
-        #else
-        inline std::uint64_t clz(std::uint64_t value) {
-            return __builtin_clzll(value);
-        }
-        #endif
 
         template<typename U, typename V> U to(V v) {
             return static_cast<U>(v); // A way to cast to U without "warning: useless cast to type"
@@ -118,7 +116,7 @@ namespace microfmt {
                 int64_value,
                 uint64_value,
                 string_value,
-                #if defined(__cpp_lib_string_view) && __cpp_lib_string_view >= 201606L
+                #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
                 string_view_value,
                 #endif
                 c_string_value,
@@ -128,7 +126,7 @@ namespace microfmt {
                 std::int64_t int64_value;
                 std::uint64_t uint64_value;
                 const std::string* string_value;
-                #if defined(__cpp_lib_string_view) && __cpp_lib_string_view >= 201606L
+                #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
                 std::string_view string_view_value;
                 #endif
                 const char* c_string_value;
@@ -147,7 +145,7 @@ namespace microfmt {
             format_value(unsigned long int_val) : uint64_value(int_val), value(value_type::uint64_value) {}
             format_value(unsigned long long int_val) : uint64_value(int_val), value(value_type::uint64_value) {}
             format_value(const std::string& string) : string_value(&string), value(value_type::string_value) {}
-            #if defined(__cpp_lib_string_view) && __cpp_lib_string_view >= 201606L
+            #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
             format_value(std::string_view sv) : string_view_value(sv), value(value_type::string_view_value) {}
             #endif
             format_value(const char* c_string) : c_string_value(c_string), value(value_type::c_string_value) {}
@@ -187,7 +185,7 @@ namespace microfmt {
                     case value_type::string_value:
                         do_write(out, string_value->begin(), string_value->end(), options);
                         break;
-                    #if defined(__cpp_lib_string_view) && __cpp_lib_string_view >= 201606L
+                    #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
                     case value_type::string_view_value:
                         do_write(out, string_view_value.begin(), string_view_value.end(), options);
                         break;
@@ -302,7 +300,7 @@ namespace microfmt {
         }
     }
 
-    #if defined(__cpp_lib_string_view) && __cpp_lib_string_view >= 201606L
+    #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
     template<typename... Args>
     std::string format(std::string_view fmt, Args&&... args) {
         return detail::format<sizeof...(args)>(fmt.begin(), fmt.end(), {detail::format_value(args)...});
@@ -320,7 +318,7 @@ namespace microfmt {
 
     // working around an old msvc bug https://godbolt.org/z/88T8hrzzq mre: https://godbolt.org/z/drd8echbP
     inline std::string format(const char* fmt) {
-        return std::string(fmt);
+        return detail::format<1>(fmt, fmt + std::strlen(fmt), {detail::format_value(1)});
     }
 
     template<typename S, typename... Args>
