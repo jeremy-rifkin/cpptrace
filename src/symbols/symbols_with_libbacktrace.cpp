@@ -38,6 +38,12 @@ namespace libbacktrace {
     }
 
     void error_callback(void*, const char* msg, int errnum) {
+        if(msg == std::string("no debug info in ELF executable")) {
+            // https://github.com/jeremy-rifkin/cpptrace/issues/114
+            // https://github.com/ianlancetaylor/libbacktrace/blob/ae1e707dbacd4a5cc82fcf2d3816f410e9c5fec4/elf.c#L592
+            // not a critical error, just return
+            return;
+        }
         throw internal_error("Libbacktrace error: {}, code {}", msg, errnum);
     }
 
@@ -57,8 +63,8 @@ namespace libbacktrace {
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
     stacktrace_frame resolve_frame(const frame_ptr addr) {
         try {
-            stacktrace_frame frame;
-            frame.column = nullable<std::uint32_t>::null();
+            stacktrace_frame frame = null_frame;
+            frame.raw_address = addr;
             backtrace_pcinfo(
                 get_backtrace_state(),
                 addr,
