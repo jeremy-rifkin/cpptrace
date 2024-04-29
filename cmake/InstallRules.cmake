@@ -62,6 +62,9 @@ install(
   COMPONENT ${package_name}-development
 )
 
+# Findzstd.cmake
+install(FILES "${PROJECT_SOURCE_DIR}/cmake/Findzstd.cmake" DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${package_name}")
+
 # support packaging library
 if(PROJECT_IS_TOP_LEVEL)
   include(CPack)
