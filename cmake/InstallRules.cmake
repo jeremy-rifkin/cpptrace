@@ -62,6 +62,15 @@ install(
   COMPONENT ${package_name}-development
 )
 
+# Findzstd.cmake
+# vcpkg doesn't like anything being put in share/, which is where this goes apparently on their setup
+if(NOT CPPTRACE_VCPKG)
+  install(
+    FILES "${PROJECT_SOURCE_DIR}/cmake/Findzstd.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${package_name}"
+  )
+endif()
+
 # support packaging library
 if(PROJECT_IS_TOP_LEVEL)
   include(CPack)
