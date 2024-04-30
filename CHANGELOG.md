@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.5.3](#v053)
 - [v0.5.2](#v052)
 - [v0.5.1](#v051)
 - [v0.5.0](#v050)
@@ -12,6 +13,19 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.5.3
+
+Fixes:
+- Fixed bug with formatting of hex values on MSVC
+- Fixed error handling for libbacktrace back-end when debug info is not present
+- Fixed bug with cmake resolution of zstd when no zstd cmake config file is installed
+
+Other changes:
+- Added error handling for an edge case in the signal tracing demo
+- Updated conan recipe to allow libunwind to be chosen
+- Improved msvc support in internal formatting system
+- Bumped libdwarf to 0.9.2
 
 # v0.5.2
 
