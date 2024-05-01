@@ -621,6 +621,9 @@ g++ main.cpp -o main -g -Wall -lcpptrace
 ./main
 ```
 
+> [!IMPORTANT]
+> If you aren't using cmake and are linking statically you must manually specify `-DCPPTRACE_STATIC_DEFINE`.
+
 If you get an error along the lines of
 ```
 error while loading shared libraries: libcpptrace.so: cannot open shared object file: No such file or directory
@@ -670,6 +673,9 @@ Using manually:
 ```
 g++ main.cpp -o main -g -Wall -I$HOME/wherever/include -L$HOME/wherever/lib -lcpptrace
 ```
+
+> [!IMPORTANT]
+> If you aren't using cmake and are linking statically you must manually specify `-DCPPTRACE_STATIC_DEFINE`.
 
 ## Use Without CMake
 
