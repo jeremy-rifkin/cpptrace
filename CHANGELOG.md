@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.5.4](#v054)
 - [v0.5.3](#v053)
 - [v0.5.2](#v052)
 - [v0.5.1](#v051)
@@ -13,6 +14,12 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.5.4
+
+Fixes:
+- Fixed bug with resolving object information when `dladdr` is used and an unexpected `argv[0]` is provided to the
+  binary.
 
 # v0.5.3
 
