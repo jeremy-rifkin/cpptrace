@@ -22,7 +22,7 @@
 
 namespace cpptrace {
 namespace detail {
-    #if IS_LINUX || IS_APPLE
+    #if IS_LINUX
     inline std::string resolve_l_name(const char* l_name) {
         if(l_name != nullptr && l_name[0] != 0) {
             return l_name;
@@ -38,7 +38,7 @@ namespace detail {
             }
         }
     }
-    #ifdef CPPTRACE_HAS_DL_FIND_OBJECT
+    #ifdef CPPTRACE_HAS_DL_FIND_OBJECT // we don't even check for this on apple
     inline object_frame get_frame_object_info(frame_ptr address) {
         // Use _dl_find_object when we can, it's orders of magnitude faster
         object_frame frame;
@@ -52,7 +52,6 @@ namespace detail {
         return frame;
     }
     #else
-    #if IS_LINUX
     // dladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
     inline object_frame get_frame_object_info(frame_ptr address) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
@@ -78,7 +77,8 @@ namespace detail {
         }
         return frame;
     }
-    #else
+    #endif
+    #elif IS_APPLE
     // macos doesn't have dladdr1 but it seems its dli_fname behaves more sensibly?
     // dladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
     inline object_frame get_frame_object_info(frame_ptr address) {
@@ -100,8 +100,6 @@ namespace detail {
         }
         return frame;
     }
-    #endif
-    #endif
     #else
     inline std::string get_module_name(HMODULE handle) {
         static std::mutex mutex;
