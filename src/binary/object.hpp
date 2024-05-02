@@ -23,7 +23,6 @@
 namespace cpptrace {
 namespace detail {
     #if IS_LINUX || IS_APPLE
-    #if IS_LINUX
     inline std::string resolve_l_name(const char* l_name) {
         if(l_name != nullptr && l_name[0] != 0) {
             return l_name;
@@ -39,7 +38,6 @@ namespace detail {
             }
         }
     }
-    #endif
     #ifdef CPPTRACE_HAS_DL_FIND_OBJECT
     inline object_frame get_frame_object_info(frame_ptr address) {
         // Use _dl_find_object when we can, it's orders of magnitude faster
