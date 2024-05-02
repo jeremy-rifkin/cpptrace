@@ -13,7 +13,9 @@
 #if IS_LINUX || IS_APPLE
  #include <unistd.h>
  #include <dlfcn.h>
- #include <link.h>
+ #if IS_LINUX
+  #include <link.h> // needed for dladdr1's link_map info
+ #endif
 #elif IS_WINDOWS
  #include <windows.h>
 #endif
@@ -21,6 +23,7 @@
 namespace cpptrace {
 namespace detail {
     #if IS_LINUX || IS_APPLE
+    #if IS_LINUX
     inline std::string resolve_l_name(const char* l_name) {
         if(l_name != nullptr && l_name[0] != 0) {
             return l_name;
@@ -36,6 +39,7 @@ namespace detail {
             }
         }
     }
+    #endif
     #ifdef CPPTRACE_HAS_DL_FIND_OBJECT
     inline object_frame get_frame_object_info(frame_ptr address) {
         // Use _dl_find_object when we can, it's orders of magnitude faster
@@ -50,6 +54,7 @@ namespace detail {
         return frame;
     }
     #else
+    #if IS_LINUX
     // dladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
     inline object_frame get_frame_object_info(frame_ptr address) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
@@ -75,6 +80,29 @@ namespace detail {
         }
         return frame;
     }
+    #else
+    // macos doesn't have dladdr1 but it seems its dli_fname behaves more sensibly?
+    // dladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
+    inline object_frame get_frame_object_info(frame_ptr address) {
+        // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
+        Dl_info info;
+        object_frame frame;
+        frame.raw_address = address;
+        frame.object_address = 0;
+        if(dladdr(reinterpret_cast<void*>(address), &info)) { // thread safe
+            frame.object_path = info.dli_fname;
+            auto base = get_module_image_base(info.dli_fname);
+            if(base.has_value()) {
+                frame.object_address = address
+                                        - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
+                                        + base.unwrap_value();
+            } else {
+                base.drop_error();
+            }
+        }
+        return frame;
+    }
+    #endif
     #endif
     #else
     inline std::string get_module_name(HMODULE handle) {
