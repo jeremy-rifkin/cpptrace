@@ -13,9 +13,7 @@
 #if IS_LINUX || IS_APPLE
  #include <unistd.h>
  #include <dlfcn.h>
- #ifdef CPPTRACE_HAS_DL_FIND_OBJECT
-  #include <link.h>
- #endif
+ #include <link.h>
 #elif IS_WINDOWS
  #include <windows.h>
 #endif
@@ -23,6 +21,21 @@
 namespace cpptrace {
 namespace detail {
     #if IS_LINUX || IS_APPLE
+    inline std::string resolve_l_name(const char* l_name) {
+        if(l_name != nullptr && l_name[0] != 0) {
+            return l_name;
+        } else {
+            // empty l_name, this means it's the currently running executable
+            // TODO: Caching and proper handling
+            char buffer[CPPTRACE_PATH_MAX + 1]{};
+            auto res = readlink("/proc/self/exe", buffer, CPPTRACE_PATH_MAX);
+            if(res == -1) {
+                return ""; // TODO
+            } else {
+                return buffer;
+            }
+        }
+    }
     #ifdef CPPTRACE_HAS_DL_FIND_OBJECT
     inline object_frame get_frame_object_info(frame_ptr address) {
         // Use _dl_find_object when we can, it's orders of magnitude faster
@@ -31,19 +44,7 @@ namespace detail {
         frame.object_address = 0;
         dl_find_object result;
         if(_dl_find_object(reinterpret_cast<void*>(address), &result) == 0) { // thread safe
-            if(result.dlfo_link_map->l_name != nullptr && result.dlfo_link_map->l_name[0] != 0) {
-                frame.object_path = result.dlfo_link_map->l_name;
-            } else {
-                // empty l_name, this means it's the currently running executable
-                // TODO: Caching and proper handling
-                char buffer[CPPTRACE_PATH_MAX + 1]{};
-                auto res = readlink("/proc/self/exe", buffer, CPPTRACE_PATH_MAX);
-                if(res == -1) {
-                    // error handling?
-                } else {
-                    frame.object_path = buffer;
-                }
-            }
+            frame.object_path = resolve_l_name(result.dlfo_link_map->l_name);
             frame.object_address = address - to_frame_ptr(result.dlfo_link_map->l_addr);
         }
         return frame;
@@ -52,13 +53,18 @@ namespace detail {
     // dladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
     inline object_frame get_frame_object_info(frame_ptr address) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
+        // https://github.com/bminor/glibc/blob/91695ee4598b39d181ab8df579b888a8863c4cab/elf/dl-addr.c#L26
         Dl_info info;
+        link_map* link_map_info;
         object_frame frame;
         frame.raw_address = address;
         frame.object_address = 0;
-        if(dladdr(reinterpret_cast<void*>(address), &info)) { // thread safe
-            frame.object_path = info.dli_fname;
-            auto base = get_module_image_base(info.dli_fname);
+        if(
+            // thread safe
+            dladdr1(reinterpret_cast<void*>(address), &info, reinterpret_cast<void**>(&link_map_info), RTLD_DL_LINKMAP)
+        ) {
+            frame.object_path = resolve_l_name(link_map_info->l_name);
+            auto base = get_module_image_base(frame.object_path);
             if(base.has_value()) {
                 frame.object_address = address
                                         - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
