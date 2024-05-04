@@ -13,8 +13,13 @@
  #include <libdwarf/libdwarf.h>
  #include <libdwarf/dwarf.h>
 #else
- #include <libdwarf.h>
- #include <dwarf.h>
+ #ifndef CPPTRACE_CONDA_LIBDWARF_WEIRDNESS
+  #include <libdwarf.h>
+  #include <dwarf.h>
+ #else
+  #include <libdwarf.h>
+  #include <libdwarf-0/dwarf.h>
+ #endif
 #endif
 
 namespace cpptrace {

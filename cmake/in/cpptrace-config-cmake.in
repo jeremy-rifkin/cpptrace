@@ -14,7 +14,9 @@ if(@CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF@)
     set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH_OLD}")
     unset(CMAKE_MODULE_PATH_OLD)
   endif()
-  find_dependency(libdwarf REQUIRED)
+  if(NOT @CPPTRACE_FIND_LIBDWARF_WITH_PKGCONFIG@)
+    find_dependency(libdwarf REQUIRED)
+  endif()
 endif()
 
 # We cannot modify an existing IMPORT target
