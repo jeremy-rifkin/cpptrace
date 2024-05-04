@@ -261,36 +261,36 @@ def build_full_or_auto(matrix):
 def test(matrix):
     if platform.system() != "Windows":
         return run_test(
-            "./test",
+            "./integration",
             (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
         )
     else:
         if matrix["compiler"] == "g++":
             return run_test(
-                f".\\test.exe",
+                f".\\integration.exe",
                 (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
             )
         else:
             return run_test(
-                f".\\{matrix['target']}\\test.exe",
+                f".\\{matrix['target']}\\integration.exe",
                 (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
             )
 
 def test_full_or_auto(matrix):
     if platform.system() != "Windows":
         return run_test(
-            "./test",
+            "./integration",
             (matrix["compiler"],)
         )
     else:
         if matrix["compiler"] == "g++":
             return run_test(
-                f".\\test.exe",
+                f".\\integration.exe",
                 (matrix["compiler"],)
             )
         else:
             return run_test(
-                f".\\{matrix['target']}\\test.exe",
+                f".\\{matrix['target']}\\integration.exe",
                 (matrix["compiler"],)
             )
 
