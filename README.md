@@ -50,6 +50,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Summary of Library Configurations](#summary-of-library-configurations)
 - [Testing Methodology](#testing-methodology)
 - [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
+- [Contributing](#contributing)
 - [License](#license)
 
 # 30-Second Overview
@@ -967,6 +968,11 @@ A couple things I'd like to improve in the future:
 
 A couple features I'd like to add in the future:
 - Tracing other thread's stacks
+
+# Contributing
+
+I'm grateful for the help I've received with this library and I welcome contributions! For information on contributing
+please refer to [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 # License
 

@@ -17,8 +17,13 @@ too much ultimately but consistency within a codebase is important.
 
 ## Local development
 
-To build the project make a `build/` folder and run `cmake ..`, along with any cmake configurations
-you desire. Then run `make -j` or `msbuild cpptrace.sln`.
+The easiest way to get started with local development is running `make debug` (which automatically configures cmake and
+builds). Note: This requires ninja at the moment.
+
+For more control over how the library is built you can manually build with cmake:
+
+`cmake ..` in a `build/` folder along with any cmake configurations you desire. Then run `make -j` or `ninja` or
+`msbuild cpptrace.sln`.
 
 Some useful configurations:
 - `-DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo`: Build in debug / release / etc.
