@@ -6,6 +6,7 @@
 #include "../utils/dwarf.hpp" // has dwarf #includes
 #include "../utils/error.hpp"
 #include "../binary/object.hpp"
+#include "../binary/mach-o.hpp"
 #include "../utils/utils.hpp"
 #include "../utils/program_name.hpp" // For CPPTRACE_MAX_PATH
 

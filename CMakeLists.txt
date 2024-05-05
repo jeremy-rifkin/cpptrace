@@ -203,25 +203,31 @@ target_sources(
 target_sources(
     ${target_name} PRIVATE
     # src
+    src/binary/elf.cpp
+    src/binary/mach-o.cpp
+    src/binary/module_base.cpp
+    src/binary/object.cpp
+    src/binary/pe.cpp
+    src/binary/safe_dl.cpp
     src/cpptrace.cpp
     src/ctrace.cpp
     src/demangle/demangle_with_cxxabi.cpp
-    src/demangle/demangle_with_winapi.cpp
     src/demangle/demangle_with_nothing.cpp
+    src/demangle/demangle_with_winapi.cpp
+    src/snippets/snippet.cpp
+    src/symbols/symbols_core.cpp
     src/symbols/symbols_with_addr2line.cpp
     src/symbols/symbols_with_dbghelp.cpp
     src/symbols/symbols_with_dl.cpp
     src/symbols/symbols_with_libbacktrace.cpp
     src/symbols/symbols_with_libdwarf.cpp
     src/symbols/symbols_with_nothing.cpp
-    src/symbols/symbols_core.cpp
+    src/unwind/unwind_with_dbghelp.cpp
     src/unwind/unwind_with_execinfo.cpp
     src/unwind/unwind_with_libunwind.cpp
     src/unwind/unwind_with_nothing.cpp
     src/unwind/unwind_with_unwind.cpp
     src/unwind/unwind_with_winapi.cpp
-    src/unwind/unwind_with_dbghelp.cpp
-    src/snippets/snippet.cpp
 )
 
 target_include_directories(

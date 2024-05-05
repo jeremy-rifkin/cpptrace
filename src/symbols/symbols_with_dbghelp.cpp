@@ -5,6 +5,7 @@
 #include "../utils/dbghelp_syminit_manager.hpp"
 
 #include <memory>
+#include <mutex>
 #include <regex>
 #include <stdexcept>
 #include <system_error>
