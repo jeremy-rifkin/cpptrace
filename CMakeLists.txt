@@ -575,5 +575,6 @@ endif()
 # =============================================== Demo/test ===============================================
 
 if(CPPTRACE_BUILD_TESTING)
+  enable_testing()
   add_subdirectory(test)
 endif()
