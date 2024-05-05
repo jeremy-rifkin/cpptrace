@@ -16,7 +16,7 @@ using namespace std::literals;
 
 // This is fickle, however, it's the only way to do it really. It's a reliable test in practice.
 
-[[gnu::noinline]] void raw_trace_basic() {
+CPPTRACE_FORCE_NO_INLINE void raw_trace_basic() {
     auto raw_trace = cpptrace::generate_raw_trace();
     // look for within 90 bytes of the start of the function
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_basic));
@@ -24,7 +24,7 @@ using namespace std::literals;
 }
 
 #ifndef _MSC_VER
-[[gnu::noinline]] void raw_trace_basic_precise() {
+CPPTRACE_FORCE_NO_INLINE void raw_trace_basic_precise() {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
@@ -39,7 +39,7 @@ TEST(RawTrace, Basic) {
     raw_trace_basic_precise();
 }
 
-[[gnu::noinline]] void raw_trace_multi_1(std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr> parent) {
+CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_1(std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr> parent) {
     auto raw_trace = cpptrace::generate_raw_trace();
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_1));
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_1) + 90);
@@ -47,7 +47,7 @@ TEST(RawTrace, Basic) {
     EXPECT_LE(raw_trace.frames[1], parent.second);
 }
 
-[[gnu::noinline]] void raw_trace_multi_top() {
+CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_top() {
     auto raw_trace = cpptrace::generate_raw_trace();
     raw_trace_multi_1({reinterpret_cast<uintptr_t>(raw_trace_multi_top), reinterpret_cast<uintptr_t>(raw_trace_multi_top) + 300});
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_top));
@@ -55,7 +55,7 @@ TEST(RawTrace, Basic) {
 }
 
 #ifndef _MSC_VER
-[[gnu::noinline]] void raw_trace_multi_precise_2(std::vector<std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr>>& parents) {
+CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_2(std::vector<std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr>>& parents) {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
@@ -67,7 +67,7 @@ TEST(RawTrace, Basic) {
     }
 }
 
-[[gnu::noinline]] void raw_trace_multi_precise_1(std::vector<std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr>>& parents) {
+CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_1(std::vector<std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr>>& parents) {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
@@ -83,7 +83,7 @@ TEST(RawTrace, Basic) {
     d:;
 }
 
-[[gnu::noinline]] void raw_trace_multi_precise_top() {
+CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_top() {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
@@ -102,7 +102,7 @@ TEST(RawTrace, MultipleCalls) {
     raw_trace_multi_precise_top();
 }
 
-[[gnu::noinline]] void stacktrace_basic() {
+CPPTRACE_FORCE_NO_INLINE void stacktrace_basic() {
     auto line = __LINE__ + 1;
     auto trace = cpptrace::generate_trace();
     EXPECT_THAT(trace.frames[0].filename, testing::EndsWith("unittest.cpp"));
