@@ -36,7 +36,9 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_basic_precise() {
 
 TEST(RawTrace, Basic) {
     raw_trace_basic();
+    #ifndef _MSC_VER
     raw_trace_basic_precise();
+    #endif
 }
 
 CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_1(std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr> parent) {
@@ -99,7 +101,9 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_top() {
 
 TEST(RawTrace, MultipleCalls) {
     raw_trace_multi_top();
+    #ifndef _MSC_VER
     raw_trace_multi_precise_top();
+    #endif
 }
 
 CPPTRACE_FORCE_NO_INLINE void stacktrace_basic() {

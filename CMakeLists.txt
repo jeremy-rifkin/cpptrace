@@ -581,6 +581,8 @@ endif()
 # =============================================== Demo/test ===============================================
 
 if(CPPTRACE_BUILD_TESTING)
-  enable_testing()
+  if(PROJECT_IS_TOP_LEVEL)
+    enable_testing()
+  endif()
   add_subdirectory(test)
 endif()
