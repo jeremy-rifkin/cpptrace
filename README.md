@@ -629,7 +629,7 @@ If you get an error along the lines of
 error while loading shared libraries: libcpptrace.so: cannot open shared object file: No such file or directory
 ```
 You may have to run `sudo /sbin/ldconfig` to create any necessary links and update caches so the system can find
-libcpptrace.so (I had to do this on Ubuntu). Only when installing system-wide. Usually your package manger does this for
+libcpptrace.so (I had to do this on Ubuntu). Only when installing system-wide. Usually your package manager does this for
 you when installing new libraries.
 
 <details>
