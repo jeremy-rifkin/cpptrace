@@ -348,6 +348,8 @@ Cpptrace provides an interface for a traced exceptions, `cpptrace::exception`, a
 that that generate stack traces when thrown. These exceptions generate relatively lightweight raw traces and resolve
 symbols and line numbers lazily if and when requested.
 
+These are provided both as a useful utility and as a reference implementation for traced exceptions.
+
 The basic interface is:
 ```cpp
 namespace cpptrace {
@@ -398,7 +400,7 @@ namespace cpptrace {
         const char* message() const noexcept override;
     };
 
-    // All stdexcept errors have analogs here. All have the constructor:
+    // All stdexcept errors have analogs here. All but system_error have the constructor:
     // explicit the_error(
     //     std::string&& message_arg,
     //     raw_trace&& trace = detail::get_raw_trace_and_absorb()
@@ -413,6 +415,15 @@ namespace cpptrace {
     class range_error      : public exception_with_message { ... };
     class overflow_error   : public exception_with_message { ... };
     class underflow_error  : public exception_with_message { ... };
+    class system_error : public runtime_error {
+    public:
+        explicit system_error(
+            int error_code,
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept;
+        const std::error_code& code() const noexcept;
+    };
 }
 ```
 

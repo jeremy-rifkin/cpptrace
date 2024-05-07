@@ -6,6 +6,7 @@
 #include <limits>
 #include <ostream>
 #include <string>
+#include <system_error>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -435,6 +436,17 @@ namespace cpptrace {
 
         const char* message() const noexcept override;
         std::exception_ptr nested_ptr() const noexcept;
+    };
+
+    class CPPTRACE_EXPORT system_error : public runtime_error {
+        std::error_code ec;
+    public:
+        explicit system_error(
+            int error_code,
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept;
+        const std::error_code& code() const noexcept;
     };
 
     // [[noreturn]] must come first due to old clang
