@@ -240,7 +240,7 @@ target_include_directories(
 target_compile_options(
   ${target_name}
   PRIVATE
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef -Wmaybe-uninitialized>
   $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast>
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
