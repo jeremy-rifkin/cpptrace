@@ -123,7 +123,7 @@ if(WIN32)
 endif()
 ```
 
-Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
+Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
 information.
 
 On macOS it is recommended to generate a `.dSYM` file, see [Platform Logistics](#platform-logistics) below.
@@ -432,7 +432,7 @@ namespace cpptrace {
 Cpptrace exceptions can provide great information for user-controlled exceptions. For non-cpptrace::exceptions that may
 originate outside of code you control, e.g. the standard library, cpptrace provides some wrapper utilities that can
 rethrow these exceptions nested in traced cpptrace exceptions. The trace won't be perfect, the trace will start where
-the rapper caught it, but these utilities can provide good diagnostic information. Unfortunately this is the best
+the wrapper caught it, but these utilities can provide good diagnostic information. Unfortunately this is the best
 solution for this problem, as far as I know.
 
 ```cpp
@@ -603,7 +603,7 @@ target_link_libraries(your_target cpptrace::cpptrace)
 It's as easy as that. Cpptrace will automatically configure itself for your system. Note: On windows and macos some
 extra work is required, see [Platform Logistics](#platform-logistics) below.
 
-Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
+Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
 information.
 
 ## System-Wide Installation
@@ -623,7 +623,7 @@ Using through cmake:
 find_package(cpptrace REQUIRED)
 target_link_libraries(<your target> cpptrace::cpptrace)
 ```
-Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DDCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
+Be sure to configure with `-DCMAKE_BUILD_TYPE=Debug` or `-DCMAKE_BUILD_TYPE=RelWithDebInfo` for symbols and line
 information.
 
 Or compile with `-lcpptrace`:
@@ -641,7 +641,7 @@ If you get an error along the lines of
 error while loading shared libraries: libcpptrace.so: cannot open shared object file: No such file or directory
 ```
 You may have to run `sudo /sbin/ldconfig` to create any necessary links and update caches so the system can find
-libcpptrace.so (I had to do this on Ubuntu). Only when installing system-wide. Usually your package manger does this for
+libcpptrace.so (I had to do this on Ubuntu). Only when installing system-wide. Usually your package manager does this for
 you when installing new libraries.
 
 <details>
