@@ -385,13 +385,9 @@ namespace libdwarf {
 
         template<typename F>
         // callback should return true to keep going
-        void dwarf_ranges(int version, optional<Dwarf_Addr> pc, F callback) const {
+        void dwarf_ranges(int version, F callback) const {
             Dwarf_Addr lowpc = (std::numeric_limits<Dwarf_Addr>::max)();
             if(wrap(dwarf_lowpc, die, &lowpc) == DW_DLV_OK) {
-                if(pc.has_value() && pc.unwrap() == lowpc) {
-                    callback(lowpc, lowpc + 1);
-                    return;
-                }
                 Dwarf_Addr highpc = 0;
                 enum Dwarf_Form_Class return_class;
                 if(wrap(dwarf_highpc_b, die, &highpc, nullptr, &return_class) == DW_DLV_OK) {
@@ -412,7 +408,7 @@ namespace libdwarf {
 
         std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> get_rangelist_entries(int version) const {
             std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> vec;
-            dwarf_ranges(version, nullopt, [&vec] (Dwarf_Addr low, Dwarf_Addr high) {
+            dwarf_ranges(version, [&vec] (Dwarf_Addr low, Dwarf_Addr high) {
                 // Simple coalescing optimization:
                 // Sometimes the range list entries are really continuous: [100, 200), [200, 300)
                 // Other times there's just one byte of separation [300, 399), [400, 500)
@@ -431,7 +427,7 @@ namespace libdwarf {
 
         Dwarf_Bool pc_in_die(int version, Dwarf_Addr pc) const {
             bool found = false;
-            dwarf_ranges(version, pc, [&found, pc] (Dwarf_Addr low, Dwarf_Addr high) {
+            dwarf_ranges(version, [&found, pc] (Dwarf_Addr low, Dwarf_Addr high) {
                 if(pc >= low && pc < high) {
                     found = true;
                     return false;
