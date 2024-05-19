@@ -57,9 +57,16 @@ namespace detail {
             if(skip) {
                 skip--;
             } else {
-                // pc is the instruction after the `call`, adjust back to the previous instruction
-                // just a cast, signal safe
-                buffer[i] = to_frame_ptr(pc) - 1;
+                // thread and signal-safe
+                if(unw_is_signal_frame(&cursor)) {
+                    // pc is the instruction that caused the signal
+                    // just a cast, thread and signal safe
+                    buffer[i] = to_frame_ptr(pc);
+                } else {
+                    // pc is the instruction after the `call`, adjust back to the previous instruction
+                    // just a cast, thread and signal safe
+                    buffer[i] = to_frame_ptr(pc) - 1;
+                }
                 i++;
             }
             // thread and signal-safe as long as the cursor is in the local address space, which it is
