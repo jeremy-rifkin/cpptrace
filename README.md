@@ -632,6 +632,10 @@ You may have to run `sudo /sbin/ldconfig` to create any necessary links and upda
 libcpptrace.so (I had to do this on Ubuntu). Only when installing system-wide. Usually your package manager does this for
 you when installing new libraries.
 
+> [!NOTE]
+> Libdwarf requires a relatively new version of libdwarf. Sometimes a previously-installed system-wide libdwarf may
+> cause issues due to being too old. Libdwarf 8 and newer is known to work.
+
 <details>
     <summary>System-wide install on windows</summary>
 
