@@ -511,18 +511,21 @@ if(CPPTRACE_UNWIND_WITH_LIBUNWIND)
     if(LIBUNWIND)
       set(libunwind_FOUND TRUE)
     endif()
+    if(NOT libunwind_FOUND)
+      # message(FATAL_ERROR "Unable to locate libunwind")
+      # Try to link with it if it's where it should be
+      # This path can be entered if libunwind was installed via the system package manager, sometimes. I probably messed
+      # up the find_library above.
+      set(LIBUNWIND_LDFLAGS "-lunwind")
+    endif()
+    if(NOT LIBUNWIND_LDFLAGS)
+      set(LIBUNWIND_LDFLAGS "${LIBUNWIND}")
+    endif()
+    target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
+    target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
+    target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
+    target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_LIBUNWIND UNW_LOCAL_ONLY)
   endif()
-  if(NOT libunwind_FOUND)
-    # message(FATAL_ERROR "Unable to locate libunwind")
-    # Try to link with it if it's where it should be
-    # This path can be entered if libunwind was installed via the system package manager, sometimes. I probably messed
-    # up the find_library above.
-    set(LIBUNWIND_LDFLAGS "-lunwind")
-  endif()
-  target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
-  target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
-  target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
-  target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_LIBUNWIND UNW_LOCAL_ONLY)
 endif()
 
 if(CPPTRACE_UNWIND_WITH_EXECINFO)
