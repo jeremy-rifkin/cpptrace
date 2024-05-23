@@ -49,7 +49,7 @@ namespace detail {
         static bool valid = false;
         if(!did_init) {
             did_init = true;
-            std::uint32_t bufferSize = CPPTRACE_PATH_MAX + 1;
+            constexpr std::uint32_t bufferSize = CPPTRACE_PATH_MAX + 1;
             char buffer[bufferSize];
             if(_NSGetExecutablePath(buffer, &bufferSize) == 0) {
                 name.assign(buffer, bufferSize);
