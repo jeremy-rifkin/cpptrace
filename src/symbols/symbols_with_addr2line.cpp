@@ -64,9 +64,9 @@ namespace addr2line {
     struct pipe_t {
         union {
             struct {
-                int read_end;
-                int write_end;
-            };
+                int read;
+                int write;
+            } end;
             int data[2];
         };
     };
@@ -80,12 +80,12 @@ namespace addr2line {
         const pid_t pid = fork();
         if(pid == -1) { return ""; } // error? TODO: Diagnostic
         if(pid == 0) { // child
-            dup2(output_pipe.write_end, STDOUT_FILENO);
-            dup2(input_pipe.read_end, STDIN_FILENO);
-            close(output_pipe.read_end);
-            close(output_pipe.write_end);
-            close(input_pipe.read_end);
-            close(input_pipe.write_end);
+            dup2(output_pipe.end.write, STDOUT_FILENO);
+            dup2(input_pipe.end.read, STDIN_FILENO);
+            close(output_pipe.end.read);
+            close(output_pipe.end.write);
+            close(input_pipe.end.read);
+            close(input_pipe.end.write);
             close(STDERR_FILENO); // TODO: Might be worth conditionally enabling or piping
             #ifdef CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH
             #if !IS_APPLE
@@ -120,15 +120,15 @@ namespace addr2line {
             #endif
             _exit(1); // TODO: Diagnostic?
         }
-        VERIFY(write(input_pipe.write_end, addresses.data(), addresses.size()) != -1);
-        close(input_pipe.read_end);
-        close(input_pipe.write_end);
-        close(output_pipe.write_end);
+        VERIFY(write(input_pipe.end.write, addresses.data(), addresses.size()) != -1);
+        close(input_pipe.end.read);
+        close(input_pipe.end.write);
+        close(output_pipe.end.write);
         std::string output;
         constexpr int buffer_size = 4096;
         char buffer[buffer_size];
         std::size_t count = 0;
-        while((count = read(output_pipe.read_end, buffer, buffer_size)) > 0) {
+        while((count = read(output_pipe.end.read, buffer, buffer_size)) > 0) {
             output.insert(output.end(), buffer, buffer + count);
         }
         // TODO: check status from addr2line?
