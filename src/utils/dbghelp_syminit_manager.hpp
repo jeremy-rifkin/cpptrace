@@ -17,7 +17,7 @@ namespace detail {
         ~dbghelp_syminit_manager() {
             for(auto handle : set) {
                 if(!SymCleanup(handle)) {
-                    ASSERT(false, microfmt::format("Cpptrace SymCleanup failed with code {}\n", GetLastError()));
+                    ASSERT(false, microfmt::format("Cpptrace SymCleanup failed with code {}\n", GetLastError()).c_str());
                 }
             }
         }
