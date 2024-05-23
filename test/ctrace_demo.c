@@ -23,14 +23,17 @@ void bar(int n) {
 }
 
 void foo(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j) {
+    (void)a, (void)b, (void)c, (void)d, (void)e, (void)f, (void)g, (void)h, (void)i, (void)j;
     bar(1);
 }
 
 void function_two(int a, float b) {
+    (void)a, (void)b;
     foo(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 }
 
 void function_one(int a) {
+    (void)a;
     function_two(0, 0);
 }
 

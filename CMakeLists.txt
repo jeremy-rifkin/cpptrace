@@ -237,22 +237,27 @@ target_include_directories(
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/>
 )
 
-target_compile_options(
-  ${target_name}
-  PRIVATE
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
+set(
+  warning_options
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef -Wpedantic>
   $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wmaybe-uninitialized>
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
 
 if(CPPTRACE_WERROR_BUILD)
-  target_compile_options(
-    ${target_name}
-    PRIVATE
+  set(
+    warning_options
+    ${warning_options}
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>
     $<$<CXX_COMPILER_ID:MSVC>:/WX>
   )
 endif()
+
+target_compile_options(
+  ${target_name}
+  PRIVATE
+  ${warning_options}
+)
 
 # ---- Generate Build Info Headers ----
 
