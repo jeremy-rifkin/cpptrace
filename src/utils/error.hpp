@@ -128,7 +128,7 @@ namespace detail {
         const char* signature,
         source_location location
     ) {
-        if(as_bool(condition)) {
+        if(!as_bool(condition)) {
             assert_fail(type, args, signature, location, message);
         }
     }
