@@ -214,7 +214,7 @@ namespace microfmt {
             std::string str;
             std::size_t arg_i = 0;
             auto it = fmt_begin;
-            auto peek = [&] (std::size_t dist = 1) -> char { // 0 on failure
+            auto peek = [&] (std::size_t dist) -> char { // 0 on failure
                 if(it != fmt_end) {
                     return *(it + dist);
                 } else {
@@ -236,7 +236,7 @@ namespace microfmt {
             };
             while(it != fmt_end) {
                 if(*it == '{') {
-                    if(peek() == '{') {
+                    if(peek(1) == '{') {
                         // try to handle escape
                         str += '{';
                         it++;
@@ -255,7 +255,7 @@ namespace microfmt {
                         if(width != -1) {
                             options.width = width;
                         } else if(*it == '{') { // try to parse variable width
-                            MICROFMT_ASSERT(peek() == '}');
+                            MICROFMT_ASSERT(peek(1) == '}');
                             it += 2;
                             MICROFMT_ASSERT(arg_i < args.size());
                             options.width = args[arg_i++].unwrap_int();
@@ -285,7 +285,7 @@ namespace microfmt {
                     }
                 } else if(*it == '}') {
                     // parse }} escape
-                    if(peek() == '}') {
+                    if(peek(1) == '}') {
                         str += '}';
                         it++;
                     } else {
