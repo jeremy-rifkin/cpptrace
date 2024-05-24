@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <stdio.h>
 
-void trace() {
+void trace(void) {
     ctrace_raw_trace raw_trace = ctrace_generate_raw_trace(1, INT_MAX);
     ctrace_object_trace obj_trace = ctrace_resolve_raw_trace_to_object_trace(&raw_trace);
     ctrace_stacktrace trace = ctrace_resolve_object_trace(&obj_trace);
@@ -37,6 +37,6 @@ void function_one(int a) {
     function_two(0, 0);
 }
 
-int main() {
+int main(void) {
     function_one(0);
 }
