@@ -518,13 +518,12 @@ namespace cpptrace {
         // access
         stacktrace& lazy_trace_holder::get_resolved_trace() {
             if(!resolved) {
-                stacktrace new_trace;
+                raw_trace old_trace = std::move(trace);
+                *this = lazy_trace_holder(stacktrace{});
                 try {
-                    if(resolved_trace.empty() && !trace.empty()) {
-                        resolved_trace = trace.resolve();
-                        trace.clear();
+                    if(!old_trace.empty()) {
+                        resolved_trace = old_trace.resolve();
                     }
-                    new_trace = trace.resolve();
                 } catch(const std::exception& e) {
                     if(!detail::should_absorb_trace_exceptions()) {
                         // TODO: Append to message somehow?
@@ -535,9 +534,6 @@ namespace cpptrace {
                         );
                     }
                 }
-                trace.~raw_trace();
-                new (&resolved_trace) stacktrace(std::move(new_trace));
-                resolved = true;
             }
             return resolved_trace;
         }
