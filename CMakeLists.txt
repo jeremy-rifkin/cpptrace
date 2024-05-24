@@ -239,7 +239,7 @@ target_include_directories(
 
 set(
   warning_options
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef -Wpedantic>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
   $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wmaybe-uninitialized>
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
 )
@@ -248,7 +248,7 @@ if(CPPTRACE_WERROR_BUILD)
   set(
     warning_options
     ${warning_options}
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror -Wpedantic>
     $<$<CXX_COMPILER_ID:MSVC>:/WX>
   )
 endif()
