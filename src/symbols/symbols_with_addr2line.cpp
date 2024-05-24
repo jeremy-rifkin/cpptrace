@@ -61,12 +61,14 @@ namespace addr2line {
         return has_addr2line;
     }
 
+    struct pipe_ends {
+        int read;
+        int write;
+    };
+
     struct pipe_t {
         union {
-            struct {
-                int read;
-                int write;
-            } end;
+            pipe_ends end;
             int data[2];
         };
     };
