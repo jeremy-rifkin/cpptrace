@@ -98,7 +98,7 @@ namespace detail {
         // this method doesn't do anything and is never called.
     }
 
-    #define PHONY_USE(E) (nullfn<decltype(E)>())
+    #define PHONY_USE(...) (nullfn<decltype(__VA_ARGS__)>())
 
     // Work around a compiler warning
     template<typename T>
@@ -163,7 +163,7 @@ namespace detail {
      )
     #else
      // Check condition in both debug. std::runtime_error on failure.
-     #define ASSERT(c, ...) PHONY_USE(c)
+     #define ASSERT(...) PHONY_USE(__VA_ARGS__)
     #endif
 }
 }
