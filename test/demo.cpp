@@ -20,7 +20,7 @@ void foo(int n) {
 }
 
 template<typename... Args>
-void foo(int x, Args... args) {
+void foo(int, Args... args) {
     foo(args...);
 }
 

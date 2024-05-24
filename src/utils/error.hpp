@@ -54,11 +54,11 @@ namespace detail {
         const char* expression,
         const char* signature,
         source_location location,
-        const std::string& message = ""
+        const char* message
     ) {
         const char* action = assert_actions[static_cast<std::underlying_type<assert_type>::type>(type)];
         const char* name   = assert_names[static_cast<std::underlying_type<assert_type>::type>(type)];
-        if(message == "") {
+        if(message == nullptr) {
             throw internal_error(
                 "Cpptrace {} failed at {}:{}: {}\n"
                 "    {}({});\n",
@@ -69,7 +69,7 @@ namespace detail {
             throw internal_error(
                 "Cpptrace {} failed at {}:{}: {}: {}\n"
                 "    {}({});\n",
-                action, location.file, location.line, signature, message.c_str(),
+                action, location.file, location.line, signature, message,
                 name, expression
             );
         }
@@ -100,25 +100,13 @@ namespace detail {
 
     #define PHONY_USE(E) (nullfn<decltype(E)>())
 
-    // Workaround a compiler warning
+    // Work around a compiler warning
     template<typename T>
     bool as_bool(T&& value) {
         return static_cast<bool>(std::forward<T>(value));
     }
 
-    // Check condition in both debug and release. std::runtime_error on failure.
-    #define VERIFY(c, ...) ( \
-            (::cpptrace::detail::as_bool(c)) \
-                ? static_cast<void>(0) \
-                : (::cpptrace::detail::assert_fail)( \
-                    ::cpptrace::detail::assert_type::verify, \
-                    #c, \
-                    CPPTRACE_PFUNC, \
-                    {}, \
-                    ##__VA_ARGS__) \
-    )
-
-    // Workaround a compiler warning
+    // Work around a compiler warning
     template<typename T>
     std::string as_string(T&& value) {
         return std::string(std::forward<T>(value));
@@ -131,17 +119,47 @@ namespace detail {
     // Check condition in both debug and release. std::runtime_error on failure.
     #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, {}, ::cpptrace::detail::as_string(__VA_ARGS__)))
 
+    template<typename T>
+    void assert_impl(
+        T condition,
+        const char* message,
+        assert_type type,
+        const char* args,
+        const char* signature,
+        source_location location
+    ) {
+        if(!as_bool(condition)) {
+            assert_fail(type, args, signature, location, message);
+        }
+    }
+
+    template<typename T>
+    void assert_impl(
+        T condition,
+        assert_type type,
+        const char* args,
+        const char* signature,
+        source_location location
+    ) {
+        assert_impl(
+            condition,
+            nullptr,
+            type,
+            args,
+            signature,
+            location
+        );
+    }
+
+    // Check condition in both debug and release. std::runtime_error on failure.
+    #define VERIFY(...) ( \
+        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::verify, #__VA_ARGS__, CPPTRACE_PFUNC, {}) \
+    )
+
     #ifndef NDEBUG
      // Check condition in both debug. std::runtime_error on failure.
-     #define ASSERT(c, ...) ( \
-             (::cpptrace::detail::as_bool(c)) \
-                 ? static_cast<void>(0) \
-                 : (::cpptrace::detail::assert_fail)( \
-                    ::cpptrace::detail::assert_type::assert, \
-                    #c, \
-                    CPPTRACE_PFUNC, \
-                    {}, \
-                    ##__VA_ARGS__) \
+     #define ASSERT(...) ( \
+        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::assert, #__VA_ARGS__, CPPTRACE_PFUNC, {}) \
      )
     #else
      // Check condition in both debug. std::runtime_error on failure.

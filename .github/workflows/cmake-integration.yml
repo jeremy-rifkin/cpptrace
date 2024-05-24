@@ -21,7 +21,7 @@ jobs:
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            make
            ./main
   test-linux-findpackage:
@@ -37,7 +37,7 @@ jobs:
            tag=$(git rev-parse --abbrev-ref HEAD)
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            sudo make -j install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
@@ -61,7 +61,7 @@ jobs:
            cp -rv cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            make
            ./main
 
@@ -81,7 +81,7 @@ jobs:
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            make
            ./main
   test-macos-findpackage:
@@ -98,7 +98,7 @@ jobs:
            echo $tag
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            sudo make -j install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
@@ -122,7 +122,7 @@ jobs:
            cp -rv cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            make
            ./main
 
@@ -142,7 +142,7 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            make
            .\main.exe
   test-mingw-findpackage:
@@ -159,7 +159,7 @@ jobs:
            echo $tag
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} "-GUnix Makefiles" -DCMAKE_INSTALL_PREFIX=C:/foo
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} "-GUnix Makefiles" -DCMAKE_INSTALL_PREFIX=C:/foo -DCPPTRACE_WERROR_BUILD=On
            make -j install
            cd ../..
            mv cpptrace/test/findpackage-integration .
@@ -183,7 +183,7 @@ jobs:
            cp -Recurse cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            make
            .\main.exe
   test-windows-fetchcontent:
@@ -204,7 +204,7 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            msbuild demo_project.sln
            .\Debug\main.exe
   test-windows-findpackage:
@@ -223,7 +223,7 @@ jobs:
            echo $tag
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCMAKE_INSTALL_PREFIX=C:/foo
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCMAKE_INSTALL_PREFIX=C:/foo -DCPPTRACE_WERROR_BUILD=On
            msbuild cpptrace.sln
            msbuild INSTALL.vcxproj
            cd ../..
@@ -250,6 +250,6 @@ jobs:
            cp -Recurse cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}}
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            msbuild demo_project.sln
            .\Debug\main.exe

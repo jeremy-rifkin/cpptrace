@@ -29,11 +29,11 @@ void trace() {
 
 // padding to avoid upsetting existing trace expected files
 
-void www(std::string&&, const std::string& str, std::vector<std::string*>&& foobar) {
+void www(std::string&&, const std::string&, std::vector<std::string*>&&) {
     trace();
 }
 
-void jjj(void(*const arr[5])(float)) {
+void jjj(void(*const[5])(float)) {
     www(std::string{}, "", {});
 }
 
@@ -101,7 +101,7 @@ void foo(int n) {
 }
 
 template<typename... Args>
-void foo(int x, Args... args) {
+void foo(int, Args... args) {
     x = 0;
     foo(args...);
     x = 0;

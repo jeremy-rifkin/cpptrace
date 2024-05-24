@@ -69,7 +69,7 @@ namespace detail {
         WORD optional_header_magic = pe_byteswap_if_needed(optional_header_magic_raw.unwrap_value());
         VERIFY(
             optional_header_magic == IMAGE_NT_OPTIONAL_HDR_MAGIC,
-            "PE file does not match expected bit-mode " + object_path
+            ("PE file does not match expected bit-mode " + object_path).c_str()
         );
         // finally get image base
         if(optional_header_magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
