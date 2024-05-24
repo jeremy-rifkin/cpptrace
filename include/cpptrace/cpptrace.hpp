@@ -286,7 +286,7 @@ namespace cpptrace {
             };
         public:
             // constructors
-            lazy_trace_holder() : trace() {}
+            lazy_trace_holder() : resolved(false), trace() {}
             explicit lazy_trace_holder(raw_trace&& _trace) : resolved(false), trace(std::move(_trace)) {}
             explicit lazy_trace_holder(stacktrace&& _resolved_trace) : resolved(true), resolved_trace(std::move(_resolved_trace)) {}
             // logistics
