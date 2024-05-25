@@ -49,7 +49,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
 - [Library Back-Ends](#library-back-ends)
   - [Summary of Library Configurations](#summary-of-library-configurations)
 - [Testing Methodology](#testing-methodology)
-- [Notes About the Library and Future Work](#notes-about-the-library-and-future-work)
+- [Notes About the Library](#notes-about-the-library)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -966,7 +966,7 @@ unwinding back-end, and the python script will check for an exact or near-match 
 
 [1]: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
 
-# Notes About the Library and Future Work
+# Notes About the Library
 
 For the most part I'm happy with the state of the library. But I'm sure that there is room for improvement and issues
 will exist. If you encounter any issue, please let me know! If you find any pain-points in the library, please let me
@@ -980,9 +980,6 @@ A couple things I'd like to improve in the future:
 - On Windows when collecting symbols with dbghelp (msvc/clang) parameter types are almost perfect but due to limitations
   in dbghelp the library cannot accurately show const and volatile qualifiers or rvalue references (these appear as
   pointers).
-
-A couple features I'd like to add in the future:
-- Tracing other thread's stacks
 
 # Contributing
 
