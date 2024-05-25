@@ -94,6 +94,9 @@ endif()
 
 if(UNIX AND NOT APPLE)
   check_support(HAS_DL_FIND_OBJECT has_dl_find_object.cpp "" "" "")
+  if(NOT HAS_DL_FIND_OBJECT)
+    check_support(HAS_DLADDR1 has_dladdr1.cpp "" "" "")
+  endif()
 endif()
 
 # =============================================== Autoconfig unwinding ===============================================
@@ -314,6 +317,10 @@ endif()
 
 if(HAS_DL_FIND_OBJECT)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_HAS_DL_FIND_OBJECT)
+endif()
+
+if(HAS_DLADDR1)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_HAS_DLADDR1)
 endif()
 
 # Symbols
