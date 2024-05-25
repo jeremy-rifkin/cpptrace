@@ -28,7 +28,7 @@ namespace libdwarf {
     static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
 
-    [[noreturn]] void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
+    [[noreturn]] inline void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
         Dwarf_Unsigned ev = dwarf_errno(error);
         char* msg = dwarf_errmsg(error);
         (void)dbg;
@@ -451,7 +451,7 @@ namespace libdwarf {
     // walk die list, callback is called on each die and should return true to
     // continue traversal
     // returns true if traversal should continue
-    bool walk_die_list(
+    inline bool walk_die_list(
         const die_object& die,
         const std::function<bool(const die_object&)>& fn
     ) {
@@ -474,7 +474,7 @@ namespace libdwarf {
     // walk die list, recursing into children, callback is called on each die
     // and should return true to continue traversal
     // returns true if traversal should continue
-    bool walk_die_list_recursive(
+    inline bool walk_die_list_recursive(
         const die_object& die,
         const std::function<bool(const die_object&)>& fn
     ) {
