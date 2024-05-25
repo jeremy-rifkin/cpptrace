@@ -154,7 +154,7 @@ namespace libdwarf {
                 symbols.end(),
                 frame_info.object_address,
                 [] (
-                    Dwarf_Addr pc,
+                    uint64_t pc,
                     const debug_map_symbol_info& symbol
                 ) {
                     return pc < symbol.source_address;
