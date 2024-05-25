@@ -809,16 +809,17 @@ namespace libdwarf {
             }
         }
 
+        struct cu_info {
+            maybe_owned_die_object cu_die;
+            Dwarf_Half dwversion;
+        };
+
+        // CU resolution has three paths:
+        // - If aranges are present, the pc is looked up in aranges (falls through to next cases if not in aranges)
+        // - If cache mode is prioritize memory, the CUs are walked for a match
+        // - Otherwise a CU cache is built up and CUs are looked up in the map
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        void lookup_pc(
-            Dwarf_Addr pc,
-            stacktrace_frame& frame,
-            std::vector<stacktrace_frame>& inlines
-        ) {
-            if(dump_dwarf) {
-                std::fprintf(stderr, "%s\n", object_path.c_str());
-                std::fprintf(stderr, "%llx\n", to_ull(pc));
-            }
+        optional<cu_info> lookup_cu(Dwarf_Addr pc) {
             // Check for .debug_aranges for fast lookup
             if(aranges) {
                 // Try to find pc in aranges
@@ -838,9 +839,8 @@ namespace libdwarf {
                         std::fprintf(stderr, "Found CU in aranges\n");
                         cu_die.print();
                     }
-                    retrieve_line_info(cu_die, pc, frame); // no offset for line info
-                    retrieve_symbol(cu_die, pc, dwversion, frame, inlines);
-                    return;
+                    // resolve_pc(cu_die, dwversion, pc, frame, inlines);
+                    return cu_info{maybe_owned_die_object::owned(std::move(cu_die)), dwversion};
                 }
             }
             // otherwise, or if not in aranges
@@ -849,7 +849,8 @@ namespace libdwarf {
             // compiler while the C compiler defaults to an older gcc)
             if(get_cache_mode() == cache_mode::prioritize_memory) {
                 // walk for the cu and go from there
-                walk_compilation_units([this, pc, &frame, &inlines] (const die_object& cu_die) {
+                optional<cu_info> info;
+                walk_compilation_units([pc, &info] (const die_object& cu_die) {
                     Dwarf_Half offset_size = 0;
                     Dwarf_Half dwversion = 0;
                     dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
@@ -869,12 +870,13 @@ namespace libdwarf {
                                 to_ull(pc)
                             );
                         }
-                        retrieve_line_info(cu_die, pc, frame); // no offset for line info
-                        retrieve_symbol(cu_die, pc, dwversion, frame, inlines);
+                        // resolve_pc(cu_die, dwversion, pc, frame, inlines);
+                        info = cu_info{maybe_owned_die_object::owned(cu_die.clone()), dwversion};
                         return false;
                     }
                     return true;
                 });
+                return info;
             } else {
                 lazy_generate_cu_cache();
                 // look up the cu
@@ -890,14 +892,33 @@ namespace libdwarf {
                 if(vec_it != cu_cache.end()) {
                     //vec_it->die.print();
                     if(vec_it->die.pc_in_die(vec_it->dwversion, pc)) {
-                        retrieve_line_info(vec_it->die, pc, frame); // no offset for line info
-                        retrieve_symbol(vec_it->die, pc, vec_it->dwversion, frame, inlines);
+                        // resolve_pc(vec_it->die, vec_it->dwversion, pc, frame, inlines);
+                        return cu_info{maybe_owned_die_object::ref(vec_it->die), vec_it->dwversion};
                     }
                 } else {
                     // I've had this happen for _start, where there is a cached CU for the object but _start is outside
                     // of the CU's PC range
                     // ASSERT(cu_cache.size() == 0, "Vec should be empty?");
                 }
+                return nullopt;
+            }
+        }
+
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+        void resolve_pc(
+            Dwarf_Addr pc,
+            stacktrace_frame& frame,
+            std::vector<stacktrace_frame>& inlines
+        ) {
+            if(dump_dwarf) {
+                std::fprintf(stderr, "%s\n", object_path.c_str());
+                std::fprintf(stderr, "%llx\n", to_ull(pc));
+            }
+            optional<cu_info> cu = lookup_cu(pc);
+            if(cu) {
+                const auto& cu_die = cu.unwrap().cu_die.get();
+                retrieve_line_info(cu_die, pc, frame);
+                retrieve_symbol(cu_die, pc, cu.unwrap().dwversion, frame, inlines);
             }
         }
 
@@ -931,7 +952,7 @@ namespace libdwarf {
                 );
             }
             std::vector<stacktrace_frame> inlines;
-            lookup_pc(
+            resolve_pc(
                 frame_info.object_address,
                 frame,
                 inlines

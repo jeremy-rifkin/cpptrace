@@ -491,6 +491,29 @@ namespace libdwarf {
             }
         );
     }
+
+    class maybe_owned_die_object {
+        // Hacky... I wish std::variant existed.
+        optional<die_object> owned_die;
+        optional<const die_object*> ref_die;
+        maybe_owned_die_object(die_object&& die) : owned_die(std::move(die)) {}
+        maybe_owned_die_object(const die_object& die) : ref_die(&die) {}
+    public:
+        static maybe_owned_die_object owned(die_object&& die) {
+            return maybe_owned_die_object{std::move(die)};
+        }
+        static maybe_owned_die_object ref(const die_object& die) {
+            return maybe_owned_die_object{die};
+        }
+        const die_object& get() {
+            ASSERT(owned_die || ref_die, "Mal-formed maybe_owned_die_object");
+            if(owned_die) {
+                return owned_die.unwrap();
+            } else {
+                return *ref_die.unwrap();
+            }
+        }
+    };
 }
 }
 }
