@@ -22,6 +22,7 @@ namespace detail {
         std::pair<std::reference_wrapper<const object_frame>, std::reference_wrapper<frame_with_inlines>>
     >;
 
+    // These two helpers create a map from a target object to a vector of frames to resolve
     std::unordered_map<std::string, collated_vec> collate_frames(
         const std::vector<object_frame>& frames,
         std::vector<stacktrace_frame>& trace

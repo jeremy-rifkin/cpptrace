@@ -8,11 +8,12 @@
 
 namespace cpptrace {
 namespace detail {
-    std::unordered_map<std::string, collated_vec> collate_frames(
+    template<typename CollatedVec, typename Entry>
+    std::unordered_map<std::string, CollatedVec> collate_frames(
         const std::vector<object_frame>& frames,
-        std::vector<stacktrace_frame>& trace
+        std::vector<Entry>& trace
     ) {
-        std::unordered_map<std::string, collated_vec> entries;
+        std::unordered_map<std::string, CollatedVec> entries;
         for(std::size_t i = 0; i < frames.size(); i++) {
             const auto& entry = frames[i];
             // If libdl fails to find the shared object for a frame, the path will be empty. I've observed this
@@ -26,24 +27,18 @@ namespace detail {
         }
         return entries;
     }
-    // TODO: Refactor to eliminate the code duplication
+
+    std::unordered_map<std::string, collated_vec> collate_frames(
+        const std::vector<object_frame>& frames,
+        std::vector<stacktrace_frame>& trace
+    ) {
+        return collate_frames<collated_vec>(frames, trace);
+    }
     std::unordered_map<std::string, collated_vec_with_inlines> collate_frames(
         const std::vector<object_frame>& frames,
         std::vector<frame_with_inlines>& trace
     ) {
-        std::unordered_map<std::string, collated_vec_with_inlines> entries;
-        for(std::size_t i = 0; i < frames.size(); i++) {
-            const auto& entry = frames[i];
-            // If libdl fails to find the shared object for a frame, the path will be empty. I've observed this
-            // on macos when looking up the shared object containing `start`.
-            if(!entry.object_path.empty()) {
-                entries[entry.object_path].emplace_back(
-                    entry,
-                    trace[i]
-                );
-            }
-        }
-        return entries;
+        return collate_frames<collated_vec_with_inlines>(frames, trace);
     }
 
     /*
