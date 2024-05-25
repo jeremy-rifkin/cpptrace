@@ -570,6 +570,18 @@ namespace detail {
     }
 
     using file_wrapper = raii_wrapper<std::FILE*, void(*)(std::FILE*)>;
+
+    template<typename T>
+    class maybe_owned {
+        std::unique_ptr<T> owned;
+        T* ptr;
+    public:
+        maybe_owned(T* ptr) : ptr(ptr) {}
+        maybe_owned(std::unique_ptr<T>&& owned) : owned(std::move(owned)), ptr(this->owned.get()) {}
+        T* operator->() {
+            return ptr;
+        }
+    };
 }
 }
 

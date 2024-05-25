@@ -1159,28 +1159,36 @@ namespace libdwarf {
         return std::unique_ptr<dwarf_resolver>(new dwarf_resolver(object_path));
     }
 
+    // not thread-safe, replies on caller to lock
+    maybe_owned<symbol_resolver> get_resolver(const std::string& object_name) {
+        // cache resolvers since objects are likely to be traced more than once
+        static std::unordered_map<std::string, std::unique_ptr<symbol_resolver>> resolver_map;
+        auto it = resolver_map.find(object_name);
+        if(it != resolver_map.end()) {
+            return it->second.get();
+        } else {
+            std::unique_ptr<symbol_resolver> resolver_object = get_resolver_for_object(object_name);
+            if(get_cache_mode() == cache_mode::prioritize_speed) {
+                // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
+                return resolver_map.emplace(object_name, std::move(resolver_object)).first->second.get();
+            } else {
+                return resolver_object;
+            }
+        }
+    }
+
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         std::vector<frame_with_inlines> trace(frames.size(), {null_frame, {}});
-        static std::mutex mutex;
-        // cache resolvers since objects are likely to be traced more than once
-        static std::unordered_map<std::string, std::unique_ptr<symbol_resolver>> resolver_map;
         // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
-        // And also interactions with the above static map
+        // And also locking for interactions with get_resolver
+        static std::mutex mutex;
         const std::lock_guard<std::mutex> lock(mutex);
-        for(const auto& object_entry : collate_frames(frames, trace)) {
+        for(const auto& group : collate_frames(frames, trace)) {
             try {
-                const auto& object_name = object_entry.first;
-                std::unique_ptr<symbol_resolver> resolver_object;
-                symbol_resolver* resolver = nullptr;
-                auto it = resolver_map.find(object_name);
-                if(it != resolver_map.end()) {
-                    resolver = it->second.get();
-                } else {
-                    resolver_object = get_resolver_for_object(object_name);
-                    resolver = resolver_object.get();
-                }
-                for(const auto& entry : object_entry.second) {
+                const auto& object_name = group.first;
+                auto resolver = get_resolver(object_name);
+                for(const auto& entry : group.second) {
                     const auto& dlframe = entry.first.get();
                     auto& frame = entry.second.get();
                     try {
@@ -1194,15 +1202,11 @@ namespace libdwarf {
                         }
                     }
                 }
-                if(resolver_object && get_cache_mode() == cache_mode::prioritize_speed) {
-                    // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
-                    resolver_map.emplace(object_name, std::move(resolver_object));
-                }
             } catch(...) { // NOSONAR
                 if(!should_absorb_trace_exceptions()) {
                     throw;
                 }
-                for(const auto& entry : object_entry.second) {
+                for(const auto& entry : group.second) {
                     const auto& dlframe = entry.first.get();
                     auto& frame = entry.second.get();
                     frame = {
