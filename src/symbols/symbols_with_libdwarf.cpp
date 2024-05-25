@@ -1177,54 +1177,8 @@ namespace libdwarf {
         }
     }
 
-    CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-    std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
-        std::vector<frame_with_inlines> trace(frames.size(), {null_frame, {}});
-        // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
-        // And also locking for interactions with get_resolver
-        static std::mutex mutex;
-        const std::lock_guard<std::mutex> lock(mutex);
-        for(const auto& group : collate_frames(frames, trace)) {
-            try {
-                const auto& object_name = group.first;
-                auto resolver = get_resolver(object_name);
-                for(const auto& entry : group.second) {
-                    const auto& dlframe = entry.first.get();
-                    auto& frame = entry.second.get();
-                    try {
-                        frame = resolver->resolve_frame(dlframe);
-                    } catch(...) {
-                        frame.frame.raw_address = dlframe.raw_address;
-                        frame.frame.object_address = dlframe.object_address;
-                        frame.frame.filename = dlframe.object_path;
-                        if(!should_absorb_trace_exceptions()) {
-                            throw;
-                        }
-                    }
-                }
-            } catch(...) { // NOSONAR
-                if(!should_absorb_trace_exceptions()) {
-                    throw;
-                }
-                for(const auto& entry : group.second) {
-                    const auto& dlframe = entry.first.get();
-                    auto& frame = entry.second.get();
-                    frame = {
-                        {
-                            dlframe.raw_address,
-                            dlframe.object_address,
-                            nullable<std::uint32_t>::null(),
-                            nullable<std::uint32_t>::null(),
-                            dlframe.object_path,
-                            "",
-                            false
-                        },
-                        {}
-                    };
-                }
-            }
-        }
-        // flatten trace with inlines
+    // flatten trace with inlines
+    std::vector<stacktrace_frame> flatten_inlines(const std::vector<frame_with_inlines>& trace) {
         std::vector<stacktrace_frame> final_trace;
         for(const auto& entry : trace) {
             // most recent call first
@@ -1256,6 +1210,60 @@ namespace libdwarf {
             }
         }
         return final_trace;
+    }
+
+    CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+    std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
+        std::vector<frame_with_inlines> trace(frames.size(), {null_frame, {}});
+        // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
+        // And also locking for interactions with get_resolver
+        static std::mutex mutex;
+        const std::lock_guard<std::mutex> lock(mutex);
+        for(const auto& group : collate_frames(frames, trace)) {
+            try {
+                const auto& object_name = group.first;
+                auto resolver = get_resolver(object_name);
+                for(const auto& entry : group.second) {
+                    const auto& dlframe = entry.first.get();
+                    auto& frame = entry.second.get();
+                    try {
+                        frame = resolver->resolve_frame(dlframe);
+                    } catch(...) {
+                        frame.frame.raw_address = dlframe.raw_address;
+                        frame.frame.object_address = dlframe.object_address;
+                        frame.frame.filename = dlframe.object_path;
+                        if(!should_absorb_trace_exceptions()) {
+                            throw;
+                        }
+                    }
+                }
+            } catch(...) { // NOSONAR
+                if(!should_absorb_trace_exceptions()) {
+                    throw;
+                }
+            }
+        }
+        // fill in basic info for any frames where there were resolution issues
+        for(std::size_t i = 0; i < frames.size(); i++) {
+            const auto& dlframe = frames[i];
+            auto& frame = trace[i];
+            if(frame.frame == null_frame) {
+                frame = {
+                    {
+                        dlframe.raw_address,
+                        dlframe.object_address,
+                        nullable<std::uint32_t>::null(),
+                        nullable<std::uint32_t>::null(),
+                        dlframe.object_path,
+                        "",
+                        false
+                    },
+                    {}
+                };
+            }
+        }
+        // flatten and finish
+        return flatten_inlines(trace);
     }
 }
 }
