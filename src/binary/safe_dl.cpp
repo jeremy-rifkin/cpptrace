@@ -23,7 +23,7 @@ namespace detail {
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
         out->raw_address = address;
         dl_find_object result;
-        if(_dl_find_object(reinterpret_cast<void*>(address), &result) == 0) {
+        if(_dl_find_object(reinterpret_cast<void*>(address), &result) == 0) { // thread-safe, signal-safe
             out->address_relative_to_object_start = address - to_frame_ptr(result.dlfo_link_map->l_addr);
             if(result.dlfo_link_map->l_name != nullptr && result.dlfo_link_map->l_name[0] != 0) {
                 std::size_t path_length = std::strlen(result.dlfo_link_map->l_name);
@@ -35,6 +35,7 @@ namespace detail {
             } else {
                 // empty l_name, this means it's the currently running executable
                 memset(out->object_path, 0, CPPTRACE_PATH_MAX + 1);
+                // signal-safe
                 auto res = readlink("/proc/self/exe", out->object_path, CPPTRACE_PATH_MAX);
                 if(res == -1) {
                     // error handling?

@@ -39,6 +39,9 @@ namespace detail {
         }
     }
     #endif
+    // dladdr queries are needed to get pre-ASLR addresses and targets to run symbol resolution on
+    // _dl_find_object is preferred if at all possible as it is much faster (added in glibc 2.35)
+    // dladdr1 is preferred if possible because it allows for a more accurate object path to be resolved (glibc 2.3.3)
     #ifdef CPPTRACE_HAS_DL_FIND_OBJECT // we don't even check for this on apple
     object_frame get_frame_object_info(frame_ptr address) {
         // Use _dl_find_object when we can, it's orders of magnitude faster
@@ -53,9 +56,7 @@ namespace detail {
         return frame;
     }
     #elif defined(HAS_DLADDR1)
-    // dladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
     object_frame get_frame_object_info(frame_ptr address) {
-        // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
         // https://github.com/bminor/glibc/blob/91695ee4598b39d181ab8df579b888a8863c4cab/elf/dl-addr.c#L26
         Dl_info info;
         link_map* link_map_info;
@@ -79,9 +80,9 @@ namespace detail {
         return frame;
     }
     #else
-    // TODO: Try to verify this is correct in the context of bad argv[0]
-    // macos doesn't have dladdr1 but it seems its dli_fname behaves more sensibly?
-    // dladdr queries are needed to get pre-ASLR addresses and targets to run addr2line on
+    // glibc dladdr may not return an accurate dli_fname as it uses argv[0] for addresses in the main executable
+    // https://github.com/bminor/glibc/blob/caed1f5c0b2e31b5f4e0f21fea4b2c9ecd3b5b30/elf/dl-addr.c#L33-L36
+    // macos doesn't have dladdr1 but its dli_fname behaves more sensibly, same with some other libc's like musl
     object_frame get_frame_object_info(frame_ptr address) {
         // reference: https://github.com/bminor/glibc/blob/master/debug/backtracesyms.c
         Dl_info info;
@@ -111,7 +112,6 @@ namespace detail {
         if(it == cache.end()) {
             char path[MAX_PATH];
             if(GetModuleFileNameA(handle, path, sizeof(path))) {
-                ///std::fprintf(stderr, "path: %s base: %p\n", path, handle);
                 cache.insert(it, {handle, path});
                 return path;
             } else {
