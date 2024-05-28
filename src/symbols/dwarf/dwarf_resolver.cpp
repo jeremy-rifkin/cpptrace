@@ -713,6 +713,10 @@ namespace libdwarf {
             Dwarf_Addr pc,
             stacktrace_frame& frame
         ) {
+            // For debug fission the skeleton debug info will have the line table
+            if(skeleton) {
+                return skeleton.unwrap().resolver.retrieve_line_info(skeleton.unwrap().cu_die, pc, frame);
+            }
             auto table_info_opt = get_line_table(cu_die);
             if(!table_info_opt) {
                 return; // failing silently for now
@@ -933,16 +937,7 @@ namespace libdwarf {
             }
         }
 
-        void do_line_resolution_for_full_frame(const die_object& cu_die, stacktrace_frame& frame) {
-            stacktrace_frame line_frame;
-            retrieve_line_info(cu_die, frame.object_address, line_frame);
-            frame.filename = line_frame.filename;
-            frame.line = line_frame.line;
-            frame.column = line_frame.column;
-        }
-
         void perform_dwarf_fission_resolution(
-            Dwarf_Addr pc,
             const die_object& cu_die,
             const optional<std::string>& dwo_name,
             const object_frame& object_frame_info,
@@ -966,8 +961,7 @@ namespace libdwarf {
             // TODO: What is dwp????
             // TODO: dwarf_cu_header_basics passes out an is_dwo flag
             // TODO: dwarf_get_xu_index_header???
-            // Symbol loading is done in the dwo
-            // Line loading is done in the skeleton
+            // Symbol loading is done in the dwo, line loading is deferred back to the skeleton
             if(dwo_name) {
                 auto comp_dir = cu_die.get_string_attribute(DW_AT_comp_dir);
                 Dwarf_Half offset_size = 0;
@@ -987,20 +981,18 @@ namespace libdwarf {
                     skeleton_info{cu_die.clone(), dwversion, *this}
                 );
                 auto res = resolver.resolve_frame(object_frame_info);
-                frame = res.frame;
-                inlines = res.inlines;
+                frame = std::move(res.frame);
+                inlines = std::move(res.inlines);
             }
-            // We need to resolve the main frame
-            do_line_resolution_for_full_frame(cu_die, frame);
         }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        void resolve_pc(
-            Dwarf_Addr pc,
+        void resolve_frame_core(
             const object_frame& object_frame_info,
             stacktrace_frame& frame,
             std::vector<stacktrace_frame>& inlines
         ) {
+            auto pc = object_frame_info.object_address;
             if(dump_dwarf) {
                 std::fprintf(stderr, "%s\n", object_path.c_str());
                 std::fprintf(stderr, "%llx\n", to_ull(pc));
@@ -1011,7 +1003,7 @@ namespace libdwarf {
                 // gnu non-standard debug-fission may create non-skeleton CU DIEs and just add dwo attributes
                 auto dwo_name = get_dwo_name(cu_die);
                 if(cu_die.get_tag() == DW_TAG_skeleton_unit || dwo_name) {
-                    perform_dwarf_fission_resolution(pc, cu_die, dwo_name, object_frame_info, frame, inlines);
+                    perform_dwarf_fission_resolution(cu_die, dwo_name, object_frame_info, frame, inlines);
                 } else {
                     retrieve_line_info(cu_die, pc, frame);
                     retrieve_symbol(cu_die, pc, cu.unwrap().dwversion, frame, inlines);
@@ -1049,8 +1041,7 @@ namespace libdwarf {
                 );
             }
             std::vector<stacktrace_frame> inlines;
-            resolve_pc(
-                frame_info.object_address,
+            resolve_frame_core(
                 frame_info,
                 frame,
                 inlines
