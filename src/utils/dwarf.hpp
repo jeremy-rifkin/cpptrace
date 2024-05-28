@@ -389,13 +389,10 @@ namespace libdwarf {
         // callback should return true to keep going
         void dwarf_ranges(int version, F callback) const {
             Dwarf_Addr lowpc = (std::numeric_limits<Dwarf_Addr>::max)();
-            std::cout<<1<<std::endl;
             if(wrap(dwarf_lowpc, die, &lowpc) == DW_DLV_OK) {
-                std::cout<<2<<std::endl;
                 Dwarf_Addr highpc = 0;
                 enum Dwarf_Form_Class return_class;
                 if(wrap(dwarf_highpc_b, die, &highpc, nullptr, &return_class) == DW_DLV_OK) {
-                    std::cout<<3<<std::endl;
                     if(return_class == DW_FORM_CLASS_CONSTANT) {
                         highpc += lowpc;
                     }
@@ -404,7 +401,6 @@ namespace libdwarf {
                     }
                 }
             }
-            std::cout<<4<<std::endl;
             if(version >= 5) {
                 dwarf5_ranges(callback);
             } else {
@@ -520,6 +516,15 @@ namespace libdwarf {
             }
         }
     };
+
+    inline bool pc_in_rangelist(const rangelist_entries& vec, Dwarf_Addr pc) {
+        for(const auto& item : vec) {
+            if(pc >= item.first && pc < item.second) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 }
 }
