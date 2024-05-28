@@ -516,15 +516,6 @@ namespace libdwarf {
             }
         }
     };
-
-    inline bool pc_in_rangelist(const rangelist_entries& vec, Dwarf_Addr pc) {
-        for(const auto& item : vec) {
-            if(pc >= item.first && pc < item.second) {
-                return true;
-            }
-        }
-        return false;
-    }
 }
 }
 }
