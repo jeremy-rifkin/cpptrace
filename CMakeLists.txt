@@ -246,7 +246,7 @@ set(
   warning_options
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
   $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wmaybe-uninitialized>
-  $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
+  $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
 )
 
 if(CPPTRACE_WERROR_BUILD)
