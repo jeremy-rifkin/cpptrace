@@ -572,14 +572,16 @@ namespace cpptrace {
 
 # Supported Debug Formats
 
-| Format                                           | Supported |
-| ------------------------------------------------ | --------- |
-| DWARF in binary                                  | ✔️      |
-| DWARF in separate binary (binary gnu debug link) | ️️✔️  |
-| DWARF in separate binary (split dwarf)           | ✔️      |
-| DWARF in dSYM                                    | ✔️      |
-| DWARF in via Mach-O debug map                    | ✔️      |
-| Windows debug symbols in PDB                     | ✔️      |
+| Format                            | Supported |
+| --------------------------------- | --------- |
+| DWARF in binary                   | ✔️      |
+| GNU debug link                    | ️️✔️      |
+| Split dwarf (debug fission)       | ✔️*     |
+| DWARF in dSYM                     | ✔️      |
+| DWARF via Mach-O debug map        | ✔️      |
+| Windows debug symbols in PDB      | ✔️      |
+
+*There seem to be a couple issues upstream with libdwarf however they will hopefully be resolved soon.
 
 DWARF5 added DWARF package files. As far as I can tell no compiler implements these yet.
 

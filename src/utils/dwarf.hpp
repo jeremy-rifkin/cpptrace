@@ -28,6 +28,8 @@ namespace libdwarf {
     static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
 
+    using rangelist_entries = std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>>;
+
     [[noreturn]] inline void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
         Dwarf_Unsigned ev = dwarf_errno(error);
         char* msg = dwarf_errmsg(error);
@@ -406,8 +408,8 @@ namespace libdwarf {
             }
         }
 
-        std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> get_rangelist_entries(int version) const {
-            std::vector<std::pair<Dwarf_Addr, Dwarf_Addr>> vec;
+        rangelist_entries get_rangelist_entries(int version) const {
+            rangelist_entries vec;
             dwarf_ranges(version, [&vec] (Dwarf_Addr low, Dwarf_Addr high) {
                 // Simple coalescing optimization:
                 // Sometimes the range list entries are really continuous: [100, 200), [200, 300)

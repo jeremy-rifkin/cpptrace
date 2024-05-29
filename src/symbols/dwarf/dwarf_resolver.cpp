@@ -8,6 +8,7 @@
 #include "../../utils/dwarf.hpp" // has dwarf #includes
 #include "../../utils/error.hpp"
 #include "../../utils/utils.hpp"
+#include "../../utils/path.hpp"
 #include "../../utils/program_name.hpp" // For CPPTRACE_MAX_PATH
 #include "../../binary/mach-o.hpp"
 
@@ -67,6 +68,15 @@ namespace libdwarf {
         std::vector<line_entry> line_entries;
     };
 
+    class dwarf_resolver;
+
+    // used to describe data from an upstream binary to a resolver for the .dwo
+    struct skeleton_info {
+        die_object cu_die;
+        Dwarf_Half dwversion;
+        dwarf_resolver& resolver;
+    };
+
     class dwarf_resolver : public symbol_resolver {
         std::string object_path;
         Dwarf_Debug dbg = nullptr;
@@ -83,6 +93,10 @@ namespace libdwarf {
         bool generated_cu_cache = false;
         // Map from CU -> {srcfiles, count}
         std::unordered_map<Dwarf_Off, std::pair<char**, Dwarf_Signed>> srcfiles_cache;
+        // Map from CU -> split full cu resolver
+        std::unordered_map<Dwarf_Off, std::unique_ptr<dwarf_resolver>> split_full_cu_resolvers;
+        // info for resolving a dwo object
+        optional<skeleton_info> skeleton;
 
     private:
         // Error handling helper
@@ -112,8 +126,10 @@ namespace libdwarf {
 
     public:
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        dwarf_resolver(const std::string& _object_path) {
-            object_path = _object_path;
+        dwarf_resolver(const std::string& object_path_, optional<skeleton_info> split_ = nullopt)
+            : object_path(object_path_),
+              skeleton(std::move(split_))
+        {
             // use a buffer when invoking dwarf_init_path, which allows it to automatically find debuglink or dSYM
             // sources
             bool use_buffer = true;
@@ -170,6 +186,10 @@ namespace libdwarf {
                 PANIC("Unknown return code from dwarf_init_path");
             }
 
+            if(skeleton) {
+                VERIFY(wrap(dwarf_set_tied_dbg, dbg, skeleton.unwrap().resolver.dbg) == DW_DLV_OK);
+            }
+
             if(ok) {
                 // Check for .debug_aranges for fast lookup
                 wrap(dwarf_get_aranges, dbg, &aranges, &arange_count);
@@ -197,38 +217,8 @@ namespace libdwarf {
 
         dwarf_resolver(const dwarf_resolver&) = delete;
         dwarf_resolver& operator=(const dwarf_resolver&) = delete;
-
-        dwarf_resolver(dwarf_resolver&& other) noexcept :
-            object_path(std::move(other.object_path)),
-            dbg(other.dbg),
-            ok(other.ok),
-            aranges(other.aranges),
-            arange_count(other.arange_count),
-            line_tables(std::move(other.line_tables)),
-            subprograms_cache(std::move(other.subprograms_cache)),
-            cu_cache(std::move(other.cu_cache)),
-            generated_cu_cache(other.generated_cu_cache),
-            srcfiles_cache(std::move(other.srcfiles_cache))
-        {
-            other.dbg = nullptr;
-            other.aranges = nullptr;
-        }
-
-        dwarf_resolver& operator=(dwarf_resolver&& other) noexcept {
-            object_path = std::move(other.object_path);
-            dbg = other.dbg;
-            ok = other.ok;
-            aranges = other.aranges;
-            arange_count = other.arange_count;
-            line_tables = std::move(other.line_tables);
-            subprograms_cache = std::move(other.subprograms_cache);
-            cu_cache = std::move(other.cu_cache);
-            generated_cu_cache = other.generated_cu_cache;
-            srcfiles_cache = std::move(other.srcfiles_cache);
-            other.dbg = nullptr;
-            other.aranges = nullptr;
-            return *this;
-        }
+        dwarf_resolver(dwarf_resolver&&) = delete;
+        dwarf_resolver& operator=(dwarf_resolver&&) = delete;
 
     private:
         // walk all CU's in a dbg, callback is called on each die and should return true to
@@ -285,11 +275,24 @@ namespace libdwarf {
                     Dwarf_Half offset_size = 0;
                     Dwarf_Half dwversion = 0;
                     dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
-                    auto ranges_vec = cu_die.get_rangelist_entries(dwversion);
-                    for(auto range : ranges_vec) {
-                        cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
+                    if(skeleton) {
+                        // NOTE: If we have a corresponding skeleton, we assume we have one CU matching the skeleton CU
+                        // Precedence for this assumption is https://dwarfstd.org/doc/DWARF5.pdf#subsection.3.1.3
+                        // TODO: Also assuming same dwversion
+                        auto ranges_vec = skeleton.unwrap().cu_die.get_rangelist_entries(dwversion);
+                        for(auto range : ranges_vec) {
+                            // TODO: Reduce cloning here
+                            cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
+                        }
+                        return false;
+                    } else {
+                        auto ranges_vec = cu_die.get_rangelist_entries(dwversion);
+                        for(auto range : ranges_vec) {
+                            // TODO: Reduce cloning here
+                            cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
+                        }
+                        return true;
                     }
-                    return true;
                 });
                 std::sort(cu_cache.begin(), cu_cache.end(), [] (const cu_entry& a, const cu_entry& b) {
                     return a.low < b.low;
@@ -327,6 +330,10 @@ namespace libdwarf {
 
         // despite (some) dwarf using 1-indexing, file_i should be the 0-based index
         std::string resolve_filename(const die_object& cu_die, Dwarf_Unsigned file_i) {
+            // for split-dwarf line resolution happens in the skeleton
+            if(skeleton) {
+                return skeleton.unwrap().resolver.resolve_filename(skeleton.unwrap().cu_die, file_i);
+            }
             std::string filename;
             if(get_cache_mode() == cache_mode::prioritize_memory) {
                 char** dw_srcfiles;
@@ -382,10 +389,18 @@ namespace libdwarf {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
                             const auto name = subprogram_symbol(die, dwversion);
                             auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
+                            // TODO: Refactor.... Probably put logic in resolve_filename.
                             if(file_i) {
                                 // for dwarf 2, 3, 4, and experimental line table version 0xfe06 1-indexing is used
                                 // for dwarf 5 0-indexing is used
-                                auto line_table_opt = get_line_table(cu_die);
+                                optional<std::reference_wrapper<line_table_info>> line_table_opt;
+                                if(skeleton) {
+                                    line_table_opt = skeleton.unwrap().resolver.get_line_table(
+                                        skeleton.unwrap().cu_die
+                                    );
+                                } else {
+                                    line_table_opt = get_line_table(cu_die);
+                                }
                                 if(line_table_opt) {
                                     auto& line_table = line_table_opt.unwrap().get();
                                     if(line_table.version != 5) {
@@ -518,6 +533,7 @@ namespace libdwarf {
                                 auto ranges_vec = die.get_rangelist_entries(dwversion);
                                 // TODO: Feels super inefficient and some day should maybe use an interval tree.
                                 for(auto range : ranges_vec) {
+                                    // TODO: Reduce cloning here
                                     vec.push_back({ die.clone(), range.first, range.second });
                                 }
                                 // Walk children to get things like lambdas
@@ -587,7 +603,6 @@ namespace libdwarf {
                 );
                 // If the vector has been empty this can happen
                 if(vec_it != vec.end()) {
-                    //vec_it->die.print();
                     if(vec_it->die.pc_in_die(dwversion, pc)) {
                         frame.symbol = retrieve_symbol_for_subprogram(cu_die, vec_it->die, pc, dwversion, inlines);
                     }
@@ -699,6 +714,10 @@ namespace libdwarf {
             Dwarf_Addr pc,
             stacktrace_frame& frame
         ) {
+            // For debug fission the skeleton debug info will have the line table
+            if(skeleton) {
+                return skeleton.unwrap().resolver.retrieve_line_info(skeleton.unwrap().cu_die, pc, frame);
+            }
             auto table_info_opt = get_line_table(cu_die);
             if(!table_info_opt) {
                 return; // failing silently for now
@@ -821,7 +840,7 @@ namespace libdwarf {
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         optional<cu_info> lookup_cu(Dwarf_Addr pc) {
             // Check for .debug_aranges for fast lookup
-            if(aranges) {
+            if(aranges && !skeleton) { // don't bother under split dwarf
                 // Try to find pc in aranges
                 Dwarf_Arange arange;
                 if(wrap(dwarf_get_arange, aranges, arange_count, pc, &arange) == DW_DLV_OK) {
@@ -839,7 +858,6 @@ namespace libdwarf {
                         std::fprintf(stderr, "Found CU in aranges\n");
                         cu_die.print();
                     }
-                    // resolve_pc(cu_die, dwversion, pc, frame, inlines);
                     return cu_info{maybe_owned_die_object::owned(std::move(cu_die)), dwversion};
                 }
             }
@@ -850,7 +868,7 @@ namespace libdwarf {
             if(get_cache_mode() == cache_mode::prioritize_memory) {
                 // walk for the cu and go from there
                 optional<cu_info> info;
-                walk_compilation_units([pc, &info] (const die_object& cu_die) {
+                walk_compilation_units([this, pc, &info] (const die_object& cu_die) {
                     Dwarf_Half offset_size = 0;
                     Dwarf_Half dwversion = 0;
                     dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
@@ -860,7 +878,11 @@ namespace libdwarf {
                     if(trace_dwarf) {
                         std::fprintf(stderr, "CU: %d %s\n", dwversion, cu_die.get_name().c_str());
                     }
-                    if(cu_die.pc_in_die(dwversion, pc)) {
+                    // NOTE: If we have a corresponding skeleton, we assume we have one CU matching the skeleton CU
+                    if(
+                        (skeleton && skeleton.unwrap().cu_die.pc_in_die(skeleton.unwrap().dwversion, pc))
+                        || cu_die.pc_in_die(dwversion, pc)
+                    ) {
                         if(trace_dwarf) {
                             std::fprintf(
                                 stderr,
@@ -870,7 +892,6 @@ namespace libdwarf {
                                 to_ull(pc)
                             );
                         }
-                        // resolve_pc(cu_die, dwversion, pc, frame, inlines);
                         info = cu_info{maybe_owned_die_object::owned(cu_die.clone()), dwversion};
                         return false;
                     }
@@ -888,11 +909,15 @@ namespace libdwarf {
                         return pc < entry.low;
                     }
                 );
+                // TODO: Vec-it is already range-based, this range check is redundant
                 // If the vector has been empty this can happen
                 if(vec_it != cu_cache.end()) {
-                    //vec_it->die.print();
-                    if(vec_it->die.pc_in_die(vec_it->dwversion, pc)) {
-                        // resolve_pc(vec_it->die, vec_it->dwversion, pc, frame, inlines);
+                    // TODO: Cache the range list?
+                    // NOTE: If we have a corresponding skeleton, we assume we have one CU matching the skeleton CU
+                    if(
+                        (skeleton && skeleton.unwrap().cu_die.pc_in_die(skeleton.unwrap().dwversion, pc))
+                        || vec_it->die.pc_in_die(vec_it->dwversion, pc)
+                    ) {
                         return cu_info{maybe_owned_die_object::ref(vec_it->die), vec_it->dwversion};
                     }
                 } else {
@@ -904,12 +929,77 @@ namespace libdwarf {
             }
         }
 
-        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        void resolve_pc(
-            Dwarf_Addr pc,
+        optional<std::string> get_dwo_name(const die_object& cu_die) {
+            if(auto dwo_name = cu_die.get_string_attribute(DW_AT_GNU_dwo_name)) {
+                return dwo_name;
+            } else if(auto dwo_name = cu_die.get_string_attribute(DW_AT_dwo_name)) {
+                return dwo_name;
+            } else {
+                return nullopt;
+            }
+        }
+
+        void perform_dwarf_fission_resolution(
+            const die_object& cu_die,
+            const optional<std::string>& dwo_name,
+            const object_frame& object_frame_info,
             stacktrace_frame& frame,
             std::vector<stacktrace_frame>& inlines
         ) {
+            // Split dwarf / debug fission / dwo is handled here
+            // Location of the split full CU is a combination of DW_AT_dwo_name/DW_AT_GNU_dwo_name and DW_AT_comp_dir
+            // https://gcc.gnu.org/wiki/DebugFission
+            if(dwo_name) {
+                // TODO: DWO ID?
+                auto comp_dir = cu_die.get_string_attribute(DW_AT_comp_dir);
+                Dwarf_Half offset_size = 0;
+                Dwarf_Half dwversion = 0;
+                dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+                std::string path;
+                if(is_absolute(dwo_name.unwrap())) {
+                    path = dwo_name.unwrap();
+                } else if(comp_dir) {
+                    path = comp_dir.unwrap() + PATH_SEP + dwo_name.unwrap();
+                } else {
+                    // maybe default to dwo_name but for now not doing anything
+                    return;
+                }
+                // todo: slight inefficiency in this copy-back strategy due to other frame members
+                frame_with_inlines res;
+                if(get_cache_mode() == cache_mode::prioritize_memory) {
+                    dwarf_resolver resolver(
+                        path,
+                        skeleton_info{cu_die.clone(), dwversion, *this}
+                    );
+                    res = resolver.resolve_frame(object_frame_info);
+                } else {
+                    auto off = cu_die.get_global_offset();
+                    auto it = split_full_cu_resolvers.find(off);
+                    if(it == split_full_cu_resolvers.end()) {
+                        it = split_full_cu_resolvers.emplace(
+                            off,
+                            std::unique_ptr<dwarf_resolver>(
+                                new dwarf_resolver(
+                                    path,
+                                    skeleton_info{cu_die.clone(), dwversion, *this}
+                                )
+                            )
+                        ).first;
+                    }
+                    res = it->second->resolve_frame(object_frame_info);
+                }
+                frame = std::move(res.frame);
+                inlines = std::move(res.inlines);
+            }
+        }
+
+        CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+        void resolve_frame_core(
+            const object_frame& object_frame_info,
+            stacktrace_frame& frame,
+            std::vector<stacktrace_frame>& inlines
+        ) {
+            auto pc = object_frame_info.object_address;
             if(dump_dwarf) {
                 std::fprintf(stderr, "%s\n", object_path.c_str());
                 std::fprintf(stderr, "%llx\n", to_ull(pc));
@@ -917,8 +1007,14 @@ namespace libdwarf {
             optional<cu_info> cu = lookup_cu(pc);
             if(cu) {
                 const auto& cu_die = cu.unwrap().cu_die.get();
-                retrieve_line_info(cu_die, pc, frame);
-                retrieve_symbol(cu_die, pc, cu.unwrap().dwversion, frame, inlines);
+                // gnu non-standard debug-fission may create non-skeleton CU DIEs and just add dwo attributes
+                auto dwo_name = get_dwo_name(cu_die);
+                if(cu_die.get_tag() == DW_TAG_skeleton_unit || dwo_name) {
+                    perform_dwarf_fission_resolution(cu_die, dwo_name, object_frame_info, frame, inlines);
+                } else {
+                    retrieve_line_info(cu_die, pc, frame);
+                    retrieve_symbol(cu_die, pc, cu.unwrap().dwversion, frame, inlines);
+                }
             }
         }
 
@@ -952,8 +1048,8 @@ namespace libdwarf {
                 );
             }
             std::vector<stacktrace_frame> inlines;
-            resolve_pc(
-                frame_info.object_address,
+            resolve_frame_core(
+                frame_info,
                 frame,
                 inlines
             );
