@@ -166,7 +166,7 @@ namespace cpptrace {
         if(frame.is_inline) {
             line += microfmt::format("{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
         } else {
-            line += microfmt::format("{}0x{>{}:0h}{}", blue, 2 * sizeof(frame_ptr), frame.object_address, reset);
+            line += microfmt::format("{}0x{>{}:0h}{}", blue, 2 * sizeof(frame_ptr), frame.raw_address, reset);
         }
         if(!frame.symbol.empty()) {
             line += microfmt::format(" in {}{}{}", yellow, frame.symbol, reset);
