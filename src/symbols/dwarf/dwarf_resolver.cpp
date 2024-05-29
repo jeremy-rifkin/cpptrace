@@ -68,8 +68,6 @@ namespace libdwarf {
         std::vector<line_entry> line_entries;
     };
 
-    using addr_table = std::vector<Dwarf_Unsigned>;
-
     class dwarf_resolver;
 
     // used to describe data from an upstream binary to a resolver for the .dwo
@@ -330,6 +328,7 @@ namespace libdwarf {
 
         // despite (some) dwarf using 1-indexing, file_i should be the 0-based index
         std::string resolve_filename(const die_object& cu_die, Dwarf_Unsigned file_i) {
+            // for split-dwarf line resolution happens in the skeleton
             if(skeleton) {
                 return skeleton.unwrap().resolver.resolve_filename(skeleton.unwrap().cu_die, file_i);
             }
@@ -908,6 +907,7 @@ namespace libdwarf {
                         return pc < entry.low;
                     }
                 );
+                // TODO: Vec-it is already range-based, this range check is redundant
                 // If the vector has been empty this can happen
                 if(vec_it != cu_cache.end()) {
                     // TODO: Cache the range list?
@@ -945,24 +945,10 @@ namespace libdwarf {
             std::vector<stacktrace_frame>& inlines
         ) {
             // Split dwarf / debug fission / dwo is handled here
+            // Location of the split full CU is a combination of DW_AT_dwo_name/DW_AT_GNU_dwo_name and DW_AT_comp_dir
             // https://gcc.gnu.org/wiki/DebugFission
-            // Some oddities:
-            // - The .debug_line table remains in the main object
-            // - Due to relocations the dwo file won't have object addresses and instead DW_AT_low_pc will be of
-            //   type DW_FORM_addr_index referencing the .debug_addr table stored in the main object
-            // - These index is relative to the DW_AT_addr_base
-            // DW_AT_dwo_name/DW_AT_GNU_dwo_name
-            // DW_AT_comp_dir
-            // DW_AT_addr_base/DW_AT_GNU_addr_base
-            // DW_AT_GNU_dwo_id/...?
-            // DW_TAG_skeleton_unit vs ...
-            // TODO: Handle gnu dwarf4 extensions for this
-            // TODO: DWO ID
-            // TODO: What is dwp????
-            // TODO: dwarf_cu_header_basics passes out an is_dwo flag
-            // TODO: dwarf_get_xu_index_header???
-            // Symbol loading is done in the dwo, line loading is deferred back to the skeleton
             if(dwo_name) {
+                // TODO: DWO ID?
                 auto comp_dir = cu_die.get_string_attribute(DW_AT_comp_dir);
                 Dwarf_Half offset_size = 0;
                 Dwarf_Half dwversion = 0;
