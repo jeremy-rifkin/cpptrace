@@ -38,15 +38,19 @@ endif()
 
 # primarily a workaround for github actions issue https://github.com/actions/runner-images/issues/8659
 if(NOT CPPTRACE_IS_GH_ACTIONS)
-  include(FetchContent)
-  FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY "https://github.com/google/googletest.git"
-    GIT_TAG        f8d7d77c06936315286eb55f8de22cd23c188571 # v1.14.0
-  )
-  # For Windows: Prevent overriding the parent project's compiler/linker settings
-  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(googletest)
+  if(CPPTRACE_USE_EXTERNAL_GTEST)
+    find_package(GTest)
+  else()
+    include(FetchContent)
+    FetchContent_Declare(
+      googletest
+      GIT_REPOSITORY "https://github.com/google/googletest.git"
+      GIT_TAG        f8d7d77c06936315286eb55f8de22cd23c188571 # v1.14.0
+    )
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+  endif()
 
   add_executable(unittest unittest.cpp)
   target_compile_features(unittest PRIVATE cxx_std_20)
