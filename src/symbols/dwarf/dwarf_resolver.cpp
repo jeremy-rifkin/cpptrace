@@ -93,6 +93,8 @@ namespace libdwarf {
         bool generated_cu_cache = false;
         // Map from CU -> {srcfiles, count}
         std::unordered_map<Dwarf_Off, std::pair<char**, Dwarf_Signed>> srcfiles_cache;
+        // Map from CU -> split full cu resolver
+        std::unordered_map<Dwarf_Off, std::unique_ptr<dwarf_resolver>> split_full_cu_resolvers;
         // info for resolving a dwo object
         optional<skeleton_info> skeleton;
 
@@ -962,11 +964,30 @@ namespace libdwarf {
                     // maybe default to dwo_name but for now not doing anything
                     return;
                 }
-                dwarf_resolver resolver(
-                    path,
-                    skeleton_info{cu_die.clone(), dwversion, *this}
-                );
-                auto res = resolver.resolve_frame(object_frame_info);
+                // todo: slight inefficiency in this copy-back strategy due to other frame members
+                frame_with_inlines res;
+                if(get_cache_mode() == cache_mode::prioritize_memory) {
+                    dwarf_resolver resolver(
+                        path,
+                        skeleton_info{cu_die.clone(), dwversion, *this}
+                    );
+                    res = resolver.resolve_frame(object_frame_info);
+                } else {
+                    auto off = cu_die.get_global_offset();
+                    auto it = split_full_cu_resolvers.find(off);
+                    if(it == split_full_cu_resolvers.end()) {
+                        it = split_full_cu_resolvers.emplace(
+                            off,
+                            std::unique_ptr<dwarf_resolver>(
+                                new dwarf_resolver(
+                                    path,
+                                    skeleton_info{cu_die.clone(), dwversion, *this}
+                                )
+                            )
+                        ).first;
+                    }
+                    res = it->second->resolve_frame(object_frame_info);
+                }
                 frame = std::move(res.frame);
                 inlines = std::move(res.inlines);
             }
