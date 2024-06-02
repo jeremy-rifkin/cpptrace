@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.6.0](#v060)
 - [v0.5.4](#v054)
 - [v0.5.3](#v053)
 - [v0.5.2](#v052)
@@ -14,6 +15,19 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.6.0
+
+New:
+- Added a `cpptrace::system_error` utility
+- Added support for musl https://github.com/jeremy-rifkin/cpptrace/issues/128
+- Added support for split dwarf / debug fission
+
+Fixes:
+- Fixed address formatting in stack traces
+- Fixed frame pointer calculation for signal frames from libunwind https://github.com/jeremy-rifkin/cpptrace/issues/123
+- Fixed dwarf_ranges handling of lowpc == pc causing erroneous symbol resolution
+- Fixed implementation of the exception helper system/reference implementation's `lazy_trace_holder`
 
 # v0.5.4
 

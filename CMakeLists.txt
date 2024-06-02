@@ -9,7 +9,7 @@ set(package_name "cpptrace")
 
 project(
   cpptrace
-  VERSION 0.5.4
+  VERSION 0.6.0
   DESCRIPTION "Simple, portable, and self-contained stacktrace library for C++11 and newer "
   HOMEPAGE_URL "https://github.com/jeremy-rifkin/cpptrace"
   LANGUAGES C CXX
@@ -246,7 +246,7 @@ set(
   warning_options
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
   $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wmaybe-uninitialized>
-  $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
+  $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
 )
 
 if(CPPTRACE_WERROR_BUILD)
