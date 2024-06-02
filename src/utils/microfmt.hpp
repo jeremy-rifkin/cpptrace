@@ -209,7 +209,7 @@ namespace microfmt {
                 }
             };
             for(; it != fmt_end; it++) {
-                if((*it == '{' || *it == '}') && peek(1) == *it) { // parse {{ and }}}} escapes
+                if((*it == '{' || *it == '}') && peek(1) == *it) { // parse {{ and }} escapes
                     it++;
                 } else if(*it == '{' && it + 1 != fmt_end) {
                     auto saved_it = it;
@@ -270,8 +270,9 @@ namespace microfmt {
         return detail::format<sizeof...(args)>(fmt.begin(), fmt.end(), {detail::format_value(args)...});
     }
 
+    // working around an old msvc bug https://godbolt.org/z/88T8hrzzq mre: https://godbolt.org/z/drd8echbP
     inline std::string format(std::string_view fmt) {
-        return detail::format<0>(fmt.begin(), fmt.end(), {});
+        return detail::format<1>(fmt.begin(), fmt.end(), {detail::format_value(1)});
     }
     #endif
 
@@ -280,7 +281,6 @@ namespace microfmt {
         return detail::format<sizeof...(args)>(fmt, fmt + std::strlen(fmt), {detail::format_value(args)...});
     }
 
-    // working around an old msvc bug https://godbolt.org/z/88T8hrzzq mre: https://godbolt.org/z/drd8echbP
     inline std::string format(const char* fmt) {
         return detail::format<1>(fmt, fmt + std::strlen(fmt), {detail::format_value(1)});
     }
