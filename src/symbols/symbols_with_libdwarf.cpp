@@ -44,7 +44,7 @@ namespace libdwarf {
                 // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
                 return resolver_map.emplace(object_name, std::move(resolver_object)).first->second.get();
             } else {
-                return resolver_object;
+                return std::move(resolver_object);
             }
         }
     }
@@ -56,11 +56,10 @@ namespace libdwarf {
             // most recent call first
             if(!entry.inlines.empty()) {
                 // insert in reverse order
-                final_trace.insert(
-                    final_trace.end(),
-                    std::make_move_iterator(entry.inlines.rbegin()),
-                    std::make_move_iterator(entry.inlines.rend())
-                );
+                for(auto iter = entry.inlines.rbegin(); iter != entry.inlines.rend(); ++iter){
+                    auto& val = *iter; //const stacktrace_frame&
+                    final_trace.emplace_back(val);
+                }
             }
             final_trace.push_back(std::move(entry.frame));
             if(!entry.inlines.empty()) {
