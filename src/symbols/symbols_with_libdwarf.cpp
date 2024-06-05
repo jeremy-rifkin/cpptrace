@@ -44,7 +44,7 @@ namespace libdwarf {
                 // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
                 return resolver_map.emplace(object_name, std::move(resolver_object)).first->second.get();
             } else {
-                return std::move(resolver_object);
+                return maybe_owned<symbol_resolver>{std::move(resolver_object)};
             }
         }
     }
