@@ -52,16 +52,17 @@ namespace libdwarf {
     }
 
     // flatten trace with inlines
-    std::vector<stacktrace_frame> flatten_inlines(const std::vector<frame_with_inlines>& trace) {
+    std::vector<stacktrace_frame> flatten_inlines(std::vector<frame_with_inlines>& trace) {
         std::vector<stacktrace_frame> final_trace;
         for(const auto& entry : trace) {
             // most recent call first
             if(!entry.inlines.empty()) {
                 // insert in reverse order
-                for(auto iter = entry.inlines.rbegin(); iter != entry.inlines.rend(); ++iter){
-                    auto& val = *iter; //const stacktrace_frame&
-                    final_trace.emplace_back(val);
-                }
+                final_trace.insert(
+                    final_trace.end(),
+                    std::make_move_iterator(entry.inlines.rbegin()),
+                    std::make_move_iterator(entry.inlines.rend())
+                );
             }
             final_trace.push_back(std::move(entry.frame));
             if(!entry.inlines.empty()) {
