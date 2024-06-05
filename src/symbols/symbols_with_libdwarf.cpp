@@ -44,13 +44,15 @@ namespace libdwarf {
                 // .emplace needed, for some reason .insert tries to copy <= gcc 7.2
                 return resolver_map.emplace(object_name, std::move(resolver_object)).first->second.get();
             } else {
-                return resolver_object;
+                // gcc cannot handle the following logic properly in <= gcc 5.1, so the type to be constructed is explicitly specified. 
+                // See also:https://godbolt.org/z/9oWdWjbf8
+                return maybe_owned<symbol_resolver>{std::move(resolver_object)};
             }
         }
     }
 
     // flatten trace with inlines
-    std::vector<stacktrace_frame> flatten_inlines(const std::vector<frame_with_inlines>& trace) {
+    std::vector<stacktrace_frame> flatten_inlines(std::vector<frame_with_inlines>& trace) {
         std::vector<stacktrace_frame> final_trace;
         for(const auto& entry : trace) {
             // most recent call first
