@@ -302,8 +302,8 @@ namespace cpptrace {
             void clear();
         };
 
-        CPPTRACE_EXPORT raw_trace get_raw_trace_and_absorb(std::size_t skip, std::size_t max_depth) noexcept;
-        CPPTRACE_EXPORT raw_trace get_raw_trace_and_absorb(std::size_t skip = 0) noexcept;
+        CPPTRACE_EXPORT raw_trace get_raw_trace_and_absorb(std::size_t skip, std::size_t max_depth);
+        CPPTRACE_EXPORT raw_trace get_raw_trace_and_absorb(std::size_t skip = 0);
     }
 
     // Interface for a traced exception object
@@ -323,7 +323,7 @@ namespace cpptrace {
     public:
         explicit lazy_exception(
             raw_trace&& trace = detail::get_raw_trace_and_absorb()
-        ) noexcept : trace_holder(std::move(trace)) {}
+        ) : trace_holder(std::move(trace)) {}
         // std::exception
         const char* what() const noexcept override;
         // cpptrace::exception
