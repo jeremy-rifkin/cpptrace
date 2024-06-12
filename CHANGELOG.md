@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.6.1](#v061)
 - [v0.6.0](#v060)
 - [v0.5.4](#v054)
 - [v0.5.3](#v053)
@@ -15,6 +16,11 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.6.1
+
+Fixes:
+- Fix for detection of `dladdr1` and `_dl_find_object` support
 
 # v0.6.0
 
