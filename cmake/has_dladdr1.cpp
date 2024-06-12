@@ -1,4 +1,5 @@
 #include <dlfcn.h>
+#include <link.h>
 
 int main() {
     Dl_info info;

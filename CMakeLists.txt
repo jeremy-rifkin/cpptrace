@@ -93,9 +93,9 @@ if(NOT WIN32 OR MINGW)
 endif()
 
 if(UNIX AND NOT APPLE)
-  check_support(HAS_DL_FIND_OBJECT has_dl_find_object.cpp "" "" "")
+  check_support(HAS_DL_FIND_OBJECT has_dl_find_object.cpp "" "dl" "")
   if(NOT HAS_DL_FIND_OBJECT)
-    check_support(HAS_DLADDR1 has_dladdr1.cpp "" "" "")
+    check_support(HAS_DLADDR1 has_dladdr1.cpp "" "dl" "")
   endif()
 endif()
 
