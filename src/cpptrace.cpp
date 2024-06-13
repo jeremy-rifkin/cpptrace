@@ -457,7 +457,7 @@ namespace cpptrace {
         }
 
         CPPTRACE_FORCE_NO_INLINE
-        raw_trace get_raw_trace_and_absorb(std::size_t skip, std::size_t max_depth) noexcept {
+        raw_trace get_raw_trace_and_absorb(std::size_t skip, std::size_t max_depth) {
             try {
                 return generate_raw_trace(skip + 1, max_depth);
             } catch(const std::exception& e) {
@@ -474,7 +474,7 @@ namespace cpptrace {
         }
 
         CPPTRACE_FORCE_NO_INLINE
-        raw_trace get_raw_trace_and_absorb(std::size_t skip) noexcept {
+        raw_trace get_raw_trace_and_absorb(std::size_t skip) {
             return get_raw_trace_and_absorb(skip + 1, SIZE_MAX);
         }
 
