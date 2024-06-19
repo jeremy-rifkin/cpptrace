@@ -177,7 +177,7 @@ def build(matrix):
             f"-D{matrix['demangle']}=On",
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
             "-DCPPTRACE_BUILD_TESTING=On",
-            "-DCPPTRACE_IS_GH_ACTIONS=On",
+            "-DCPPTRACE_SKIP_UNIT=On",
             f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix['symbols'] == "CPPTRACE_GET_SYMBOLS_WITH_LIBDL":
@@ -200,7 +200,7 @@ def build(matrix):
             f"-D{matrix['symbols']}=On",
             f"-D{matrix['demangle']}=On",
             "-DCPPTRACE_BUILD_TESTING=On",
-            "-DCPPTRACE_IS_GH_ACTIONS=On",
+            "-DCPPTRACE_SKIP_UNIT=On",
             f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["compiler"] == "g++":
@@ -227,7 +227,7 @@ def build_full_or_auto(matrix):
             f"-DCPPTRACE_WERROR_BUILD=On",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
             "-DCPPTRACE_BUILD_TESTING=On",
-            "-DCPPTRACE_IS_GH_ACTIONS=On",
+            "-DCPPTRACE_SKIP_UNIT=On",
             f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["config"] != "":
@@ -247,7 +247,7 @@ def build_full_or_auto(matrix):
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_WERROR_BUILD=On",
             "-DCPPTRACE_BUILD_TESTING=On",
-            "-DCPPTRACE_IS_GH_ACTIONS=On",
+            "-DCPPTRACE_SKIP_UNIT=On",
             f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["config"] != "":
