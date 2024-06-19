@@ -52,7 +52,12 @@ if(NOT CPPTRACE_IS_GH_ACTIONS)
     FetchContent_MakeAvailable(googletest)
   endif()
 
-  add_executable(unittest unittest.cpp)
+  add_executable(
+    unittest
+    unit/raw_trace.cpp
+    unit/object_trace.cpp
+    unit/stacktrace.cpp
+  )
   target_compile_features(unittest PRIVATE cxx_std_20)
   target_link_libraries(unittest PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
   target_compile_options(unittest PRIVATE ${warning_options} -Wno-pedantic)
