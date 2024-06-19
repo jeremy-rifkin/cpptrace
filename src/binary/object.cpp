@@ -22,7 +22,7 @@
 namespace cpptrace {
 namespace detail {
     #if IS_LINUX || IS_APPLE
-    #if defined(CPPTRACE_HAS_DL_FIND_OBJECT) || defined(HAS_DLADDR1)
+    #if defined(CPPTRACE_HAS_DL_FIND_OBJECT) || defined(CPPTRACE_HAS_DLADDR1)
     std::string resolve_l_name(const char* l_name) {
         if(l_name != nullptr && l_name[0] != 0) {
             return l_name;
@@ -55,7 +55,7 @@ namespace detail {
         }
         return frame;
     }
-    #elif defined(HAS_DLADDR1)
+    #elif defined(CPPTRACE_HAS_DLADDR1)
     object_frame get_frame_object_info(frame_ptr address) {
         // https://github.com/bminor/glibc/blob/91695ee4598b39d181ab8df579b888a8863c4cab/elf/dl-addr.c#L26
         Dl_info info;
