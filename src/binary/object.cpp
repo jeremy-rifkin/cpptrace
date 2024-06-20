@@ -65,7 +65,7 @@ namespace detail {
         frame.object_address = 0;
         if(
             // thread safe
-            dlad dr1(reinterpret_cast<void*>(address), &info, reinterpret_cast<void**>(&link_map_info), RTLD_DL_LINKMAP)
+            dladdr1(reinterpret_cast<void*>(address), &info, reinterpret_cast<void**>(&link_map_info), RTLD_DL_LINKMAP)
         ) {
             frame.object_path = resolve_l_name(link_map_info->l_name);
             auto base = get_module_image_base(frame.object_path);
