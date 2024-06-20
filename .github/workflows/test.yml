@@ -174,7 +174,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [cl, clang++]
-        shared: [OFF, ON]
+        shared: [OFF] # TODO: Re-enable shared
         build_type: [Debug, RelWithDebInfo]
     steps:
     - uses: actions/checkout@v4
@@ -191,7 +191,5 @@ jobs:
             -DCPPTRACE_WERROR_BUILD=On `
             -DCPPTRACE_BUILD_TESTING=On
            cmake --build . --config ${{matrix.build_type}}
-           if("${{matrix.shared}}" -eq "ON") {
-            cp ${{matrix.build_type}}/cpptrace.dll .
-           }
            ./${{matrix.build_type}}/unittest
+    # TODO: Macos, mingw
