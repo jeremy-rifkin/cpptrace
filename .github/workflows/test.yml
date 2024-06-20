@@ -146,6 +146,7 @@ jobs:
         compiler: [g++-10, clang++-14]
         shared: [OFF, ON]
         build_type: [Debug, RelWithDebInfo]
+        has_dl_find_object: [OFF, ON]
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
@@ -161,6 +162,7 @@ jobs:
             -DCMAKE_C_COMPILER=${{matrix.compiler == 'g++-10' && 'gcc-10' || 'clang-14'}} \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
             -DBUILD_SHARED_LIBS=${{matrix.shared}} \
+            -DHAS_DL_FIND_OBJECT=${{matrix.has_dl_find_object}} \
             -DCPPTRACE_WERROR_BUILD=On \
             -DCPPTRACE_BUILD_TESTING=On
            ninja
