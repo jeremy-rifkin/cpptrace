@@ -168,3 +168,28 @@ jobs:
            ninja
            ./unittest
            bash -c "exec -a u ./unittest"
+  unittest-windows:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [cl, clang++]
+        shared: [OFF, ON]
+        build_type: [Debug, RelWithDebInfo]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.13.0
+    - name: build and test
+      run: |
+           mkdir build
+           cd build
+           cmake .. `
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
+            -DCMAKE_C_COMPILER=${{matrix.compiler == 'clang++' && 'clang' || matrix.compiler}} `
+            -DCMAKE_BUILD_TYPE=${{matrix.build_type}} `
+            -DBUILD_SHARED_LIBS=${{matrix.shared}} `
+            -DCPPTRACE_WERROR_BUILD=On `
+            -DCPPTRACE_BUILD_TESTING=On
+           msbuild cpptrace.sln
+           ./${{matrix.build_type}}/unittest
