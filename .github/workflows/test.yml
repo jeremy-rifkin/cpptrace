@@ -163,5 +163,6 @@ jobs:
             -DBUILD_SHARED_LIBS=${{matrix.shared}} \
             -DCPPTRACE_WERROR_BUILD=On \
             -DCPPTRACE_BUILD_TESTING=On
+           ninja
            ./unittest
            bash -c "exec -a u ./unittest"
