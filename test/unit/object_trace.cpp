@@ -49,16 +49,25 @@ TEST(ObjectTrace, BasicResolution) {
 }
 
 
-
-CPPTRACE_FORCE_NO_INLINE void object_resolve_3(std::vector<int>& line_numbers) {
+// TODO: dbghelp uses raw address, not object
+#ifndef _MSC_VER
+CPPTRACE_FORCE_NO_INLINE int object_resolve_3(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     auto dummy = cpptrace::generate_trace();
     auto dummy_otrace = cpptrace::generate_object_trace();
     cpptrace::object_trace otrace;
-    otrace.frames.push_back(cpptrace::object_frame{0, dummy.frames[0].object_address, dummy_otrace.frames[0].object_path});
-    otrace.frames.push_back(cpptrace::object_frame{0, dummy.frames[1].object_address, dummy_otrace.frames[1].object_path});
-    otrace.frames.push_back(cpptrace::object_frame{0, dummy.frames[2].object_address, dummy_otrace.frames[2].object_path});
-    otrace.frames.push_back(cpptrace::object_frame{0, dummy.frames[3].object_address, dummy_otrace.frames[3].object_path});
+    otrace.frames.push_back(
+        cpptrace::object_frame{0, dummy.frames[0].object_address, dummy_otrace.frames[0].object_path}
+    );
+    otrace.frames.push_back(
+        cpptrace::object_frame{0, dummy.frames[1].object_address, dummy_otrace.frames[1].object_path}
+    );
+    otrace.frames.push_back(
+        cpptrace::object_frame{0, dummy.frames[2].object_address, dummy_otrace.frames[2].object_path}
+    );
+    otrace.frames.push_back(
+        cpptrace::object_frame{0, dummy.frames[3].object_address, dummy_otrace.frames[3].object_path}
+    );
     auto trace = otrace.resolve();
     int i = 0;
     EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("object_trace.cpp"));
@@ -76,16 +85,17 @@ CPPTRACE_FORCE_NO_INLINE void object_resolve_3(std::vector<int>& line_numbers) {
     EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("object_trace.cpp"));
     EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("ObjectTrace_Resolution_Test::TestBody"));
+    return 2;
 }
 
-CPPTRACE_FORCE_NO_INLINE void object_resolve_2(std::vector<int>& line_numbers) {
+CPPTRACE_FORCE_NO_INLINE int object_resolve_2(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    object_resolve_3(line_numbers);
+    return object_resolve_3(line_numbers) * 2;
 }
 
-CPPTRACE_FORCE_NO_INLINE void object_resolve_1(std::vector<int>& line_numbers) {
+CPPTRACE_FORCE_NO_INLINE int object_resolve_1(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    object_resolve_2(line_numbers);
+    return object_resolve_2(line_numbers) * 2;
 }
 
 TEST(ObjectTrace, Resolution) {
@@ -93,3 +103,4 @@ TEST(ObjectTrace, Resolution) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     object_resolve_1(line_numbers);
 }
+#endif
