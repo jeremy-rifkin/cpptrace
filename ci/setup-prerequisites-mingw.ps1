@@ -10,7 +10,9 @@ cd build
 cmake .. -DZSTD_BUILD_SHARED=On -DZSTD_BUILD_SHARED=Off -DZSTD_LEGACY_SUPPORT=Off -DZSTD_BUILD_PROGRAMS=Off -DZSTD_BUILD_CONTRIB=Off -DZSTD_BUILD_TESTS=Off -G"Unix Makefiles"
 make -j
 make install
+
 cd ../../../..
+
 mkdir libdwarf
 cd libdwarf
 git init

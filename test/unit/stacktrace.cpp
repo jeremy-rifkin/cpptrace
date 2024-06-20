@@ -42,7 +42,9 @@ TEST(Stacktrace, Basic) {
 
 
 
-CPPTRACE_FORCE_NO_INLINE void stacktrace_multi_3(std::vector<int>& line_numbers) {
+// NOTE: returning something and then return stacktrace_multi_3(line_numbers) * 2; later helps prevent the call from
+// being optimized to a jmp
+CPPTRACE_FORCE_NO_INLINE int stacktrace_multi_3(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     auto trace = cpptrace::generate_trace();
     int i = 0;
@@ -61,16 +63,17 @@ CPPTRACE_FORCE_NO_INLINE void stacktrace_multi_3(std::vector<int>& line_numbers)
     EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
     EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("Stacktrace_MultipleFrames_Test::TestBody"));
+    return 2;
 }
 
-CPPTRACE_FORCE_NO_INLINE void stacktrace_multi_2(std::vector<int>& line_numbers) {
+CPPTRACE_FORCE_NO_INLINE int stacktrace_multi_2(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    stacktrace_multi_3(line_numbers);
+    return stacktrace_multi_3(line_numbers) * 2;
 }
 
-CPPTRACE_FORCE_NO_INLINE void stacktrace_multi_1(std::vector<int>& line_numbers) {
+CPPTRACE_FORCE_NO_INLINE int stacktrace_multi_1(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    stacktrace_multi_2(line_numbers);
+    return stacktrace_multi_2(line_numbers) * 2;
 }
 
 TEST(Stacktrace, MultipleFrames) {
@@ -121,7 +124,8 @@ TEST(Stacktrace, RawTraceResolution) {
 
 
 
-CPPTRACE_FORCE_NO_INLINE void stacktrace_inline_resolution_3(std::vector<int>& line_numbers) {
+#ifndef _MSC_VER
+CPPTRACE_FORCE_NO_INLINE int stacktrace_inline_resolution_3(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     auto trace = cpptrace::generate_trace();
     int i = 0;
@@ -152,16 +156,17 @@ CPPTRACE_FORCE_NO_INLINE void stacktrace_inline_resolution_3(std::vector<int>& l
     EXPECT_FALSE(trace.frames[i].is_inline);
     EXPECT_NE(trace.frames[i].raw_address, 0);
     EXPECT_NE(trace.frames[i].object_address, 0);
+    return 2;
 }
 
-CPPTRACE_FORCE_INLINE void stacktrace_inline_resolution_2(std::vector<int>& line_numbers) {
+CPPTRACE_FORCE_INLINE int stacktrace_inline_resolution_2(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    stacktrace_inline_resolution_3(line_numbers);
+    return stacktrace_inline_resolution_3(line_numbers) * 2;
 }
 
-CPPTRACE_FORCE_NO_INLINE void stacktrace_inline_resolution_1(std::vector<int>& line_numbers) {
+CPPTRACE_FORCE_NO_INLINE int stacktrace_inline_resolution_1(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    stacktrace_inline_resolution_2(line_numbers);
+    return stacktrace_inline_resolution_2(line_numbers) * 2;
 }
 
 TEST(Stacktrace, InlineResolution) {
@@ -169,3 +174,4 @@ TEST(Stacktrace, InlineResolution) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     stacktrace_inline_resolution_1(line_numbers);
 }
+#endif

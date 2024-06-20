@@ -177,7 +177,6 @@ def build(matrix):
             f"-D{matrix['demangle']}=On",
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
             "-DCPPTRACE_BUILD_TESTING=On",
-            "-DCPPTRACE_SKIP_UNIT=On",
             f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix['symbols'] == "CPPTRACE_GET_SYMBOLS_WITH_LIBDL":
@@ -227,7 +226,6 @@ def build_full_or_auto(matrix):
             f"-DCPPTRACE_WERROR_BUILD=On",
             f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
             "-DCPPTRACE_BUILD_TESTING=On",
-            "-DCPPTRACE_SKIP_UNIT=On",
             f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
         if matrix["config"] != "":
@@ -264,10 +262,12 @@ def build_full_or_auto(matrix):
 
 def test(matrix):
     if platform.system() != "Windows":
-        return run_test(
+        unit_res = run_command("./unittest")
+        integration_res = run_test(
             "./integration",
             (matrix["compiler"], matrix["unwind"], matrix["symbols"], matrix["demangle"])
         )
+        return unit_res and integration_res
     else:
         if matrix["compiler"] == "g++":
             return run_test(
@@ -282,10 +282,12 @@ def test(matrix):
 
 def test_full_or_auto(matrix):
     if platform.system() != "Windows":
-        return run_test(
+        unit_res = run_command("./unittest")
+        integration_res = run_test(
             "./integration",
             (matrix["compiler"],)
         )
+        return unit_res and integration_res
     else:
         if matrix["compiler"] == "g++":
             return run_test(

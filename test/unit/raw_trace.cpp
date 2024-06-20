@@ -16,7 +16,8 @@ using namespace std::literals;
 
 // This is fickle, however, it's the only way to do it really. It's reasonably reliable test in practice.
 
-CPPTRACE_FORCE_NO_INLINE void raw_trace_basic() {
+// NOTE: MSVC likes creating trampoline-like entries for non-static functions
+CPPTRACE_FORCE_NO_INLINE static void raw_trace_basic() {
     auto raw_trace = cpptrace::generate_raw_trace();
     // look for within 90 bytes of the start of the function
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_basic));
@@ -28,7 +29,14 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_basic_precise() {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
-    // look for within 30 bytes of the start of the function
+    // This is stupid, but without it gcc was optimizing both &&a and &&b to point to the start of the function's body
+    volatile auto x = 0;
+    if(x) {
+        goto* &&a;
+    }
+    if(x) {
+        goto* &&b;
+    }
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&a));
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&b));
 }
@@ -39,11 +47,12 @@ TEST(RawTrace, Basic) {
     #ifndef _MSC_VER
     raw_trace_basic_precise();
     #endif
+    [[maybe_unused]] volatile int x = 0; // prevent raw_trace_basic_precise() above being a jmp
 }
 
 
 
-CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_2(
+CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_2(
     cpptrace::frame_ptr parent_low_bound,
     cpptrace::frame_ptr parent_high_bound
 ) {
@@ -54,7 +63,7 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_2(
     EXPECT_LE(raw_trace.frames[1], parent_high_bound);
 }
 
-CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_1() {
+CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_1() {
     auto raw_trace = cpptrace::generate_raw_trace();
     raw_trace_multi_2(reinterpret_cast<uintptr_t>(raw_trace_multi_1), reinterpret_cast<uintptr_t>(raw_trace_multi_1) + 300);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_1));
@@ -63,8 +72,8 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_1() {
 
 std::vector<std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr>> parents;
 
-CPPTRACE_FORCE_NO_INLINE void record_parent(cpptrace::frame_ptr low_bound, cpptrace::frame_ptr high_bound) {
-    parents.insert(parents.begin(), {reinterpret_cast<uintptr_t>(low_bound), reinterpret_cast<uintptr_t>(high_bound)});
+CPPTRACE_FORCE_NO_INLINE void record_parent(uintptr_t low_bound, uintptr_t high_bound) {
+    parents.insert(parents.begin(), {low_bound, high_bound});
 }
 
 #ifndef _MSC_VER
@@ -72,6 +81,13 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_3() {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
+    volatile auto x = 0;
+    if(x) {
+        goto* &&a;
+    }
+    if(x) {
+        goto* &&b;
+    }
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&a)); // this frame
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&b));
     for(size_t i = 0; i < parents.size(); i++) { // parent frames
@@ -84,6 +100,13 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_2() {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
+    volatile auto x = 0;
+    if(x) {
+        goto* &&a;
+    }
+    if(x) {
+        goto* &&b;
+    }
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&a)); // this frame
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&b));
     for(size_t i = 0; i < parents.size(); i++) { // parent frames
@@ -93,19 +116,38 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_2() {
     record_parent(reinterpret_cast<uintptr_t>(&&c), reinterpret_cast<uintptr_t>(&&d));
     c:
     raw_trace_multi_precise_3();
-    d:;
+    d:
+    if(x) {
+        goto* &&c;
+    }
+    if(x) {
+        goto* &&d;
+    }
 }
 
 CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_1() {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
+    volatile auto x = 0;
+    if(x) {
+        goto* &&a;
+    }
+    if(x) {
+        goto* &&b;
+    }
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&a));
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&b));
     record_parent(reinterpret_cast<uintptr_t>(&&c), reinterpret_cast<uintptr_t>(&&d));
     c:
     raw_trace_multi_precise_2();
-    d:;
+    d:
+    if(x) {
+        goto* &&c;
+    }
+    if(x) {
+        goto* &&d;
+    }
 }
 #endif
 
