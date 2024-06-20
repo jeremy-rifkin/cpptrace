@@ -136,3 +136,32 @@ jobs:
     - name: build and test
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}}
+
+
+  unittest-linux:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-10, clang++-14]
+        shared: [OFF, ON]
+        build_type: [Debug, RelWithDebInfo]
+    steps:
+    - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+           sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build
+    - name: build and test
+      run: |
+           mkdir build
+           cd build
+           cmake .. \
+            -GNinja \
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
+            -DCMAKE_C_COMPILER=${{matrix.compiler == 'g++-10' && 'gcc-10' || 'clang-14'}} \
+            -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+            -DBUILD_SHARED_LIBS=${{matrix.shared}} \
+            -DCPPTRACE_WERROR_BUILD=On \
+            -DCPPTRACE_BUILD_TESTING=On
+           ./unittest
+           bash -c "exec -a u ./unittest"
