@@ -187,9 +187,8 @@ jobs:
            cmake .. `
             -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
             -DCMAKE_C_COMPILER=${{matrix.compiler == 'clang++' && 'clang' || matrix.compiler}} `
-            -DCMAKE_BUILD_TYPE=${{matrix.build_type}} `
             -DBUILD_SHARED_LIBS=${{matrix.shared}} `
             -DCPPTRACE_WERROR_BUILD=On `
             -DCPPTRACE_BUILD_TESTING=On
-           msbuild cpptrace.sln
+           cmake --build . --config ${{matrix.build_type}}
            ./${{matrix.build_type}}/unittest
