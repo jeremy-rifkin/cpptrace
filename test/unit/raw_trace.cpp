@@ -20,6 +20,7 @@ using namespace std::literals;
 CPPTRACE_FORCE_NO_INLINE static void raw_trace_basic() {
     auto raw_trace = cpptrace::generate_raw_trace();
     // look for within 90 bytes of the start of the function
+    ASSERT_GE(raw_trace.frames.size(), 1);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_basic));
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_basic) + 90);
 }
@@ -37,6 +38,7 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_basic_precise() {
     if(x) {
         goto* &&b;
     }
+    ASSERT_GE(raw_trace.frames.size(), 1);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&a));
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&b));
 }
@@ -57,6 +59,7 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_2(
     cpptrace::frame_ptr parent_high_bound
 ) {
     auto raw_trace = cpptrace::generate_raw_trace();
+    ASSERT_GE(raw_trace.frames.size(), 2);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_2));
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_2) + 90);
     EXPECT_GE(raw_trace.frames[1], parent_low_bound);
@@ -66,6 +69,7 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_2(
 CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_1() {
     auto raw_trace = cpptrace::generate_raw_trace();
     raw_trace_multi_2(reinterpret_cast<uintptr_t>(raw_trace_multi_1), reinterpret_cast<uintptr_t>(raw_trace_multi_1) + 300);
+    ASSERT_GE(raw_trace.frames.size(), 1);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_1));
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_1) + 90);
 }
@@ -88,6 +92,7 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_3() {
     if(x) {
         goto* &&b;
     }
+    ASSERT_GE(raw_trace.frames.size(), parents.size() + 1);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&a)); // this frame
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&b));
     for(size_t i = 0; i < parents.size(); i++) { // parent frames
@@ -107,6 +112,7 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_2() {
     if(x) {
         goto* &&b;
     }
+    ASSERT_GE(raw_trace.frames.size(), parents.size() + 1);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&a)); // this frame
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&b));
     for(size_t i = 0; i < parents.size(); i++) { // parent frames
@@ -136,6 +142,7 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_1() {
     if(x) {
         goto* &&b;
     }
+    ASSERT_GE(raw_trace.frames.size(), 1);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&a));
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(&&b));
     record_parent(reinterpret_cast<uintptr_t>(&&c), reinterpret_cast<uintptr_t>(&&d));

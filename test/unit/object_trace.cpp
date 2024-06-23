@@ -39,6 +39,7 @@ TEST(ObjectTrace, Basic) {
 CPPTRACE_FORCE_NO_INLINE void object_basic_resolution() {
     auto line = __LINE__ + 1;
     auto trace = cpptrace::generate_object_trace().resolve();
+    ASSERT_GE(trace.frames.size(), 1);
     EXPECT_THAT(trace.frames[0].filename, testing::EndsWith("object_trace.cpp"));
     EXPECT_EQ(trace.frames[0].line.value(), line);
     EXPECT_THAT(trace.frames[0].symbol, testing::HasSubstr("object_basic_resolution"));
@@ -69,6 +70,10 @@ CPPTRACE_FORCE_NO_INLINE int object_resolve_3(std::vector<int>& line_numbers) {
         cpptrace::object_frame{0, dummy.frames[3].object_address, dummy_otrace.frames[3].object_path}
     );
     auto trace = otrace.resolve();
+    if(trace.frames.size() < 4) {
+        ADD_FAILURE() << "trace.frames.size() >= 4";
+        return 2;
+    }
     int i = 0;
     EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("object_trace.cpp"));
     EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);

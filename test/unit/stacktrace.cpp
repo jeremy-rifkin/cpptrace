@@ -31,6 +31,7 @@ TEST(Stacktrace, Empty) {
 CPPTRACE_FORCE_NO_INLINE void stacktrace_basic() {
     auto line = __LINE__ + 1;
     auto trace = cpptrace::generate_trace();
+    ASSERT_GE(trace.frames.size(), 1);
     EXPECT_THAT(trace.frames[0].filename, testing::EndsWith("stacktrace.cpp"));
     EXPECT_EQ(trace.frames[0].line.value(), line);
     EXPECT_THAT(trace.frames[0].symbol, testing::HasSubstr("stacktrace_basic"));
@@ -47,6 +48,10 @@ TEST(Stacktrace, Basic) {
 CPPTRACE_FORCE_NO_INLINE int stacktrace_multi_3(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     auto trace = cpptrace::generate_trace();
+    if(trace.frames.size() < 4) {
+        ADD_FAILURE() << "trace.frames.size() >= 4";
+        return 2;
+    }
     int i = 0;
     EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
     EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
@@ -104,6 +109,7 @@ TEST(Stacktrace, RawTraceResolution) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     auto raw = stacktrace_raw_resolve_1(line_numbers);
     auto trace = raw.resolve();
+    ASSERT_GE(trace.frames.size(), 4);
     int i = 0;
     EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
     EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
@@ -128,6 +134,10 @@ TEST(Stacktrace, RawTraceResolution) {
 CPPTRACE_FORCE_NO_INLINE int stacktrace_inline_resolution_3(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     auto trace = cpptrace::generate_trace();
+    if(trace.frames.size() < 4) {
+        ADD_FAILURE() << "trace.frames.size() >= 4";
+        return 2;
+    }
     int i = 0;
     EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
     EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
