@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.6.2](#v062)
 - [v0.6.1](#v061)
 - [v0.6.0](#v060)
 - [v0.5.4](#v054)
@@ -16,6 +17,15 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.6.2
+
+Fixes:
+- Fix an issue with unwinding to collect stack traces during exception creation on arm https://github.com/jeremy-rifkin/cpptrace/issues/134
+- Fix issue where `dladdr1` wasn't being used even when detected
+
+Robustness:
+- Setup more robust unit tests and added them to CI
 
 # v0.6.1
 
