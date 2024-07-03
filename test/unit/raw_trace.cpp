@@ -14,7 +14,10 @@ using namespace std::literals;
 
 // Raw trace tests
 
-// This is fickle, however, it's the only way to do it really. It's reasonably reliable test in practice.
+// This is fickle, however, it's the only way to do it really. I've gotten it reasonably reliable test in practice.
+// Sanitizers do interfere.
+
+#ifndef CPPTRACE_SANITIZER_BUILD
 
 // NOTE: MSVC likes creating trampoline-like entries for non-static functions
 CPPTRACE_FORCE_NO_INLINE static void raw_trace_basic() {
@@ -165,3 +168,5 @@ TEST(RawTrace, MultipleCalls) {
     raw_trace_multi_precise_1();
     #endif
 }
+
+#endif
