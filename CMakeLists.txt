@@ -419,7 +419,8 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       # GIT_TAG c78e984f3abbd20f6e01d6f51819e826b1691f65 # v0.8.0
       # GIT_TAG 71090c680b4c943448ba87a0f1f864f174e4edda # v0.9.0
       # GIT_TAG 5c0cb251f94b27e90184e6b2d9a0c9c62593babc # v0.9.1 + some cmake changes
-      GIT_TAG 87401f22cd05628d23059cb29ee6448a55c3a88a # v0.9.2
+      # GIT_TAG 87401f22cd05628d23059cb29ee6448a55c3a88a # v0.9.2
+      GIT_TAG 6dbcc23dba6ffd230063bda4b9d7298bf88d9d41 # v0.10.1
       GIT_SHALLOW 1
     )
     # FetchContent_MakeAvailable(libdwarf)
