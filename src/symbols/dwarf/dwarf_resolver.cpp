@@ -208,6 +208,8 @@ namespace libdwarf {
             }
             // subprograms_cache needs to be destroyed before dbg otherwise there will be another use after free
             subprograms_cache.clear();
+            split_full_cu_resolvers.clear();
+            skeleton.reset();
             if(aranges) {
                 dwarf_dealloc(dbg, aranges, DW_DLA_LIST);
             }
