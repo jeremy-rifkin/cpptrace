@@ -147,6 +147,8 @@ jobs:
         shared: [OFF, ON]
         build_type: [Debug, RelWithDebInfo]
         has_dl_find_object: [OFF, ON]
+        sanitizers: [OFF, ON]
+        split_dwarf: [OFF, ON]
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
@@ -164,7 +166,9 @@ jobs:
             -DBUILD_SHARED_LIBS=${{matrix.shared}} \
             -DHAS_DL_FIND_OBJECT=${{matrix.has_dl_find_object}} \
             -DCPPTRACE_WERROR_BUILD=On \
-            -DCPPTRACE_BUILD_TESTING=On
+            -DCPPTRACE_BUILD_TESTING=On \
+            -DCPPTRACE_SANITIZER_BUILD=${{matrix.sanitizers}} \
+            -DCPPTRACE_BUILD_TESTING_SPLIT_DWARF=${{matrix.split_dwarf}}
            ninja
            ./unittest
            bash -c "exec -a u ./unittest"
