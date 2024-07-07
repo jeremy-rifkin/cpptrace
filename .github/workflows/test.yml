@@ -149,6 +149,10 @@ jobs:
         has_dl_find_object: [OFF, ON]
         sanitizers: [OFF, ON]
         split_dwarf: [OFF, ON]
+        dwarf_version: [4, 5]
+        exclude:
+          - dwarf_version: 4 # Disabled due to bug in either libdwarf or gcc
+            split_dwarf: ON
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
@@ -168,7 +172,8 @@ jobs:
             -DCPPTRACE_WERROR_BUILD=On \
             -DCPPTRACE_BUILD_TESTING=On \
             -DCPPTRACE_SANITIZER_BUILD=${{matrix.sanitizers}} \
-            -DCPPTRACE_BUILD_TESTING_SPLIT_DWARF=${{matrix.split_dwarf}}
+            -DCPPTRACE_BUILD_TESTING_SPLIT_DWARF=${{matrix.split_dwarf}} \
+            -DCPPTRACE_BUILD_TESTING_SPLIT_DWARF=${{matrix.dwarf_version}}
            ninja
            ./unittest
            bash -c "exec -a u ./unittest"
