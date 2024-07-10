@@ -2,6 +2,11 @@ include(CTest)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+set(
+  warning_options
+  ${warning_options} $<$<CXX_COMPILER_ID:GNU>:-Wno-infinite-recursion>
+)
+
 macro(add_test_dependencies exec_name)
   target_compile_features(${exec_name} PRIVATE cxx_std_11)
   target_link_libraries(${exec_name} PRIVATE ${target_name})

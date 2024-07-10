@@ -173,7 +173,10 @@ jobs:
             -DCPPTRACE_BUILD_TESTING=On \
             -DCPPTRACE_SANITIZER_BUILD=${{matrix.sanitizers}} \
             -DCPPTRACE_BUILD_TESTING_SPLIT_DWARF=${{matrix.split_dwarf}} \
-            -DCPPTRACE_BUILD_TESTING_SPLIT_DWARF=${{matrix.dwarf_version}}
+            -DCPPTRACE_BUILD_TESTING_SPLIT_DWARF=${{matrix.dwarf_version}} \
+            -DCPPTRACE_LIBDWARF_REPO=https://github.com/davea42/libdwarf-code.git \
+            -DCPPTRACE_LIBDWARF_TAG=e2ab28a547ed8a53f2c96a825247a7cc8f7e40bb \
+            -DCPPTRACE_LIBDWARF_SHALLOW=0
            ninja
            ./unittest
            bash -c "exec -a u ./unittest"
