@@ -1010,8 +1010,11 @@ namespace libdwarf {
             if(cu) {
                 const auto& cu_die = cu.unwrap().cu_die.get();
                 // gnu non-standard debug-fission may create non-skeleton CU DIEs and just add dwo attributes
+                // clang emits dwo names in the split CUs, so guard against going down the dwarf fission path (which
+                // doesn't infinitely recurse because it's not emitted as an absolute path and there's no comp dir but
+                // it's good to guard against the infinite recursion anyway)
                 auto dwo_name = get_dwo_name(cu_die);
-                if(cu_die.get_tag() == DW_TAG_skeleton_unit || dwo_name) {
+                if(cu_die.get_tag() == DW_TAG_skeleton_unit || (dwo_name && !skeleton)) {
                     perform_dwarf_fission_resolution(cu_die, dwo_name, object_frame_info, frame, inlines);
                 } else {
                     retrieve_line_info(cu_die, pc, frame);
