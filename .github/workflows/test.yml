@@ -150,9 +150,6 @@ jobs:
         sanitizers: [OFF, ON]
         split_dwarf: [OFF, ON]
         dwarf_version: [4, 5]
-        exclude:
-          - dwarf_version: 4 # Disabled due to bug in either libdwarf or gcc
-            split_dwarf: ON
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
