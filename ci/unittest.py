@@ -81,11 +81,24 @@ def run_linux_matrix():
         exclude = []
     ).run(build_and_test)
 
+def run_macos_matrix():
+    MatrixRunner(
+        matrix = {
+            "compiler": ["g++-12", "clang++"],
+            "shared": ["OFF", "ON"],
+            "build_type": ["Debug", "RelWithDebInfo"],
+            "sanitizers": ["OFF", "ON"],
+            # "split_dwarf": ["OFF", "ON"],
+            # "dwarf_version": ["4", "5"],
+        },
+        exclude = []
+    ).run(build_and_test)
+
 def main():
     if platform.system() == "Linux":
         run_linux_matrix()
     if platform.system() == "Darwin":
-        raise ValueError() # run_macos_matrix()
+        run_macos_matrix()
     if platform.system() == "Windows":
         raise ValueError() # run_windows_matrix()
 

@@ -1,5 +1,4 @@
 #!/bin/bash
-sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build
 
 mkdir zstd
 cd zstd
