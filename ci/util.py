@@ -32,7 +32,7 @@ class MatrixRunner:
         self.last_matrix_config = None
         self.current_matrix_config = None
 
-    def run_command(self, *args: List[str], always_output=False) -> bool:
+    def run_command(self, *args: List[str], always_output=False, output_matcher=None) -> bool:
         self.log(f"{Fore.CYAN}{Style.BRIGHT}Running Command \"{' '.join(args)}\"{Style.RESET_ALL}")
         start_time = time.time()
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -40,7 +40,7 @@ class MatrixRunner:
         runtime = time.time() - start_time
         self.log(Style.RESET_ALL, end="") # makefile in parallel sometimes messes up colors
         if p.returncode != 0:
-            self.log(f"{Fore.RED}{Style.BRIGHT}Command failed{Style.RESET_ALL} {Style.BRIGHT}{Fore.BLACK}(time: {runtime:.2f}s){Style.RESET_ALL}")
+            self.log(f"{Fore.RED}{Style.BRIGHT}Command failed{Style.RESET_ALL} {Fore.MAGENTA}(time: {runtime:.2f}s){Style.RESET_ALL}")
             self.log("stdout:")
             self.log(stdout.decode("utf-8"), end="")
             self.log("stderr:")
@@ -48,7 +48,7 @@ class MatrixRunner:
             self.failed = True
             return False
         else:
-            self.log(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL} {Style.BRIGHT}{Fore.BLACK}(time: {runtime:.2f}s){Style.RESET_ALL}")
+            self.log(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL} {Fore.MAGENTA}(time: {runtime:.2f}s){Style.RESET_ALL}")
             if always_output:
                 self.log("stdout:")
                 self.log(stdout.decode("utf-8"), end="")
@@ -57,6 +57,10 @@ class MatrixRunner:
             elif len(stderr) != 0:
                 self.log("stderr:")
                 self.log(stderr.decode("utf-8"), end="")
+            if output_matcher is not None:
+                if not output_matcher(stdout.decode("utf-8")):
+                    self.failed = True
+                    return False
             return True
 
     def set_fail(self):
@@ -92,7 +96,11 @@ class MatrixRunner:
         for i, assignment in enumerate(self.work):
             matrix_config = self.assignment_to_matrix_config(assignment)
             config_tuple = tuple(self.values[i].index(p) for i, p in enumerate(assignment))
-            self.log(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} [{i + 1}/{len(self.work)}] Running with config {', '.join(matrix_config.values())} {'=' * 10}{Style.RESET_ALL}")
+            config_str = ', '.join(matrix_config.values())
+            if config_str == "":
+                self.log(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} [{i + 1}/{len(self.work)}] Running with blank config {'=' * 10}{Style.RESET_ALL}")
+            else:
+                self.log(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} [{i + 1}/{len(self.work)}] Running with config {', '.join(matrix_config.values())} {'=' * 10}{Style.RESET_ALL}")
             self.last_matrix_config = self.current_matrix_config
             self.current_matrix_config = matrix_config
             self.results[config_tuple] = fn(self)
