@@ -155,6 +155,7 @@ jobs:
     - name: dependencies
       run: |
            brew install ninja
+           brew uninstall googletest
            python3 -m venv env
            env/bin/pip install colorama
            cd ..
