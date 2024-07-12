@@ -143,7 +143,7 @@ jobs:
     - name: dependencies
       run: |
            cd ..
-           cpptrace/ci/setup-prerequisites.sh
+           cpptrace/ci/setup-prerequisites-unittest.sh
     - name: build and test
       run: |
            python3 ci/unittest.py
