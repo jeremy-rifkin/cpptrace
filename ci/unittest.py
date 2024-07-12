@@ -15,7 +15,7 @@ def get_c_compiler_counterpart(compiler: str) -> str:
     return compiler.replace("clang++", "clang").replace("g++", "gcc")
 
 def build(runner: MatrixRunner):
-    if platform.system() != "Windows":
+    if platform.system() == "Linux":
         matrix = runner.current_config()
         args = [
             "cmake",
@@ -35,6 +35,29 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
+            f"-DCMAKE_INSTALL_PREFIX=~/tmp/foo",
+        ]
+        return runner.run_command(*args) and runner.run_command("ninja")
+    elif platform.system() == "Darwin":
+        matrix = runner.current_config()
+        args = [
+            "cmake",
+            "..",
+            "-GNinja",
+            f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
+            f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
+            f"-DCMAKE_BUILD_TYPE={matrix['build_type']}",
+            f"-DBUILD_SHARED_LIBS={matrix['shared']}",
+            "-DCPPTRACE_WERROR_BUILD=On",
+            "-DCPPTRACE_STD_FORMAT=Off",
+            "-DCPPTRACE_BUILD_TESTING=On",
+            f"-DCPPTRACE_SANITIZER_BUILD={matrix['sanitizers']}",
+            # f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['split_dwarf']}",
+            # f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['dwarf_version']}",
+            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
+            f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
+            f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
+            f"-DCMAKE_INSTALL_PREFIX=~/tmp/foo",
         ]
         return runner.run_command(*args) and runner.run_command("ninja")
     else:
