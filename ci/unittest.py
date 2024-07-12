@@ -27,6 +27,7 @@ def build(runner: MatrixRunner):
             f"-DBUILD_SHARED_LIBS={matrix['shared']}",
             f"-DHAS_DL_FIND_OBJECT={matrix['has_dl_find_object']}",
             "-DCPPTRACE_WERROR_BUILD=On",
+            "-DCPPTRACE_STD_FORMAT=Off",
             "-DCPPTRACE_BUILD_TESTING=On",
             f"-DCPPTRACE_SANITIZER_BUILD={matrix['sanitizers']}",
             f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['split_dwarf']}",
