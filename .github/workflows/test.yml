@@ -4,8 +4,6 @@ on:
   push:
   pull_request:
 
-# TODO: Test statically linked
-
 jobs:
   test-linux:
     runs-on: ubuntu-22.04
@@ -140,34 +138,15 @@ jobs:
 
   unittest-linux:
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [g++-10, clang++-14]
-        shared: [OFF, ON]
-        build_type: [Debug, RelWithDebInfo]
-        has_dl_find_object: [OFF, ON]
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build
+           cd ..
+           cpptrace/ci/setup-prerequisites-unittest.sh
     - name: build and test
       run: |
-           mkdir build
-           cd build
-           cmake .. \
-            -GNinja \
-            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
-            -DCMAKE_C_COMPILER=${{matrix.compiler == 'g++-10' && 'gcc-10' || 'clang-14'}} \
-            -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
-            -DBUILD_SHARED_LIBS=${{matrix.shared}} \
-            -DHAS_DL_FIND_OBJECT=${{matrix.has_dl_find_object}} \
-            -DCPPTRACE_WERROR_BUILD=On \
-            -DCPPTRACE_BUILD_TESTING=On
-           ninja
-           ./unittest
-           bash -c "exec -a u ./unittest"
+           python3 ci/unittest.py
   unittest-windows:
     runs-on: windows-2022
     strategy:
