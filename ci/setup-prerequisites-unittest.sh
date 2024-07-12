@@ -20,17 +20,16 @@ git fetch --depth 1 origin e2ab28a547ed8a53f2c96a825247a7cc8f7e40bb
 git checkout FETCH_HEAD
 mkdir build
 cd build
-cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
-make -j
-sudo make install
+cmake .. -GNinja -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
+sudo ninja install
 
 cd ../..
 
 mkdir googletest
 cd googletest
 git init
-git remote add origin https://github.com/jeremy-rifkin/libdwarf-lite.git
-git fetch --depth 1 origin 6dbcc23dba6ffd230063bda4b9d7298bf88d9d41
+git remote add origin https://github.com/google/googletest.git
+git fetch --depth 1 origin f8d7d77c06936315286eb55f8de22cd23c188571
 git checkout FETCH_HEAD
 mkdir build
 cd build
