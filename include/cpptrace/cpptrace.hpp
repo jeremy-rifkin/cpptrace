@@ -34,11 +34,13 @@
 #  endif
 #endif
 
-#if __cplusplus >= 202002L
- #ifdef __has_include
-  #if __has_include(<format>)
-   #define CPPTRACE_STD_FORMAT
-   #include <format>
+#ifndef CPPTRACE_NO_STD_FORMAT
+ #if __cplusplus >= 202002L
+  #ifdef __has_include
+   #if __has_include(<format>)
+    #define CPPTRACE_STD_FORMAT
+    #include <format>
+   #endif
   #endif
  #endif
 #endif
