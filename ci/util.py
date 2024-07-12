@@ -4,6 +4,7 @@ import itertools
 from typing import List
 from colorama import Fore, Back, Style
 import re
+import time
 
 # https://stackoverflow.com/a/14693789/15675011
 ansi_escape = re.compile(r'''
@@ -18,95 +19,113 @@ ansi_escape = re.compile(r'''
     )
 ''', re.VERBOSE)
 
-def adj_width(text):
-    return len(text) - len(ansi_escape.sub("", text))
+class MatrixRunner:
+    def __init__(self, matrix, exclude):
+        self.matrix = matrix
+        self.exclude = exclude
+        self.keys = [*matrix.keys()]
+        self.values = [*matrix.values()]
+        self.results = {} # insertion-ordered
+        self.failed = False
+        self.work = self.get_work()
 
-def do_exclude(matrix_config, exclude):
-    return all(map(lambda k: matrix_config[k] == exclude[k], exclude.keys()))
+        self.last_matrix_config = None
+        self.current_matrix_config = None
 
-def print_table(table):
-    columns = len(table[0])
-    column_widths = [1 for _ in range(columns)]
-    for row in table:
-        for i, cell in enumerate(row):
-            column_widths[i] = max(column_widths[i], len(ansi_escape.sub("", cell)))
-    for j, cell in enumerate(table[0]):
-        print("| {cell:{width}} ".format(cell=cell, width=column_widths[j] + adj_width(cell)), end="")
-    print("|")
-    for i, row in enumerate(table[1:]):
-        for j, cell in enumerate(row):
-            print("| {cell:{width}} ".format(cell=cell, width=column_widths[j] + adj_width(cell)), end="")
-        print("|")
-
-def run_matrix(matrix, exclude, fn):
-    keys = [*matrix.keys()]
-    values = [*matrix.values()]
-    #print("Values:", values)
-    results = {} # insertion-ordered
-    for config in itertools.product(*matrix.values()):
-        #print(config)
-        matrix_config = {}
-        for k, v in zip(matrix.keys(), config):
-            matrix_config[k] = v
-        #print(matrix_config)
-        if any(map(lambda ex: do_exclude(matrix_config, ex), exclude)):
-            continue
+    def run_command(self, *args: List[str], always_output=False) -> bool:
+        self.log(f"{Fore.CYAN}{Style.BRIGHT}Running Command \"{' '.join(args)}\"{Style.RESET_ALL}")
+        start_time = time.time()
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        runtime = time.time() - start_time
+        self.log(Style.RESET_ALL, end="") # makefile in parallel sometimes messes up colors
+        if p.returncode != 0:
+            self.log(f"{Fore.RED}{Style.BRIGHT}Command failed{Style.RESET_ALL} {Style.BRIGHT}{Fore.BLACK}(time: {runtime:.2f}s){Style.RESET_ALL}")
+            self.log("stdout:")
+            self.log(stdout.decode("utf-8"), end="")
+            self.log("stderr:")
+            self.log(stderr.decode("utf-8"), end="")
+            self.failed = True
+            return False
         else:
-            config_tuple = tuple(values[i].index(p) for i, p in enumerate(config))
-            results[config_tuple] = fn(matrix_config)
-            # Fudged data for testing
-            #print(config_tuple)
-            #if "symbols" not in matrix_config:
-            #    results[config_tuple] = matrix_config["compiler"] != "g++-10"
-            #else:
-            #    results[config_tuple] = not (matrix_config["compiler"] == "clang++-14" and matrix_config["symbols"] == "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE")
-    # I had an idea for printing 2d slices of the n-dimensional matrix, but it didn't pan out as much as I'd hoped
-    dimensions = len(values)
-    # # Output diagnostic tables
-    # print("Results:", results)
-    # if dimensions >= 2:
-    #     for iteraxes in itertools.combinations(range(dimensions), dimensions - 2):
-    #         # iteraxes are the axes we iterate over to slice, these fixed axes are the axes of the table
-    #         # just the complement of axes, these are the two fixed axes
-    #         fixed = [x for x in range(dimensions) if x not in iteraxes]
-    #         assert(len(fixed) == 2)
-    #         if any([len(values[i]) == 1 for i in fixed]):
-    #             continue
-    #         print("Fixed:", fixed)
-    #         for iteraxesvalues in itertools.product(
-    #             *[range(len(values[i])) if i in iteraxes else [-1] for i in range(dimensions)]
-    #         ):
-    #             print(">>", iteraxesvalues)
-    #             # Now that we have our iteraxes values we have a unique plane
-    #             table = [
-    #                 ["", *[value for value in values[fixed[0]]]]
-    #             ]
-    #             #print(values[fixed[1]])
-    #             for row_i, row_value in enumerate(values[fixed[1]]):
-    #                 row = [row_value]
-    #                 for col_i in range(len(values[fixed[0]])):
-    #                     iteraxesvaluescopy = [x for x in iteraxesvalues]
-    #                     iteraxesvaluescopy[fixed[1]] = row_i
-    #                     iteraxesvaluescopy[fixed[0]] = col_i
-    #                     #print("----->", iteraxesvaluescopy)
-    #                     row.append(
-    #                         f"{Fore.GREEN}{Style.BRIGHT}Good{Style.RESET_ALL}"
-    #                             if results[tuple(iteraxesvaluescopy)]
-    #                                 else f"{Fore.RED}{Style.BRIGHT}Bad{Style.RESET_ALL}"
-    #                             if tuple(iteraxesvaluescopy) in results else ""
-    #                     )
-    #                 table.append(row)
-    #             print_table(table)
+            self.log(f"{Fore.GREEN}{Style.BRIGHT}Command succeeded{Style.RESET_ALL} {Style.BRIGHT}{Fore.BLACK}(time: {runtime:.2f}s){Style.RESET_ALL}")
+            if always_output:
+                self.log("stdout:")
+                self.log(stdout.decode("utf-8"), end="")
+                self.log("stderr:")
+                self.log(stderr.decode("utf-8"), end="")
+            elif len(stderr) != 0:
+                self.log("stderr:")
+                self.log(stderr.decode("utf-8"), end="")
+            return True
 
-    # Better idea would be looking for m<n tuples that are consistently failing and reporting on those
-    #for fixed_axes in itertools.product(range(dimensions), 2):
-    #    pass
+    def set_fail(self):
+        self.failed = True
 
-    print("Results:")
-    table = [keys]
-    for result in results:
-        table.append([
-            f"{Fore.GREEN if results[result] else Fore.RED}{Style.BRIGHT}{values[i][v]}{Style.RESET_ALL}"
-                for i, v in enumerate(result)
-        ])
-    print_table(table)
+    def current_config(self):
+        return self.current_matrix_config
+
+    def last_config(self):
+        return self.last_matrix_config
+
+    def log(self, *args, **kwargs):
+        print(*args, **kwargs, flush=True)
+
+    def do_exclude(self, matrix_config, exclude):
+        return all(map(lambda k: matrix_config[k] == exclude[k], exclude.keys()))
+
+    def assignment_to_matrix_config(self, assignment):
+        matrix_config = {}
+        for k, v in zip(self.matrix.keys(), assignment):
+            matrix_config[k] = v
+        return matrix_config
+
+    def get_work(self):
+        work = []
+        for assignment in itertools.product(*self.matrix.values()):
+            if any(map(lambda ex: self.do_exclude(self.assignment_to_matrix_config(assignment), ex), self.exclude)):
+                continue
+            work.append(assignment)
+        return work
+
+    def run(self, fn):
+        for i, assignment in enumerate(self.work):
+            matrix_config = self.assignment_to_matrix_config(assignment)
+            config_tuple = tuple(self.values[i].index(p) for i, p in enumerate(assignment))
+            self.log(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} [{i + 1}/{len(self.work)}] Running with config {', '.join(matrix_config.values())} {'=' * 10}{Style.RESET_ALL}")
+            self.last_matrix_config = self.current_matrix_config
+            self.current_matrix_config = matrix_config
+            self.results[config_tuple] = fn(self)
+        self.print_results()
+        if self.failed:
+            self.log("🔴 Some checks failed")
+            sys.exit(1)
+        else:
+            self.log("🟢 All checks passed")
+
+    def adj_width(self, text):
+        return len(text) - len(ansi_escape.sub("", text))
+
+    def print_table(self, table):
+        columns = len(table[0])
+        column_widths = [1 for _ in range(columns)]
+        for row in table:
+            for i, cell in enumerate(row):
+                column_widths[i] = max(column_widths[i], len(ansi_escape.sub("", cell)))
+        for j, cell in enumerate(table[0]):
+            self.log("| {cell:{width}} ".format(cell=cell, width=column_widths[j] + self.adj_width(cell)), end="")
+        self.log("|")
+        for i, row in enumerate(table[1:]):
+            for j, cell in enumerate(row):
+                self.log("| {cell:{width}} ".format(cell=cell, width=column_widths[j] + self.adj_width(cell)), end="")
+            self.log("|")
+
+    def print_results(self):
+        self.log("Results:")
+        table = [self.keys]
+        for result in self.results:
+            table.append([
+                f"{Fore.GREEN if self.results[result] else Fore.RED}{Style.BRIGHT}{self.values[i][v]}{Style.RESET_ALL}"
+                    for i, v in enumerate(result)
+            ])
+        self.print_table(table)
