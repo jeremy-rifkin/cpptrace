@@ -43,7 +43,7 @@ def build(runner: MatrixRunner):
         args = [
             "cmake",
             "..",
-            # "-GNinja",
+            "-GNinja",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_BUILD_TYPE={matrix['build_type']}",
@@ -59,8 +59,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
             f"-DCMAKE_INSTALL_PREFIX=~/tmp/foo",
         ]
-        # return runner.run_command(*args) and runner.run_command("ninja")
-        return runner.run_command(*args) and runner.run_command("make", "-j")
+        return runner.run_command(*args) and runner.run_command("ninja")
     else:
         raise ValueError()
 
