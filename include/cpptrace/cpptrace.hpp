@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <exception>
 #include <limits>
-#include <ostream>
+#include <iosfwd>
 #include <string>
 #include <system_error>
 #include <type_traits>
