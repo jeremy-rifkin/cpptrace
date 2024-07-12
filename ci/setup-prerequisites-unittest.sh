@@ -19,9 +19,8 @@ git fetch --depth 1 origin e2ab28a547ed8a53f2c96a825247a7cc8f7e40bb
 git checkout FETCH_HEAD
 mkdir build
 cd build
-cmake .. -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
-make -j
-sudo make install
+cmake .. -GNinja -DPIC_ALWAYS=TRUE -DBUILD_DWARFDUMP=FALSE
+sudo ninja install
 
 cd ../..
 
@@ -33,6 +32,5 @@ git fetch --depth 1 origin f8d7d77c06936315286eb55f8de22cd23c188571
 git checkout FETCH_HEAD
 mkdir build
 cd build
-cmake ..
-make -j
-sudo make install
+cmake .. -GNinja
+sudo ninja install
