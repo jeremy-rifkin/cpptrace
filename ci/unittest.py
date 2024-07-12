@@ -76,9 +76,9 @@ def build(matrix):
             f"-DHAS_DL_FIND_OBJECT={matrix['has_dl_find_object']}",
             "-DCPPTRACE_WERROR_BUILD=On",
             "-DCPPTRACE_BUILD_TESTING=On",
-            f"-DCPPTRACE_SANITIZER_BUILD={matrix["sanitizers"]}",
-            f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix["split_dwarf"]}",
-            f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix["dwarf_version"]}",
+            f"-DCPPTRACE_SANITIZER_BUILD={matrix['sanitizers']}",
+            f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['split_dwarf']}",
+            f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['dwarf_version']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
         ]
