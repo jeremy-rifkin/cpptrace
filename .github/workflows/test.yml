@@ -154,7 +154,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-          #  brew install ninja
+           brew install ninja
            python3 -m venv env
            env/bin/pip install colorama
            cd ..
