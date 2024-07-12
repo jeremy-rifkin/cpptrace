@@ -4,8 +4,6 @@ on:
   push:
   pull_request:
 
-# TODO: Test statically linked
-
 jobs:
   test-linux:
     runs-on: ubuntu-22.04
