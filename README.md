@@ -507,6 +507,10 @@ namespace cpptrace {
 > information can't be resolved in a signal-safe way then `get_safe_object_frame` will not populate fields beyond the
 > `raw_address`.
 
+> [!IMPORTANT]
+> `_dl_find_object` is required for signal-safe stack tracing. This is a relatively recent addition to glibc, added in
+> glibc 2.35.
+
 > [!CAUTION]
 > Calls to shared objects can be lazy-loaded where the first call to the shared object invokes non-signal-safe functions
 > such as `malloc()`. To avoid this, call these routines in `main()` ahead of a signal handler to "warm up" the library.

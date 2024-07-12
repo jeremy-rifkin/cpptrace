@@ -35,6 +35,10 @@ memory corruption.
 > [!IMPORTANT]
 > Currently signal-safe stack unwinding is only possible with `libunwind`, more details later.
 
+> [!IMPORTANT]
+> `_dl_find_object` is required for signal-safe stack tracing. This is a relatively recent addition to glibc, added in
+> glibc 2.35.
+
 > [!CAUTION]
 > Calls to shared objects can be lazy-loaded where the first call to the shared object invokes non-signal-safe functions
 > such as `malloc()`. Because of this, the signal safe api must be "warmed up" ahead of a signal handler.
@@ -102,8 +106,8 @@ knows ways to do these safely on other platforms, I'd be much appreciative.
 Of the three strategies, `fork()` + `exec()`, is the most technically involved and the only way to resolve while the
 signal handler is running. I think it's worthwhile to do a deep-dive into how to do this.
 
-In the source code, [`signal_demo.cpp`](signal_demo.cpp) and [`signal_tracer.cpp`](signal_tracer.cpp) provide a working
-example for what is described here.
+In the source code, [`signal_demo.cpp`](../test/signal_demo.cpp) and [`signal_tracer.cpp`](../test/signal_tracer.cpp)
+provide a working example for what is described here.
 
 ## In the main program
 
@@ -136,7 +140,7 @@ struct pipe_t {
     };
 };
 
-void do_signal_safe_trace(cpptrace::frame_ptr* buffer, std::size_t size) {
+void do_signal_safe_trace(cpptrace::frame_ptr* buffer, std::size_t count) {
     // Setup pipe and spawn child
     pipe_t input_pipe;
     pipe(input_pipe.data);
@@ -172,7 +176,7 @@ void handler(int signo, siginfo_t* info, void* context) {
     constexpr std::size_t N = 100;
     cpptrace::frame_ptr buffer[N];
     std::size_t count = cpptrace::safe_generate_raw_trace(buffer, N);
-    do_signal_safe_trace(buffer, N);
+    do_signal_safe_trace(buffer, count);
     // Up to you if you want to exit or continue or whatever
     _exit(1);
 }
