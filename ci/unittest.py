@@ -35,6 +35,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
+            f"-DCMAKE_INSTALL_PREFIX=~/tmp/foo",
         ]
         return runner.run_command(*args) and runner.run_command("ninja")
     elif platform.system() == "Darwin":
@@ -56,6 +57,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
+            f"-DCMAKE_PREFIX_PATH={'/tmp/gtest_install_gcc' if 'g++' in matrix['compiler'] else '/tmp/gtest_install'}",
         ]
         return runner.run_command(*args) and runner.run_command("ninja")
     else:
