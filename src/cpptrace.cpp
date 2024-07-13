@@ -24,12 +24,26 @@
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
     raw_trace raw_trace::current(std::size_t skip) {
-        return generate_raw_trace(skip + 1);
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            return generate_raw_trace(skip + 1);
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return raw_trace{};
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE
     raw_trace raw_trace::current(std::size_t skip, std::size_t max_depth) {
-        return generate_raw_trace(skip + 1, max_depth);
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            return generate_raw_trace(skip + 1, max_depth);
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return raw_trace{};
+        }
     }
 
     object_trace raw_trace::resolve_object_trace() const {
@@ -68,12 +82,26 @@ namespace cpptrace {
 
     CPPTRACE_FORCE_NO_INLINE
     object_trace object_trace::current(std::size_t skip) {
-        return generate_object_trace(skip + 1);
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            return generate_object_trace(skip + 1);
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return object_trace{};
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE
     object_trace object_trace::current(std::size_t skip, std::size_t max_depth) {
-        return generate_object_trace(skip + 1, max_depth);
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            return generate_object_trace(skip + 1, max_depth);
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return object_trace{};
+        }
     }
 
     stacktrace object_trace::resolve() const {
@@ -131,12 +159,26 @@ namespace cpptrace {
 
     CPPTRACE_FORCE_NO_INLINE
     stacktrace stacktrace::current(std::size_t skip) {
-        return generate_trace(skip + 1);
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            return generate_trace(skip + 1);
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return stacktrace{};
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE
     stacktrace stacktrace::current(std::size_t skip, std::size_t max_depth) {
-        return generate_trace(skip + 1, max_depth);
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            return generate_trace(skip + 1, max_depth);
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return stacktrace{};
+        }
     }
 
     void stacktrace::print() const {
@@ -290,7 +332,14 @@ namespace cpptrace {
 
     CPPTRACE_FORCE_NO_INLINE
     std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip) {
-        return detail::safe_capture_frames(buffer, size, skip + 1, SIZE_MAX);
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            return detail::safe_capture_frames(buffer, size, skip + 1, SIZE_MAX);
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return 0;
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE
@@ -300,7 +349,14 @@ namespace cpptrace {
          std::size_t skip,
          std::size_t max_depth
     ) {
-        return detail::safe_capture_frames(buffer, size, skip + 1, max_depth);
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            return detail::safe_capture_frames(buffer, size, skip + 1, max_depth);
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return 0;
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE
@@ -329,7 +385,14 @@ namespace cpptrace {
 
     CPPTRACE_FORCE_NO_INLINE
     stacktrace generate_trace(std::size_t skip) {
-        return generate_trace(skip + 1, SIZE_MAX);
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            return generate_trace(skip + 1, SIZE_MAX);
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+            return stacktrace{};
+        }
     }
 
     CPPTRACE_FORCE_NO_INLINE
@@ -475,7 +538,14 @@ namespace cpptrace {
 
         CPPTRACE_FORCE_NO_INLINE
         raw_trace get_raw_trace_and_absorb(std::size_t skip) {
-            return get_raw_trace_and_absorb(skip + 1, SIZE_MAX);
+            try { // try/catch can never be hit but it's needed to prevent TCO
+                return get_raw_trace_and_absorb(skip + 1, SIZE_MAX);
+            } catch(...) {
+                if(!detail::should_absorb_trace_exceptions()) {
+                    throw;
+                }
+                return raw_trace{};
+            }
         }
 
         lazy_trace_holder::lazy_trace_holder(const lazy_trace_holder& other) : resolved(other.resolved) {
