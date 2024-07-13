@@ -40,7 +40,7 @@ def build(runner: MatrixRunner):
     elif platform.system() == "Darwin":
         matrix = runner.current_config()
         if "clang++" in matrix["compiler"]:
-            gtest_path = "/tmp/gtest_asan_install" if matrix['sanitizers'] == "ON" else "/tmp/gtest_install":
+            gtest_path = "/tmp/gtest_asan_install" if matrix['sanitizers'] == "ON" else "/tmp/gtest_install"
         else:
             gtest_path = "/tmp/gtest_install_gcc"
         args = [
