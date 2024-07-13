@@ -112,7 +112,12 @@ def run_macos_matrix():
             # "split_dwarf": ["OFF", "ON"],
             # "dwarf_version": ["4", "5"],
         },
-        exclude = []
+        exclude = [
+            {
+                "compiler": "g++-12",
+                "sanitizers": "ON",
+            }
+        ]
     ).run(build_and_test)
 
 def main():

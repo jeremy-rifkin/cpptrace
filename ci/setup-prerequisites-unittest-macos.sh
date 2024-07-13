@@ -32,5 +32,5 @@ git fetch --depth 1 origin f8d7d77c06936315286eb55f8de22cd23c188571
 git checkout FETCH_HEAD
 mkdir build
 cd build
-cmake .. -GNinja -DCMAKE_OSX_ARCHITECTURES=arm64
+cmake .. -GNinja -DCMAKE_OSX_ARCHITECTURES=arm64 -DBUILD_SHARED_LIBS=On
 sudo ninja install
