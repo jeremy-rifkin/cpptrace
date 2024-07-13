@@ -24,7 +24,7 @@ def build(runner: MatrixRunner):
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_BUILD_TYPE={matrix['build_type']}",
-            f"-DBUILD_SHARED_LIBS={matrix['shared']}",
+            f"-DCPPTRACE_BUILD_SHARED={matrix['shared']}",
             f"-DHAS_DL_FIND_OBJECT={matrix['has_dl_find_object']}",
             "-DCPPTRACE_WERROR_BUILD=On",
             "-DCPPTRACE_STD_FORMAT=Off",
@@ -50,7 +50,7 @@ def build(runner: MatrixRunner):
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_BUILD_TYPE={matrix['build_type']}",
-            f"-DBUILD_SHARED_LIBS={matrix['shared']}",
+            f"-DCPPTRACE_BUILD_SHARED={matrix['shared']}",
             "-DCPPTRACE_WERROR_BUILD=On",
             "-DCPPTRACE_STD_FORMAT=Off",
             "-DCPPTRACE_BUILD_TESTING=On",
@@ -76,9 +76,12 @@ def build_and_test(runner: MatrixRunner):
     # the build directory has to be purged on compiler or shared change
     last = runner.last_config()
     current = runner.current_config()
-    if last is None or last["compiler"] != current["compiler"] or last["shared"] != current["shared"] or (platform.system() == "Darwin" and last["sanitizers"] != current["sanitizers"]):
-        if os.path.exists("build"):
-            shutil.rmtree("build", ignore_errors=True)
+    if (
+        last is None
+        or last["compiler"] != current["compiler"]
+        or (platform.system() == "Darwin" and last["sanitizers"] != current["sanitizers"])
+    ) and os.path.exists("build"):
+        shutil.rmtree("build", ignore_errors=True)
 
     if not os.path.exists("build"):
         os.mkdir("build")
@@ -97,9 +100,9 @@ def run_linux_matrix():
     MatrixRunner(
         matrix = {
             "compiler": ["g++-10", "clang++-14"],
-            "shared": ["OFF", "ON"],
-            "build_type": ["Debug", "RelWithDebInfo"],
             "sanitizers": ["OFF", "ON"],
+            "build_type": ["Debug", "RelWithDebInfo"],
+            "shared": ["OFF", "ON"],
             "has_dl_find_object": ["OFF", "ON"],
             "split_dwarf": ["OFF", "ON"],
             "dwarf_version": ["4", "5"],
@@ -111,9 +114,9 @@ def run_macos_matrix():
     MatrixRunner(
         matrix = {
             "compiler": ["g++-12", "clang++"],
-            "shared": ["OFF", "ON"],
-            "build_type": ["Debug", "RelWithDebInfo"],
             "sanitizers": ["OFF", "ON"],
+            "build_type": ["Debug", "RelWithDebInfo"],
+            "shared": ["OFF", "ON"],
             # "split_dwarf": ["OFF", "ON"],
             # "dwarf_version": ["4", "5"],
         },
