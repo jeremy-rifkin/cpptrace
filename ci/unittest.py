@@ -39,6 +39,10 @@ def build(runner: MatrixRunner):
         return runner.run_command(*args) and runner.run_command("ninja")
     elif platform.system() == "Darwin":
         matrix = runner.current_config()
+        if "clang++" in matrix["compiler"]:
+            gtest_path = "/tmp/gtest_asan_install" if matrix['sanitizers'] == "ON" else "/tmp/gtest_install":
+        else:
+            gtest_path = "/tmp/gtest_install_gcc"
         args = [
             "cmake",
             "..",
@@ -56,7 +60,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
-            f"-DCMAKE_PREFIX_PATH={'/tmp/gtest_install' if 'clang++' in matrix['compiler'] else '/tmp/gtest_install_gcc'}",
+            f"-DCMAKE_PREFIX_PATH={gtest_path}",
         ]
         return runner.run_command(*args) and runner.run_command("ninja")
     else:
