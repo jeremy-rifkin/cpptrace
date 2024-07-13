@@ -58,8 +58,6 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
             f"-DCMAKE_PREFIX_PATH={'/tmp/gtest_install_gcc' if 'g++' in matrix['compiler'] else '/tmp/gtest_install'}",
         ]
-        if "clang++" in matrix["compiler"]:
-            args.append("-DCMAKE_CXX_FLAGS=-Wl,-ld_classic")
         return runner.run_command(*args) and runner.run_command("ninja")
     else:
         raise ValueError()
