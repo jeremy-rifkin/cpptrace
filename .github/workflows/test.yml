@@ -155,11 +155,10 @@ jobs:
     - name: dependencies
       run: |
            brew install ninja
-           brew uninstall googletest
            python3 -m venv env
            env/bin/pip install colorama
            cd ..
-           cpptrace/ci/setup-prerequisites-unittest.sh
+           cpptrace/ci/setup-prerequisites-unittest-macos.sh
     - name: build and test
       run: |
            env/bin/python ci/unittest.py
