@@ -32,5 +32,8 @@ git fetch --depth 1 origin f8d7d77c06936315286eb55f8de22cd23c188571
 git checkout FETCH_HEAD
 mkdir build
 cd build
-cmake .. -GNinja -DCMAKE_OSX_ARCHITECTURES=arm64 -DBUILD_SHARED_LIBS=On
+cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=/tmp/gtest_install
+sudo ninja install
+rm -rf *
+cmake .. -GNinja -DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_INSTALL_PREFIX=/tmp/gtest_install_gcc
 sudo ninja install
