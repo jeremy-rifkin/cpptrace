@@ -72,8 +72,12 @@ namespace libdwarf {
             auto it = symbol_table.find(symbol_name);
             if(it != symbol_table.end()) {
                 auto frame = frame_info;
+                // substitute a translated address object for the target file in
                 frame.object_address = it->second + offset;
-                return get_resolver()->resolve_frame(frame);
+                auto res = get_resolver()->resolve_frame(frame);
+                // replace the translated address with the object address in the binary
+                res.frame.object_address = frame_info.object_address;
+                return res;
             } else {
                 return {
                     {
@@ -167,7 +171,7 @@ namespace libdwarf {
                             frame_info.raw_address,
                             // the resolver doesn't care about the object address here, only the offset from the start
                             // of the symbol and it'll lookup the symbol's base-address
-                            0,
+                            frame_info.object_address,
                             frame_info.object_path
                         },
                         closest_symbol_it->name,
