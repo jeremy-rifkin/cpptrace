@@ -76,7 +76,7 @@ def build_and_test(runner: MatrixRunner):
     # the build directory has to be purged on compiler or shared change
     last = runner.last_config()
     current = runner.current_config()
-    if last is None or last["compiler"] != current["compiler"] or last["shared"] != current["shared"]:
+    if last is None or last["compiler"] != current["compiler"] or last["shared"] != current["shared"] or (platform.system() == "Darwin" and last["sanitizers"] != current["sanitizers"]):
         if os.path.exists("build"):
             shutil.rmtree("build", ignore_errors=True)
 
