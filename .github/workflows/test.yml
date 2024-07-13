@@ -164,7 +164,6 @@ jobs:
            cpptrace/ci/setup-prerequisites-unittest-macos.sh
     - name: build and test
       run: |
-           clang++ --version
            env/bin/python ci/unittest.py
   unittest-windows:
     runs-on: windows-2022
