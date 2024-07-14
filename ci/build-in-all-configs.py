@@ -24,6 +24,7 @@ def build(runner: MatrixRunner):
         succeeded = runner.run_command(
             "cmake",
             "..",
+            "-GNinja",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
@@ -36,7 +37,7 @@ def build(runner: MatrixRunner):
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
         )
         if succeeded:
-            succeeded = runner.run_command("make", "-j", "VERBOSE=1")
+            succeeded = runner.run_command("ninja")
     else:
         args = [
             "cmake",
@@ -78,6 +79,7 @@ def build_full_or_auto(runner: MatrixRunner):
         args = [
             "cmake",
             "..",
+            "-GNinja",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
@@ -90,7 +92,7 @@ def build_full_or_auto(runner: MatrixRunner):
             args.append(f"{matrix['config']}")
         succeeded = runner.run_command(*args)
         if succeeded:
-            succeeded = runner.run_command("make", "-j")
+            succeeded = runner.run_command("ninja")
     else:
         args = [
             "cmake",
