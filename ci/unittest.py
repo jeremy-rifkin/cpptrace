@@ -67,8 +67,16 @@ def build(runner: MatrixRunner):
         raise ValueError()
 
 def test(runner: MatrixRunner):
-    if platform.system() != "Windows":
+    if platform.system() == "Linux":
         return runner.run_command("./unittest") and runner.run_command("bash", "-c", "exec -a u ./unittest")
+    elif platform.system() == "Darwin":
+        if runner.current_config()["dSYM"]:
+            if not runner.run_command("dsymutil", "unittest"):
+                return False
+        good = runner.run_command("./unittest") and runner.run_command("bash", "-c", "exec -a u ./unittest")
+        if runner.current_config()["dSYM"]:
+            shutil.rmtree("unittest.dSYM")
+        return good
     else:
         raise ValueError()
 
@@ -117,8 +125,7 @@ def run_macos_matrix():
             "sanitizers": ["OFF", "ON"],
             "build_type": ["Debug", "RelWithDebInfo"],
             "shared": ["OFF", "ON"],
-            # "split_dwarf": ["OFF", "ON"],
-            # "dwarf_version": ["4", "5"],
+            "dSYM": [True, False],
         },
         exclude = [
             {
