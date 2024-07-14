@@ -11,11 +11,16 @@ from util import *
 
 sys.stdout.reconfigure(encoding='utf-8') # for windows gh runner
 
+def maybe_remove_build_dir(runner: MatrixRunner):
+    last = runner.last_config()
+    current = runner.current_config()
+    if (last is None or last["compiler"] != current["compiler"]) and os.path.exists("build"):
+        shutil.rmtree("build", ignore_errors=True)
+
 def build(runner: MatrixRunner):
     matrix = runner.current_config()
 
-    if os.path.exists("build"):
-        shutil.rmtree("build", ignore_errors=True)
+    maybe_remove_build_dir(runner)
 
     os.makedirs("build", exist_ok=True)
     os.chdir("build")
@@ -24,6 +29,7 @@ def build(runner: MatrixRunner):
         succeeded = runner.run_command(
             "cmake",
             "..",
+            "-GNinja",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
@@ -36,7 +42,7 @@ def build(runner: MatrixRunner):
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
         )
         if succeeded:
-            succeeded = runner.run_command("make", "-j", "VERBOSE=1")
+            succeeded = runner.run_command("ninja")
     else:
         args = [
             "cmake",
@@ -56,7 +62,7 @@ def build(runner: MatrixRunner):
         succeeded = runner.run_command(*args)
         if succeeded:
             if matrix["compiler"] == "g++":
-                succeeded = runner.run_command("make", "-j", "VERBOSE=1")
+                succeeded = runner.run_command("make", "-j")
             else:
                 succeeded = runner.run_command("msbuild", "cpptrace.sln")
 
@@ -68,8 +74,7 @@ def build(runner: MatrixRunner):
 def build_full_or_auto(runner: MatrixRunner):
     matrix = runner.current_config()
 
-    if os.path.exists("build"):
-        shutil.rmtree("build", ignore_errors=True)
+    maybe_remove_build_dir(runner)
 
     os.makedirs("build", exist_ok=True)
     os.chdir("build")
@@ -78,6 +83,7 @@ def build_full_or_auto(runner: MatrixRunner):
         args = [
             "cmake",
             "..",
+            "-GNinja",
             f"-DCMAKE_BUILD_TYPE={matrix['target']}",
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_CXX_STANDARD={matrix['std']}",
@@ -90,7 +96,7 @@ def build_full_or_auto(runner: MatrixRunner):
             args.append(f"{matrix['config']}")
         succeeded = runner.run_command(*args)
         if succeeded:
-            succeeded = runner.run_command("make", "-j")
+            succeeded = runner.run_command("ninja")
     else:
         args = [
             "cmake",
@@ -145,17 +151,6 @@ def run_linux_matrix(compilers: list):
         exclude = []
     ).run(build)
 
-def run_linux_default(compilers: list):
-    MatrixRunner(
-        matrix = {
-            "compiler": compilers,
-            "target": ["Debug"],
-            "std": ["11", "20"],
-            "config": [""]
-        },
-        exclude = []
-    ).run(build_full_or_auto)
-
 def run_macos_matrix(compilers: list):
     MatrixRunner(
         matrix = {
@@ -181,17 +176,6 @@ def run_macos_matrix(compilers: list):
         },
         exclude = []
     ).run(build)
-
-def run_macos_default(compilers: list):
-    MatrixRunner(
-        matrix = {
-            "compiler": compilers,
-            "target": ["Debug"],
-            "std": ["11", "20"],
-            "config": [""]
-        },
-        exclude = []
-    ).run(build_full_or_auto)
 
 def run_windows_matrix(compilers: list):
     MatrixRunner(
@@ -251,6 +235,28 @@ def run_windows_matrix(compilers: list):
             },
         ]
     ).run(build)
+
+def run_linux_default(compilers: list):
+    MatrixRunner(
+        matrix = {
+            "compiler": compilers,
+            "target": ["Debug"],
+            "std": ["11", "20"],
+            "config": [""]
+        },
+        exclude = []
+    ).run(build_full_or_auto)
+
+def run_macos_default(compilers: list):
+    MatrixRunner(
+        matrix = {
+            "compiler": compilers,
+            "target": ["Debug"],
+            "std": ["11", "20"],
+            "config": [""]
+        },
+        exclude = []
+    ).run(build_full_or_auto)
 
 def run_windows_default(compilers: list):
     MatrixRunner(
