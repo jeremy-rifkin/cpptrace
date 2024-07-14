@@ -441,12 +441,18 @@ namespace cpptrace {
     extern const int stderr_fileno = detail::fileno(stderr);
 
     CPPTRACE_FORCE_NO_INLINE void print_terminate_trace() {
-        generate_trace(1).print(
-            std::cerr,
-            isatty(stderr_fileno),
-            true,
-            "Stack trace to reach terminate handler (most recent call first):"
-        );
+        try { // try/catch can never be hit but it's needed to prevent TCO
+            generate_trace(1).print(
+                std::cerr,
+                isatty(stderr_fileno),
+                true,
+                "Stack trace to reach terminate handler (most recent call first):"
+            );
+        } catch(...) {
+            if(!detail::should_absorb_trace_exceptions()) {
+                throw;
+            }
+        }
     }
 
     [[noreturn]] void terminate_handler() {
