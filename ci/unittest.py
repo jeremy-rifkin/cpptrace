@@ -131,7 +131,14 @@ def run_macos_matrix():
             {
                 "compiler": "g++-12",
                 "sanitizers": "ON",
-            }
+            },
+            {
+                # disabled until https://github.com/davea42/libdwarf-code/issues/255 is fixed
+                "compiler": "clang++",
+                "sanitizers": "ON",
+                "build_type": "RelWithDebInfo",
+                "dSYM": True
+            },
         ]
     ).run(build_and_test)
 
