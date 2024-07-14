@@ -32,5 +32,13 @@ git fetch --depth 1 origin f8d7d77c06936315286eb55f8de22cd23c188571
 git checkout FETCH_HEAD
 mkdir build
 cd build
-cmake .. -GNinja
+cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_INSTALL_PREFIX=/tmp/gtest_install
+sudo ninja install
+rm -rf *
+# There's a false-positive container-overflow for apple clang/relwithdebinfo/sanitizers=on if gtest isn't built with
+# sanitizers. https://github.com/google/sanitizers/wiki/AddressSanitizerContainerOverflow#false-positives
+cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_INSTALL_PREFIX=/tmp/gtest_asan_install -DCMAKE_CXX_FLAGS=-fsanitize=address
+sudo ninja install
+rm -rf *
+cmake .. -GNinja -DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_INSTALL_PREFIX=/tmp/gtest_install_gcc
 sudo ninja install
