@@ -96,11 +96,11 @@ class MatrixRunner:
         for i, assignment in enumerate(self.work):
             matrix_config = self.assignment_to_matrix_config(assignment)
             config_tuple = tuple(self.values[i].index(p) for i, p in enumerate(assignment))
-            config_str = ', '.join(matrix_config.values())
+            config_str = ', '.join(map(lambda v: str(v), matrix_config.values()))
             if config_str == "":
                 self.log(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} [{i + 1}/{len(self.work)}] Running with blank config {'=' * 10}{Style.RESET_ALL}")
             else:
-                self.log(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} [{i + 1}/{len(self.work)}] Running with config {', '.join(matrix_config.values())} {'=' * 10}{Style.RESET_ALL}")
+                self.log(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} [{i + 1}/{len(self.work)}] Running with config {config_str} {'=' * 10}{Style.RESET_ALL}")
             self.last_matrix_config = self.current_matrix_config
             self.current_matrix_config = matrix_config
             self.results[config_tuple] = fn(self)
