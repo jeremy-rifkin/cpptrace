@@ -148,6 +148,16 @@ jobs:
     - name: build and test
       run: |
            python3 ci/unittest.py
+  unittest-linux-bazel:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: test dbg
+      run: |
+           bazel test //... -c dbg 
+    - name: test opt
+      run: |
+           bazel test //... -c opt 
   unittest-macos:
     runs-on: macos-14
     steps:
