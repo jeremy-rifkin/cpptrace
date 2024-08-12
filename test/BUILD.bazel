@@ -1,0 +1,13 @@
+cc_test(
+    name = "unittest",
+    deps = [
+        "//:cpptrace",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main"
+    ],
+    srcs = [
+        "unit/object_trace.cpp",
+        "unit/raw_trace.cpp",
+        "unit/stacktrace.cpp"
+    ],
+)
