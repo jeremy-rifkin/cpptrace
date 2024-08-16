@@ -1,4 +1,5 @@
 #include <cpptrace/cpptrace.hpp>
+#include <cpptrace/from_current.hpp>
 
 #include <atomic>
 #include <cstddef>
@@ -592,6 +593,14 @@ namespace cpptrace {
             clear();
         }
         // access
+        const raw_trace& lazy_trace_holder::get_raw_trace() const {
+            if(resolved) {
+                throw std::logic_error(
+                    "cpptrace::detail::lazy_trace_holder::get_resolved_trace called on resolved holder"
+                );
+            }
+            return trace;
+        }
         stacktrace& lazy_trace_holder::get_resolved_trace() {
             if(!resolved) {
                 raw_trace old_trace = std::move(trace);
@@ -605,7 +614,7 @@ namespace cpptrace {
                         // TODO: Append to message somehow?
                         std::fprintf(
                             stderr,
-                            "Exception occurred while resolving trace in cpptrace::exception object:\n%s\n",
+                            "Exception occurred while resolving trace in cpptrace::detail::lazy_trace_holder:\n%s\n",
                             e.what()
                         );
                     }
@@ -616,7 +625,7 @@ namespace cpptrace {
         const stacktrace& lazy_trace_holder::get_resolved_trace() const {
             if(!resolved) {
                 throw std::logic_error(
-                    "cpptrace::detaillazy_trace_holder::get_resolved_trace called on unresolved const object"
+                    "cpptrace::detail::lazy_trace_holder::get_resolved_trace called on unresolved const holder"
                 );
             }
             return resolved_trace;
@@ -686,5 +695,63 @@ namespace cpptrace {
         } catch(...) {
             throw nested_exception(std::current_exception(), detail::get_raw_trace_and_absorb(skip + 1));
         }
+    }
+
+    unwind_interceptor::~unwind_interceptor() = default;
+
+    namespace detail {
+        inline thread_local lazy_trace_holder current;
+
+        CPPTRACE_FORCE_NO_INLINE bool foobar(const std::type_info* this_ptr, const std::type_info* t, void**, unsigned) {
+            std::cout<<"--------UNGABUNGA!!-------- "<<this_ptr->name()<<" "<<t->name()<<std::endl;
+            current = lazy_trace_holder(cpptrace::generate_raw_trace(1));
+            return false;
+        }
+
+        std::array<void*, 11> new_vtable;
+
+        void clobber_type_info(const std::type_info& info) {
+            void* type_info_pointer = const_cast<void*>(reinterpret_cast<const void*>(&info));
+            void* type_info_vtable_pointer = *reinterpret_cast<void**>(type_info_pointer);
+            type_info_vtable_pointer = reinterpret_cast<void*>(reinterpret_cast<void**>(type_info_vtable_pointer) - 2); // adjust offset
+            memcpy(new_vtable.data(), type_info_vtable_pointer, 11 * sizeof(void*));
+
+            new_vtable[6] = reinterpret_cast<void*>(foobar);
+
+            if(
+                mprotect(
+                    reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(type_info_pointer) & ~(0xfffULL)),
+                    4096,
+                    PROT_WRITE | PROT_READ
+                ) != 0
+            ) {
+                perror("fuck");
+                throw std::runtime_error("mprotect failed");
+            }
+            *reinterpret_cast<void**>(type_info_pointer) = new_vtable.data() + 2;
+            if(
+                mprotect(
+                    reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(type_info_pointer) & ~(0xfffULL)),
+                    4096,
+                    PROT_READ
+                ) != 0
+            ) {
+                perror("fuck");
+                throw std::runtime_error("mprotect failed");
+            }
+        }
+
+        auto unwind_interceptor_type_info_clobberer = [](){
+            clobber_type_info(typeid(cpptrace::unwind_interceptor));
+            return 0;
+        }();
+    }
+
+    const raw_trace& raw_trace_from_current_exception() {
+        return detail::current.get_raw_trace();
+    }
+
+    const stacktrace& from_current_exception() {
+        return detail::current.get_resolved_trace();
     }
 }
