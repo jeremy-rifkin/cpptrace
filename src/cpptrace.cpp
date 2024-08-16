@@ -12,6 +12,11 @@
 #include <string>
 #include <vector>
 
+#ifndef _MSC_VER
+#include <array>
+#include <sys/mman.h>
+#endif
+
 #include "symbols/symbols.hpp"
 #include "unwind/unwind.hpp"
 #include "demangle/demangle.hpp"
@@ -697,10 +702,11 @@ namespace cpptrace {
         }
     }
 
-    unwind_interceptor::~unwind_interceptor() = default;
-
     namespace detail {
-        inline thread_local lazy_trace_holder current;
+
+        thread_local lazy_trace_holder current;
+
+        #ifndef _MSC_VER
 
         CPPTRACE_FORCE_NO_INLINE bool foobar(const std::type_info* this_ptr, const std::type_info* t, void**, unsigned) {
             std::cout<<"--------UNGABUNGA!!-------- "<<this_ptr->name()<<" "<<t->name()<<std::endl;
@@ -708,12 +714,43 @@ namespace cpptrace {
             return false;
         }
 
+        unwind_interceptor::~unwind_interceptor() = default;
+
         std::array<void*, 11> new_vtable;
 
         void clobber_type_info(const std::type_info& info) {
             void* type_info_pointer = const_cast<void*>(reinterpret_cast<const void*>(&info));
             void* type_info_vtable_pointer = *reinterpret_cast<void**>(type_info_pointer);
-            type_info_vtable_pointer = reinterpret_cast<void*>(reinterpret_cast<void**>(type_info_vtable_pointer) - 2); // adjust offset
+            // adjust offset, some info lies before the vtable pointer
+            // for libstdc++ this looks like
+            // 0x7ffff7f89d18 <_ZTVN10__cxxabiv117__class_type_infoE>:    0x0000000000000000  0x00007ffff7f89d00
+            //                                                            [offset           ][typeinfo pointer ]
+            // 0x7ffff7f89d28 <_ZTVN10__cxxabiv117__class_type_infoE+16>: 0x00007ffff7dd65a0  0x00007ffff7dd65c0
+            //                                                            [base destructor  ][deleting dtor    ]
+            // 0x7ffff7f89d38 <_ZTVN10__cxxabiv117__class_type_infoE+32>: 0x00007ffff7dd8f10  0x00007ffff7dd8f10
+            //                                                            [__is_pointer_p   ][__is_function_p  ]
+            // 0x7ffff7f89d48 <_ZTVN10__cxxabiv117__class_type_infoE+48>: 0x00007ffff7dd6640  0x00007ffff7dd6500
+            //                                                            [__do_catch       ][__do_upcast      ]
+            // 0x7ffff7f89d58 <_ZTVN10__cxxabiv117__class_type_infoE+64>: 0x00007ffff7dd65e0  0x00007ffff7dd66d0
+            //                                                            [__do_upcast      ][__do_dyncast     ]
+            // 0x7ffff7f89d68 <_ZTVN10__cxxabiv117__class_type_infoE+80>: 0x00007ffff7dd6580  0x00007ffff7f8abe8
+            //                                                            [__do_find_public_src][other         ]
+            // In libc++ the layout is
+            //  [offset           ][typeinfo pointer ]
+            //  [base destructor  ][deleting dtor    ]
+            //  [noop1            ][noop2            ]
+            //  [can_catch        ][search_above_dst ]
+            //  [search_below_dst ][has_unambiguous_public_base]
+            // Relevant documentation/implementation:
+            //  https://itanium-cxx-abi.github.io/cxx-abi/abi.html
+            //  libstdc++
+            //   https://github.com/gcc-mirror/gcc/blob/b13e34699c7d27e561fcfe1b66ced1e50e69976f/libstdc%252B%252B-v3/libsupc%252B%252B/typeinfo
+            //   https://github.com/gcc-mirror/gcc/blob/b13e34699c7d27e561fcfe1b66ced1e50e69976f/libstdc%252B%252B-v3/libsupc%252B%252B/class_type_info.cc
+            //  libc++
+            //   https://github.com/llvm/llvm-project/blob/648f4d0658ab00cf1e95330c8811aaea9481a274/libcxx/include/typeinfo
+            //   https://github.com/llvm/llvm-project/blob/648f4d0658ab00cf1e95330c8811aaea9481a274/libcxxabi/src/private_typeinfo.h
+            //
+            type_info_vtable_pointer = reinterpret_cast<void*>(reinterpret_cast<void**>(type_info_vtable_pointer) - 2);
             memcpy(new_vtable.data(), type_info_vtable_pointer, 11 * sizeof(void*));
 
             new_vtable[6] = reinterpret_cast<void*>(foobar);
@@ -745,6 +782,16 @@ namespace cpptrace {
             clobber_type_info(typeid(cpptrace::unwind_interceptor));
             return 0;
         }();
+
+        #else
+
+        CPPTRACE_FORCE_NO_INLINE int exception_filter() {
+            std::cout<<"--------UNGABUNGA WINDOWS!!-------- "<<std::endl;
+            current = lazy_trace_holder(cpptrace::generate_raw_trace(1));
+            return EXCEPTION_CONTINUE_SEARCH;
+        }
+
+        #endif
     }
 
     const raw_trace& raw_trace_from_current_exception() {
