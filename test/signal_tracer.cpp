@@ -13,9 +13,6 @@ int main() {
         std::size_t res = fread(&frame, sizeof(frame), 1, stdin);
         if(res == 0) {
             break;
-        } else if(res == -1) {
-            perror("Oops");
-            break;
         //} else if(res != sizeof(frame)) {
         } else if(res != 1) {
             std::cerr<<"Oops, size mismatch "<<res<<" "<<sizeof(frame)<<std::endl;
