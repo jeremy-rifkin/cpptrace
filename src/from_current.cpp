@@ -150,7 +150,7 @@ namespace cpptrace {
         }
         #else
         CPPTRACE_FORCE_NO_INLINE int exception_filter() {
-            current = lazy_trace_holder(cpptrace::generate_raw_trace(1));
+            current_exception_trace = lazy_trace_holder(cpptrace::generate_raw_trace(1));
             return EXCEPTION_CONTINUE_SEARCH;
         }
         #endif
