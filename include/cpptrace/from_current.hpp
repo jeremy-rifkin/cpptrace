@@ -4,19 +4,19 @@
 #include <cpptrace/cpptrace.hpp>
 
 namespace cpptrace {
-    const raw_trace& raw_trace_from_current_exception();
-    const stacktrace& from_current_exception();
+    CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception();
+    CPPTRACE_EXPORT const stacktrace& from_current_exception();
 
     namespace detail {
         #ifdef _MSC_VER
-         CPPTRACE_FORCE_NO_INLINE int exception_filter();
+         CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE int exception_filter();
         #else
-         class unwind_interceptor {
+         class CPPTRACE_EXPORT unwind_interceptor {
          public:
              virtual ~unwind_interceptor();
          };
 
-         void do_prepare_unwind_interceptor();
+         CPPTRACE_EXPORT void do_prepare_unwind_interceptor();
 
          #ifndef CPPTRACE_DONT_PREPARE_UNWIND_INTERCEPTOR_ON
           __attribute__((constructor)) inline void prepare_unwind_interceptor() {
