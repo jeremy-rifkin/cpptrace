@@ -3,8 +3,6 @@
 
 #include <cpptrace/cpptrace.hpp>
 
-#include <iostream>
-
 namespace cpptrace {
     const raw_trace& raw_trace_from_current_exception();
     const stacktrace& from_current_exception();
@@ -20,18 +18,20 @@ namespace cpptrace {
 
          void do_prepare_unwind_interceptor();
 
-         __attribute__((constructor)) inline void prepare_unwind_interceptor() {
-             // __attribute__((constructor)) inline functions can be called for every source file they're #included in
-             // there is still only one copy of the inline function in the final executable, though
-             // LTO can make the redundant constructs fire only once
-             // do_prepare_unwind_interceptor prevents against multiple preparations however it makes sense to guard
-             // against it here too as a fast path, not that this should matter for performance
-             static bool did_prepare = false;
-             if(!did_prepare) {
-                do_prepare_unwind_interceptor();
-                did_prepare = true;
-             }
-         }
+         #ifndef CPPTRACE_DONT_PREPARE_UNWIND_INTERCEPTOR_ON
+          __attribute__((constructor)) inline void prepare_unwind_interceptor() {
+              // __attribute__((constructor)) inline functions can be called for every source file they're #included in
+              // there is still only one copy of the inline function in the final executable, though
+              // LTO can make the redundant constructs fire only once
+              // do_prepare_unwind_interceptor prevents against multiple preparations however it makes sense to guard
+              // against it here too as a fast path, not that this should matter for performance
+              static bool did_prepare = false;
+              if(!did_prepare) {
+                 do_prepare_unwind_interceptor();
+                 did_prepare = true;
+              }
+          }
+         #endif
         #endif
     }
 }

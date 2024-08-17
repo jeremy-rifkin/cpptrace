@@ -1,5 +1,4 @@
 #include <cpptrace/cpptrace.hpp>
-#include <cpptrace/from_current.hpp>
 
 #include <atomic>
 #include <cstddef>
@@ -11,13 +10,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-#ifndef _MSC_VER
- #include <array>
- #include <sys/mman.h>
- #include <unistd.h>
- #include <string.h>
-#endif
 
 #include "symbols/symbols.hpp"
 #include "unwind/unwind.hpp"
@@ -702,127 +694,5 @@ namespace cpptrace {
         } catch(...) {
             throw nested_exception(std::current_exception(), detail::get_raw_trace_and_absorb(skip + 1));
         }
-    }
-
-    namespace detail {
-        thread_local lazy_trace_holder current;
-
-        #ifndef _MSC_VER
-        CPPTRACE_FORCE_NO_INLINE
-        bool intercept_unwind(const std::type_info*, const std::type_info*, void**, unsigned) {
-            current = lazy_trace_holder(cpptrace::generate_raw_trace(1));
-            return false;
-        }
-
-        unwind_interceptor::~unwind_interceptor() = default;
-
-        #if defined(__GLIBCXX__) || defined(__GLIBCPP__)
-         constexpr size_t vtable_size = 11;
-        #elif defined(_LIBCPP_VERSION)
-         constexpr size_t vtable_size = 10;
-        #else
-         #warning "Cpptrace from_current: Unrecognized C++ standard library, from_current() won't be supported"
-         constexpr size_t vtable_size = 0;
-        #endif
-
-        std::array<void*, vtable_size> new_vtable;
-
-        void mprotect_page(void* page, int page_size, int protections) {
-            if(mprotect(page, page_size, protections) != 0) {
-                throw std::runtime_error(microfmt::format("mprotect call failed: {}", strerror(errno)));
-            }
-        }
-
-        void clobber_type_info(const std::type_info& info) {
-            if(vtable_size == 0) { // set to zero if we don't know what standard library we're working with
-                return;
-            }
-            void* type_info_pointer = const_cast<void*>(reinterpret_cast<const void*>(&info));
-            void* type_info_vtable_pointer = *reinterpret_cast<void**>(type_info_pointer);
-            // the type info vtable pointer points to two pointers inside the vtable, adjust it back
-            type_info_vtable_pointer = reinterpret_cast<void*>(reinterpret_cast<void**>(type_info_vtable_pointer) - 2);
-
-            // for libstdc++ the class type info vtable looks like
-            // 0x7ffff7f89d18 <_ZTVN10__cxxabiv117__class_type_infoE>:    0x0000000000000000  0x00007ffff7f89d00
-            //                                                            [offset           ][typeinfo pointer ]
-            // 0x7ffff7f89d28 <_ZTVN10__cxxabiv117__class_type_infoE+16>: 0x00007ffff7dd65a0  0x00007ffff7dd65c0
-            //                                                            [base destructor  ][deleting dtor    ]
-            // 0x7ffff7f89d38 <_ZTVN10__cxxabiv117__class_type_infoE+32>: 0x00007ffff7dd8f10  0x00007ffff7dd8f10
-            //                                                            [__is_pointer_p   ][__is_function_p  ]
-            // 0x7ffff7f89d48 <_ZTVN10__cxxabiv117__class_type_infoE+48>: 0x00007ffff7dd6640  0x00007ffff7dd6500
-            //                                                            [__do_catch       ][__do_upcast      ]
-            // 0x7ffff7f89d58 <_ZTVN10__cxxabiv117__class_type_infoE+64>: 0x00007ffff7dd65e0  0x00007ffff7dd66d0
-            //                                                            [__do_upcast      ][__do_dyncast     ]
-            // 0x7ffff7f89d68 <_ZTVN10__cxxabiv117__class_type_infoE+80>: 0x00007ffff7dd6580  0x00007ffff7f8abe8
-            //                                                            [__do_find_public_src][other         ]
-            // In libc++ the layout is
-            //  [offset           ][typeinfo pointer ]
-            //  [base destructor  ][deleting dtor    ]
-            //  [noop1            ][noop2            ]
-            //  [can_catch        ][search_above_dst ]
-            //  [search_below_dst ][has_unambiguous_public_base]
-            // Relevant documentation/implementation:
-            //  https://itanium-cxx-abi.github.io/cxx-abi/abi.html
-            //  libstdc++
-            //   https://github.com/gcc-mirror/gcc/blob/b13e34699c7d27e561fcfe1b66ced1e50e69976f/libstdc%252B%252B-v3/libsupc%252B%252B/typeinfo
-            //   https://github.com/gcc-mirror/gcc/blob/b13e34699c7d27e561fcfe1b66ced1e50e69976f/libstdc%252B%252B-v3/libsupc%252B%252B/class_type_info.cc
-            //  libc++
-            //   https://github.com/llvm/llvm-project/blob/648f4d0658ab00cf1e95330c8811aaea9481a274/libcxx/include/typeinfo
-            //   https://github.com/llvm/llvm-project/blob/648f4d0658ab00cf1e95330c8811aaea9481a274/libcxxabi/src/private_typeinfo.h
-
-            // make our own copy of the vtable
-            memcpy(new_vtable.data(), type_info_vtable_pointer, vtable_size * sizeof(void*));
-            // ninja in the custom __do_catch interceptor
-            new_vtable[6] = reinterpret_cast<void*>(intercept_unwind);
-            // make the vtable pointer for unwind_interceptor's type_info point to the new vtable
-            auto page_size = getpagesize();
-            if(page_size <= 0 && (page_size & (page_size - 1)) != 0) {
-                throw std::runtime_error(
-                    microfmt::format("getpagesize() is not a power of 2 greater than zero (was {})", page_size)
-                );
-            }
-            auto type_info_addr = reinterpret_cast<uintptr_t>(type_info_pointer);
-            auto page_addr = type_info_addr & ~(page_size - 1);
-            // make sure the memory we're going to set is within the page
-            if(type_info_addr - page_addr + sizeof(void*) > static_cast<unsigned>(page_size)) {
-                throw std::runtime_error("pointer crosses page boundaries");
-            }
-            // TODO: Check perms of page
-            mprotect_page(reinterpret_cast<void*>(page_addr), page_size, PROT_READ | PROT_WRITE);
-            *reinterpret_cast<void**>(type_info_pointer) = new_vtable.data() + 2;
-            mprotect_page(reinterpret_cast<void*>(page_addr), page_size, PROT_READ);
-        }
-
-        void do_prepare_unwind_interceptor() {
-            static bool did_prepare = false;
-            if(!did_prepare) {
-                try {
-                    clobber_type_info(typeid(cpptrace::detail::unwind_interceptor));
-                } catch(std::exception& e) {
-                    std::fprintf(
-                        stderr,
-                        "Cpptrace: Exception occurred while preparing from_current support: %s",
-                        e.what()
-                    );
-                } catch(...) {
-                    std::fprintf(stderr, "Cpptrace: Unknown exception occurred while preparing from_current support");
-                }
-                did_prepare = true;
-            }
-        }
-        #else
-        CPPTRACE_FORCE_NO_INLINE int exception_filter() {
-            current = lazy_trace_holder(cpptrace::generate_raw_trace(1));
-            return EXCEPTION_CONTINUE_SEARCH;
-        }
-        #endif
-    }
-
-    const raw_trace& raw_trace_from_current_exception() {
-        return detail::current.get_raw_trace();
-    }
-
-    const stacktrace& from_current_exception() {
-        return detail::current.get_resolved_trace();
     }
 }
