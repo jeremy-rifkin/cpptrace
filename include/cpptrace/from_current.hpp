@@ -3,35 +3,7 @@
 
 #include <cpptrace/cpptrace.hpp>
 
-#ifdef _MSC_VER
-#include <windows.h>
-#else
- #define CPPTRACE_LIBSTDCPP 0
- #define CPPTRACE_LIBCPP 0
- #if defined(__GLIBCXX__) || defined(__GLIBCPP__)
-  #undef CPPTRACE_LIBSTDCPP
-  #undef CPPTRACE_LIBCPP
-  #define CPPTRACE_LIBSTDCPP 1
- #elif defined(_LIBCPP_VERSION)
-  #undef CPPTRACE_LIBSTDCPP
-  #undef CPPTRACE_LIBCPP
-  #define CPPTRACE_LIBCPP 1
- #else
-  #error "Cpptrace from_current: Unsupported C++ standard library"
- #endif
-#endif
-
 #include <iostream>
-
-// #if defined(__clang__)
-// // pass
-// #elif defined(__GNUC__) || defined(__GNUG__)
-// // pass
-// #elif defined(_MSC_VER)
-// // pass
-// #else
-// #error "Cpptrace from_current: Unsupported C++ compiler"
-// #endif
 
 namespace cpptrace {
     const raw_trace& raw_trace_from_current_exception();
@@ -45,6 +17,21 @@ namespace cpptrace {
          public:
              virtual ~unwind_interceptor();
          };
+
+         void do_prepare_unwind_interceptor();
+
+         __attribute__((constructor)) inline void prepare_unwind_interceptor() {
+             // __attribute__((constructor)) inline functions can be called for every source file they're #included in
+             // there is still only one copy of the inline function in the final executable, though
+             // LTO can make the redundant constructs fire only once
+             // do_prepare_unwind_interceptor prevents against multiple preparations however it makes sense to guard
+             // against it here too as a fast path, not that this should matter for performance
+             static bool did_prepare = false;
+             if(!did_prepare) {
+                do_prepare_unwind_interceptor();
+                did_prepare = true;
+             }
+         }
         #endif
     }
 }
@@ -55,7 +42,7 @@ namespace cpptrace {
          [&]() { \
              __try
  #define CPPTRACE_CATCH(param) \
-             __except(::cpptrace::detail::exception_filter()) { puts("shouldn't be here"); } \
+             __except(::cpptrace::detail::exception_filter()) {} \
          }(); \
      } catch(param)
 #else
@@ -63,7 +50,7 @@ namespace cpptrace {
      try { \
          try
  #define CPPTRACE_CATCH(param) \
-         catch(::cpptrace::detail::unwind_interceptor&) { puts("shouldn't be here"); } \
+         catch(::cpptrace::detail::unwind_interceptor&) {} \
      } catch(param)
 #endif
 
