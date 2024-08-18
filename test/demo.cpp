@@ -37,15 +37,4 @@ void function_one(int) {
 int main() {
     cpptrace::absorb_trace_exceptions(false);
     cpptrace::register_terminate_handler();
-    CPPTRACE_TRY {
-        CPPTRACE_TRY {
-            function_one(0);
-        } CPPTRACE_CATCH(const std::logic_error& e) {
-            std::cout<<"Exception1: "<<e.what()<<std::endl;
-            std::cout<<cpptrace::from_current_exception().to_string(true)<<std::endl;
-        }
-    } CPPTRACE_CATCH(const std::exception& e) {
-        std::cout<<"Exception2: "<<e.what()<<std::endl;
-        std::cout<<cpptrace::from_current_exception().to_string(true)<<std::endl;
-    }
 }
