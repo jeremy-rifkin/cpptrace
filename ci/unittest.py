@@ -35,7 +35,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
-            *(["-DCMAKE_CXX_FLAGS=-stdlib=libc++"] if 'stdlib' in matrix and matrix['stdlib'] == "libc++" else [])
+            *(["-DCMAKE_CXX_FLAGS=-stdlib=libc++"] if "stdlib" in matrix and matrix["stdlib"] == "libc++" else [])
         ]
         return runner.run_command(*args) and runner.run_command("ninja")
     elif platform.system() == "Darwin":
@@ -88,7 +88,7 @@ def build_and_test(runner: MatrixRunner):
     if (
         last is None
         or last["compiler"] != current["compiler"]
-        or last["stdlib"] != current["stdlib"]
+        or ("stdlib" in current and last["stdlib"] != current["stdlib"])
         or (platform.system() == "Darwin" and last["sanitizers"] != current["sanitizers"])
     ) and os.path.exists("build"):
         shutil.rmtree("build", ignore_errors=True)
