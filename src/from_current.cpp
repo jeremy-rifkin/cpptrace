@@ -96,7 +96,8 @@ namespace cpptrace {
             mach_vm_size_t vmsize;
             mach_vm_address_t address = (mach_vm_address_t)page;
             vm_region_basic_info_data_t info;
-            mach_msg_type_number_t info_count = sizeof(size_t) == 8 ? VM_REGION_BASIC_INFO_COUNT_64 : VM_REGION_BASIC_INFO_COUNT;
+            mach_msg_type_number_t info_count =
+                sizeof(size_t) == 8 ? VM_REGION_BASIC_INFO_COUNT_64 : VM_REGION_BASIC_INFO_COUNT;
             memory_object_name_t object;
             kern_return_t status = mach_vm_region(
                 mach_task_self(),
