@@ -132,7 +132,7 @@ namespace cpptrace {
                 uintptr_t start;
                 uintptr_t stop;
                 stream>>start;
-                stream.ignore(1);
+                stream.ignore(1); // dash
                 stream>>stop;
                 if(stream.eof()) {
                     break;
@@ -141,8 +141,8 @@ namespace cpptrace {
                     throw std::runtime_error("Failure reading /proc/self/maps");
                 }
                 if(page_addr >= start && page_addr < stop) {
-                    stream.ignore(1);
-                    char r, w, x;
+                    stream.ignore(1); // space
+                    char r, w, x; // there's a private/shared flag after these but we don't need it
                     stream>>r>>w>>x;
                     if(stream.fail() || stream.eof()) {
                         throw std::runtime_error("Failure reading /proc/self/maps");

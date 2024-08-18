@@ -395,13 +395,14 @@ API functions:
   references to traces returned by `cpptrace::raw_trace_from_current_exception`.
 
 #### How it works
+
 C++ does not provide any language support for collecting stack traces when exceptions are thrown, however, exception
 handling under both the Itanium ABI and by SEH (used to implement C++ exceptions on windows) involves unwinding the
 stack twice, the first unwind searches for an appropriate `catch` handler, the second actually unwinds the stack and
 calls destructors. Since the stack remains intact during the search phase it's possible to collect a stack trace with
 zero overhead when the `catch` is considered for matching the exception.
 
-N.b.: Cpptrace uses the same mechanism proposed for use in [P2490R3][P2490R3].
+N.b.: This mechanism is also discussed in [P2490R3][P2490R3].
 
 #### Performance
 
@@ -413,8 +414,8 @@ nesting of handlers, either directly in code or as a result of the current call 
 mutliple times until the appropriate handler is found.
 
 This should not matter for the vast majority applications given that performance very rarely is critical in throwing
-paths, how exception handling is usually used, and the shallowness of most call stacks. However, it's an important
-consideration to be aware of.
+paths, how exception handling is usually used, and the shallowness of most call stacks. However, it's something to be
+aware of.
 
 To put the scale of this performance consideration into perspective: In my benchmarking I have found generation of raw
 traces to take on the order of `75ns` per frame. Thus, even if there were 100 non-matching handlers before a matching
