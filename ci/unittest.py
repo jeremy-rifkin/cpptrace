@@ -35,6 +35,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
+            *(["-DCMAKE_CXX_FLAGS=-stdlib=libc++"] if matrix['stdlib'] == "libc++" else [])
         ]
         return runner.run_command(*args) and runner.run_command("ninja")
     elif platform.system() == "Darwin":
@@ -108,6 +109,7 @@ def run_linux_matrix():
     MatrixRunner(
         matrix = {
             "compiler": ["g++-10", "clang++-14"],
+            "stdlib": ["libstdc++", "libc++"],
             "sanitizers": ["OFF", "ON"],
             "build_type": ["Debug", "RelWithDebInfo"],
             "shared": ["OFF", "ON"],
@@ -115,7 +117,12 @@ def run_linux_matrix():
             "split_dwarf": ["OFF", "ON"],
             "dwarf_version": ["4", "5"],
         },
-        exclude = []
+        exclude = [
+            {
+                "compiler": "g++-10",
+                "sanitizers": "libc++",
+            }
+        ]
     ).run(build_and_test)
 
 def run_macos_matrix():
