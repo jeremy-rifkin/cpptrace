@@ -8,14 +8,28 @@ help: # with thanks to Ben Rady
 .PHONY: build
 build: debug  ## build in debug mode
 
-.PHONY: debug
-debug:  ## build in debug mode
+build/configured-debug:
 	cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On
+	rm -f build/configured-release
+	touch build/configured-debug
+
+build/configured-release:
+	cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On
+	rm -f build/configured-debug
+	touch build/configured-release
+
+.PHONY: configure-debug
+configure-debug: build/configured-debug
+
+.PHONY: configure-release
+configure-release: build/configured-release
+
+.PHONY: debug
+debug: configure-debug  ## build in debug mode
 	cmake --build build
 
 .PHONY: release
-release:  ## build in release mode (with debug info)
-	cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On
+release: configure-release  ## build in release mode (with debug info)
 	cmake --build build
 
 .PHONY: debug-msvc
