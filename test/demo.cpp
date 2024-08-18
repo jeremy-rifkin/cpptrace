@@ -1,5 +1,4 @@
 #include <cpptrace/cpptrace.hpp>
-#include <cpptrace/from_current.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -7,10 +6,9 @@
 #include <string>
 
 void trace() {
-    // cpptrace::generate_trace().print();
-    // cpptrace::generate_trace().print_with_snippets();
-    // throw cpptrace::logic_error("foobar");
-    throw std::runtime_error("foobar");
+    cpptrace::generate_trace().print();
+    cpptrace::generate_trace().print_with_snippets();
+    throw cpptrace::logic_error("foobar");
 }
 
 void foo(int n) {
@@ -37,4 +35,5 @@ void function_one(int) {
 int main() {
     cpptrace::absorb_trace_exceptions(false);
     cpptrace::register_terminate_handler();
+    function_one(0);
 }

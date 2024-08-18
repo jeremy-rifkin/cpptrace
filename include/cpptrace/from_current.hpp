@@ -37,20 +37,24 @@ namespace cpptrace {
 }
 
 #ifdef _MSC_VER
+ // this awful double-IILE is due to C2713 "You can't use structured exception handling (__try/__except) and C++
+ // exception handling (try/catch) in the same function."
  #define CPPTRACE_TRY \
      try { \
          [&]() { \
-             __try
+             __try { \
+                 [&]() {
  #define CPPTRACE_CATCH(param) \
-             __except(::cpptrace::detail::exception_filter()) {} \
+                 }(); \
+             } __except(::cpptrace::detail::exception_filter()) {} \
          }(); \
      } catch(param)
 #else
  #define CPPTRACE_TRY \
      try { \
-         try
+         try {
  #define CPPTRACE_CATCH(param) \
-         catch(::cpptrace::detail::unwind_interceptor&) {} \
+         } catch(::cpptrace::detail::unwind_interceptor&) {} \
      } catch(param)
 #endif
 
