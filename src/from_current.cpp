@@ -12,11 +12,17 @@
 #ifndef _MSC_VER
  #include <array>
  #include <string.h>
- #ifndef _WIN32
+ #if IS_WINDOWS
+  #include <windows.h>
+ #else
   #include <sys/mman.h>
   #include <unistd.h>
- #else
-  #include <windows.h>
+  #if IS_APPLE
+   #include <mach/mach.h>
+  #else
+   #include <fstream>
+   #include <iomanip>
+  #endif
  #endif
 #endif
 
@@ -50,7 +56,7 @@ namespace cpptrace {
         }
         constexpr auto memory_readonly = PAGE_READONLY;
         constexpr auto memory_readwrite = PAGE_READWRITE;
-        void mprotect_page(void* page, int page_size, int protections) {
+        int mprotect_page_and_return_old_protections(void* page, int page_size, int protections) {
             DWORD old_protections;
             if(!VirtualProtect(page, page_size, protections, &old_protections)) {
                 throw std::runtime_error(
@@ -60,6 +66,10 @@ namespace cpptrace {
                     )
                 );
             }
+            return old_protections;
+        }
+        void mprotect_page(void* page, int page_size, int protections) {
+            mprotect_page_and_return_old_protections(page, page_size, protections);
         }
         void* allocate_page(int page_size) {
             auto page = VirtualAlloc(nullptr, page_size, MEM_COMMIT | MEM_RESERVE, memory_readwrite);
@@ -79,10 +89,89 @@ namespace cpptrace {
         }
         constexpr auto memory_readonly = PROT_READ;
         constexpr auto memory_readwrite = PROT_READ | PROT_WRITE;
+        #if IS_APPLE
+        int get_page_protections(void* page) {
+            // https://stackoverflow.com/a/12627784/15675011
+            vm_size_t vmsize;
+            vm_address_t address = (vm_address_t)page;
+            vm_region_basic_info_data_t info;
+            mach_msg_type_number_t info_count = VM_REGION_BASIC_INFO_COUNT;
+            memory_object_name_t object;
+            kern_return_t status = vm_region(
+                mach_task_self(),
+                &address,
+                &vmsize,
+                VM_REGION_BASIC_INFO,
+                (vm_region_info_t)&info,
+                &info_count,
+                &object
+            );
+            if(status == KERN_INVALID_ADDRESS) {
+                throw std::runtime_error("vm_region failed with KERN_INVALID_ADDRESS");
+            }
+            int perms = 0;
+            if(info.protection & VM_PROT_READ) {
+                perms |= PROT_READ;
+            }
+            if(info.protection & VM_PROT_WRITE) {
+                perms |= PROT_WRITE;
+            }
+            if(info.protection & VM_PROT_EXECUTE) {
+                perms |= PROT_EXEC;
+            }
+            return perms;
+        }
+        #else
+        int get_page_protections(void* page) {
+            auto page_addr = reinterpret_cast<uintptr_t>(page);
+            std::ifstream stream("/proc/self/maps");
+            stream>>std::hex;
+            while(!stream.eof()) {
+                uintptr_t start;
+                uintptr_t stop;
+                stream>>start;
+                stream.ignore(1);
+                stream>>stop;
+                if(stream.eof()) {
+                    break;
+                }
+                if(stream.fail()) {
+                    throw std::runtime_error("Failure reading /proc/self/maps");
+                }
+                if(page_addr >= start && page_addr < stop) {
+                    stream.ignore(1);
+                    char r, w, x;
+                    stream>>r>>w>>x;
+                    if(stream.fail() || stream.eof()) {
+                        throw std::runtime_error("Failure reading /proc/self/maps");
+                    }
+                    int perms = 0;
+                    if(r == 'r') {
+                        perms |= PROT_READ;
+                    }
+                    if(w == 'w') {
+                        perms |= PROT_WRITE;
+                    }
+                    if(x == 'x') {
+                        perms |= PROT_EXEC;
+                    }
+                    std::cerr<<"--parsed: "<<std::hex<<start<<" "<<stop<<" "<<r<<w<<x<<std::endl;
+                    return perms;
+                }
+                stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            }
+            throw std::runtime_error("Failed to find mapping with page in /proc/self/maps");
+        }
+        #endif
         void mprotect_page(void* page, int page_size, int protections) {
             if(mprotect(page, page_size, protections) != 0) {
                 throw std::runtime_error(microfmt::format("mprotect call failed: {}", strerror(errno)));
             }
+        }
+        int mprotect_page_and_return_old_protections(void* page, int page_size, int protections) {
+            auto old_protections = get_page_protections(page);
+            mprotect_page(page, page_size, protections);
+            return old_protections;
         }
         void* allocate_page(int page_size) {
             auto page = mmap(nullptr, page_size, memory_readwrite, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
@@ -133,7 +222,7 @@ namespace cpptrace {
             //   https://github.com/llvm/llvm-project/blob/648f4d0658ab00cf1e95330c8811aaea9481a274/libcxx/include/typeinfo
             //   https://github.com/llvm/llvm-project/blob/648f4d0658ab00cf1e95330c8811aaea9481a274/libcxxabi/src/private_typeinfo.h
 
-            // probably 4096 but out of an abundance of caution
+            // shouldn't be anything other than 4096 but out of an abundance of caution
             auto page_size = get_page_size();
             if(page_size <= 0 && (page_size & (page_size - 1)) != 0) {
                 throw std::runtime_error(
@@ -158,10 +247,13 @@ namespace cpptrace {
             if(type_info_addr - page_addr + sizeof(void*) > static_cast<unsigned>(page_size)) {
                 throw std::runtime_error("pointer crosses page boundaries");
             }
-            // TODO: Check perms of page
-            mprotect_page(reinterpret_cast<void*>(page_addr), page_size, memory_readwrite);
+            auto old_protections = mprotect_page_and_return_old_protections(
+                reinterpret_cast<void*>(page_addr),
+                page_size,
+                memory_readwrite
+            );
             *static_cast<void**>(type_info_pointer) = static_cast<void*>(new_vtable + 2);
-            mprotect_page(reinterpret_cast<void*>(page_addr), page_size, memory_readonly);
+            mprotect_page(reinterpret_cast<void*>(page_addr), page_size, old_protections);
         }
 
         void do_prepare_unwind_interceptor() {
