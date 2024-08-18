@@ -35,5 +35,5 @@ cd build
 cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=/tmp/gtest_install
 sudo ninja install
 rm -rf *
-cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_INSTALL_PREFIX=/tmp/gtest_install_libcxx
+cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_INSTALL_PREFIX=/tmp/gtest_install_libcxx
 sudo ninja install
