@@ -127,7 +127,12 @@ def run_linux_matrix():
             {
                 "compiler": "g++-10",
                 "stdlib": "libc++",
-            }
+            },
+            {
+                # need to workaround https://github.com/llvm/llvm-project/issues/59432 later
+                "stdlib": "libc++",
+                "sanitizers": "ON",
+            },
         ]
     ).run(build_and_test)
 
