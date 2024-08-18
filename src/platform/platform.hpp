@@ -35,4 +35,14 @@
  #error "Unsupported compiler"
 #endif
 
+#define IS_LIBSTDCXX 0
+#define IS_LIBCXX 0
+#if defined(__GLIBCXX__) || defined(__GLIBCPP__)
+#undef IS_LIBSTDCXX
+#define IS_LIBSTDCXX 1
+#elif defined(_LIBCPP_VERSION)
+#undef IS_LIBCXX
+#define IS_LIBCXX 1
+#endif
+
 #endif

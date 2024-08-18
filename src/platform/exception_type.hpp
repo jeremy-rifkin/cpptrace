@@ -3,21 +3,22 @@
 
 #include <string>
 
-// libstdc++ and libc++
-#if defined(CPPTRACE_HAS_CXX_EXCEPTION_TYPE) && (defined(__GLIBCXX__) || defined(__GLIBCPP__) || defined(_LIBCPP_VERSION))
- #include <cxxabi.h>
-#endif
+#include "platform/platform.hpp"
 
-#include "demangle/demangle.hpp"
+// libstdc++ and libc++
+#if defined(CPPTRACE_HAS_CXX_EXCEPTION_TYPE) && (IS_LIBSTDCXX || IS_LIBCXX)
+ #include <cxxabi.h>
+ #include "demangle/demangle.hpp"
+#endif
 
 namespace cpptrace {
 namespace detail {
     inline std::string exception_type_name() {
-        #if defined(CPPTRACE_HAS_CXX_EXCEPTION_TYPE) && (defined(__GLIBCXX__) || defined(__GLIBCPP__) || defined(_LIBCPP_VERSION))
-        const std::type_info* t = abi::__cxa_current_exception_type();
-        return t ? detail::demangle(t->name()) : "<unknown>";
+        #if defined(CPPTRACE_HAS_CXX_EXCEPTION_TYPE) && (IS_LIBSTDCXX || IS_LIBCXX)
+         const std::type_info* t = abi::__cxa_current_exception_type();
+         return t ? detail::demangle(t->name()) : "<unknown>";
         #else
-        return "<unknown>";
+         return "<unknown>";
         #endif
     }
 }

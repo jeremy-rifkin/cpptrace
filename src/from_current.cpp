@@ -5,6 +5,7 @@
 #include <system_error>
 #include <typeinfo>
 
+#include "platform/platform.hpp"
 #include "utils/common.hpp"
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
@@ -40,9 +41,9 @@ namespace cpptrace {
 
         unwind_interceptor::~unwind_interceptor() = default;
 
-        #if defined(__GLIBCXX__) || defined(__GLIBCPP__)
+        #if IS_LIBSTDCXX
             constexpr size_t vtable_size = 11;
-        #elif defined(_LIBCPP_VERSION)
+        #elif IS_LIBCXX
             constexpr size_t vtable_size = 10;
         #else
             #warning "Cpptrace from_current: Unrecognized C++ standard library, from_current() won't be supported"

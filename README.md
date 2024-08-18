@@ -382,6 +382,8 @@ CPPTRACE_TRY {
 }
 ```
 
+This functionality is entirely opt-in, the macros are in `cpptrace/from_current.hpp`.
+
 Any declarator `catch` accepts works with `CPPTRACE_CATCH`, including `...`.
 
 ![from_current](res/from_current.png)

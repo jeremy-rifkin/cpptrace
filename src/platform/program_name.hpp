@@ -4,7 +4,9 @@
 #include <mutex>
 #include <string>
 
-#if defined(_WIN32)
+#include "platform/platform.hpp"
+
+#if IS_WINDOWS
 #include <windows.h>
 
 #define CPPTRACE_MAX_PATH MAX_PATH
@@ -31,7 +33,7 @@ namespace detail {
 }
 }
 
-#elif defined(__APPLE__)
+#elif IS_APPLE
 
 #include <cstdint>
 #include <mach-o/dyld.h>
@@ -61,7 +63,7 @@ namespace detail {
 }
 }
 
-#elif defined(__linux__)
+#elif IS_LINUX
 
 #include <linux/limits.h>
 #include <sys/types.h>

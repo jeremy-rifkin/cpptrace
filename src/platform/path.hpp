@@ -2,6 +2,7 @@
 #define PATH_HPP
 
 #include "utils/common.hpp"
+#include "platform/platform.hpp"
 
 #if IS_WINDOWS
 #include <windows.h>
