@@ -88,6 +88,7 @@ def build_and_test(runner: MatrixRunner):
     if (
         last is None
         or last["compiler"] != current["compiler"]
+        or last["stdlib"] != current["stdlib"]
         or (platform.system() == "Darwin" and last["sanitizers"] != current["sanitizers"])
     ) and os.path.exists("build"):
         shutil.rmtree("build", ignore_errors=True)
@@ -120,7 +121,7 @@ def run_linux_matrix():
         exclude = [
             {
                 "compiler": "g++-10",
-                "sanitizers": "libc++",
+                "stdlib": "libc++",
             }
         ]
     ).run(build_and_test)
