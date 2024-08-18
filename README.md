@@ -382,14 +382,14 @@ CPPTRACE_TRY {
 }
 ```
 
-This functionality is entirely opt-in, the macros are in `cpptrace/from_current.hpp`.
+This functionality is entirely opt-in, to access this use `#include <cpptrace/from_current.hpp>`.
 
 Any declarator `catch` accepts works with `CPPTRACE_CATCH`, including `...`.
 
 ![from_current](res/from_current.png)
 
-There are a few extraneous frames at the top of the stack corresponding to internals of exception handling in the
-standard library. These are a small price to pay for stack traces on all exceptions.
+There are a few extraneous frames at the top of the stack corresponding to standard library exception handling
+internals. These are a small price to pay for stack traces on all exceptions.
 
 API functions:
 - `cpptrace::raw_trace_from_current_exception`: Returns `const raw_trace&` from the current exception.
@@ -420,8 +420,8 @@ paths, how exception handling is usually used, and the shallowness of most call 
 aware of.
 
 To put the scale of this performance consideration into perspective: In my benchmarking I have found generation of raw
-traces to take on the order of `75ns` per frame. Thus, even if there were 100 non-matching handlers before a matching
-handler in a 100-deep call stack the total time would stil be on the order of less than one millisecond.
+traces to take on the order of `100ns` per frame. Thus, even if there were 100 non-matching handlers before a matching
+handler in a 100-deep call stack the total time would stil be on the order of one millisecond.
 
 It's possible to avoid this by adding some bookkeeping to the `CPPTRACE_TRY` block. With the tradeoff between
 zero-overhead try-catch in the happy path and a little extra overhead in the unhappy throwing path I decided to keep

@@ -605,3 +605,7 @@ if(CPPTRACE_BUILD_TESTING)
   endif()
   add_subdirectory(test)
 endif()
+
+if(CPPTRACE_BUILD_BENCHMARKING)
+  add_subdirectory(benchmarking)
+endif()
