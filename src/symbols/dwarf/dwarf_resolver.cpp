@@ -281,7 +281,8 @@ namespace libdwarf {
                         // NOTE: If we have a corresponding skeleton, we assume we have one CU matching the skeleton CU
                         // Precedence for this assumption is https://dwarfstd.org/doc/DWARF5.pdf#subsection.3.1.3
                         // TODO: Also assuming same dwversion
-                        auto ranges_vec = skeleton.unwrap().cu_die.get_rangelist_entries(cu_die, dwversion);
+                        const auto& skeleton_cu = skeleton.unwrap().cu_die;
+                        auto ranges_vec = skeleton_cu.get_rangelist_entries(skeleton_cu, dwversion);
                         for(auto range : ranges_vec) {
                             // TODO: Reduce cloning here
                             cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
