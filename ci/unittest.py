@@ -17,6 +17,10 @@ def get_c_compiler_counterpart(compiler: str) -> str:
 def build(runner: MatrixRunner):
     if platform.system() == "Linux":
         matrix = runner.current_config()
+        if "stdlib" in matrix and matrix["stdlib"] == "libc++":
+            gtest_path = "/tmp/gtest_install_libcxx"
+        else:
+            gtest_path = "/tmp/gtest_install"
         args = [
             "cmake",
             "..",
@@ -35,6 +39,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
+            f"-DCMAKE_PREFIX_PATH={gtest_path}",
             *(["-DCMAKE_CXX_FLAGS=-stdlib=libc++"] if "stdlib" in matrix and matrix["stdlib"] == "libc++" else [])
         ]
         return runner.run_command(*args) and runner.run_command("ninja")
