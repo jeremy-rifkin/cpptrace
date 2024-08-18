@@ -281,14 +281,14 @@ namespace libdwarf {
                         // NOTE: If we have a corresponding skeleton, we assume we have one CU matching the skeleton CU
                         // Precedence for this assumption is https://dwarfstd.org/doc/DWARF5.pdf#subsection.3.1.3
                         // TODO: Also assuming same dwversion
-                        auto ranges_vec = skeleton.unwrap().cu_die.get_rangelist_entries(dwversion);
+                        auto ranges_vec = skeleton.unwrap().cu_die.get_rangelist_entries(cu_die, dwversion);
                         for(auto range : ranges_vec) {
                             // TODO: Reduce cloning here
                             cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
                         }
                         return false;
                     } else {
-                        auto ranges_vec = cu_die.get_rangelist_entries(dwversion);
+                        auto ranges_vec = cu_die.get_rangelist_entries(cu_die, dwversion);
                         for(auto range : ranges_vec) {
                             // TODO: Reduce cloning here
                             cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
@@ -388,7 +388,7 @@ namespace libdwarf {
                 walk_die_list(
                     child,
                     [this, &cu_die, pc, dwversion, &inlines, &target_die, &current_obj_holder] (const die_object& die) {
-                        if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(dwversion, pc)) {
+                        if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(cu_die, dwversion, pc)) {
                             const auto name = subprogram_symbol(die, dwversion);
                             auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
                             // TODO: Refactor.... Probably put logic in resolve_filename.
@@ -480,7 +480,7 @@ namespace libdwarf {
                             die.get_name().c_str()
                         );
                     }
-                    if(!(die.get_tag() == DW_TAG_namespace || die.pc_in_die(dwversion, pc))) {
+                    if(!(die.get_tag() == DW_TAG_namespace || die.pc_in_die(cu_die, dwversion, pc))) {
                         if(dump_dwarf) {
                             std::fprintf(stderr, "pc not in die\n");
                         }
@@ -522,17 +522,18 @@ namespace libdwarf {
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         void preprocess_subprograms(
+            const die_object& cu_die,
             const die_object& die,
             Dwarf_Half dwversion,
             std::vector<subprogram_entry>& vec
         ) {
             walk_die_list(
                 die,
-                [this, dwversion, &vec] (const die_object& die) {
+                [this, &cu_die, dwversion, &vec] (const die_object& die) {
                     switch(die.get_tag()) {
                         case DW_TAG_subprogram:
                             {
-                                auto ranges_vec = die.get_rangelist_entries(dwversion);
+                                auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
                                 // TODO: Feels super inefficient and some day should maybe use an interval tree.
                                 for(auto range : ranges_vec) {
                                     // TODO: Reduce cloning here
@@ -543,7 +544,7 @@ namespace libdwarf {
                                 // On clang it's better
                                 auto child = die.get_child();
                                 if(child) {
-                                    preprocess_subprograms(child, dwversion, vec);
+                                    preprocess_subprograms(cu_die, child, dwversion, vec);
                                 }
                             }
                             break;
@@ -556,7 +557,7 @@ namespace libdwarf {
                             {
                                 auto child = die.get_child();
                                 if(child) {
-                                    preprocess_subprograms(child, dwversion, vec);
+                                    preprocess_subprograms(cu_die, child, dwversion, vec);
                                 }
                             }
                             break;
@@ -587,7 +588,7 @@ namespace libdwarf {
                 if(it == subprograms_cache.end()) {
                     // TODO: Refactor. Do the sort in the preprocess function and return the vec directly.
                     std::vector<subprogram_entry> vec;
-                    preprocess_subprograms(cu_die, dwversion, vec);
+                    preprocess_subprograms(cu_die, cu_die, dwversion, vec);
                     std::sort(vec.begin(), vec.end(), [] (const subprogram_entry& a, const subprogram_entry& b) {
                         return a.low < b.low;
                     });
@@ -605,7 +606,7 @@ namespace libdwarf {
                 );
                 // If the vector has been empty this can happen
                 if(vec_it != vec.end()) {
-                    if(vec_it->die.pc_in_die(dwversion, pc)) {
+                    if(vec_it->die.pc_in_die(cu_die, dwversion, pc)) {
                         frame.symbol = retrieve_symbol_for_subprogram(cu_die, vec_it->die, pc, dwversion, inlines);
                     }
                 } else {
@@ -882,8 +883,14 @@ namespace libdwarf {
                     }
                     // NOTE: If we have a corresponding skeleton, we assume we have one CU matching the skeleton CU
                     if(
-                        (skeleton && skeleton.unwrap().cu_die.pc_in_die(skeleton.unwrap().dwversion, pc))
-                        || cu_die.pc_in_die(dwversion, pc)
+                        (
+                            skeleton
+                            && skeleton.unwrap().cu_die.pc_in_die(
+                                skeleton.unwrap().cu_die,
+                                skeleton.unwrap().dwversion,
+                                pc
+                            )
+                        ) || cu_die.pc_in_die(cu_die, dwversion, pc)
                     ) {
                         if(trace_dwarf) {
                             std::fprintf(
@@ -917,8 +924,15 @@ namespace libdwarf {
                     // TODO: Cache the range list?
                     // NOTE: If we have a corresponding skeleton, we assume we have one CU matching the skeleton CU
                     if(
-                        (skeleton && skeleton.unwrap().cu_die.pc_in_die(skeleton.unwrap().dwversion, pc))
-                        || vec_it->die.pc_in_die(vec_it->dwversion, pc)
+                        (
+                            skeleton
+                            && skeleton.unwrap().cu_die.pc_in_die(
+                                skeleton.unwrap().cu_die,
+                                skeleton.unwrap().dwversion,
+                                pc
+                            )
+                        )
+                        || vec_it->die.pc_in_die(skeleton.unwrap().cu_die, vec_it->dwversion, pc)
                     ) {
                         return cu_info{maybe_owned_die_object::ref(vec_it->die), vec_it->dwversion};
                     }
