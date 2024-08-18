@@ -2,7 +2,7 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols/symbols.hpp"
-#include "utils/dbghelp_syminit_manager.hpp"
+#include "platform/dbghelp_syminit_manager.hpp"
 
 #include <memory>
 #include <mutex>
