@@ -7,11 +7,17 @@ set(
   ${warning_options} $<$<CXX_COMPILER_ID:GNU>:-Wno-infinite-recursion>
 )
 
+set(
+  debug
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g>
+  $<$<CXX_COMPILER_ID:MSVC>:/DEBUG>
+)
+
 macro(add_test_dependencies exec_name)
   target_compile_features(${exec_name} PRIVATE cxx_std_11)
   target_link_libraries(${exec_name} PRIVATE ${target_name})
   target_compile_options(${exec_name} PRIVATE ${warning_options})
-  target_compile_options(${exec_name} PRIVATE -g)
+  target_compile_options(${exec_name} PRIVATE ${debug})
   if(CPPTRACE_BUILD_TESTING_SPLIT_DWARF)
     target_compile_options(${exec_name} PRIVATE -gsplit-dwarf)
   endif()
@@ -42,7 +48,7 @@ if(UNIX)
   add_executable(signal_demo signal_demo.cpp)
   target_compile_features(signal_demo PRIVATE cxx_std_11)
   target_link_libraries(signal_demo PRIVATE ${target_name})
-  target_compile_options(signal_demo PRIVATE -g)
+  target_compile_options(signal_demo PRIVATE ${debug})
   if(CPPTRACE_BUILD_TESTING_SPLIT_DWARF)
     target_compile_options(signal_demo PRIVATE -gsplit-dwarf)
   endif()
@@ -53,7 +59,7 @@ if(UNIX)
   add_executable(signal_tracer signal_tracer.cpp)
   target_compile_features(signal_tracer PRIVATE cxx_std_11)
   target_link_libraries(signal_tracer PRIVATE ${target_name})
-  target_compile_options(signal_tracer PRIVATE -g)
+  target_compile_options(signal_tracer PRIVATE ${debug})
 endif()
 
 # primarily a workaround for github actions issue https://github.com/actions/runner-images/issues/8659
@@ -81,7 +87,7 @@ if(NOT CPPTRACE_SKIP_UNIT)
   target_compile_features(unittest PRIVATE cxx_std_20)
   target_link_libraries(unittest PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
   target_compile_options(unittest PRIVATE ${warning_options} $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-pedantic -Wno-attributes>)
-  target_compile_options(unittest PRIVATE -g)
+  target_compile_options(unittest PRIVATE ${debug})
   if(CPPTRACE_BUILD_TESTING_SPLIT_DWARF)
     target_compile_options(unittest PRIVATE -gsplit-dwarf)
   endif()
