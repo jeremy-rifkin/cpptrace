@@ -45,7 +45,8 @@ TEST(FromCurrent, Basic) {
             trace.frames.begin(),
             trace.frames.end(),
             [](const cpptrace::stacktrace_frame& frame) {
-                return frame.filename.find("from_current.cpp") != std::string::npos;
+                return frame.filename.find("from_current.cpp") != std::string::npos
+                    && frame.symbol.find("lambda") == std::string::npos; // due to msvc
             }
         );
         ASSERT_NE(it, trace.frames.end());
@@ -96,7 +97,8 @@ TEST(FromCurrent, CorrectHandler) {
             trace.frames.begin(),
             trace.frames.end(),
             [](const cpptrace::stacktrace_frame& frame) {
-                return frame.filename.find("from_current.cpp") != std::string::npos;
+                return frame.filename.find("from_current.cpp") != std::string::npos
+                    && frame.symbol.find("lambda") == std::string::npos;
             }
         );
         EXPECT_NE(it, trace.frames.end());
@@ -124,7 +126,8 @@ TEST(FromCurrent, RawTrace) {
             trace.frames.begin(),
             trace.frames.end(),
             [](const cpptrace::stacktrace_frame& frame) {
-                return frame.filename.find("from_current.cpp") != std::string::npos;
+                return frame.filename.find("from_current.cpp") != std::string::npos
+                    && frame.symbol.find("lambda") == std::string::npos;
             }
         );
         EXPECT_NE(it, trace.frames.end());
