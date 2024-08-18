@@ -109,7 +109,7 @@ def build_and_test(runner: MatrixRunner):
 def run_linux_matrix():
     MatrixRunner(
         matrix = {
-            "compiler": ["g++-10", "clang++-14"],
+            "compiler": ["g++-10", "clang++-16"],
             "stdlib": ["libstdc++", "libc++"],
             "sanitizers": ["OFF", "ON"],
             "build_type": ["Debug", "RelWithDebInfo"],
