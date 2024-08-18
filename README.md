@@ -28,7 +28,10 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
     - [Raw Traces](#raw-traces)
     - [Utilities](#utilities)
     - [Configuration](#configuration)
-    - [Traced Exceptions](#traced-exceptions)
+    - [Traces From All Exceptions](#traces-from-all-exceptions)
+      - [How it works](#how-it-works)
+      - [Performance](#performance)
+    - [Traced Exception Objects](#traced-exception-objects)
   - [Wrapping std::exceptions](#wrapping-stdexceptions)
   - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
   - [Signal-Safe Tracing](#signal-safe-tracing)
@@ -80,7 +83,30 @@ const auto raw_trace = cpptrace::generate_raw_trace();
 raw_trace.resolve().print();
 ```
 
-Cpptrace also provides exception types that store stack traces:
+Cpptrace provides a way to produce stack traces on arbitrary exceptions. More information on this system
+[below](#traces-from-all-exceptions).
+```cpp
+#include <cpptrace/from_current.hpp>
+void foo() {
+    throw std::runtime_error("foo failed");
+}
+int main() {
+    CPPTRACE_TRY {
+        foo();
+    } CPPTRACE_CATCH(const std::exception& e) {
+        std::cerr<<"Exception: "<<e.what()<<std::endl;
+        cpptrace::from_current_exception().print();
+    }
+}
+```
+
+![from_current](res/from_current.png)
+
+There are a few extraneous frames at the top of the stack corresponding to internals of exception handling in the
+standard library. These are a small price to pay for stack traces on all exceptions.
+
+Cpptrace also provides a handful of traced exception objects that store stack traces when thrown. This is useful when
+the exceptions might not be caught by `CPPTRACE_CATCH`:
 ```cpp
 #include <cpptrace/cpptrace.hpp>
 
@@ -89,7 +115,7 @@ void trace() {
 }
 ```
 
-![Inlining](res/exception.png)
+![Exception](res/exception.png)
 
 Additional notable features:
 
@@ -342,11 +368,70 @@ namespace cpptrace {
 }
 ```
 
-### Traced Exceptions
+### Traces From All Exceptions
 
-Cpptrace provides an interface for a traced exceptions, `cpptrace::exception`, as well as a set of exception classes
-that that generate stack traces when thrown. These exceptions generate relatively lightweight raw traces and resolve
-symbols and line numbers lazily if and when requested.
+Cpptrace provides `CPPTRACE_TRY` and `CPPTRACE_CATCH` macros that allow a stack trace to be collected from the current
+thrown exception object, with no overhead in the non-throwing path:
+
+```cpp
+CPPTRACE_TRY {
+    foo();
+} CPPTRACE_CATCH(const std::exception& e) {
+    std::cout<<"Exception: "<<e.what()<<std::endl;
+    std::cout<<cpptrace::from_current_exception().to_string(true)<<std::endl;
+}
+```
+
+Any declarator `catch` accepts works with `CPPTRACE_CATCH`, including `...`.
+
+![from_current](res/from_current.png)
+
+There are a few extraneous frames at the top of the stack corresponding to internals of exception handling in the
+standard library. These are a small price to pay for stack traces on all exceptions.
+
+API functions:
+- `cpptrace::raw_trace_from_current_exception`: Returns `const raw_trace&` from the current exception.
+- `cpptrace::from_current_exception`: Returns a resolved `const stacktrace&` from the current exception. Invalidates
+  references to traces returned by `cpptrace::raw_trace_from_current_exception`.
+
+#### How it works
+C++ does not provide any language support for collecting stack traces when exceptions are thrown, however, exception
+handling under both the Itanium ABI and by SEH (used to implement C++ exceptions on windows) involves unwinding the
+stack twice, the first unwind searches for an appropriate `catch` handler, the second actually unwinds the stack and
+calls destructors. Since the stack remains intact during the search phase it's possible to collect a stack trace with
+zero overhead when the `catch` is considered for matching the exception.
+
+N.b.: Cpptrace uses the same mechanism proposed for use in [P2490R3][P2490R3].
+
+#### Performance
+
+`CPPTRACE_CATCH` internally generates lightweight raw traces when considered in the search phase. These are quite fast
+to generate and are only resolved when `cpptrace::from_current_exception` is called.
+
+Currently `CPPTRACE_CATCH` always generates a raw trace when considered as a candidate. That means that if there is a
+nesting of handlers, either directly in code or as a result of the current call stack, the current stack may be traced
+mutliple times until the appropriate handler is found.
+
+This should not matter for the vast majority applications given that performance very rarely is critical in throwing
+paths, how exception handling is usually used, and the shallowness of most call stacks. However, it's an important
+consideration to be aware of.
+
+To put the scale of this performance consideration into perspective: In my benchmarking I have found generation of raw
+traces to take on the order of `75ns` per frame. Thus, even if there were 100 non-matching handlers before a matching
+handler in a 100-deep call stack the total time would stil be on the order of less than one millisecond.
+
+It's possible to avoid this by adding some bookkeeping to the `CPPTRACE_TRY` block. With the tradeoff between
+zero-overhead try-catch in the happy path and a little extra overhead in the unhappy throwing path I decided to keep
+try-catch zero-overhead. Should this be a concern to anyone, I'm happy to facilitate both solutions.
+
+### Traced Exception Objects
+
+Cpptrace provides a handful of traced exception classes which automatically collect stack traces when thrown. These
+are useful when throwing exceptions that may not be caught by `CPPTRACE_CATCH`.
+
+The base traced exception class is `cpptrace::exception` and cpptrace provides a handful of helper classes for working
+with traced exceptions. These exceptions generate relatively lightweight raw traces and resolve symbols and line numbers
+lazily if and when requested.
 
 These are provided both as a useful utility and as a reference implementation for traced exceptions.
 
@@ -429,6 +514,10 @@ namespace cpptrace {
 
 ## Wrapping std::exceptions
 
+> [!NOTE]
+> This section is largely obsolete now that cpptrace provides a better mechanism for collecting
+> [traces from exceptions](#traces-from-exceptions)
+
 Cpptrace exceptions can provide great information for user-controlled exceptions. For non-cpptrace::exceptions that may
 originate outside of code you control, e.g. the standard library, cpptrace provides some wrapper utilities that can
 rethrow these exceptions nested in traced cpptrace exceptions. The trace won't be perfect, the trace will start where
@@ -445,6 +534,10 @@ std::cout<<CPPTRACE_WRAP(foo.at(12))<<std::endl;
 ```
 
 ## Exception handling with cpptrace
+
+> [!NOTE]
+> This section pertains to cpptrace traced exception objects and not the mechanism for collecting
+> [traces from arbitrary exceptions](#traces-from-exceptions)
 
 Working with cpptrace exceptions in your code:
 ```cpp
@@ -1000,3 +1093,5 @@ This library is under the MIT license.
 
 Cpptrace uses libdwarf on linux, macos, and mingw/cygwin unless configured to use something else. If this library is
 statically linked with libdwarf then the library's binary will itself be LGPL.
+
+[P2490R3]: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2490r3.html

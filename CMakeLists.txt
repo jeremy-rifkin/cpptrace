@@ -214,6 +214,7 @@ target_sources(
     src/binary/safe_dl.cpp
     src/cpptrace.cpp
     src/ctrace.cpp
+    src/from_current.cpp
     src/demangle/demangle_with_cxxabi.cpp
     src/demangle/demangle_with_nothing.cpp
     src/demangle/demangle_with_winapi.cpp

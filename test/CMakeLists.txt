@@ -83,6 +83,7 @@ if(NOT CPPTRACE_SKIP_UNIT)
     unit/raw_trace.cpp
     unit/object_trace.cpp
     unit/stacktrace.cpp
+    unit/from_current.cpp
   )
   target_compile_features(unittest PRIVATE cxx_std_20)
   target_link_libraries(unittest PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)

@@ -592,6 +592,14 @@ namespace cpptrace {
             clear();
         }
         // access
+        const raw_trace& lazy_trace_holder::get_raw_trace() const {
+            if(resolved) {
+                throw std::logic_error(
+                    "cpptrace::detail::lazy_trace_holder::get_resolved_trace called on resolved holder"
+                );
+            }
+            return trace;
+        }
         stacktrace& lazy_trace_holder::get_resolved_trace() {
             if(!resolved) {
                 raw_trace old_trace = std::move(trace);
@@ -605,7 +613,7 @@ namespace cpptrace {
                         // TODO: Append to message somehow?
                         std::fprintf(
                             stderr,
-                            "Exception occurred while resolving trace in cpptrace::exception object:\n%s\n",
+                            "Exception occurred while resolving trace in cpptrace::detail::lazy_trace_holder:\n%s\n",
                             e.what()
                         );
                     }
@@ -616,7 +624,7 @@ namespace cpptrace {
         const stacktrace& lazy_trace_holder::get_resolved_trace() const {
             if(!resolved) {
                 throw std::logic_error(
-                    "cpptrace::detaillazy_trace_holder::get_resolved_trace called on unresolved const object"
+                    "cpptrace::detail::lazy_trace_holder::get_resolved_trace called on unresolved const holder"
                 );
             }
             return resolved_trace;
