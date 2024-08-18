@@ -35,7 +35,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
-            *(["-DCMAKE_CXX_FLAGS=-stdlib=libc++"] if matrix['stdlib'] == "libc++" else [])
+            *(["-DCMAKE_CXX_FLAGS=-stdlib=libc++"] if 'stdlib' in matrix and matrix['stdlib'] == "libc++" else [])
         ]
         return runner.run_command(*args) and runner.run_command("ninja")
     elif platform.system() == "Darwin":
