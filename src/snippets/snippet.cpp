@@ -1,4 +1,4 @@
-#include "snippet.hpp"
+#include "snippets/snippet.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -8,8 +8,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "../utils/common.hpp"
-#include "../utils/utils.hpp"
+#include "utils/common.hpp"
+#include "utils/utils.hpp"
 
 namespace cpptrace {
 namespace detail {

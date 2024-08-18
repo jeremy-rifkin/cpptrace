@@ -2,8 +2,8 @@
 #define SYMBOL_RESOLVER_HPP
 
 #include <cpptrace/cpptrace.hpp>
-#include "../symbols.hpp"
-#include "../../utils/common.hpp"
+#include "symbols/symbols.hpp"
+#include "utils/common.hpp"
 
 #include <memory>
 

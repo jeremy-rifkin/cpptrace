@@ -1,8 +1,8 @@
 #ifndef MACHO_HPP
 #define MACHO_HPP
 
-#include "../utils/common.hpp"
-#include "../utils/utils.hpp"
+#include "utils/common.hpp"
+#include "utils/utils.hpp"
 
 #if IS_APPLE
 

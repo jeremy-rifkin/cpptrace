@@ -1,9 +1,9 @@
 #ifndef OBJECT_HPP
 #define OBJECT_HPP
 
-#include "../utils/common.hpp"
-#include "../utils/utils.hpp"
-#include "module_base.hpp"
+#include "utils/common.hpp"
+#include "utils/utils.hpp"
+#include "binary/module_base.hpp"
 
 #include <string>
 #include <vector>

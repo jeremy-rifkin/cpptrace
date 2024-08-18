@@ -243,6 +243,12 @@ target_include_directories(
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cpptrace/>
 )
 
+target_include_directories(
+  ${target_name}
+  PRIVATE
+  src
+)
+
 set(
   warning_options
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>

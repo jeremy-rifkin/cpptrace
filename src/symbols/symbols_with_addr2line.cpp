@@ -1,9 +1,9 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
 
 #include <cpptrace/cpptrace.hpp>
-#include "symbols.hpp"
-#include "../utils/common.hpp"
-#include "../utils/utils.hpp"
+#include "symbols/symbols.hpp"
+#include "utils/common.hpp"
+#include "utils/utils.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -20,7 +20,7 @@
  #include <sys/wait.h>
 #endif
 
-#include "../binary/object.hpp"
+#include "binary/object.hpp"
 
 namespace cpptrace {
 namespace detail {

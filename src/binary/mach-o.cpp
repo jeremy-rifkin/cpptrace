@@ -1,7 +1,7 @@
-#include "mach-o.hpp"
+#include "binary/mach-o.hpp"
 
-#include "../utils/common.hpp"
-#include "../utils/utils.hpp"
+#include "utils/common.hpp"
+#include "utils/utils.hpp"
 
 #if IS_APPLE
 

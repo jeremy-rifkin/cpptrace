@@ -1,8 +1,8 @@
 #ifndef DBGHELP_SYMINIT_MANAGER_HPP
 #define DBGHELP_SYMINIT_MANAGER_HPP
 
-#include "../utils/common.hpp"
-#include "../utils/utils.hpp"
+#include "utils/common.hpp"
+#include "utils/utils.hpp"
 
 #include <unordered_set>
 

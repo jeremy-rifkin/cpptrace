@@ -5,7 +5,7 @@
 #include "symbols/symbols.hpp"
 #include "unwind/unwind.hpp"
 #include "demangle/demangle.hpp"
-#include "utils/exception_type.hpp"
+#include "platform/exception_type.hpp"
 #include "utils/common.hpp"
 #include "utils/utils.hpp"
 #include "binary/object.hpp"

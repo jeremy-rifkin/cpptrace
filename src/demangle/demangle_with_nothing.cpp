@@ -1,6 +1,6 @@
 #ifdef CPPTRACE_DEMANGLE_WITH_NOTHING
 
-#include "demangle.hpp"
+#include "demangle/demangle.hpp"
 
 #include <string>
 

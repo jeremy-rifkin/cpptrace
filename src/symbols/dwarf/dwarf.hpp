@@ -2,8 +2,8 @@
 #define DWARF_HPP
 
 #include <cpptrace/cpptrace.hpp>
-#include "../utils/error.hpp"
-#include "../utils/utils.hpp"
+#include "utils/error.hpp"
+#include "utils/utils.hpp"
 
 #include <functional>
 #include <stdexcept>

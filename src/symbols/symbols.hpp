@@ -7,7 +7,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "../binary/object.hpp"
+#include "binary/object.hpp"
 
 namespace cpptrace {
 namespace detail {

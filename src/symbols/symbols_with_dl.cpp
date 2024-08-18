@@ -1,7 +1,7 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDL
 
 #include <cpptrace/cpptrace.hpp>
-#include "symbols.hpp"
+#include "symbols/symbols.hpp"
 
 #include <cstdint>
 #include <memory>

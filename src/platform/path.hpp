@@ -1,7 +1,7 @@
 #ifndef PATH_HPP
 #define PATH_HPP
 
-#include "common.hpp"
+#include "utils/common.hpp"
 
 #if IS_WINDOWS
 #include <windows.h>

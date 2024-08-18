@@ -8,7 +8,7 @@
  #include <cxxabi.h>
 #endif
 
-#include "../demangle/demangle.hpp"
+#include "demangle/demangle.hpp"
 
 namespace cpptrace {
 namespace detail {

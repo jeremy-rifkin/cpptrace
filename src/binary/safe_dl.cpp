@@ -1,8 +1,8 @@
-#include "safe_dl.hpp"
+#include "binary/safe_dl.hpp"
 
-#include "../utils/common.hpp"
-#include "../utils/utils.hpp"
-#include "../utils/program_name.hpp"
+#include "utils/common.hpp"
+#include "utils/utils.hpp"
+#include "platform/program_name.hpp"
 
 #include <string>
 #include <vector>

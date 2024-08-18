@@ -1,14 +1,14 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
 
-#include "resolver.hpp"
+#include "symbols/dwarf/resolver.hpp"
 
 #include <cpptrace/cpptrace.hpp>
-#include "../symbols.hpp"
-#include "../../utils/common.hpp"
-#include "../../utils/error.hpp"
-#include "../../binary/object.hpp"
-#include "../../binary/mach-o.hpp"
-#include "../../utils/utils.hpp"
+#include "symbols/symbols.hpp"
+#include "utils/common.hpp"
+#include "utils/error.hpp"
+#include "binary/object.hpp"
+#include "binary/mach-o.hpp"
+#include "utils/utils.hpp"
 
 #include <algorithm>
 #include <cstdint>

@@ -1,8 +1,8 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
 
 #include <cpptrace/cpptrace.hpp>
-#include "symbols.hpp"
-#include "../utils/dbghelp_syminit_manager.hpp"
+#include "symbols/symbols.hpp"
+#include "utils/dbghelp_syminit_manager.hpp"
 
 #include <memory>
 #include <mutex>

@@ -1,6 +1,6 @@
 #ifdef CPPTRACE_UNWIND_WITH_NOTHING
 
-#include "unwind.hpp"
+#include "unwind/unwind.hpp"
 
 #include <cstddef>
 #include <vector>

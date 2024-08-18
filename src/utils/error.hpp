@@ -6,8 +6,8 @@
 #include <string>
 #include <utility>
 
-#include "common.hpp"
-#include "microfmt.hpp"
+#include "utils/common.hpp"
+#include "utils/microfmt.hpp"
 
 #if IS_MSVC
  #define CPPTRACE_PFUNC __FUNCSIG__

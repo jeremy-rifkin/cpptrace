@@ -1,7 +1,7 @@
 #ifndef SAFE_DL_HPP
 #define SAFE_DL_HPP
 
-#include "../utils/common.hpp"
+#include "utils/common.hpp"
 
 namespace cpptrace {
 namespace detail {

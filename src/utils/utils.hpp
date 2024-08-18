@@ -18,9 +18,9 @@
 #include <utility>
 #include <vector>
 
-#include "common.hpp"
-#include "error.hpp"
-#include "microfmt.hpp"
+#include "utils/common.hpp"
+#include "utils/error.hpp"
+#include "utils/microfmt.hpp"
 
 #if IS_WINDOWS
  #include <windows.h>

@@ -1,12 +1,12 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
 
-#include "symbols.hpp"
+#include "symbols/symbols.hpp"
 
 #include <cpptrace/cpptrace.hpp>
 #include "dwarf/resolver.hpp"
-#include "../utils/common.hpp"
-#include "../utils/error.hpp"
-#include "../utils/utils.hpp"
+#include "utils/common.hpp"
+#include "utils/error.hpp"
+#include "utils/utils.hpp"
 
 #include <cstdint>
 #include <cstdio>

@@ -1,7 +1,7 @@
-#include "module_base.hpp"
+#include "binary/module_base.hpp"
 
-#include "../utils/common.hpp"
-#include "../utils/utils.hpp"
+#include "utils/common.hpp"
+#include "utils/utils.hpp"
 
 #include <string>
 #include <vector>
@@ -12,13 +12,13 @@
  #include <unistd.h>
  #include <dlfcn.h>
  #if IS_APPLE
-  #include "mach-o.hpp"
+  #include "binary/mach-o.hpp"
  #else
-  #include "elf.hpp"
+  #include "binary/elf.hpp"
  #endif
 #elif IS_WINDOWS
  #include <windows.h>
- #include "pe.hpp"
+ #include "binary/pe.hpp"
 #endif
 
 namespace cpptrace {

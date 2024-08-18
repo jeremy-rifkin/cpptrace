@@ -1,8 +1,8 @@
-#include "pe.hpp"
+#include "binary/pe.hpp"
 
-#include "../utils/common.hpp"
-#include "../utils/error.hpp"
-#include "../utils/utils.hpp"
+#include "utils/common.hpp"
+#include "utils/error.hpp"
+#include "utils/utils.hpp"
 
 #if IS_WINDOWS
 #include <array>
