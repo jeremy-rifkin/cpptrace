@@ -10,4 +10,5 @@ cc_test(
         "unit/raw_trace.cpp",
         "unit/stacktrace.cpp"
     ],
+    linkstatic = 1,
 )

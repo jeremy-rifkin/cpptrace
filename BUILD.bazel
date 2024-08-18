@@ -7,7 +7,8 @@ cc_library(
     local_defines = [
         "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
         "CPPTRACE_DEMANGLE_WITH_CXXABI",
-        "CPPTRACE_UNWIND_WITH_UNWIND",
+        #"CPPTRACE_UNWIND_WITH_UNWIND",
+        "CPPTRACE_UNWIND_WITH_LIBUNWIND"
     ],
     hdrs = glob([
         "include/cpptrace/*.hpp",
@@ -16,6 +17,7 @@ cc_library(
     includes = ["include"],
     deps = [
         "@libdwarf//:libdwarf",
+        "@libunwind//:libunwind"
     ],
     copts = [
         "-Wall",

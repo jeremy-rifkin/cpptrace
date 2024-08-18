@@ -152,6 +152,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+           sudo apt install -y libtool libncurses5
     - name: test dbg
       run: |
            bazel test //... -c dbg 
