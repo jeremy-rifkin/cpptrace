@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.6.3](#v063)
 - [v0.6.2](#v062)
 - [v0.6.1](#v061)
 - [v0.6.0](#v060)
@@ -17,6 +18,25 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.6.3
+
+Added:
+- Added a flag to disable inclusion of `<format>` by cpptrace.hpp and the definition of formatter specializations
+
+Fixes:
+- Fixed use after free during cleanup of split dwarf information https://github.com/jeremy-rifkin/cpptrace/issues/141
+- Fixed an issue with TCO by clang on arm interfering with unwinding skip counts for internal methods
+- Fixed issue with incorrect object addresses being reported on macos when debug maps are used
+- Fixed issue with handling of split dwarf emitted by clang under dwarf4 mode
+
+Other changes:
+- Added note about signal-safe tracing requiring `_dl_find_object` to documentation and fixed errors in the signal-safe
+  tracing docs
+- Added more configurations to unittest ci setup
+- Optimized unittest ci matrix setup
+- Added options for zstd and libdwarf sources if FetchContent is being used to bring the dependencies in
+- Optimized includes in cpptrace.hpp
 
 # v0.6.2
 

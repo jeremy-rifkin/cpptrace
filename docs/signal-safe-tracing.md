@@ -223,9 +223,6 @@ int main() {
         std::size_t res = fread(&frame, sizeof(frame), 1, stdin);
         if(res == 0) {
             break;
-        } else if(res == -1) {
-            perror("Something went wrong while reading from the pipe");
-            break;
         } else if(res != 1) {
             std::cerr<<"Something went wrong while reading from the pipe"<<res<<" "<<std::endl;
             break;
