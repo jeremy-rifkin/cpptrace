@@ -32,5 +32,8 @@ git fetch --depth 1 origin f8d7d77c06936315286eb55f8de22cd23c188571
 git checkout FETCH_HEAD
 mkdir build
 cd build
-cmake .. -GNinja
+cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=/tmp/gtest_install
+sudo ninja install
+rm -rf *
+cmake .. -GNinja -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_INSTALL_PREFIX=/tmp/gtest_install_libcxx
 sudo ninja install

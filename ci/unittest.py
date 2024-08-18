@@ -17,6 +17,10 @@ def get_c_compiler_counterpart(compiler: str) -> str:
 def build(runner: MatrixRunner):
     if platform.system() == "Linux":
         matrix = runner.current_config()
+        if "stdlib" in matrix and matrix["stdlib"] == "libc++":
+            gtest_path = "/tmp/gtest_install_libcxx"
+        else:
+            gtest_path = "/tmp/gtest_install"
         args = [
             "cmake",
             "..",
@@ -35,6 +39,8 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
+            f"-DCMAKE_PREFIX_PATH={gtest_path}",
+            *(["-DCMAKE_CXX_FLAGS=-stdlib=libc++"] if "stdlib" in matrix and matrix["stdlib"] == "libc++" else [])
         ]
         return runner.run_command(*args) and runner.run_command("ninja")
     elif platform.system() == "Darwin":
@@ -87,6 +93,7 @@ def build_and_test(runner: MatrixRunner):
     if (
         last is None
         or last["compiler"] != current["compiler"]
+        or ("stdlib" in current and last["stdlib"] != current["stdlib"])
         or (platform.system() == "Darwin" and last["sanitizers"] != current["sanitizers"])
     ) and os.path.exists("build"):
         shutil.rmtree("build", ignore_errors=True)
@@ -107,7 +114,8 @@ def build_and_test(runner: MatrixRunner):
 def run_linux_matrix():
     MatrixRunner(
         matrix = {
-            "compiler": ["g++-10", "clang++-14"],
+            "compiler": ["g++-10", "clang++-18"],
+            "stdlib": ["libstdc++", "libc++"],
             "sanitizers": ["OFF", "ON"],
             "build_type": ["Debug", "RelWithDebInfo"],
             "shared": ["OFF", "ON"],
@@ -115,7 +123,17 @@ def run_linux_matrix():
             "split_dwarf": ["OFF", "ON"],
             "dwarf_version": ["4", "5"],
         },
-        exclude = []
+        exclude = [
+            {
+                "compiler": "g++-10",
+                "stdlib": "libc++",
+            },
+            {
+                # need to workaround https://github.com/llvm/llvm-project/issues/59432 later
+                "stdlib": "libc++",
+                "sanitizers": "ON",
+            },
+        ]
     ).run(build_and_test)
 
 def run_macos_matrix():

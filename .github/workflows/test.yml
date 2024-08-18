@@ -137,12 +137,12 @@ jobs:
 
 
   unittest-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build
+           sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev
            cd ..
            cpptrace/ci/setup-prerequisites-unittest.sh
     - name: build and test
