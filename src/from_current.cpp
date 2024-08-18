@@ -19,6 +19,7 @@
   #include <unistd.h>
   #if IS_APPLE
    #include <mach/mach.h>
+   #include <mach/mach_vm.h>
   #else
    #include <fstream>
    #include <iomanip>
@@ -92,12 +93,12 @@ namespace cpptrace {
         #if IS_APPLE
         int get_page_protections(void* page) {
             // https://stackoverflow.com/a/12627784/15675011
-            vm_size_t vmsize;
-            vm_address_t address = (vm_address_t)page;
+            mach_vm_size_t vmsize;
+            mach_vm_address_t address = (mach_vm_address_t)page;
             vm_region_basic_info_data_t info;
             mach_msg_type_number_t info_count = VM_REGION_BASIC_INFO_COUNT;
             memory_object_name_t object;
-            kern_return_t status = vm_region(
+            kern_return_t status = mach_vm_region(
                 mach_task_self(),
                 &address,
                 &vmsize,
@@ -155,7 +156,7 @@ namespace cpptrace {
                     if(x == 'x') {
                         perms |= PROT_EXEC;
                     }
-                    std::cerr<<"--parsed: "<<std::hex<<start<<" "<<stop<<" "<<r<<w<<x<<std::endl;
+                    // std::cerr<<"--parsed: "<<std::hex<<start<<" "<<stop<<" "<<r<<w<<x<<std::endl;
                     return perms;
                 }
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
