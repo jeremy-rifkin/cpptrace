@@ -161,6 +161,14 @@ namespace detail {
     }
 
     object_frame resolve_safe_object_frame(const safe_object_frame& frame) {
+        std::string object_path = frame.object_path;
+        if(object_path.empty()) {
+            return {
+                frame.raw_address,
+                0,
+                ""
+            };
+        }
         auto base = get_module_image_base(frame.object_path);
         if(base.is_error()) {
             throw base.unwrap_error(); // This throw is intentional
@@ -168,7 +176,7 @@ namespace detail {
         return {
             frame.raw_address,
             frame.address_relative_to_object_start + base.unwrap_value(),
-            frame.object_path
+            std::move(object_path)
         };
     }
 }
