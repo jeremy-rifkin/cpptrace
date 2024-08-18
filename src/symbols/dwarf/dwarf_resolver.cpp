@@ -931,8 +931,7 @@ namespace libdwarf {
                                 skeleton.unwrap().dwversion,
                                 pc
                             )
-                        )
-                        || vec_it->die.pc_in_die(skeleton.unwrap().cu_die, vec_it->dwversion, pc)
+                        ) || vec_it->die.pc_in_die(vec_it->die, vec_it->dwversion, pc)
                     ) {
                         return cu_info{maybe_owned_die_object::ref(vec_it->die), vec_it->dwversion};
                     }
