@@ -241,6 +241,30 @@ namespace libdwarf {
             }
         }
 
+        Dwarf_Unsigned get_ranges_base_address(const die_object& cu_die) const {
+            // After libdwarf v0.11.0 this can use dwarf_get_ranges_baseaddress, however, in the interest of not
+            // requiring v0.11.0 just yet the logic is implemented here too.
+            // The base address is:
+            // - If the die has a rangelist, use the low_pc for that die
+            // - Otherwise use the low_pc from the CU if present
+            // - Otherwise 0
+            if(has_attr(DW_AT_ranges)) {
+                if(has_attr(DW_AT_low_pc)) {
+                    Dwarf_Addr lowpc;
+                    if(wrap(dwarf_lowpc, die, &lowpc) == DW_DLV_OK) {
+                        return lowpc;
+                    }
+                }
+            }
+            if(cu_die.has_attr(DW_AT_low_pc)) {
+                Dwarf_Addr lowpc;
+                if(wrap(dwarf_lowpc, cu_die.get(), &lowpc) == DW_DLV_OK) {
+                    return lowpc;
+                }
+            }
+            return 0;
+        }
+
         Dwarf_Unsigned get_ranges_offset(Dwarf_Attribute attr) const {
             Dwarf_Unsigned off = 0;
             Dwarf_Half form = 0;
@@ -334,7 +358,7 @@ namespace libdwarf {
 
         template<typename F>
         // callback should return true to keep going
-        void dwarf4_ranges(Dwarf_Addr lowpc, F callback) const {
+        void dwarf4_ranges(Dwarf_Addr baseaddr, F callback) const {
             Dwarf_Attribute attr = nullptr;
             if(wrap(dwarf_attr, die, DW_AT_ranges, &attr) != DW_DLV_OK) {
                 return;
@@ -344,10 +368,7 @@ namespace libdwarf {
             if(wrap(dwarf_global_formref, attr, &offset) != DW_DLV_OK) {
                 return;
             }
-            Dwarf_Addr baseaddr = 0;
-            if(lowpc != (std::numeric_limits<Dwarf_Addr>::max)()) {
-                baseaddr = lowpc;
-            }
+            Dwarf_Addr baseaddr_original = baseaddr;
             Dwarf_Ranges* ranges = nullptr;
             Dwarf_Signed count = 0;
             VERIFY(
@@ -375,15 +396,15 @@ namespace libdwarf {
                     baseaddr = ranges[i].dwr_addr2;
                 } else {
                     ASSERT(ranges[i].dwr_type == DW_RANGES_END);
-                    baseaddr = lowpc;
+                    baseaddr = baseaddr_original;
                 }
             }
         }
 
         template<typename F>
         // callback should return true to keep going
-        void dwarf_ranges(int version, F callback) const {
-            Dwarf_Addr lowpc = (std::numeric_limits<Dwarf_Addr>::max)();
+        void dwarf_ranges(const die_object& cu_die, int version, F callback) const {
+            Dwarf_Addr lowpc;
             if(wrap(dwarf_lowpc, die, &lowpc) == DW_DLV_OK) {
                 Dwarf_Addr highpc = 0;
                 enum Dwarf_Form_Class return_class;
@@ -399,13 +420,13 @@ namespace libdwarf {
             if(version >= 5) {
                 dwarf5_ranges(callback);
             } else {
-                dwarf4_ranges(lowpc, callback);
+                dwarf4_ranges(get_ranges_base_address(cu_die), callback);
             }
         }
 
-        rangelist_entries get_rangelist_entries(int version) const {
+        rangelist_entries get_rangelist_entries(const die_object& cu_die, int version) const {
             rangelist_entries vec;
-            dwarf_ranges(version, [&vec] (Dwarf_Addr low, Dwarf_Addr high) {
+            dwarf_ranges(cu_die, version, [&vec] (Dwarf_Addr low, Dwarf_Addr high) {
                 // Simple coalescing optimization:
                 // Sometimes the range list entries are really continuous: [100, 200), [200, 300)
                 // Other times there's just one byte of separation [300, 399), [400, 500)
@@ -422,9 +443,9 @@ namespace libdwarf {
             return vec;
         }
 
-        Dwarf_Bool pc_in_die(int version, Dwarf_Addr pc) const {
+        Dwarf_Bool pc_in_die(const die_object& cu_die, int version, Dwarf_Addr pc) const {
             bool found = false;
-            dwarf_ranges(version, [&found, pc] (Dwarf_Addr low, Dwarf_Addr high) {
+            dwarf_ranges(cu_die, version, [&found, pc] (Dwarf_Addr low, Dwarf_Addr high) {
                 if(pc >= low && pc < high) {
                     found = true;
                     return false;
