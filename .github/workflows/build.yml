@@ -24,6 +24,19 @@ jobs:
     - name: build
       run: |
            python3 ci/build-in-all-configs.py --${{matrix.compiler}} --default-config
+  build-linux-bazel:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+           sudo apt install -y libtool libncurses5
+    - name: bazel build opt
+      run: |
+           bazel build //... -c opt
+    - name: bazel build dbg
+      run: |
+           bazel build //... -c dbg
   build-macos:
     runs-on: macos-14
     strategy:
