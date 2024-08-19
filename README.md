@@ -778,7 +778,7 @@ mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/wherever
 make -j
-sudo make install
+make install
 ```
 
 Using through cmake:
