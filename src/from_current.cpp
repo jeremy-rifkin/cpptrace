@@ -32,10 +32,19 @@ namespace cpptrace {
     namespace detail {
         thread_local lazy_trace_holder current_exception_trace;
 
+        CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
+            current_exception_trace = lazy_trace_holder(cpptrace::generate_raw_trace(skip + 1));
+        }
+
         #ifndef _MSC_VER
+        // set only once by do_prepare_unwind_interceptor
+        char (*intercept_unwind_handler)(std::size_t) = nullptr;
+
         CPPTRACE_FORCE_NO_INLINE
         bool intercept_unwind(const std::type_info*, const std::type_info*, void**, unsigned) {
-            current_exception_trace = lazy_trace_holder(cpptrace::generate_raw_trace(1));
+            if(intercept_unwind_handler) {
+                intercept_unwind_handler(1);
+            }
             return false;
         }
 
@@ -259,9 +268,10 @@ namespace cpptrace {
             mprotect_page(reinterpret_cast<void*>(page_addr), page_size, old_protections);
         }
 
-        void do_prepare_unwind_interceptor() {
+        void do_prepare_unwind_interceptor(char(*intercept_unwind_handler)(std::size_t)) {
             static bool did_prepare = false;
             if(!did_prepare) {
+                cpptrace::detail::intercept_unwind_handler = intercept_unwind_handler;
                 try {
                     perform_typeinfo_surgery(typeid(cpptrace::detail::unwind_interceptor));
                 } catch(std::exception& e) {
@@ -275,11 +285,6 @@ namespace cpptrace {
                 }
                 did_prepare = true;
             }
-        }
-        #else
-        CPPTRACE_FORCE_NO_INLINE int exception_filter() {
-            current_exception_trace = lazy_trace_holder(cpptrace::generate_raw_trace(1));
-            return EXCEPTION_CONTINUE_SEARCH;
         }
         #endif
     }
