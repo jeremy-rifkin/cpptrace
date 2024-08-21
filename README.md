@@ -399,11 +399,11 @@ API functions:
 
 There is a performance tradeoff with this functionality: Either the try-block can be zero overhead in the
 non-throwing path with potential expense in the throwing path, or the try-block can have very minimal overhead
-due to bookkeeping with guarantees about the expense of the throwing path. More details on this tradeoff
-[below](#performance). Cpptrace provides macros for both sides of this tradeoff:
+in the non-throwing path due to bookkeeping with guarantees about the expense of the throwing path. More details on
+this tradeoff [below](#performance). Cpptrace provides macros for both sides of this tradeoff:
 - `CPPTRACE_TRY`/`CPPTRACE_CATCH`: Minimal overhead in the non-throwing path (one `mov` on x86, and this may be
   optimized out if the compiler is able)
-- `CPPTRACE_TRYZ`/`CPPTRACE_CATCHZ`: Zero overhead in the throwing path, potential extra cost in the throwing path
+- `CPPTRACE_TRYZ`/`CPPTRACE_CATCHZ`: Zero overhead in the non-throwing path, potential extra cost in the throwing path
 
 Note: It's important to not mix the `Z` variants with the non-`Z` variants.
 
