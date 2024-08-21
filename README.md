@@ -375,17 +375,24 @@ Cpptrace provides `CPPTRACE_TRY` and `CPPTRACE_CATCH` macros that allow a stack 
 thrown exception object, with minimal or no overhead in the non-throwing path:
 
 ```cpp
-CPPTRACE_TRY {
-    foo();
-} CPPTRACE_CATCH(const std::exception& e) {
-    std::cerr<<"Exception: "<<e.what()<<std::endl;
-    cpptrace::from_current_exception().print();
+#include <cpptrace/from_current.hpp>
+void foo() {
+    throw std::runtime_error("foo failed");
+}
+int main() {
+    CPPTRACE_TRY {
+        foo();
+    } CPPTRACE_CATCH(const std::exception& e) {
+        std::cerr<<"Exception: "<<e.what()<<std::endl;
+        cpptrace::from_current_exception().print();
+    }
 }
 ```
 
 This functionality is entirely opt-in, to access this use `#include <cpptrace/from_current.hpp>`.
 
-Any declarator `catch` accepts works with `CPPTRACE_CATCH`, including `...`.
+Any declarator `catch` accepts works with `CPPTRACE_CATCH`, including `...`. This works with any thrown object, not just
+`std::exceptions`, it even works with `throw 0;`
 
 ![from_current](res/from_current.png)
 
