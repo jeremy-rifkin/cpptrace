@@ -32,14 +32,32 @@ namespace cpptrace {
     namespace detail {
         thread_local lazy_trace_holder current_exception_trace;
 
+        CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
+            current_exception_trace = lazy_trace_holder(cpptrace::generate_raw_trace(skip + 1));
+        }
+
         #ifndef _MSC_VER
+        // set only once by do_prepare_unwind_interceptor
+        char (*intercept_unwind_handler)(std::size_t) = nullptr;
+
         CPPTRACE_FORCE_NO_INLINE
         bool intercept_unwind(const std::type_info*, const std::type_info*, void**, unsigned) {
-            current_exception_trace = lazy_trace_holder(cpptrace::generate_raw_trace(1));
+            if(intercept_unwind_handler) {
+                intercept_unwind_handler(1);
+            }
             return false;
         }
 
+        CPPTRACE_FORCE_NO_INLINE
+        bool unconditional_exception_unwind_interceptor(const std::type_info*, const std::type_info*, void**, unsigned) {
+            collect_current_trace(1);
+            return false;
+        }
+
+        using do_catch_fn = decltype(intercept_unwind);
+
         unwind_interceptor::~unwind_interceptor() = default;
+        unconditional_unwind_interceptor::~unconditional_unwind_interceptor() = default;
 
         #if IS_LIBSTDCXX
             constexpr size_t vtable_size = 11;
@@ -185,10 +203,7 @@ namespace cpptrace {
         }
         #endif
 
-        // allocated below, cleaned up by OS after exit
-        void* new_vtable_page = nullptr;
-
-        void perform_typeinfo_surgery(const std::type_info& info) {
+        void perform_typeinfo_surgery(const std::type_info& info, do_catch_fn* do_catch_function) {
             if(vtable_size == 0) { // set to zero if we don't know what standard library we're working with
                 return;
             }
@@ -234,12 +249,13 @@ namespace cpptrace {
             }
 
             // allocate a page for the new vtable so it can be made read-only later
-            new_vtable_page = allocate_page(page_size);
+            // the OS cleans this up, no cleanup done here for it
+            void* new_vtable_page = allocate_page(page_size);
             // make our own copy of the vtable
             memcpy(new_vtable_page, type_info_vtable_pointer, vtable_size * sizeof(void*));
             // ninja in the custom __do_catch interceptor
             auto new_vtable = static_cast<void**>(new_vtable_page);
-            new_vtable[6] = reinterpret_cast<void*>(intercept_unwind);
+            new_vtable[6] = reinterpret_cast<void*>(do_catch_function);
             // make the page read-only
             mprotect_page(new_vtable_page, page_size, memory_readonly);
 
@@ -259,11 +275,16 @@ namespace cpptrace {
             mprotect_page(reinterpret_cast<void*>(page_addr), page_size, old_protections);
         }
 
-        void do_prepare_unwind_interceptor() {
+        void do_prepare_unwind_interceptor(char(*intercept_unwind_handler)(std::size_t)) {
             static bool did_prepare = false;
             if(!did_prepare) {
+                cpptrace::detail::intercept_unwind_handler = intercept_unwind_handler;
                 try {
-                    perform_typeinfo_surgery(typeid(cpptrace::detail::unwind_interceptor));
+                    perform_typeinfo_surgery(typeid(cpptrace::detail::unwind_interceptor), intercept_unwind);
+                    perform_typeinfo_surgery(
+                        typeid(cpptrace::detail::unconditional_unwind_interceptor),
+                        unconditional_exception_unwind_interceptor
+                    );
                 } catch(std::exception& e) {
                     std::fprintf(
                         stderr,
@@ -275,11 +296,6 @@ namespace cpptrace {
                 }
                 did_prepare = true;
             }
-        }
-        #else
-        CPPTRACE_FORCE_NO_INLINE int exception_filter() {
-            current_exception_trace = lazy_trace_holder(cpptrace::generate_raw_trace(1));
-            return EXCEPTION_CONTINUE_SEARCH;
         }
         #endif
     }
