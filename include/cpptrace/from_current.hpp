@@ -41,10 +41,18 @@ namespace cpptrace {
              exception_unwind_interceptor(1);
              return 0; // EXCEPTION_CONTINUE_SEARCH
          }
+         CPPTRACE_FORCE_NO_INLINE inline int unconditional_exception_filter() {
+             collect_current_trace(1);
+             return 0; // EXCEPTION_CONTINUE_SEARCH
+         }
         #else
          class CPPTRACE_EXPORT unwind_interceptor {
          public:
              virtual ~unwind_interceptor();
+         };
+         class CPPTRACE_EXPORT unconditional_unwind_interceptor {
+         public:
+             virtual ~unconditional_unwind_interceptor();
          };
 
          CPPTRACE_EXPORT void do_prepare_unwind_interceptor(char(*)(std::size_t));
@@ -81,6 +89,16 @@ namespace cpptrace {
              } __except(::cpptrace::detail::exception_filter()) {} \
          }(); \
      } catch(param)
+ #define CPPTRACE_TRYZ \
+     try { \
+         [&]() { \
+             __try { \
+                 [&]() {
+ #define CPPTRACE_CATCHZ(param) \
+                 }(); \
+             } __except(::cpptrace::detail::unconditional_exception_filter()) {} \
+         }(); \
+     } catch(param)
 #else
  #define CPPTRACE_TRY \
      try { \
@@ -92,6 +110,22 @@ namespace cpptrace {
  #define CPPTRACE_CATCH(param) \
          } catch(::cpptrace::detail::unwind_interceptor&) {} \
      } catch(param)
+ #define CPPTRACE_TRYZ \
+     try { \
+         try {
+ #define CPPTRACE_CATCHZ(param) \
+         } catch(::cpptrace::detail::unconditional_unwind_interceptor&) {} \
+     } catch(param)
+#endif
+
+#define CPPTRACE_CATCH_ALT(param) catch(param)
+
+#ifdef CPPTRACE_UNPREFIXED_TRY_CATCH
+ #define TRY CPPTRACE_TRY
+ #define CATCH(param) CPPTRACE_CATCH(param)
+ #define TRYZ CPPTRACE_TRYZ
+ #define CATCHZ(param) CPPTRACE_CATCHZ(param)
+ #define CATCH_ALT(param) CPPTRACE_CATCH_ALT(param)
 #endif
 
 #endif

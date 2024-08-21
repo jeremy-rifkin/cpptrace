@@ -84,6 +84,7 @@ if(NOT CPPTRACE_SKIP_UNIT)
     unit/object_trace.cpp
     unit/stacktrace.cpp
     unit/from_current.cpp
+    unit/from_current_z.cpp
     unit/traced_exception.cpp
   )
   target_compile_features(unittest PRIVATE cxx_std_20)
