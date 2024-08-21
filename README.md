@@ -754,6 +754,7 @@ namespace cpptrace {
             lazy_trace_holder& operator=(lazy_trace_holder&& other) noexcept;
             ~lazy_trace_holder();
             // access
+            const raw_trace& get_raw_trace() const;
             stacktrace& get_resolved_trace();
             const stacktrace& get_resolved_trace() const; // throws if not already resolved
         private:
