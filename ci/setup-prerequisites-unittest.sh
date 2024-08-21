@@ -4,7 +4,7 @@ mkdir zstd
 cd zstd
 git init
 git remote add origin https://github.com/facebook/zstd.git
-git fetch --depth 1 origin 63779c798237346c2b245c546c40b72a5a5913fe # 1.5.5
+git fetch --depth 1 origin 794ea1b0afca0f020f4e57b6732332231fb23c70 # 1.5.6
 git checkout FETCH_HEAD
 make -j
 sudo make install
@@ -15,7 +15,7 @@ mkdir libdwarf
 cd libdwarf
 git init
 git remote add origin https://github.com/davea42/libdwarf-code.git
-git fetch --depth 1 origin e2ab28a547ed8a53f2c96a825247a7cc8f7e40bb
+git fetch --depth 1 origin 285d9d34f3e9f56cc1c487d0055f6dc54a9c54a1 # 0.11.0
 git checkout FETCH_HEAD
 mkdir build
 cd build
