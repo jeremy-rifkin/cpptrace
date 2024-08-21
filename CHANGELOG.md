@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.7.0](#v070)
 - [v0.6.3](#v063)
 - [v0.6.2](#v062)
 - [v0.6.1](#v061)
@@ -18,6 +19,22 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.7.0
+
+Added
+- Added `cpptrace::from_current_exception()` and associated exception handler macros to allow tracing of all exceptions,
+  even without cpptrace traced exception objects.
+
+Fixes:
+- Fixed issue with using `resolve_safe_object_frame` on `safe_object_frame`s with empty paths
+- Fixed handling of dwarf 4 rangelist base addresses when a `DW_AT_low_pc` is not present
+- Fixed use of `-g` with MSVC
+
+Other changes:
+- Bazel is now supported on linux (https://github.com/jeremy-rifkin/cpptrace/pull/153)
+- More work on testing
+- Some internal refactoring
 
 # v0.6.3
 

@@ -9,7 +9,7 @@ set(package_name "cpptrace")
 
 project(
   cpptrace
-  VERSION 0.6.3
+  VERSION 0.7.0
   DESCRIPTION "Simple, portable, and self-contained stacktrace library for C++11 and newer "
   HOMEPAGE_URL "https://github.com/jeremy-rifkin/cpptrace"
   LANGUAGES C CXX
