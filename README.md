@@ -430,7 +430,7 @@ CPPTRACE_TRY {
 }
 ```
 
-Note: The current exception is the exception most recently seen by a `CPPTRACE_CATCH` macro.
+Note: The current exception is the exception most recently seen by a cpptrace try-catch macro block.
 
 ```cpp
 CPPTRACE_TRY {
@@ -449,7 +449,7 @@ CPPTRACE_TRY {
 #### Removing the `CPPTRACE_` prefix
 
 `CPPTRACE_TRY` is a little cumbersome to type. To remove the `CPPTRACE_` prefix you can use the
-`CPPTRACE_UNPREFIXED_TRY_CATCH` cmake variable or define `CPPTRACE_UNPREFIXED_TRY_CATCH` for the preprocessor:
+`CPPTRACE_UNPREFIXED_TRY_CATCH` cmake option or the `CPPTRACE_UNPREFIXED_TRY_CATCH` preprocessor definition:
 
 ```cpp
 TRY {
@@ -477,8 +477,8 @@ C++ does not provide any language support for collecting stack traces when excep
 handling under both the Itanium ABI and by SEH (used to implement C++ exceptions on windows) involves unwinding the
 stack twice. The first unwind searches for an appropriate `catch` handler, the second actually unwinds the stack and
 calls destructors. Since the stack remains intact during the search phase it's possible to collect a stack trace with
-zero overhead when the `catch` is considered for matching the exception. The try/catch macros for cpptrace set up a
-special try/catch setup that can collect a stack trace when considered during a search phase.
+little to no overhead when the `catch` is considered for matching the exception. The try/catch macros for cpptrace set
+up a special try/catch system that can collect a stack trace when considered during a search phase.
 
 N.b.: This mechanism is also discussed in [P2490R3][P2490R3].
 
@@ -491,9 +491,9 @@ resolves a trace from `cpptrace::raw_trace_from_current_exception`.
 
 It's tricky, however, from the library's standpoint to check if the catch will end up matching. The library could simply
 generate a trace every time a `CPPTRACE_CATCH` is considered, however, in a deep nesting of catch's, e.g. as a result of
-recusion, where a matching handler is not found quickly this could cause notable overhead due to tracing the stack
-multiple times. Thus, there is a performance tradeoff between a little book keeping to prevent duplicate tracing or
-biting the bullet, so to speak, in the throwing path and unwinding multiple times.
+recusion, where a matching handler is not found quickly this could introduce a non-trivial cost in the throwing pat due
+to tracing the stack multiple times. Thus, there is a performance tradeoff between a little book keeping to prevent
+duplicate tracing or biting the bullet, so to speak, in the throwing path and unwinding multiple times.
 
 > [!TIP]
 > The choice between the `Z` and non-`Z` (zero-overhead and non-zero-overhead) variants of the exception handlers should
@@ -511,7 +511,7 @@ Tracing the stack multiple times in throwing paths should not matter for the vas
 1. Performance very rarely is critical in throwing paths and exceptions should be exceptionally rare
 2. Exception handling is not usually used in such a way that you could have a deep nesting of handlers before finding a
    matching handler
-3. An that most call stacks are fairly shallow
+3. Most call stacks are fairly shallow
 
 To put the scale of this performance consideration into perspective: In my benchmarking I have found generation of raw
 traces to take on the order of `100ns` per frame. Thus, even if there were 100 non-matching handlers before a matching
