@@ -139,7 +139,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace::cpptrace)
 
-# On windows copy cpptrace.dll to the same directory as the executable for your_target
+# Needed for shared library builds on windows:  copy cpptrace.dll to the same directory as the
+# executable for your_target
 if(WIN32)
   add_custom_command(
     TARGET your_target POST_BUILD
