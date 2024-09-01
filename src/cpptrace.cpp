@@ -495,7 +495,7 @@ namespace cpptrace {
     namespace detail {
         std::atomic_bool absorb_trace_exceptions(true); // NOSONAR
         std::atomic_bool resolve_inlined_calls(true); // NOSONAR
-        std::atomic<enum cache_mode> cache_mode(cache_mode::prioritize_speed); // NOSONAR
+        std::atomic<cache_mode> current_cache_mode(cache_mode::prioritize_speed); // NOSONAR
     }
 
     void absorb_trace_exceptions(bool absorb) {
@@ -508,7 +508,7 @@ namespace cpptrace {
 
     namespace experimental {
         void set_cache_mode(cache_mode mode) {
-            detail::cache_mode = mode;
+            detail::current_cache_mode = mode;
         }
     }
 
@@ -521,8 +521,8 @@ namespace cpptrace {
             return resolve_inlined_calls;
         }
 
-        enum cache_mode get_cache_mode() {
-            return cache_mode;
+        cache_mode get_cache_mode() {
+            return current_cache_mode;
         }
 
         CPPTRACE_FORCE_NO_INLINE
