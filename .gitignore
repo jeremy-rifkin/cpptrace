@@ -7,3 +7,4 @@ scratch
 .vscode
 tmp
 bazel-*
+cmake-build-*/
