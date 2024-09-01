@@ -496,8 +496,10 @@ namespace detail {
     template<
         typename T,
         typename D
-        // workaround a msvc bug https://developercommunity.visualstudio.com/t/MSVC-1938331290-preview-fails-to-comp/10505565
-        #if !defined(_MSC_VER) || _MSC_VER != 1938
+        // workaround for:
+        //  == 19.38-specific msvc bug https://developercommunity.visualstudio.com/t/MSVC-1938331290-preview-fails-to-comp/10505565
+        //  <= 19.23 msvc also appears to fail (but for a different reason https://godbolt.org/z/6Y5EvdWPK)
+        #if !defined(_MSC_VER) || !(_MSC_VER <= 1923 || _MSC_VER == 1938)
          ,
          typename std::enable_if<
              std::is_same<decltype(std::declval<D>()(std::declval<T>())), void>::value,
