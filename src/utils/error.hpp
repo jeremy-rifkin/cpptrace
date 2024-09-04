@@ -31,13 +31,11 @@ namespace detail {
     // Lightweight std::source_location.
     struct source_location {
         const char* const file;
-        // const char* const function; // disabled, because there are many different compiler definitions for it (see for example BOOST_CURRENT_FUNCTION)
         const int line;
         constexpr source_location(
             const char* _file,
-            //const char* _function,
             int _line
-        ) : file(_file)/*, function(_function)*/, line(_line) {}
+        ) : file(_file), line(_line) {}
     };
 
     #define CPPTRACE_CURRENT_LOCATION ::cpptrace::detail::source_location(__FILE__, __LINE__)
