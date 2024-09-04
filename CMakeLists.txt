@@ -99,6 +99,10 @@ if(UNIX AND NOT APPLE)
   endif()
 endif()
 
+if(APPLE)
+  check_support(HAS_MACH_VM has_mach_vm.cpp "" "" "")
+endif()
+
 # =============================================== Autoconfig unwinding ===============================================
 # Unwind back-ends
 if(
@@ -338,6 +342,10 @@ endif()
 
 if(HAS_DLADDR1)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_HAS_DLADDR1)
+endif()
+
+if(HAS_MACH_VM)
+  target_compile_definitions(${target_name} PUBLIC HAS_MACH_VM)
 endif()
 
 # Symbols
