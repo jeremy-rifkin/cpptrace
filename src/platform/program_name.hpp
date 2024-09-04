@@ -13,7 +13,7 @@
 
 namespace cpptrace {
 namespace detail {
-    inline std::string program_name() {
+    inline const char* program_name() {
         static std::mutex mutex;
         const std::lock_guard<std::mutex> lock(mutex);
         static std::string name;
