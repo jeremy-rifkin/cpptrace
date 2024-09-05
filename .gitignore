@@ -1,9 +1,11 @@
-.vscode
+.vscode/
+.idea/
+
 a.out
 build*/
 repro*/
-__pycache__
+__pycache__/
 scratch
-.vscode
-tmp
-bazel-*
+tmp/
+bazel-*/
+cmake-build-*/

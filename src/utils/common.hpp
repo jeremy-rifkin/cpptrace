@@ -40,7 +40,7 @@ namespace detail {
 
     bool should_absorb_trace_exceptions();
     bool should_resolve_inlined_calls();
-    enum cache_mode get_cache_mode();
+    cache_mode get_cache_mode();
 }
 }
 

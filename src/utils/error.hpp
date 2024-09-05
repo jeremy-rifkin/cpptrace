@@ -31,14 +31,14 @@ namespace detail {
     // Lightweight std::source_location.
     struct source_location {
         const char* const file;
-        //const char* const function; // disabled for now due to static constexpr restrictions
         const int line;
         constexpr source_location(
-            //const char* _function /*= __builtin_FUNCTION()*/,
-            const char* _file     = __builtin_FILE(),
-            int _line             = __builtin_LINE()
-        ) : file(_file), /*function(_function),*/ line(_line) {}
+            const char* _file,
+            int _line
+        ) : file(_file), line(_line) {}
     };
+
+    #define CPPTRACE_CURRENT_LOCATION ::cpptrace::detail::source_location(__FILE__, __LINE__)
 
     enum class assert_type {
         assert,
@@ -117,7 +117,7 @@ namespace detail {
     }
 
     // Check condition in both debug and release. std::runtime_error on failure.
-    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, {}, ::cpptrace::detail::as_string(__VA_ARGS__)))
+    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION, ::cpptrace::detail::as_string(__VA_ARGS__)))
 
     template<typename T>
     void assert_impl(
@@ -153,13 +153,13 @@ namespace detail {
 
     // Check condition in both debug and release. std::runtime_error on failure.
     #define VERIFY(...) ( \
-        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::verify, #__VA_ARGS__, CPPTRACE_PFUNC, {}) \
+        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::verify, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
     )
 
     #ifndef NDEBUG
      // Check condition in both debug. std::runtime_error on failure.
      #define ASSERT(...) ( \
-        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::assert, #__VA_ARGS__, CPPTRACE_PFUNC, {}) \
+        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::assert, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
      )
     #else
      // Check condition in both debug. std::runtime_error on failure.
