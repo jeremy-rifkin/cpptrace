@@ -28,7 +28,7 @@ cc_library(
         "-Wundef",
         "-Wuninitialized",
         "-fPIC",
-        "-std=c++17"
+        "-std=c++11"
     ],
     visibility = ["//visibility:public"],
 )
