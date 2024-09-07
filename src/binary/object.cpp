@@ -169,13 +169,9 @@ namespace detail {
                 ""
             };
         }
-        auto base = get_module_image_base(frame.object_path);
-        if(base.is_error()) {
-            throw base.unwrap_error(); // This throw is intentional
-        }
         return {
             frame.raw_address,
-            frame.address_relative_to_object_start + base.unwrap_value(),
+            frame.address_relative_to_object_start,
             std::move(object_path)
         };
     }

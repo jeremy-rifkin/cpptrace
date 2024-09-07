@@ -235,7 +235,9 @@ namespace cpptrace {
     );
     struct CPPTRACE_EXPORT safe_object_frame {
         frame_ptr raw_address;
-        frame_ptr address_relative_to_object_start; // base must still be added
+        // This ends up being the real object address. It was named at a time when I thought the object base address
+        // still needed to be added in
+        frame_ptr address_relative_to_object_start;
         char object_path[CPPTRACE_PATH_MAX + 1];
         // To be called outside a signal handler. Not signal safe.
         object_frame resolve() const;
