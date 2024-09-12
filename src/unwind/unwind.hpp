@@ -1,8 +1,7 @@
 #ifndef UNWIND_HPP
 #define UNWIND_HPP
 
-#include "utils/common.hpp"
-#include "utils/utils.hpp"
+#include "cpptrace/cpptrace.hpp"
 
 #include <cstddef>
 #include <vector>

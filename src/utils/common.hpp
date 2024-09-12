@@ -1,13 +1,11 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
-#include <cstdio>
-#include <stdexcept>
-#include <string>
-
 #include <cpptrace/cpptrace.hpp>
 
 #include "platform/platform.hpp"
+
+#include <cstdint>
 
 #define ESC     "\033["
 #define RESET   ESC "0m"
@@ -31,8 +29,8 @@ namespace detail {
     static const stacktrace_frame null_frame {
         0,
         0,
-        nullable<uint32_t>::null(),
-        nullable<uint32_t>::null(),
+        nullable<std::uint32_t>::null(),
+        nullable<std::uint32_t>::null(),
         "",
         "",
         false

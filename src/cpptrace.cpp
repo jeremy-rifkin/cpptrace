@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <new>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -16,6 +16,7 @@
 #include "demangle/demangle.hpp"
 #include "platform/exception_type.hpp"
 #include "utils/common.hpp"
+#include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 #include "binary/object.hpp"
 #include "binary/safe_dl.hpp"

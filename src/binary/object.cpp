@@ -1,6 +1,6 @@
 #include "binary/object.hpp"
 
-#include "utils/common.hpp"
+#include "platform/platform.hpp"
 #include "utils/utils.hpp"
 #include "binary/module_base.hpp"
 
@@ -16,6 +16,7 @@
   #include <link.h> // needed for dladdr1's link_map info
  #endif
 #elif IS_WINDOWS
+ #define WIN32_LEAN_AND_MEAN
  #include <windows.h>
 #endif
 

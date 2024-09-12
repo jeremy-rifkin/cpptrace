@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "utils/common.hpp"
+#include "utils/error.hpp"
 #include "binary/object.hpp"
 
 namespace cpptrace {

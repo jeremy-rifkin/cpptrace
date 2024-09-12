@@ -3,14 +3,16 @@
 #include <cpptrace/cpptrace.hpp>
 #include "symbols/symbols.hpp"
 #include "platform/dbghelp_syminit_manager.hpp"
+#include "binary/object.hpp"
+#include "utils/common.hpp"
+#include "utils/error.hpp"
 
-#include <memory>
 #include <mutex>
 #include <regex>
-#include <stdexcept>
 #include <system_error>
 #include <vector>
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dbghelp.h>
 

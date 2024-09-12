@@ -1,10 +1,9 @@
 #include "binary/module_base.hpp"
 
-#include "utils/common.hpp"
+#include "platform/platform.hpp"
 #include "utils/utils.hpp"
 
 #include <string>
-#include <vector>
 #include <mutex>
 #include <unordered_map>
 
@@ -17,7 +16,6 @@
   #include "binary/elf.hpp"
  #endif
 #elif IS_WINDOWS
- #include <windows.h>
  #include "binary/pe.hpp"
 #endif
 

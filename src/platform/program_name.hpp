@@ -7,6 +7,7 @@
 #include "platform/platform.hpp"
 
 #if IS_WINDOWS
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #define CPPTRACE_MAX_PATH MAX_PATH
