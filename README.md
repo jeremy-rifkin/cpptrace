@@ -1051,12 +1051,12 @@ Unwinding, symbol resolution, and demangling.
 The library's CMake automatically configures itself for what your system supports. The ideal configuration is as
 follows:
 
-| Platform | Unwinding     | Symbols            | Demangling           |
-| -------- | ------------- | ------------------ | -------------------- |
-| Linux    | `_Unwind`     | libdwarf           | cxxabi.h             |
-| MacOS    | `_Unwind`     | libdwarf           | cxxabi.h             |
-| Windows  | `StackWalk64` | dbghelp            | No demangling needed |
-| MinGW    | `StackWalk64` | libdwarf + dbghelp | cxxabi.h             |
+| Platform | Unwinding                                               | Symbols            | Demangling           |
+| -------- | ------------------------------------------------------- | ------------------ | -------------------- |
+| Linux    | `_Unwind`                                               | libdwarf           | cxxabi.h             |
+| MacOS    | `_Unwind` for gcc, execinfo.h for clang and apple clang | libdwarf           | cxxabi.h             |
+| Windows  | `StackWalk64`                                           | dbghelp            | No demangling needed |
+| MinGW    | `StackWalk64`                                           | libdwarf + dbghelp | cxxabi.h             |
 
 Support for these back-ends is the main development focus and they should work well. If you want to use a different
 back-end such as addr2line, for example, you can configure the library to do so.
