@@ -1073,7 +1073,7 @@ back-end such as addr2line, for example, you can configure the library to do so.
 | N/A           | `CPPTRACE_UNWIND_WITH_NOTHING`   | all                          | Unwinding is not done, stack traces will be empty.                                                                                                                                                                   |
 
 Some back-ends (execinfo and `CaptureStackBackTrace`) require a fixed buffer has to be created to read addresses into
-while unwinding. By default the buffer can hold addresses for 200 frames (beyond the `skip` frames). This is
+while unwinding. By default the buffer can hold addresses for 400 frames (beyond the `skip` frames). This is
 configurable with `CPPTRACE_HARD_MAX_FRAMES`.
 
 **Symbol resolution**
@@ -1135,7 +1135,7 @@ Back-ends:
 Back-end configuration:
 - `CPPTRACE_BACKTRACE_PATH=<string>`: Path to libbacktrace backtrace.h, needed when compiling with clang/
 - `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
-  Default is `200`.
+  Default is `400`.
 - `CPPTRACE_ADDR2LINE_PATH=<string>`: Specify the absolute path to the addr2line binary for cpptrace to invoke. By
   default the config script will search for a binary and use that absolute path (this is to prevent against path
   injection).

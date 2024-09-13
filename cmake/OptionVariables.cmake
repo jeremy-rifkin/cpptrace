@@ -143,7 +143,7 @@ option(CPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
 # ---- Back-end configurations ----
 
 set(CPPTRACE_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
-set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 200.")
+set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 400.")
 set(CPPTRACE_ADDR2LINE_PATH "" CACHE STRING "Absolute path to the addr2line executable you want to use.")
 option(CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH "" OFF)
 
