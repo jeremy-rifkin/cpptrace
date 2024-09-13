@@ -29,17 +29,15 @@ Added
 
 Fixed
 - Computation of object address for safe object frames https://github.com/jeremy-rifkin/cpptrace/issues/169
-- Nested microfmt in cpptrace's namespace due to an ODR problem with libassert
-  https://github.com/jeremy-rifkin/libassert/issues/103
+- Nested microfmt in cpptrace's namespace due to an ODR problem with libassert https://github.com/jeremy-rifkin/libassert/issues/103
 - Compilation on iOS https://github.com/jeremy-rifkin/cpptrace/pull/167
 - Compilation on old MSVC https://github.com/jeremy-rifkin/cpptrace/pull/165
 - Dbghelp use on 32 bit https://github.com/jeremy-rifkin/cpptrace/issues/170
-- Warning in brand new cmake due to FetchContent_Populate being deprecated
+- Warning in brand new cmake due to `FetchContent_Populate` being deprecated https://github.com/jeremy-rifkin/cpptrace/issues/171
 
 Other changes
 - Bumped the buffer size for execinfo and CaptureStackBackTrace to 400 frames
-- Switched to execinfo.h for unwinding on clang/apple clang on macos due to `_Unwind` not working with `-fno-exceptions`
-  https://github.com/jeremy-rifkin/cpptrace/issues/161
+- Switched to execinfo.h for unwinding on clang/apple clang on macos due to `_Unwind` not working with `-fno-exceptions` https://github.com/jeremy-rifkin/cpptrace/issues/161
 
 # v0.7.0
 
