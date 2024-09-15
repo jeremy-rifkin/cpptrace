@@ -6,6 +6,8 @@
 namespace cpptrace {
 namespace detail {
     struct dbghelp_syminit_manager {
+        // The set below contains Windows `HANDLE` objects, `void*` is used to avoid 
+        // including the (expensive) Windows header here
         std::unordered_set<void*> set;
 
         ~dbghelp_syminit_manager();

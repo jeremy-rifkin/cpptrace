@@ -1,5 +1,7 @@
 #include "symbols/symbols.hpp"
 
+#include <cpptrace/cpptrace.hpp>
+
 #include <vector>
 #include <unordered_map>
 

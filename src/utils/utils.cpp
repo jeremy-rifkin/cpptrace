@@ -28,8 +28,7 @@ namespace detail {
         #endif
     }
 
-    void enable_virtual_terminal_processing_if_needed() noexcept
-    {
+    void enable_virtual_terminal_processing_if_needed() noexcept {
         // enable colors / ansi processing if necessary
         #if IS_WINDOWS
          // https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#example-of-enabling-virtual-terminal-processing

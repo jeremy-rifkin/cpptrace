@@ -5,8 +5,7 @@
 namespace cpptrace {
 namespace detail {
 
-    std::ostream& get_cout()
-    {
+    std::ostream& get_cout() {
         return std::cout;
     }
 
