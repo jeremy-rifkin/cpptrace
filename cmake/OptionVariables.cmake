@@ -143,7 +143,7 @@ option(CPPTRACE_DEMANGLE_WITH_NOTHING "" OFF)
 # ---- Back-end configurations ----
 
 set(CPPTRACE_BACKTRACE_PATH "" CACHE STRING "Path to backtrace.h, if the compiler doesn't already know it. Check /usr/lib/gcc/x86_64-linux-gnu/*/include.")
-set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 200.")
+set(CPPTRACE_HARD_MAX_FRAMES "" CACHE STRING "Hard limit on unwinding depth. Default is 400.")
 set(CPPTRACE_ADDR2LINE_PATH "" CACHE STRING "Absolute path to the addr2line executable you want to use.")
 option(CPPTRACE_ADDR2LINE_SEARCH_SYSTEM_PATH "" OFF)
 
@@ -176,9 +176,7 @@ option(CPPTRACE_SKIP_UNIT "" OFF)
 option(CPPTRACE_STD_FORMAT "" ON)
 option(CPPTRACE_UNPREFIXED_TRY_CATCH "" OFF)
 option(CPPTRACE_USE_EXTERNAL_GTEST "" OFF)
-set(CPPTRACE_ZSTD_REPO "https://github.com/facebook/zstd.git" CACHE STRING "")
-set(CPPTRACE_ZSTD_TAG "794ea1b0afca0f020f4e57b6732332231fb23c70" CACHE STRING "") # v1.5.6
-set(CPPTRACE_ZSTD_SHALLOW "1" CACHE STRING "")
+set(CPPTRACE_ZSTD_URL "https://github.com/facebook/zstd/releases/download/v1.5.6/zstd-1.5.6.tar.gz" CACHE STRING "")
 set(CPPTRACE_LIBDWARF_REPO "https://github.com/jeremy-rifkin/libdwarf-lite.git" CACHE STRING "")
 set(CPPTRACE_LIBDWARF_TAG "97fd68c6026c0237943106d6bc3e83f3661d39e8" CACHE STRING "") # v0.11.0
 set(CPPTRACE_LIBDWARF_SHALLOW "1" CACHE STRING "")

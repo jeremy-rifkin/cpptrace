@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.7.1](#v071)
 - [v0.7.0](#v070)
 - [v0.6.3](#v063)
 - [v0.6.2](#v062)
@@ -19,6 +20,24 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.7.1
+
+Added
+- Better support for finding libunwind on macos https://github.com/jeremy-rifkin/cpptrace/pull/162
+- Support for libbacktrace under mingw https://github.com/jeremy-rifkin/cpptrace/pull/166
+
+Fixed
+- Computation of object address for safe object frames https://github.com/jeremy-rifkin/cpptrace/issues/169
+- Nested microfmt in cpptrace's namespace due to an ODR problem with libassert https://github.com/jeremy-rifkin/libassert/issues/103
+- Compilation on iOS https://github.com/jeremy-rifkin/cpptrace/pull/167
+- Compilation on old MSVC https://github.com/jeremy-rifkin/cpptrace/pull/165
+- Dbghelp use on 32 bit https://github.com/jeremy-rifkin/cpptrace/issues/170
+- Warning in brand new cmake due to `FetchContent_Populate` being deprecated https://github.com/jeremy-rifkin/cpptrace/issues/171
+
+Other changes
+- Bumped the buffer size for execinfo and CaptureStackBackTrace to 400 frames
+- Switched to execinfo.h for unwinding on clang/apple clang on macos due to `_Unwind` not working with `-fno-exceptions` https://github.com/jeremy-rifkin/cpptrace/issues/161
 
 # v0.7.0
 

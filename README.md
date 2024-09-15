@@ -134,7 +134,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.7.0 # <HASH or TAG>
+  GIT_TAG        v0.7.1 # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace::cpptrace)
@@ -793,7 +793,7 @@ include(FetchContent)
 FetchContent_Declare(
   cpptrace
   GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-  GIT_TAG        v0.7.0 # <HASH or TAG>
+  GIT_TAG        v0.7.1 # <HASH or TAG>
 )
 FetchContent_MakeAvailable(cpptrace)
 target_link_libraries(your_target cpptrace::cpptrace)
@@ -809,7 +809,7 @@ information.
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.7.0
+git checkout v0.7.1
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -852,7 +852,7 @@ you when installing new libraries.
 
 ```ps1
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.7.0
+git checkout v0.7.1
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -870,7 +870,7 @@ To install just for the local user (or any custom prefix):
 
 ```sh
 git clone https://github.com/jeremy-rifkin/cpptrace.git
-git checkout v0.7.0
+git checkout v0.7.1
 mkdir cpptrace/build
 cd cpptrace/build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/wherever
@@ -953,7 +953,7 @@ make install
 cd ~/scratch/cpptrace-test
 git clone https://github.com/jeremy-rifkin/cpptrace.git
 cd cpptrace
-git checkout v0.7.0
+git checkout v0.7.1
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=On -DCPPTRACE_USE_EXTERNAL_LIBDWARF=On -DCMAKE_PREFIX_PATH=~/scratch/cpptrace-test/resources -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
@@ -973,7 +973,7 @@ cpptrace and its dependencies.
 Cpptrace is available through conan at https://conan.io/center/recipes/cpptrace.
 ```
 [requires]
-cpptrace/0.7.0
+cpptrace/0.7.1
 [generators]
 CMakeDeps
 CMakeToolchain
@@ -1051,12 +1051,12 @@ Unwinding, symbol resolution, and demangling.
 The library's CMake automatically configures itself for what your system supports. The ideal configuration is as
 follows:
 
-| Platform | Unwinding     | Symbols            | Demangling           |
-| -------- | ------------- | ------------------ | -------------------- |
-| Linux    | `_Unwind`     | libdwarf           | cxxabi.h             |
-| MacOS    | `_Unwind`     | libdwarf           | cxxabi.h             |
-| Windows  | `StackWalk64` | dbghelp            | No demangling needed |
-| MinGW    | `StackWalk64` | libdwarf + dbghelp | cxxabi.h             |
+| Platform | Unwinding                                               | Symbols            | Demangling           |
+| -------- | ------------------------------------------------------- | ------------------ | -------------------- |
+| Linux    | `_Unwind`                                               | libdwarf           | cxxabi.h             |
+| MacOS    | `_Unwind` for gcc, execinfo.h for clang and apple clang | libdwarf           | cxxabi.h             |
+| Windows  | `StackWalk64`                                           | dbghelp            | No demangling needed |
+| MinGW    | `StackWalk64`                                           | libdwarf + dbghelp | cxxabi.h             |
 
 Support for these back-ends is the main development focus and they should work well. If you want to use a different
 back-end such as addr2line, for example, you can configure the library to do so.
@@ -1073,7 +1073,7 @@ back-end such as addr2line, for example, you can configure the library to do so.
 | N/A           | `CPPTRACE_UNWIND_WITH_NOTHING`   | all                          | Unwinding is not done, stack traces will be empty.                                                                                                                                                                   |
 
 Some back-ends (execinfo and `CaptureStackBackTrace`) require a fixed buffer has to be created to read addresses into
-while unwinding. By default the buffer can hold addresses for 200 frames (beyond the `skip` frames). This is
+while unwinding. By default the buffer can hold addresses for 400 frames (beyond the `skip` frames). This is
 configurable with `CPPTRACE_HARD_MAX_FRAMES`.
 
 **Symbol resolution**
@@ -1135,7 +1135,7 @@ Back-ends:
 Back-end configuration:
 - `CPPTRACE_BACKTRACE_PATH=<string>`: Path to libbacktrace backtrace.h, needed when compiling with clang/
 - `CPPTRACE_HARD_MAX_FRAMES=<number>`: Some back-ends write to a fixed-size buffer. This is the size of that buffer.
-  Default is `200`.
+  Default is `400`.
 - `CPPTRACE_ADDR2LINE_PATH=<string>`: Specify the absolute path to the addr2line binary for cpptrace to invoke. By
   default the config script will search for a binary and use that absolute path (this is to prevent against path
   injection).

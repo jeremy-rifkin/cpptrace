@@ -9,7 +9,7 @@ set(package_name "cpptrace")
 
 project(
   cpptrace
-  VERSION 0.7.0
+  VERSION 0.7.1
   DESCRIPTION "Simple, portable, and self-contained stacktrace library for C++11 and newer "
   HOMEPAGE_URL "https://github.com/jeremy-rifkin/cpptrace"
   LANGUAGES C CXX
@@ -82,13 +82,13 @@ endif()
 if(NOT WIN32)
   check_support(HAS_UNWIND has_unwind.cpp "" "" "")
   check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")
-  check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${CPPTRACE_BACKTRACE_PATH_DEFINITION}")
-  set(STACKTRACE_LINK_LIB "stdc++_libbacktrace")
 else()
   check_support(HAS_STACKWALK has_stackwalk.cpp "" "dbghelp" "")
 endif()
 
 if(NOT WIN32 OR MINGW)
+  check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${CPPTRACE_BACKTRACE_PATH_DEFINITION}")
+  set(STACKTRACE_LINK_LIB "stdc++_libbacktrace")
   check_support(HAS_CXX_EXCEPTION_TYPE has_cxx_exception_type.cpp "" "" "")
 endif()
 
@@ -97,6 +97,10 @@ if(UNIX AND NOT APPLE)
   if(NOT HAS_DL_FIND_OBJECT)
     check_support(HAS_DLADDR1 has_dladdr1.cpp "" "dl" "")
   endif()
+endif()
+
+if(APPLE)
+  check_support(HAS_MACH_VM has_mach_vm.cpp "" "" "")
 endif()
 
 # =============================================== Autoconfig unwinding ===============================================
@@ -112,7 +116,15 @@ if(
   )
 )
   # Attempt to auto-config
-  if(UNIX)
+  if(APPLE AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang"))
+    if(HAS_EXECINFO)
+      set(CPPTRACE_UNWIND_WITH_EXECINFO On)
+      message(STATUS "Cpptrace auto config: Using execinfo.h for unwinding")
+    else()
+      set(CPPTRACE_UNWIND_WITH_NOTHING On)
+      message(FATAL_ERROR "Cpptrace auto config: No unwinding back-end seems to be supported, stack tracing will not work. To compile anyway set CPPTRACE_UNWIND_WITH_NOTHING.")
+    endif()
+  elseif(UNIX)
     if(HAS_UNWIND)
       set(CPPTRACE_UNWIND_WITH_UNWIND On)
       message(STATUS "Cpptrace auto config: Using libgcc unwind for unwinding")
@@ -343,6 +355,10 @@ if(HAS_DLADDR1)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_HAS_DLADDR1)
 endif()
 
+if(HAS_MACH_VM)
+  target_compile_definitions(${target_name} PUBLIC HAS_MACH_VM)
+endif()
+
 # Symbols
 if(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE)
   if(NOT HAS_BACKTRACE)
@@ -401,50 +417,36 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       find_package(zstd)
     else()
       cmake_policy(SET CMP0074 NEW)
+      set(ZSTD_BUILD_PROGRAMS OFF)
+      set(ZSTD_BUILD_CONTRIB OFF)
+      set(ZSTD_BUILD_TESTS OFF)
+      set(ZSTD_BUILD_STATIC ON)
+      set(ZSTD_BUILD_SHARED OFF)
+      set(ZSTD_LEGACY_SUPPORT OFF)
       FetchContent_Declare(
           zstd
-          GIT_REPOSITORY ${CPPTRACE_ZSTD_REPO}
-          GIT_TAG ${CPPTRACE_ZSTD_TAG}
-          GIT_SHALLOW ${CPPTRACE_ZSTD_SHALLOW}
+          URL "${CPPTRACE_ZSTD_URL}"
+          DOWNLOAD_EXTRACT_TIMESTAMP TRUE
           SOURCE_SUBDIR build/cmake
       )
-      # FetchContent_MakeAvailable(zstd)
-      FetchContent_GetProperties(zstd)
-      if(NOT zstd_POPULATED)
-        FetchContent_Populate(zstd)
-        set(ZSTD_BUILD_PROGRAMS OFF)
-        set(ZSTD_BUILD_CONTRIB OFF)
-        set(ZSTD_BUILD_TESTS OFF)
-        set(ZSTD_BUILD_STATIC ON)
-        set(ZSTD_BUILD_SHARED OFF)
-        set(ZSTD_LEGACY_SUPPORT OFF)
-        add_subdirectory("${zstd_SOURCE_DIR}/build/cmake" "${zstd_BINARY_DIR}")
-      endif()
+      FetchContent_MakeAvailable(zstd)
     endif()
     # Libdwarf itself
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-    # set(PIC_ALWAYS TRUE)
-    # set(BUILD_DWARFDUMP FALSE)
+    set(PIC_ALWAYS TRUE)
+    set(BUILD_DWARFDUMP FALSE)
     FetchContent_Declare(
       libdwarf
       GIT_REPOSITORY ${CPPTRACE_LIBDWARF_REPO}
       GIT_TAG ${CPPTRACE_LIBDWARF_TAG}
       GIT_SHALLOW ${CPPTRACE_LIBDWARF_SHALLOW}
     )
-    # FetchContent_MakeAvailable(libdwarf)
-    FetchContent_GetProperties(libdwarf)
-    if(NOT libdwarf_POPULATED)
-      set(PIC_ALWAYS TRUE)
-      set(BUILD_DWARFDUMP FALSE)
-      # set(ENABLE_DECOMPRESSION FALSE)
-      FetchContent_Populate(libdwarf)
-      add_subdirectory("${libdwarf_SOURCE_DIR}" "${libdwarf_BINARY_DIR}")
-      target_include_directories(
-        dwarf
-        PRIVATE
-        ${zstd_SOURCE_DIR}/lib
-      )
-    endif()
+    FetchContent_MakeAvailable(libdwarf)
+    target_include_directories(
+      dwarf
+      PRIVATE
+      ${zstd_SOURCE_DIR}/lib
+    )
   endif()
   if(CPPTRACE_CONAN)
     target_link_libraries(${target_name} PRIVATE libdwarf::libdwarf)
@@ -526,26 +528,28 @@ if(CPPTRACE_UNWIND_WITH_LIBUNWIND)
     endif()
   endif()
   if(NOT libunwind_FOUND)
-    # set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
-    # set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB32_PATHS ON)
-    find_path(LIBUNWIND_INCLUDE_DIRS NAMES "libunwind.h")
-    find_library(LIBUNWIND NAMES unwind libunwind libunwind8 libunwind.so.8 REQUIRED PATHS "/usr/lib/x86_64-linux-gnu/")
-    if(LIBUNWIND)
-      set(libunwind_FOUND TRUE)
+    if (NOT APPLE)
+      # set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
+      # set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB32_PATHS ON)
+      find_path(LIBUNWIND_INCLUDE_DIRS NAMES "libunwind.h")
+      find_library(LIBUNWIND NAMES unwind libunwind libunwind8 libunwind.so.8 REQUIRED PATHS "/usr/lib/x86_64-linux-gnu/")
+      if(LIBUNWIND)
+        set(libunwind_FOUND TRUE)
+      endif()
+      if(NOT libunwind_FOUND)
+        # message(FATAL_ERROR "Unable to locate libunwind")
+        # Try to link with it if it's where it should be
+        # This path can be entered if libunwind was installed via the system package manager, sometimes. I probably messed
+        # up the find_library above.
+        set(LIBUNWIND_LDFLAGS "-lunwind")
+      endif()
+      if(NOT LIBUNWIND_LDFLAGS)
+        set(LIBUNWIND_LDFLAGS "${LIBUNWIND}")
+      endif()
+      target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
+      target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
+      target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
     endif()
-    if(NOT libunwind_FOUND)
-      # message(FATAL_ERROR "Unable to locate libunwind")
-      # Try to link with it if it's where it should be
-      # This path can be entered if libunwind was installed via the system package manager, sometimes. I probably messed
-      # up the find_library above.
-      set(LIBUNWIND_LDFLAGS "-lunwind")
-    endif()
-    if(NOT LIBUNWIND_LDFLAGS)
-      set(LIBUNWIND_LDFLAGS "${LIBUNWIND}")
-    endif()
-    target_compile_options(${target_name} PRIVATE ${LIBUNWIND_CFLAGS_OTHER})
-    target_include_directories(${target_name} PRIVATE ${LIBUNWIND_INCLUDE_DIRS})
-    target_link_libraries(${target_name} PRIVATE ${LIBUNWIND_LDFLAGS})
     target_compile_definitions(${target_name} PUBLIC CPPTRACE_UNWIND_WITH_LIBUNWIND UNW_LOCAL_ONLY)
   endif()
 endif()
