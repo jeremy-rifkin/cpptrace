@@ -2,6 +2,7 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols/symbols.hpp"
+#include "binary/module_base.hpp"
 
 #include <cstdint>
 #include <memory>

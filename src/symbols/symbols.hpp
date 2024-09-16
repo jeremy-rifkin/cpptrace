@@ -3,8 +3,10 @@
 
 #include <cpptrace/cpptrace.hpp>
 
-#include <vector>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace cpptrace {
 namespace detail {

@@ -2,6 +2,7 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "symbols/symbols.hpp"
+#include "utils/common.hpp"
 
 #include <vector>
 
