@@ -422,9 +422,9 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       set(ZSTD_LEGACY_SUPPORT OFF)
       FetchContent_Declare(
           zstd
-          URL "${CPPTRACE_ZSTD_URL}"
-          DOWNLOAD_EXTRACT_TIMESTAMP TRUE
           SOURCE_SUBDIR build/cmake
+          DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+          URL "${CPPTRACE_ZSTD_URL}"
       )
       FetchContent_MakeAvailable(zstd)
     endif()
