@@ -1,6 +1,6 @@
-#include "symbols/symbols.hpp"
-
 #include <cpptrace/cpptrace.hpp>
+
+#include "symbols/symbols.hpp"
 
 #include <vector>
 #include <unordered_map>
