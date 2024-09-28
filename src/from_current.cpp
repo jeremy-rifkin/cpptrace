@@ -107,7 +107,11 @@ namespace cpptrace {
         }
         #else
         int get_page_size() {
+            #ifdef getpagesize
             return getpagesize();
+            #else
+            return PAGE_SIZE;
+            #endif
         }
         constexpr auto memory_readonly = PROT_READ;
         constexpr auto memory_readwrite = PROT_READ | PROT_WRITE;
