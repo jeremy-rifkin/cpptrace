@@ -109,8 +109,6 @@ namespace cpptrace {
         int get_page_size() {
             #if defined(_SC_PAGESIZE)
                 return sysconf(_SC_PAGESIZE);
-            #elif defined(PAGE_SIZE)
-                return PAGE_SIZE;
             #else
                 return getpagesize();
             #endif
