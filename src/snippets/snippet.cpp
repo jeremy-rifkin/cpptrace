@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "utils/common.hpp"
+#include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 
 namespace cpptrace {

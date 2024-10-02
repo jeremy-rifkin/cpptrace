@@ -6,14 +6,12 @@
 #include <typeinfo>
 
 #include "platform/platform.hpp"
-#include "utils/common.hpp"
 #include "utils/microfmt.hpp"
-#include "utils/utils.hpp"
 
 #ifndef _MSC_VER
- #include <array>
  #include <string.h>
  #if IS_WINDOWS
+  #define WIN32_LEAN_AND_MEAN
   #include <windows.h>
  #else
   #include <sys/mman.h>
@@ -25,7 +23,7 @@
    #endif
   #else
    #include <fstream>
-   #include <iomanip>
+   #include <ios>
   #endif
  #endif
 #endif

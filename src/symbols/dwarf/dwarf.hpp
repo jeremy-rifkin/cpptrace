@@ -3,10 +3,10 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include "utils/error.hpp"
+#include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 
 #include <functional>
-#include <stdexcept>
 #include <type_traits>
 
 #ifdef CPPTRACE_USE_NESTED_LIBDWARF_HEADER_PATH

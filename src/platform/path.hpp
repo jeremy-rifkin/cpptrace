@@ -1,10 +1,13 @@
 #ifndef PATH_HPP
 #define PATH_HPP
 
-#include "utils/common.hpp"
 #include "platform/platform.hpp"
 
+#include <string>
+#include <cctype>
+
 #if IS_WINDOWS
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
 

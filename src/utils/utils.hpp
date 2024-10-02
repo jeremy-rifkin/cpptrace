@@ -7,12 +7,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <exception>
-#include <ios>
 #include <memory>
 #include <new>
-#include <sstream>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -20,33 +16,13 @@
 
 #include "utils/common.hpp"
 #include "utils/error.hpp"
-#include "utils/microfmt.hpp"
 
-#if IS_WINDOWS
- #include <windows.h>
- #include <io.h>
-#else
- #include <sys/stat.h>
- #include <unistd.h>
-#endif
+
 
 namespace cpptrace {
 namespace detail {
-    inline bool isatty(int fd) {
-        #if IS_WINDOWS
-         return _isatty(fd);
-        #else
-         return ::isatty(fd);
-        #endif
-    }
-
-    inline int fileno(std::FILE* stream) {
-        #if IS_WINDOWS
-         return _fileno(stream);
-        #else
-         return ::fileno(stream);
-        #endif
-    }
+    bool isatty(int fd);
+    int fileno(std::FILE* stream);
 
     inline std::vector<std::string> split(const std::string& str, const std::string& delims) {
         std::vector<std::string> vec;
@@ -162,21 +138,7 @@ namespace detail {
         return byte_swapper<T, sizeof(T)>{}(value);
     }
 
-    inline void enable_virtual_terminal_processing_if_needed() noexcept {
-        // enable colors / ansi processing if necessary
-        #if IS_WINDOWS
-         // https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#example-of-enabling-virtual-terminal-processing
-         #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
-          constexpr DWORD ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x4;
-         #endif
-         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-         DWORD dwMode = 0;
-         if(hOut == INVALID_HANDLE_VALUE) return;
-         if(!GetConsoleMode(hOut, &dwMode)) return;
-         if(dwMode != (dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
-         if(!SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)) return;
-        #endif
-    }
+    void enable_virtual_terminal_processing_if_needed() noexcept;
 
     constexpr unsigned n_digits(unsigned value) noexcept {
         return value < 10 ? 1 : 1 + n_digits(value / 10);
@@ -455,15 +417,7 @@ namespace detail {
     }
 
     // shamelessly stolen from stackoverflow
-    inline bool directory_exists(const std::string& path) {
-        #if IS_WINDOWS
-         DWORD dwAttrib = GetFileAttributesA(path.c_str());
-         return dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
-        #else
-         struct stat sb;
-         return stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode);
-        #endif
-    }
+    bool directory_exists(const std::string& path);
 
     inline std::string basename(const std::string& path) {
         // Assumes no trailing /'s

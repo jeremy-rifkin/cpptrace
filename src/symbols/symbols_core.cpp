@@ -1,9 +1,11 @@
+#include <cpptrace/cpptrace.hpp>
+
 #include "symbols/symbols.hpp"
 
 #include <vector>
 #include <unordered_map>
 
-#include "utils/common.hpp"
+#include "utils/error.hpp"
 #include "binary/object.hpp"
 
 namespace cpptrace {

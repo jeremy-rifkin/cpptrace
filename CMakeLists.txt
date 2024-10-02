@@ -9,7 +9,7 @@ set(package_name "cpptrace")
 
 project(
   cpptrace
-  VERSION 0.7.0
+  VERSION 0.7.1
   DESCRIPTION "Simple, portable, and self-contained stacktrace library for C++11 and newer "
   HOMEPAGE_URL "https://github.com/jeremy-rifkin/cpptrace"
   LANGUAGES C CXX
@@ -246,6 +246,9 @@ target_sources(
     src/unwind/unwind_with_nothing.cpp
     src/unwind/unwind_with_unwind.cpp
     src/unwind/unwind_with_winapi.cpp
+    src/utils/microfmt.cpp
+    src/utils/utils.cpp
+    src/platform/dbghelp_syminit_manager.cpp
 )
 
 target_include_directories(

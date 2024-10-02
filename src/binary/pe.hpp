@@ -1,7 +1,7 @@
 #ifndef PE_HPP
 #define PE_HPP
 
-#include "utils/common.hpp"
+#include "platform/platform.hpp"
 #include "utils/utils.hpp"
 
 #if IS_WINDOWS

@@ -3,6 +3,7 @@
 #include <cpptrace/cpptrace.hpp>
 #include "symbols/symbols.hpp"
 #include "utils/common.hpp"
+#include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 
 #include <cstdint>

@@ -3,11 +3,11 @@
 
 #include <cpptrace/cpptrace.hpp>
 
-#include <memory>
-#include <vector>
+#include <functional>
+#include <string>
 #include <unordered_map>
-
-#include "binary/object.hpp"
+#include <utility>
+#include <vector>
 
 namespace cpptrace {
 namespace detail {

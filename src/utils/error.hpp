@@ -2,11 +2,10 @@
 #define ERROR_HPP
 
 #include <exception>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
-#include "utils/common.hpp"
+#include "platform/platform.hpp"
 #include "utils/microfmt.hpp"
 
 #if IS_MSVC
