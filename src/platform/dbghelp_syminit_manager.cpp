@@ -1,3 +1,6 @@
+#include "platform/platform.hpp"
+
+#if IS_WINDOWS
 
 #include "platform/dbghelp_syminit_manager.hpp"
 
@@ -38,3 +41,5 @@ namespace detail {
 
 }
 }
+
+#endif
