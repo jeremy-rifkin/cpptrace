@@ -1,7 +1,7 @@
 #ifndef SYMBOLS_HPP
 #define SYMBOLS_HPP
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 
 #include <functional>
 #include <string>

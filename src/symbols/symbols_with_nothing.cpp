@@ -1,6 +1,6 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_NOTHING
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 #include "symbols/symbols.hpp"
 #include "utils/common.hpp"
 

@@ -1,7 +1,7 @@
 #ifndef DWARF_HPP
 #define DWARF_HPP
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 #include "utils/error.hpp"
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"

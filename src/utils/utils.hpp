@@ -17,8 +17,6 @@
 #include "utils/common.hpp"
 #include "utils/error.hpp"
 
-
-
 namespace cpptrace {
 namespace detail {
     bool isatty(int fd);

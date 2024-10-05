@@ -1,6 +1,6 @@
 #ifdef CPPTRACE_UNWIND_WITH_WINAPI
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 #include "unwind/unwind.hpp"
 #include "utils/common.hpp"
 #include "utils/utils.hpp"

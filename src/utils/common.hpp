@@ -1,9 +1,10 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 
 #include "platform/platform.hpp"
+#include "options.hpp"
 
 #include <cstdint>
 
@@ -35,10 +36,6 @@ namespace detail {
         "",
         false
     };
-
-    bool should_absorb_trace_exceptions();
-    bool should_resolve_inlined_calls();
-    cache_mode get_cache_mode();
 }
 }
 

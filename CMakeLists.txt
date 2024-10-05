@@ -226,7 +226,10 @@ target_sources(
     src/binary/safe_dl.cpp
     src/cpptrace.cpp
     src/ctrace.cpp
+    src/exceptions.cpp
     src/from_current.cpp
+    src/options.cpp
+    src/utils.cpp
     src/demangle/demangle_with_cxxabi.cpp
     src/demangle/demangle_with_nothing.cpp
     src/demangle/demangle_with_winapi.cpp

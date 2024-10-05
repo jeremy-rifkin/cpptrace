@@ -1,6 +1,6 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 #include "symbols/symbols.hpp"
 #include "utils/common.hpp"
 #include "utils/microfmt.hpp"

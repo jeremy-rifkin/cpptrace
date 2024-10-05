@@ -1,7 +1,7 @@
 #ifndef SYMBOL_RESOLVER_HPP
 #define SYMBOL_RESOLVER_HPP
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 #include "symbols/symbols.hpp"
 #include "platform/platform.hpp"
 

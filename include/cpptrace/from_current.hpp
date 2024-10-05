@@ -1,7 +1,7 @@
 #ifndef CPPTRACE_FROM_CURRENT_HPP
 #define CPPTRACE_FROM_CURRENT_HPP
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 
 namespace cpptrace {
     CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception();

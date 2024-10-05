@@ -1,6 +1,6 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 #include "symbols/symbols.hpp"
 #include "platform/dbghelp_syminit_manager.hpp"
 #include "binary/object.hpp"

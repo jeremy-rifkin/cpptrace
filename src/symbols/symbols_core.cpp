@@ -1,4 +1,4 @@
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 
 #include "symbols/symbols.hpp"
 

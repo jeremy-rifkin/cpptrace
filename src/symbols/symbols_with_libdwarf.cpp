@@ -2,7 +2,7 @@
 
 #include "symbols/symbols.hpp"
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 #include "dwarf/resolver.hpp"
 #include "utils/common.hpp"
 #include "utils/utils.hpp"

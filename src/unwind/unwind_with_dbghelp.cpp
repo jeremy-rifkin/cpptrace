@@ -1,6 +1,6 @@
 #ifdef CPPTRACE_UNWIND_WITH_DBGHELP
 
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
 #include "unwind/unwind.hpp"
 #include "utils/common.hpp"
 #include "utils/utils.hpp"
