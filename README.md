@@ -20,25 +20,25 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
 - [FAQ](#faq)
   - [What about C++23 `<stacktrace>`?](#what-about-c23-stacktrace)
   - [What does cpptrace have over other C++ stacktrace libraries?](#what-does-cpptrace-have-over-other-c-stacktrace-libraries)
-- [In-Depth Documentation](#in-depth-documentation)
-  - [Prerequisites](#prerequisites)
-  - [`namespace cpptrace`](#namespace-cpptrace)
-    - [Stack Traces](#stack-traces)
-    - [Object Traces](#object-traces)
-    - [Raw Traces](#raw-traces)
-    - [Utilities](#utilities)
-    - [Configuration](#configuration)
-    - [Traces From All Exceptions](#traces-from-all-exceptions)
-      - [Removing the `CPPTRACE_` prefix](#removing-the-cpptrace_-prefix)
-      - [How it works](#how-it-works)
-      - [Performance](#performance)
-    - [Traced Exception Objects](#traced-exception-objects)
-  - [Wrapping std::exceptions](#wrapping-stdexceptions)
-  - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
-  - [Signal-Safe Tracing](#signal-safe-tracing)
-  - [Utility Types](#utility-types)
+- [Prerequisites](#prerequisites)
+- [Basic Usage](#basic-usage)
+- [`namespace cpptrace`](#namespace-cpptrace)
+  - [Stack Traces](#stack-traces)
+  - [Object Traces](#object-traces)
+  - [Raw Traces](#raw-traces)
+  - [Utilities](#utilities)
+  - [Configuration](#configuration)
+  - [Traces From All Exceptions](#traces-from-all-exceptions)
+    - [Removing the `CPPTRACE_` prefix](#removing-the-cpptrace_-prefix)
+    - [How it works](#how-it-works)
+    - [Performance](#performance)
+  - [Traced Exception Objects](#traced-exception-objects)
+- [Wrapping std::exceptions](#wrapping-stdexceptions)
+- [Exception handling with cpptrace](#exception-handling-with-cpptrace)
+- [Signal-Safe Tracing](#signal-safe-tracing)
+- [Utility Types](#utility-types)
 - [Supported Debug Formats](#supported-debug-formats)
-- [Usage](#usage)
+- [How to Include The Library](#how-to-include-the-library)
   - [CMake FetchContent](#cmake-fetchcontent)
   - [System-Wide Installation](#system-wide-installation)
   - [Local User Installation](#local-user-installation)
@@ -157,7 +157,7 @@ information.
 On macOS it is recommended to generate a `.dSYM` file, see [Platform Logistics](#platform-logistics) below.
 
 For other ways to use the library, such as through package managers, a system-wide installation, or on a platform
-without internet access see [Usage](#usage) below.
+without internet access see [How to Include The Library](#how-to-include-the-library) below.
 
 # FAQ
 
@@ -186,23 +186,24 @@ for a software package which just provides diagnostics as opposed to core functi
 support for resolving inlined calls by default for DWARF symbols (boost does not do this, backward-cpp can do this but
 only for some back-ends), better support for resolving full function signatures, and nicer API, among other features.
 
-# In-Depth Documentation
-
-## Prerequisites
+# Prerequisites
 
 > [!IMPORTANT]
 > Debug info (`-g`/`/Z7`/`/Zi`/`/DEBUG`/`-DBUILD_TYPE=Debug`/`-DBUILD_TYPE=RelWithDebInfo`) is required for complete
 > trace information.
 
-## `namespace cpptrace`
+# Basic Usage
 
-`cpptrace::generate_trace()` can be used to generate a stacktrace object at the current call site. Resolved frames can
-be accessed from this object with `.frames` and also the trace can be printed with `.print()`. Cpptrace also provides a
-method to get lightweight raw traces, which are just vectors of program counters, which can be resolved at a later time.
+`cpptrace::generate_trace()` can be used to generate a `stacktrace` object at the current call site. Resolved frames can
+be accessed from this object with `.frames` and the trace can be printed with `.print()`. Cpptrace also provides a
+method to get light-weight raw traces with `cpptrace::generate_raw_trace()`, which are just vectors of program counters,
+which can be resolved at a later time.
+
+# `namespace cpptrace`
 
 All functions are thread-safe unless otherwise noted.
 
-### Stack Traces
+## Stack Traces
 
 The core resolved stack trace object. Generate a trace with `cpptrace::generate_trace()` or
 `cpptrace::stacktrace::current()`. On top of a set of helper functions `struct stacktrace` allows
@@ -254,7 +255,7 @@ namespace cpptrace {
 }
 ```
 
-### Object Traces
+## Object Traces
 
 Object traces contain the most basic information needed to construct a stack trace outside the currently running
 executable. It contains the raw address, the address in the binary (ASLR and the object file's memory space and whatnot
@@ -283,7 +284,7 @@ namespace cpptrace {
 }
 ```
 
-### Raw Traces
+## Raw Traces
 
 Raw trace access: A vector of program counters. These are ideal for fast and cheap traces you want to resolve later.
 
@@ -308,7 +309,7 @@ namespace cpptrace {
 }
 ```
 
-### Utilities
+## Utilities
 
 `cpptrace::demangle` provides a helper function for name demangling, since it has to implement that helper internally
 anyways.
@@ -340,7 +341,7 @@ namespace cpptrace {
 }
 ```
 
-### Configuration
+## Configuration
 
 `cpptrace::absorb_trace_exceptions`: Configure whether the library silently absorbs internal exceptions and continues.
 Default is true.
@@ -372,7 +373,7 @@ namespace cpptrace {
 }
 ```
 
-### Traces From All Exceptions
+## Traces From All Exceptions
 
 Cpptrace provides `CPPTRACE_TRY` and `CPPTRACE_CATCH` macros that allow a stack trace to be collected from the current
 thrown exception object, with minimal or no overhead in the non-throwing path:
@@ -449,7 +450,7 @@ CPPTRACE_TRY {
 }
 ```
 
-#### Removing the `CPPTRACE_` prefix
+### Removing the `CPPTRACE_` prefix
 
 `CPPTRACE_TRY` is a little cumbersome to type. To remove the `CPPTRACE_` prefix you can use the
 `CPPTRACE_UNPREFIXED_TRY_CATCH` cmake option or the `CPPTRACE_UNPREFIXED_TRY_CATCH` preprocessor definition:
@@ -474,7 +475,7 @@ are common macro names, you can easily modify the following snippet to provide y
 #define CATCH_ALT(param) CPPTRACE_CATCH_ALT(param)
 ```
 
-#### How it works
+### How it works
 
 C++ does not provide any language support for collecting stack traces when exceptions are thrown, however, exception
 handling under both the Itanium ABI and by SEH (used to implement C++ exceptions on windows) involves unwinding the
@@ -485,7 +486,7 @@ up a special try/catch system that can collect a stack trace when considered dur
 
 N.b.: This mechanism is also discussed in [P2490R3][P2490R3].
 
-#### Performance
+### Performance
 
 The fundamental mechanism for this functionality is generating a trace when a catch block is considered during an
 exception handler search phase. Internally a lightweight raw trace is generated upon consideration, which is quite
@@ -523,7 +524,7 @@ handler in a 100-deep call stack the total time would stil be on the order of on
 Nonetheless, I chose a default bookkeeping behavior for `CPPTRACE_TRY`/`CPPTRACE_CATCH` since it is safer with better
 performance guarantees for the most general possible set of users.
 
-### Traced Exception Objects
+## Traced Exception Objects
 
 Cpptrace provides a handful of traced exception classes which automatically collect stack traces when thrown. These
 are useful when throwing exceptions that may not be caught by `CPPTRACE_CATCH`.
@@ -611,7 +612,7 @@ namespace cpptrace {
 }
 ```
 
-## Wrapping std::exceptions
+# Wrapping std::exceptions
 
 > [!NOTE]
 > This section is largely obsolete now that cpptrace provides a better mechanism for collecting
@@ -632,7 +633,7 @@ CPPTRACE_WRAP_BLOCK(
 std::cout<<CPPTRACE_WRAP(foo.at(12))<<std::endl;
 ```
 
-## Exception handling with cpptrace
+# Exception handling with cpptrace
 
 > [!NOTE]
 > This section pertains to cpptrace traced exception objects and not the mechanism for collecting
@@ -663,7 +664,7 @@ To register this custom handler:
 cpptrace::register_terminate_handler();
 ```
 
-## Signal-Safe Tracing
+# Signal-Safe Tracing
 
 Signal-safe stack tracing is very useful for debugging application crashes, e.g. SIGSEGVs or
 SIGTRAPs, but it's very difficult to do correctly and most implementations I see online do this
@@ -710,7 +711,7 @@ namespace cpptrace {
 Because signal-safe tracing is an involved process, I have written up a comprehensive overview of
 what is involved at [signal-safe-tracing.md](docs/signal-safe-tracing.md).
 
-## Utility Types
+# Utility Types
 
 A couple utility types are used to provide the library with a good interface.
 
@@ -782,7 +783,7 @@ namespace cpptrace {
 
 DWARF5 added DWARF package files. As far as I can tell no compiler implements these yet.
 
-# Usage
+# How to Include The Library
 
 ## CMake FetchContent
 
