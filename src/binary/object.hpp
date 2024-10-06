@@ -1,15 +1,12 @@
 #ifndef OBJECT_HPP
 #define OBJECT_HPP
 
+#include <cpptrace/forward.hpp>
+
 #include <vector>
 #include <cstdint>
 
 namespace cpptrace {
-
-struct object_frame;
-struct safe_object_frame;
-
-using frame_ptr = std::uintptr_t;
 
 namespace detail {
     object_frame get_frame_object_info(frame_ptr address);

@@ -13,6 +13,7 @@ namespace cpptrace {
 
     struct object_frame;
     struct stacktrace_frame;
+    struct safe_object_frame;
 }
 
 #endif
