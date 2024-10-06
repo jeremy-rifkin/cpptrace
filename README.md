@@ -33,10 +33,10 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
     - [How it works](#how-it-works)
     - [Performance](#performance)
   - [Traced Exception Objects](#traced-exception-objects)
-- [Wrapping std::exceptions](#wrapping-stdexceptions)
-- [Exception handling with cpptrace](#exception-handling-with-cpptrace)
-- [Signal-Safe Tracing](#signal-safe-tracing)
-- [Utility Types](#utility-types)
+    - [Wrapping std::exceptions](#wrapping-stdexceptions)
+    - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
+  - [Signal-Safe Tracing](#signal-safe-tracing)
+  - [Utility Types](#utility-types)
 - [Supported Debug Formats](#supported-debug-formats)
 - [How to Include The Library](#how-to-include-the-library)
   - [CMake FetchContent](#cmake-fetchcontent)
@@ -612,7 +612,7 @@ namespace cpptrace {
 }
 ```
 
-# Wrapping std::exceptions
+### Wrapping std::exceptions
 
 > [!NOTE]
 > This section is largely obsolete now that cpptrace provides a better mechanism for collecting
@@ -633,7 +633,7 @@ CPPTRACE_WRAP_BLOCK(
 std::cout<<CPPTRACE_WRAP(foo.at(12))<<std::endl;
 ```
 
-# Exception handling with cpptrace
+### Exception handling with cpptrace
 
 > [!NOTE]
 > This section pertains to cpptrace traced exception objects and not the mechanism for collecting
@@ -664,7 +664,7 @@ To register this custom handler:
 cpptrace::register_terminate_handler();
 ```
 
-# Signal-Safe Tracing
+## Signal-Safe Tracing
 
 Signal-safe stack tracing is very useful for debugging application crashes, e.g. SIGSEGVs or
 SIGTRAPs, but it's very difficult to do correctly and most implementations I see online do this
@@ -711,7 +711,7 @@ namespace cpptrace {
 Because signal-safe tracing is an involved process, I have written up a comprehensive overview of
 what is involved at [signal-safe-tracing.md](docs/signal-safe-tracing.md).
 
-# Utility Types
+## Utility Types
 
 A couple utility types are used to provide the library with a good interface.
 
