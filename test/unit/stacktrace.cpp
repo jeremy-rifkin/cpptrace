@@ -125,8 +125,7 @@ TEST(Stacktrace, RawTraceResolution) {
 }
 
 
-
-#ifndef _MSC_VER
+#ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
 CPPTRACE_FORCE_NO_INLINE int stacktrace_inline_resolution_3(std::vector<int>& line_numbers) {
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     auto trace = cpptrace::generate_trace();
