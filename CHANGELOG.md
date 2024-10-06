@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.7.2](#v072)
 - [v0.7.1](#v071)
 - [v0.7.0](#v070)
 - [v0.6.3](#v063)
@@ -20,6 +21,15 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.7.2
+
+Changes:
+- Better support for older CMake with using `FetchContent_Declare` from a URL https://github.com/jeremy-rifkin/cpptrace/pull/176
+- Better portability for page size detection https://github.com/jeremy-rifkin/cpptrace/pull/177
+- Improved compile times https://github.com/jeremy-rifkin/cpptrace/pull/172
+- Split up `cpptrace.hpp` into finer-grained headers for lower compile time impact
+- Some minor readme restructuring
 
 # v0.7.1
 
