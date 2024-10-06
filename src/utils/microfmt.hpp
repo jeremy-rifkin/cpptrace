@@ -262,6 +262,8 @@ namespace microfmt {
             }
             return str;
         }
+
+        std::ostream& get_cout();
     }
 
     #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
@@ -285,11 +287,9 @@ namespace microfmt {
         return detail::format<1>(fmt, fmt + std::strlen(fmt), {detail::format_value(1)});
     }
 
-    std::ostream& get_cout();
-
     template<typename S, typename... Args>
     void print(const S& fmt, Args&&... args) {
-        get_cout()<<format(fmt, args...);
+        detail::get_cout()<<format(fmt, args...);
     }
 
     template<typename S, typename... Args>
