@@ -34,9 +34,11 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
     - [Performance](#performance)
   - [Traced Exception Objects](#traced-exception-objects)
     - [Wrapping std::exceptions](#wrapping-stdexceptions)
-    - [Exception handling with cpptrace](#exception-handling-with-cpptrace)
+    - [Exception handling with cpptrace exception objects](#exception-handling-with-cpptrace-exception-objects)
+  - [Terminate Handling](#terminate-handling)
   - [Signal-Safe Tracing](#signal-safe-tracing)
   - [Utility Types](#utility-types)
+  - [Headers](#headers)
 - [Supported Debug Formats](#supported-debug-formats)
 - [How to Include The Library](#how-to-include-the-library)
   - [CMake FetchContent](#cmake-fetchcontent)
@@ -633,7 +635,7 @@ CPPTRACE_WRAP_BLOCK(
 std::cout<<CPPTRACE_WRAP(foo.at(12))<<std::endl;
 ```
 
-### Exception handling with cpptrace
+### Exception handling with cpptrace exception objects
 
 > [!NOTE]
 > This section pertains to cpptrace traced exception objects and not the mechanism for collecting
@@ -653,10 +655,12 @@ try {
 }
 ```
 
-Additionally cpptrace provides a custom `std::terminate` handler that prints a stack trace from a cpptrace exception and otherwise behaves like the normal terminate handler and prints the stack trace involved in reaching `std::terminate`.
-The stack trace to `std::terminate` may be helpful or it may not, it depends on the implementation, but often if an
-implementation can't find an appropriate `catch` while unwinding it will jump directly to `std::terminate` giving
-good information.
+## Terminate Handling
+
+Cpptrace provides a custom `std::terminate` handler that prints stacktraces while otherwise behaving like the normal
+`std::terminate` handler. If a cpptrace exception object reaches `std::terminate` the trace from that exception is
+printed, otherwise a stack trace is generated at the point of the terminate handler. Often `std::terminate` is called
+directly without unwinding so the trace is preserved.
 
 To register this custom handler:
 
@@ -768,18 +772,30 @@ namespace cpptrace {
 }
 ```
 
+## Headers
+
+Cpptrace provides a handful of headers to make inclusion more minimal.
+| Header                      | Contents                                                                                                                                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cpptrace/forward.hpp`      | `cpptrace::frame_ptr` and a few trace class forward declarations                                                                                                                                      |
+| `cpptrace/basic.hpp`        | Definitions for trace classes and the basic tracing APIs ([Stack Traces](#stack-traces), [Object Traces](#object-traces), [Raw Traces](#raw-traces), and [Signal-Safe Tracing](#signal-safe-tracing)) |
+| `cpptrace/exceptions.hpp`   | [Traced Exception Objects](#traced-exception-objects) and related utilities ([Wrapping std::exceptions](#wrapping-stdexceptions))                                                                     |
+| `cpptrace/from_current.hpp` | [Traces From All Exceptions](#traces-from-all-exceptions)                                                                                                                                             |
+| `cpptrace/io.hpp`           | `operator<<` overloads for `std::ostream` and `std::formatter`s                                                                                                                                       |
+| `cpptrace/utils.hpp`        | Utility functions, configuration functions, and terminate utilities ([Utilities](#utilities), [Configuration](#configuration), and [Terminate Handling](#terminate-handling))                         |
+
+The main cpptrace header is `cpptrace/cpptrace.hpp` which includes everything other than `from_current.hpp`.
+
 # Supported Debug Formats
 
-| Format                            | Supported |
-| --------------------------------- | --------- |
-| DWARF in binary                   | ✔️      |
-| GNU debug link                    | ️️✔️      |
-| Split dwarf (debug fission)       | ✔️*     |
-| DWARF in dSYM                     | ✔️      |
-| DWARF via Mach-O debug map        | ✔️      |
-| Windows debug symbols in PDB      | ✔️      |
-
-*There seem to be a couple issues upstream with libdwarf however they will hopefully be resolved soon.
+| Format                       | Supported |
+| ---------------------------- | --------- |
+| DWARF in binary              | ✔️      |
+| GNU debug link               | ️️✔️  |
+| Split dwarf (debug fission)  | ✔️      |
+| DWARF in dSYM                | ✔️      |
+| DWARF via Mach-O debug map   | ✔️      |
+| Windows debug symbols in PDB | ✔️      |
 
 DWARF5 added DWARF package files. As far as I can tell no compiler implements these yet.
 
