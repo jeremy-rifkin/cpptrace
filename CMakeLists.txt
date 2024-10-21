@@ -24,9 +24,10 @@ include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
 
 if(PROJECT_IS_TOP_LEVEL)
-  find_program(CCACHE_FOUND ccache)
-  if(CCACHE_FOUND)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  find_program(CCACHE_PROGRAM ccache)
+  if(CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
   endif()
 endif()
 
