@@ -5,6 +5,7 @@
 #include "binary/module_base.hpp"
 
 #include <string>
+#include <system_error>
 #include <vector>
 #include <mutex>
 #include <unordered_map>
@@ -16,7 +17,9 @@
   #include <link.h> // needed for dladdr1's link_map info
  #endif
 #elif IS_WINDOWS
- #define WIN32_LEAN_AND_MEAN
+ #ifndef WIN32_LEAN_AND_MEAN
+  #define WIN32_LEAN_AND_MEAN
+ #endif
  #include <windows.h>
 #endif
 
