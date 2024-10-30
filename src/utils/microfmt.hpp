@@ -1,6 +1,7 @@
 #ifndef MICROFMT_HPP
 #define MICROFMT_HPP
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
