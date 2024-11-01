@@ -1,8 +1,9 @@
 #ifndef OBJECT_HPP
 #define OBJECT_HPP
 
-#include <vector>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace cpptrace {
 
@@ -17,6 +18,8 @@ namespace detail {
     std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addresses);
 
     object_frame resolve_safe_object_frame(const safe_object_frame& frame);
+
+    std::string resolve_l_name(const char* l_name);
 }
 }
 
