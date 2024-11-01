@@ -1,4 +1,6 @@
 #include "binary/safe_dl.hpp"
+#include "binary/module_base.hpp"
+#include "binary/object.hpp"
 
 #include "utils/common.hpp"
 #include "utils/utils.hpp"
@@ -11,7 +13,7 @@
 #include <cstring>
 #include <iostream>
 
-#ifdef CPPTRACE_HAS_DL_FIND_OBJECT
+#if defined(CPPTRACE_HAS_DL_FIND_OBJECT) || defined(CPPTRACE_HAS_DLADDR1)
 #if IS_LINUX || IS_APPLE
  #include <unistd.h>
  #include <dlfcn.h>
@@ -20,6 +22,7 @@
 
 namespace cpptrace {
 namespace detail {
+#ifdef CPPTRACE_HAS_DL_FIND_OBJECT
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
         out->raw_address = address;
         dl_find_object result;
@@ -53,6 +56,32 @@ namespace detail {
         // may return the object that defines the function descriptor (and not the object that contains the code
         // implementing the function), or fail to find any object at all.
     }
+#else
+    void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
+        out->raw_address = address;
+        Dl_info info;
+        link_map* link_map_info;
+
+        if(
+            // thread safe
+            dladdr1(reinterpret_cast<void*>(address), &info, reinterpret_cast<void**>(&link_map_info), RTLD_DL_LINKMAP)
+        ) {
+            std::string lname = resolve_l_name(link_map_info->l_name);
+            std::strcpy(out->object_path, lname.data());
+            auto base = get_module_image_base(lname);
+            if(base.has_value()) {
+                out->address_relative_to_object_start = address
+                                        - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
+                                        + base.unwrap_value();
+            } else {
+                base.drop_error();
+            }
+        } else {
+            out->address_relative_to_object_start = 0;
+            out->object_path[0] = 0;
+        }
+    }
+#endif
 }
 }
 #else
