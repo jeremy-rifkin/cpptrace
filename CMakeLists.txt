@@ -66,7 +66,40 @@ else()
 endif()
 
 # ========================================== Platform Support and Auto-config ==========================================
-include(cmake/Autoconfig.cmake)
+if(NOT EMSCRIPTEN)
+  include(cmake/Autoconfig.cmake)
+else()
+  if(
+    CPPTRACE_UNWIND_WITH_UNWIND OR
+    CPPTRACE_UNWIND_WITH_LIBUNWIND OR
+    CPPTRACE_UNWIND_WITH_EXECINFO OR
+    CPPTRACE_UNWIND_WITH_WINAPI OR
+    CPPTRACE_UNWIND_WITH_DBGHELP OR
+    CPPTRACE_UNWIND_WITH_NOTHING
+  )
+    message(FATAL_ERROR "Cpptrace config error: Unwinding back-end may not be specified under emscripten.")
+  endif()
+  if(
+    CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE OR
+    CPPTRACE_GET_SYMBOLS_WITH_LIBDL OR
+    CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE OR
+    CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF OR
+    CPPTRACE_GET_SYMBOLS_WITH_DBGHELP OR
+    CPPTRACE_GET_SYMBOLS_WITH_NOTHING
+  )
+    message(FATAL_ERROR "Cpptrace config error: Symbol back-end may not be specified under emscripten.")
+  endif()
+  if(
+    CPPTRACE_DEMANGLE_WITH_CXXABI OR
+    CPPTRACE_DEMANGLE_WITH_WINAPI OR
+    CPPTRACE_DEMANGLE_WITH_NOTHING
+  )
+    message(FATAL_ERROR "Cpptrace config error: Demangling back-end may not be specified under emscripten.")
+  endif()
+  set(CPPTRACE_UNWIND_WITH_NOTHING On)
+  set(CPPTRACE_GET_SYMBOLS_WITH_NOTHING On)
+  set(CPPTRACE_DEMANGLE_WITH_NOTHING On)
+endif()
 
 # =================================================== Library Setup ====================================================
 
@@ -468,6 +501,13 @@ endif()
 if(CPPTRACE_DEMANGLE_WITH_NOTHING)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_DEMANGLE_WITH_NOTHING)
 endif()
+
+# Emscripten
+if(EMSCRIPTEN)
+  target_compile_definitions(${target_name} PUBLIC CPPTRACE_EMSCRIPTEN)
+endif()
+
+# Other options
 
 if(NOT "${CPPTRACE_BACKTRACE_PATH}" STREQUAL "")
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_BACKTRACE_PATH=${CPPTRACE_BACKTRACE_PATH})

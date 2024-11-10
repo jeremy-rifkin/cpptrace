@@ -25,7 +25,7 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_basic() {
     EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_basic) + 90);
 }
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) && !defined(__EMSCRIPTEN__)
 CPPTRACE_FORCE_NO_INLINE void raw_trace_basic_precise() {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
@@ -46,7 +46,7 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_basic_precise() {
 
 TEST(RawTrace, Basic) {
     raw_trace_basic();
-    #ifndef _MSC_VER
+    #if !defined(_MSC_VER) && !defined(__EMSCRIPTEN__)
     raw_trace_basic_precise();
     #endif
     [[maybe_unused]] volatile int x = 0; // prevent raw_trace_basic_precise() above being a jmp
@@ -80,7 +80,7 @@ CPPTRACE_FORCE_NO_INLINE void record_parent(uintptr_t low_bound, uintptr_t high_
     parents.insert(parents.begin(), {low_bound, high_bound});
 }
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) && !defined(__EMSCRIPTEN__)
 CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_3() {
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
@@ -161,7 +161,7 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_1() {
 TEST(RawTrace, MultipleCalls) {
     parents.clear();
     raw_trace_multi_1();
-    #ifndef _MSC_VER
+    #if !defined(_MSC_VER) && !defined(__EMSCRIPTEN__)
     raw_trace_multi_precise_1();
     #endif
 }

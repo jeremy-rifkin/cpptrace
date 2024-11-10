@@ -18,6 +18,7 @@
 #include "binary/object.hpp"
 #include "binary/safe_dl.hpp"
 #include "snippets/snippet.hpp"
+#include "platform/emscripten.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
@@ -396,12 +397,16 @@ namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
     stacktrace generate_trace(std::size_t skip, std::size_t max_depth) {
         try {
+            #if IS_EMSCRIPTEN
+            return detail::generate_emscripten_trace(skip + 1, max_depth);
+            #else
             std::vector<frame_ptr> frames = detail::capture_frames(skip + 1, max_depth);
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
             for(auto& frame : trace) {
                 frame.symbol = detail::demangle(frame.symbol);
             }
             return {std::move(trace)};
+            #endif
         } catch(...) { // NOSONAR
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;

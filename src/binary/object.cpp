@@ -107,7 +107,7 @@ namespace detail {
         return frame;
     }
     #endif
-    #else
+    #elif IS_WINDOWS
     std::string get_module_name(HMODULE handle) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
@@ -152,6 +152,10 @@ namespace detail {
             std::fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());
         }
         return frame;
+    }
+    #elif IS_EMSCRIPTEN
+    object_frame get_frame_object_info(frame_ptr) {
+        return {};
     }
     #endif
 

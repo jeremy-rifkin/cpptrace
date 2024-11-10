@@ -68,7 +68,7 @@ namespace detail {
             return it->second;
         }
     }
-    #else // Windows
+    #elif IS_WINDOWS
     Result<std::uintptr_t, internal_error> get_module_image_base(const std::string& object_path) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);

@@ -7,7 +7,6 @@
 #include <cstdint>
 
 namespace cpptrace {
-
 namespace detail {
     object_frame get_frame_object_info(frame_ptr address);
 

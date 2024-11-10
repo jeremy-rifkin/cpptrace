@@ -14,6 +14,9 @@
 #elif defined(__APPLE__)
  #undef IS_APPLE
  #define IS_APPLE 1
+#elif defined(__EMSCRIPTEN__)
+ #undef IS_EMSCRIPTEN
+ #define IS_EMSCRIPTEN 1
 #else
  #error "Unexpected platform"
 #endif
@@ -32,7 +35,7 @@
  #undef IS_MSVC
  #define IS_MSVC 1
 #else
- #error "Unsupported compiler"
+//  #error "Unsupported compiler"
 #endif
 
 #define IS_LIBSTDCXX 0

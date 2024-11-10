@@ -84,7 +84,9 @@ namespace detail {
     }
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
-        #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF) && defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+        #if IS_EMSCRIPTEN
+         return {}; // TODO
+        #elif defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF) && defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
          std::vector<stacktrace_frame> trace = libdwarf::resolve_frames(frames);
          fill_blanks(trace, dbghelp::resolve_frames);
          return trace;
@@ -120,7 +122,9 @@ namespace detail {
     }
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames) {
-        #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF) \
+        #if IS_EMSCRIPTEN
+         return {}; // TODO
+        #elif defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF) \
             || defined(CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE)
          auto dlframes = get_frames_object_info(frames);
         #endif
