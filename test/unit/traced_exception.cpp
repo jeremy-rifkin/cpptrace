@@ -11,21 +11,24 @@
 using namespace std::literals;
 
 
-// NOTE: returning something and then return stacktrace_traced_object_3(line_numbers) * 2; later helps prevent the call from
-// being optimized to a jmp
+// NOTE: returning something and then return stacktrace_multi_3(line_numbers) * rand(); is done to prevent TCO even
+// under LTO https://github.com/jeremy-rifkin/cpptrace/issues/179#issuecomment-2467302052
 CPPTRACE_FORCE_NO_INLINE int stacktrace_traced_object_3(std::vector<int>& line_numbers) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     throw cpptrace::runtime_error("foobar");
 }
 
 CPPTRACE_FORCE_NO_INLINE int stacktrace_traced_object_2(std::vector<int>& line_numbers) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    return stacktrace_traced_object_3(line_numbers) * 2;
+    return stacktrace_traced_object_3(line_numbers) * rand();
 }
 
 CPPTRACE_FORCE_NO_INLINE int stacktrace_traced_object_1(std::vector<int>& line_numbers) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    return stacktrace_traced_object_2(line_numbers) * 2;
+    return stacktrace_traced_object_2(line_numbers) * rand();
 }
 
 TEST(TracedException, Basic) {
