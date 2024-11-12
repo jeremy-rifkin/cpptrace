@@ -42,7 +42,8 @@ TEST(FromCurrent, Basic) {
     std::vector<int> line_numbers;
     CPPTRACE_TRY {
         line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-        stacktrace_from_current_1(line_numbers);
+        static volatile int tco_guard = stacktrace_from_current_1(line_numbers);
+        (void)tco_guard;
     } CPPTRACE_CATCH(const std::runtime_error& e) {
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& trace = cpptrace::from_current_exception();
@@ -124,6 +125,7 @@ TEST(FromCurrent, RawTrace) {
     CPPTRACE_TRY {
         line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
         static volatile int tco_guard = stacktrace_from_current_1(line_numbers);
+        (void)tco_guard;
     } CPPTRACE_CATCH(const std::exception& e) {
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& raw_trace = cpptrace::raw_trace_from_current_exception();
