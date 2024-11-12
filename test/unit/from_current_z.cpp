@@ -42,7 +42,7 @@ TEST(FromCurrentZ, Basic) {
     std::vector<int> line_numbers;
     CPPTRACE_TRYZ {
         line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-        stacktrace_from_current_z_1(line_numbers);
+        static volatile int tco_guard = stacktrace_from_current_z_1(line_numbers);
     } CPPTRACE_CATCHZ(const std::runtime_error& e) {
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& trace = cpptrace::from_current_exception();

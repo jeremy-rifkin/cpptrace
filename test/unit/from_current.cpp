@@ -123,7 +123,7 @@ TEST(FromCurrent, RawTrace) {
     std::vector<int> line_numbers;
     CPPTRACE_TRY {
         line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-        stacktrace_from_current_1(line_numbers);
+        static volatile int tco_guard = stacktrace_from_current_1(line_numbers);
     } CPPTRACE_CATCH(const std::exception& e) {
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& raw_trace = cpptrace::raw_trace_from_current_exception();
