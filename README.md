@@ -670,17 +670,14 @@ cpptrace::register_terminate_handler();
 
 ## Signal-Safe Tracing
 
-Signal-safe stack tracing is very useful for debugging application crashes, e.g. SIGSEGVs or
-SIGTRAPs, but it's very difficult to do correctly and most implementations I see online do this
-incorrectly.
+Stack traces from signal handlers can provide very helpful information for debugging application crashes, e.g. from
+SIGSEGV or SIGTRAP handlers. Signal handlers are really restrictive environments as your application could be
+interrupted by a signal at any point, including in the middle of malloc or buffered IO or while holding a lock.
+Doing a stack trace in a signal handler is possible but it requires a lot of care. This is difficult to do correctly
+and most examples online do this incorrectly.
 
-In order to do this full process safely the way to go is collecting basic information in the signal
-handler and then either resolving later or handing that information to another process to resolve.
-
-It's not as simple as calling `cpptrace::generate_trace().print()`, though you might be able to get
-away with that, but this is what is needed to really do this safely.
-
-The safe API is as follows:
+Cpptrace offers an API to walk the stack in a signal handler and produce a raw trace safely. The library also provides
+an interface for producing a object frame safely:
 
 ```cpp
 namespace cpptrace {
@@ -688,7 +685,7 @@ namespace cpptrace {
     std::size_t safe_generate_raw_trace(frame_ptr* buffer, std::size_t size, std::size_t skip, std::size_t max_depth);
     struct safe_object_frame {
         frame_ptr raw_address;
-        frame_ptr address_relative_to_object_start; // object base address must yet be added
+        frame_ptr address_relative_to_object_start;
         char object_path[CPPTRACE_PATH_MAX + 1];
         object_frame resolve() const; // To be called outside a signal handler. Not signal safe.
     };
@@ -696,6 +693,16 @@ namespace cpptrace {
     bool can_signal_safe_unwind();
 }
 ```
+
+It is not possible to resolve debug symbols safely in the process from a signal handler without heroic effort. In order
+to produce a full trace there are three options:
+1. Carefully save the object trace information to be resolved at a later time outside the signal handler
+2. Write the object trace information to a file to be resolved later
+3. Spawn a new process, communicate object trace information to that process, and have that process do the trace
+   resolution
+
+For traces on segfaults, e.g., only options 2 and 3 are viable. For more information an implementation of approach 3,
+see the comprehensive overview and demo at [signal-safe-tracing.md](docs/signal-safe-tracing.md).
 
 > [!IMPORTANT]
 > Currently signal-safe stack unwinding is only possible with `libunwind`, which must be
@@ -711,9 +718,6 @@ namespace cpptrace {
 > [!CAUTION]
 > Calls to shared objects can be lazy-loaded where the first call to the shared object invokes non-signal-safe functions
 > such as `malloc()`. To avoid this, call these routines in `main()` ahead of a signal handler to "warm up" the library.
-
-Because signal-safe tracing is an involved process, I have written up a comprehensive overview of
-what is involved at [signal-safe-tracing.md](docs/signal-safe-tracing.md).
 
 ## Utility Types
 
