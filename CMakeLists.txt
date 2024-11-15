@@ -322,6 +322,13 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       PRIVATE
       ${zstd_SOURCE_DIR}/lib
     )
+    if(CPPTRACE_PROVIDE_EXPORT_SET_FOR_LIBDWARF)
+      export(
+        TARGETS dwarf
+        NAMESPACE libdwarf::
+        FILE "${PROJECT_BINARY_DIR}/libdwarf-targets.cmake"
+      )
+    endif()
   endif()
   if(CPPTRACE_CONAN)
     target_link_libraries(${target_name} PRIVATE libdwarf::libdwarf)
