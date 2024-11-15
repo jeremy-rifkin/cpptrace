@@ -42,7 +42,11 @@ void handler(int signo, siginfo_t* info, void* context) {
     pipe_t input_pipe;
     pipe(input_pipe.data);
     const pid_t pid = fork();
-    if(pid == -1) { return; }
+    if(pid == -1) {
+        const char* fork_failure_message = "fork() failed\n";
+        write(STDERR_FILENO, fork_failure_message, strlen(fork_failure_message));
+        _exit(1);
+    }
     if(pid == 0) { // child
         dup2(input_pipe.read_end, STDIN_FILENO);
         close(input_pipe.read_end);

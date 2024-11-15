@@ -152,7 +152,11 @@ void do_signal_safe_trace(cpptrace::frame_ptr* buffer, std::size_t count) {
     pipe_t input_pipe;
     pipe(input_pipe.data);
     const pid_t pid = fork();
-    if(pid == -1) { return; /* Some error occurred */ }
+    if(pid == -1) {
+        const char* fork_failure_message = "fork() failed\n";
+        write(STDERR_FILENO, fork_failure_message, strlen(fork_failure_message));
+        return;
+    }
     if(pid == 0) { // child
         dup2(input_pipe.read_end, STDIN_FILENO);
         close(input_pipe.read_end);
@@ -161,7 +165,7 @@ void do_signal_safe_trace(cpptrace::frame_ptr* buffer, std::size_t count) {
         const char* exec_failure_message = "exec(signal_tracer) failed: Make sure the signal_tracer executable is in "
             "the current working directory and the binary's permissions are correct.\n";
         write(STDERR_FILENO, exec_failure_message, strlen(exec_failure_message));
-        _exit(1);
+        return;
     }
     // Resolve to safe_object_frames and write those to the pipe
     for(std::size_t i = 0; i < count; i++) {
