@@ -140,6 +140,12 @@ def run_linux_matrix():
                 "split_dwarf": "ON",
                 "dwarf_version": "5",
             },
+            {
+                # disabled until https://github.com/davea42/libdwarf-code/issues/267 is fixed
+                "compiler": "clang++-18",
+                "split_dwarf": "ON",
+                "dwarf_version": "5",
+            },
         ]
     ).run(build_and_test)
 
