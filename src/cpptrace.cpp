@@ -129,26 +129,41 @@ namespace cpptrace {
         return detail::get_frame_object_info(raw_address);
     }
 
-    std::string stacktrace_frame::to_string() const {
+    static std::string frame_to_string(
+        bool color,
+        const stacktrace_frame& frame
+    ) {
+        const auto reset   = color ? RESET : "";
+        const auto green   = color ? GREEN : "";
+        const auto yellow  = color ? YELLOW : "";
+        const auto blue    = color ? BLUE : "";
         std::string str;
-        if(is_inline) {
+        if(frame.is_inline) {
             str += microfmt::format("{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
         } else {
-            str += microfmt::format("0x{>{}:0h}", 2 * sizeof(frame_ptr), raw_address);
+            str += microfmt::format("{}0x{>{}:0h}{}", blue, 2 * sizeof(frame_ptr), frame.raw_address, reset);
         }
-        if(!symbol.empty()) {
-            str += microfmt::format(" in {}", symbol);
+        if(!frame.symbol.empty()) {
+            str += microfmt::format(" in {}{}{}", yellow, frame.symbol, reset);
         }
-        if(!filename.empty()) {
-            str += microfmt::format(" at {}", filename);
-            if(line.has_value()) {
-                str += microfmt::format(":{}", line.value());
-                if(column.has_value()) {
-                    str += microfmt::format(":{}", column.value());
+        if(!frame.filename.empty()) {
+            str += microfmt::format(" at {}{}{}", green, frame.filename, reset);
+            if(frame.line.has_value()) {
+                str += microfmt::format(":{}{}{}", blue, frame.line.value(), reset);
+                if(frame.column.has_value()) {
+                    str += microfmt::format(":{}{}{}", blue, frame.column.value(), reset);
                 }
             }
         }
         return str;
+    }
+
+    std::string stacktrace_frame::to_string() const {
+        return to_string(false);
+    }
+
+    std::string stacktrace_frame::to_string(bool color) const {
+        return frame_to_string(color, *this);
     }
 
     std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame) {
@@ -191,35 +206,14 @@ namespace cpptrace {
         print(stream, color, true, nullptr);
     }
 
-    void print_frame(
+    static void print_frame(
         std::ostream& stream,
         bool color,
         unsigned frame_number_width,
         std::size_t counter,
         const stacktrace_frame& frame
     ) {
-        const auto reset   = color ? RESET : "";
-        const auto green   = color ? GREEN : "";
-        const auto yellow  = color ? YELLOW : "";
-        const auto blue    = color ? BLUE : "";
-        std::string line = microfmt::format("#{<{}} ", frame_number_width, counter);
-        if(frame.is_inline) {
-            line += microfmt::format("{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
-        } else {
-            line += microfmt::format("{}0x{>{}:0h}{}", blue, 2 * sizeof(frame_ptr), frame.raw_address, reset);
-        }
-        if(!frame.symbol.empty()) {
-            line += microfmt::format(" in {}{}{}", yellow, frame.symbol, reset);
-        }
-        if(!frame.filename.empty()) {
-            line += microfmt::format(" at {}{}{}", green, frame.filename, reset);
-            if(frame.line.has_value()) {
-                line += microfmt::format(":{}{}{}", blue, frame.line.value(), reset);
-                if(frame.column.has_value()) {
-                    line += microfmt::format(":{}{}{}", blue, frame.column.value(), reset);
-                }
-            }
-        }
+        std::string line = microfmt::format("#{<{}} {}", frame_number_width, counter, frame.to_string(color));
         stream << line;
     }
 
