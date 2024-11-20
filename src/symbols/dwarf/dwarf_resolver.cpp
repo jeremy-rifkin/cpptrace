@@ -434,6 +434,10 @@ namespace libdwarf {
                             current_obj_holder = die.clone();
                             target_die = current_obj_holder;
                             return false;
+                        } else if(die.get_tag() == DW_TAG_lexical_block && die.pc_in_die(cu_die, dwversion, pc)) {
+                            current_obj_holder = die.clone();
+                            target_die = current_obj_holder;
+                            return false;
                         } else {
                             return true;
                         }

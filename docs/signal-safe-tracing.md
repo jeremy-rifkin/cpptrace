@@ -11,14 +11,21 @@
 
 # Overview
 
-Signal-safe stack tracing is very useful for debugging application crashes, e.g. SIGSEGVs or
-SIGTRAPs, but it's very difficult to do correctly and most implementations I see online do this
-incorrectly.
+Stack traces from signal handlers can provide very helpful information for debugging application crashes, e.g. from
+SIGSEGV or SIGTRAP handlers. Signal handlers are really restrictive environments as your application could be
+interrupted by a signal at any point, including in the middle of malloc or buffered IO or while holding a lock.
+Doing a stack trace in a signal handler is possible but it requires a lot of care. This is difficult to do correctly
+and most examples online do this incorrectly.
 
-Signal-safe tracing is difficult because most methods for unwinding are not signal-safe, figuring
-out what shared objects addresses are in is tricky to do in a signal-safe manner (`dladdr` isn't
-safe), and then the symbol/line resolution process is pretty much impossible to do safely (parsing
-dwarf will not be safe).
+It is not possible to resolve debug symbols safely in the process from a signal handler without heroic effort. In order
+to produce a full trace there are three options:
+1. Carefully save the object trace information to be resolved at a later time outside the signal handler
+2. Write the object trace information to a file to be resolved later
+3. Spawn a new process, communicate object trace information to that process, and have that process do the trace
+   resolution
+
+For traces on segfaults, e.g., only options 2 and 3 are viable. The this guide will go over approach 3 and the cpptrace
+safe API.
 
 # Big-Picture
 
@@ -57,7 +64,7 @@ namespace cpptrace {
 
     struct safe_object_frame {
         frame_ptr raw_address;
-        frame_ptr address_relative_to_object_start; // object base address must yet be added
+        frame_ptr address_relative_to_object_start;
         char object_path[CPPTRACE_PATH_MAX + 1];
         object_frame resolve() const; // To be called outside a signal handler. Not signal safe.
     };
@@ -145,7 +152,11 @@ void do_signal_safe_trace(cpptrace::frame_ptr* buffer, std::size_t count) {
     pipe_t input_pipe;
     pipe(input_pipe.data);
     const pid_t pid = fork();
-    if(pid == -1) { return; /* Some error occurred */ }
+    if(pid == -1) {
+        const char* fork_failure_message = "fork() failed\n";
+        write(STDERR_FILENO, fork_failure_message, strlen(fork_failure_message));
+        return;
+    }
     if(pid == 0) { // child
         dup2(input_pipe.read_end, STDIN_FILENO);
         close(input_pipe.read_end);

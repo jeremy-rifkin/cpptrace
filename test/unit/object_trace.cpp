@@ -1,3 +1,4 @@
+#include <random>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -19,6 +20,7 @@ TEST(ObjectTrace, Empty) {
 
 
 CPPTRACE_FORCE_NO_INLINE void object_basic() {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     auto trace = cpptrace::generate_object_trace();
     EXPECT_FALSE(trace.empty());
     EXPECT_NE(trace.frames[0].raw_address, 0);
@@ -33,6 +35,7 @@ TEST(ObjectTrace, Basic) {
 
 
 CPPTRACE_FORCE_NO_INLINE void object_basic_resolution() {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     auto line = __LINE__ + 1;
     auto trace = cpptrace::generate_object_trace().resolve();
     ASSERT_GE(trace.frames.size(), 1);
@@ -49,6 +52,7 @@ TEST(ObjectTrace, BasicResolution) {
 // TODO: dbghelp uses raw address, not object
 #ifndef _MSC_VER
 CPPTRACE_FORCE_NO_INLINE int object_resolve_3(std::vector<int>& line_numbers) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     auto dummy = cpptrace::generate_trace();
     auto dummy_otrace = cpptrace::generate_object_trace();
@@ -89,14 +93,18 @@ CPPTRACE_FORCE_NO_INLINE int object_resolve_3(std::vector<int>& line_numbers) {
     return 2;
 }
 
+// NOTE: returning something and then return stacktrace_multi_3(line_numbers) * rand(); is done to prevent TCO even
+// under LTO https://github.com/jeremy-rifkin/cpptrace/issues/179#issuecomment-2467302052
 CPPTRACE_FORCE_NO_INLINE int object_resolve_2(std::vector<int>& line_numbers) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    return object_resolve_3(line_numbers) * 2;
+    return object_resolve_3(line_numbers) * rand();
 }
 
 CPPTRACE_FORCE_NO_INLINE int object_resolve_1(std::vector<int>& line_numbers) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    return object_resolve_2(line_numbers) * 2;
+    return object_resolve_2(line_numbers) * rand();
 }
 
 TEST(ObjectTrace, Resolution) {

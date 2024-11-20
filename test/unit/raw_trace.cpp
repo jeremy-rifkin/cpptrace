@@ -18,6 +18,7 @@ using namespace std::literals;
 
 // NOTE: MSVC likes creating trampoline-like entries for non-static functions
 CPPTRACE_FORCE_NO_INLINE static void raw_trace_basic() {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     auto raw_trace = cpptrace::generate_raw_trace();
     // look for within 90 bytes of the start of the function
     ASSERT_GE(raw_trace.frames.size(), 1);
@@ -27,6 +28,7 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_basic() {
 
 #ifndef _MSC_VER
 CPPTRACE_FORCE_NO_INLINE void raw_trace_basic_precise() {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
@@ -58,6 +60,7 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_2(
     cpptrace::frame_ptr parent_low_bound,
     cpptrace::frame_ptr parent_high_bound
 ) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     auto raw_trace = cpptrace::generate_raw_trace();
     ASSERT_GE(raw_trace.frames.size(), 2);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_2));
@@ -67,6 +70,7 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_2(
 }
 
 CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_1() {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     auto raw_trace = cpptrace::generate_raw_trace();
     raw_trace_multi_2(reinterpret_cast<uintptr_t>(raw_trace_multi_1), reinterpret_cast<uintptr_t>(raw_trace_multi_1) + 300);
     ASSERT_GE(raw_trace.frames.size(), 1);
@@ -77,11 +81,13 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_1() {
 std::vector<std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr>> parents;
 
 CPPTRACE_FORCE_NO_INLINE void record_parent(uintptr_t low_bound, uintptr_t high_bound) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     parents.insert(parents.begin(), {low_bound, high_bound});
 }
 
 #ifndef _MSC_VER
 CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_3() {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
@@ -102,6 +108,7 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_3() {
 }
 
 CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_2() {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:
@@ -132,6 +139,7 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_2() {
 }
 
 CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_1() {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     a:
     auto raw_trace = cpptrace::generate_raw_trace();
     b:

@@ -62,6 +62,14 @@ install(
   COMPONENT ${package_name}-development
 )
 
+if(CPPTRACE_PROVIDE_EXPORT_SET)
+  export(
+    TARGETS ${target_name}
+    NAMESPACE cpptrace::
+    FILE "${PROJECT_BINARY_DIR}/${package_name}-targets.cmake"
+  )
+endif()
+
 # Findzstd.cmake
 # vcpkg doesn't like anything being put in share/, which is where this goes apparently on their setup
 if(NOT CPPTRACE_VCPKG)

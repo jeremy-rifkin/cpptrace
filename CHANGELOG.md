@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.7.3](#v073)
 - [v0.7.2](#v072)
 - [v0.7.1](#v071)
 - [v0.7.0](#v070)
@@ -21,6 +22,25 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.7.3
+
+Fixed:
+- Fixed missing include affecting macos https://github.com/jeremy-rifkin/cpptrace/pull/183
+- Fixed issue with cmake not using the ccache program found by `find_program` https://github.com/jeremy-rifkin/cpptrace/pull/184
+- Fixed missing include and warnings affecting mingw https://github.com/jeremy-rifkin/cpptrace/pull/186
+- Fixed issue with identifying inlined call frames when the `DW_TAG_inlined_subroutine` is under a `DW_TAG_lexical_block`
+- Fixed a typo in the README
+- Improved unittest support on various configurations
+- Improved unittest robustness under LTO
+- Fixed bug signal_demo in the event `fork()` fails
+
+Added:
+- Added color overload for `stacktrace_frame::to_string`
+- Added CMake `export()` definition for cpptrace as well as a definition for libdwarf which currently doesn't provide one
+
+Changed:
+- Updated documentation surrounding the signal safe API
 
 # v0.7.2
 

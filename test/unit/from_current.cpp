@@ -13,28 +13,37 @@
 using namespace std::literals;
 
 
-// NOTE: returning something and then return stacktrace_from_current_3(line_numbers) * 2; later helps prevent the call from
-// being optimized to a jmp
+static volatile int truthy = 2;
+
+// NOTE: returning something and then return stacktrace_multi_3(line_numbers) * rand(); is done to prevent TCO even
+// under LTO https://github.com/jeremy-rifkin/cpptrace/issues/179#issuecomment-2467302052
 CPPTRACE_FORCE_NO_INLINE int stacktrace_from_current_3(std::vector<int>& line_numbers) {
-    line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    throw std::runtime_error("foobar");
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
+    if(truthy) { // due to a MSVC warning about unreachable code
+        line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
+        throw std::runtime_error("foobar");
+    }
+    return 2;
 }
 
 CPPTRACE_FORCE_NO_INLINE int stacktrace_from_current_2(std::vector<int>& line_numbers) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    return stacktrace_from_current_3(line_numbers) * 2;
+    return stacktrace_from_current_3(line_numbers) * rand();
 }
 
 CPPTRACE_FORCE_NO_INLINE int stacktrace_from_current_1(std::vector<int>& line_numbers) {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-    return stacktrace_from_current_2(line_numbers) * 2;
+    return stacktrace_from_current_2(line_numbers) * rand();
 }
 
 TEST(FromCurrent, Basic) {
     std::vector<int> line_numbers;
     CPPTRACE_TRY {
         line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-        stacktrace_from_current_1(line_numbers);
+        static volatile int tco_guard = stacktrace_from_current_1(line_numbers);
+        (void)tco_guard;
     } CPPTRACE_CATCH(const std::runtime_error& e) {
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& trace = cpptrace::from_current_exception();
@@ -115,7 +124,8 @@ TEST(FromCurrent, RawTrace) {
     std::vector<int> line_numbers;
     CPPTRACE_TRY {
         line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
-        stacktrace_from_current_1(line_numbers);
+        static volatile int tco_guard = stacktrace_from_current_1(line_numbers);
+        (void)tco_guard;
     } CPPTRACE_CATCH(const std::exception& e) {
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& raw_trace = cpptrace::raw_trace_from_current_exception();
