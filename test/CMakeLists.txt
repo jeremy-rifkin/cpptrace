@@ -80,6 +80,7 @@ if(NOT CPPTRACE_SKIP_UNIT)
 
   add_executable(
     unittest
+    unit/main.cpp
     unit/raw_trace.cpp
     unit/object_trace.cpp
     unit/stacktrace.cpp
