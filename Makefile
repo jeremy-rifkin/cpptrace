@@ -9,7 +9,7 @@ help: # with thanks to Ben Rady
 build: debug  ## build in debug mode
 
 build/configured-debug:
-	cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On
+	cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On -DCPPTRACE_BUILD_SHARED=On -DCMAKE_PREFIX_PATH=~/thirdparty/llvm-project/build/foo
 	rm -f build/configured-release
 	touch build/configured-debug
 
