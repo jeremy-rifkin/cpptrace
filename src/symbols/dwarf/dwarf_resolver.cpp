@@ -30,6 +30,8 @@
 // https://github.com/davea42/libdwarf-addr2line
 // https://github.com/ruby/ruby/blob/master/addr2line.c
 
+#define DEBUG_DWARF false
+
 namespace cpptrace {
 namespace detail {
 namespace libdwarf {
@@ -539,9 +541,20 @@ namespace libdwarf {
                     switch(die.get_tag()) {
                         case DW_TAG_subprogram:
                             {
+                                #if DEBUG_DWARF
+                                const auto name = die.get_name();
+                                if(name == "stacktrace_basic") {
+                                    microfmt::print("    {}\n", name);
+                                }
+                                #endif
                                 auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
                                 // TODO: Feels super inefficient and some day should maybe use an interval tree.
                                 for(auto range : ranges_vec) {
+                                    #if DEBUG_DWARF
+                                    if(name == "stacktrace_basic") {
+                                        microfmt::print("        {>16:0h} {>16:0h}\n", range.first, range.second);
+                                    }
+                                    #endif
                                     // TODO: Reduce cloning here
                                     vec.push_back({ die.clone(), range.first, range.second });
                                 }
@@ -589,6 +602,11 @@ namespace libdwarf {
             if(get_cache_mode() == cache_mode::prioritize_memory) {
                 retrieve_symbol_walk(cu_die, cu_die, pc, dwversion, frame, inlines);
             } else {
+                #if DEBUG_DWARF
+                microfmt::print(
+                    "    retrieve_symbol\n"
+                );
+                #endif
                 auto off = cu_die.get_global_offset();
                 auto it = subprograms_cache.find(off);
                 if(it == subprograms_cache.end()) {
@@ -612,7 +630,18 @@ namespace libdwarf {
                 );
                 // If the vector has been empty this can happen
                 if(vec_it != vec.end()) {
+                    #if DEBUG_DWARF
+                    microfmt::print(
+                        "    found vec_it\n"
+                    );
+                    #endif
                     if(vec_it->die.pc_in_die(cu_die, dwversion, pc)) {
+                        #if DEBUG_DWARF
+                        microfmt::print(
+                            "    in die {}\n",
+                            vec_it->die.get_name()
+                        );
+                        #endif
                         frame.symbol = retrieve_symbol_for_subprogram(cu_die, vec_it->die, pc, dwversion, inlines);
                     }
                 } else {
@@ -1036,6 +1065,13 @@ namespace libdwarf {
                 if(cu_die.get_tag() == DW_TAG_skeleton_unit || (dwo_name && !skeleton)) {
                     perform_dwarf_fission_resolution(cu_die, dwo_name, object_frame_info, frame, inlines);
                 } else {
+                    #if DEBUG_DWARF
+                    microfmt::print(
+                        "    resolve_frame_core {>16:0h} {>16:0h}\n",
+                        frame.raw_address,
+                        frame.object_address
+                    );
+                    #endif
                     retrieve_line_info(cu_die, pc, frame);
                     retrieve_symbol(cu_die, pc, cu.unwrap().dwversion, frame, inlines);
                 }
@@ -1045,6 +1081,15 @@ namespace libdwarf {
     public:
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         frame_with_inlines resolve_frame(const object_frame& frame_info) override {
+            #if DEBUG_DWARF
+            microfmt::print(
+                "resolve_frame {>16:0h} {>16:0h} {} (resolver path: {})\n",
+                frame_info.raw_address,
+                frame_info.object_address,
+                frame_info.object_path,
+                object_path
+            );
+            #endif
             if(!ok) {
                 return {
                     {
