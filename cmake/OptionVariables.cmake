@@ -177,8 +177,8 @@ option(CPPTRACE_STD_FORMAT "" ON)
 option(CPPTRACE_UNPREFIXED_TRY_CATCH "" OFF)
 option(CPPTRACE_USE_EXTERNAL_GTEST "" OFF)
 set(CPPTRACE_ZSTD_URL "https://github.com/facebook/zstd/releases/download/v1.5.6/zstd-1.5.6.tar.gz" CACHE STRING "")
-set(CPPTRACE_LIBDWARF_REPO "https://github.com/jeremy-rifkin/libdwarf-lite.git" CACHE STRING "")
-set(CPPTRACE_LIBDWARF_TAG "97fd68c6026c0237943106d6bc3e83f3661d39e8" CACHE STRING "") # v0.11.0
+set(CPPTRACE_LIBDWARF_REPO "https://github.com/davea42/libdwarf-code.git" CACHE STRING "")
+set(CPPTRACE_LIBDWARF_TAG "e88395d8f86770dc6a5ec66fedec62438634ab1e" CACHE STRING "") # v0.11.0
 set(CPPTRACE_LIBDWARF_SHALLOW "1" CACHE STRING "")
 option(CPPTRACE_PROVIDE_EXPORT_SET "" ON)
 option(CPPTRACE_PROVIDE_EXPORT_SET_FOR_LIBDWARF "" ON)
