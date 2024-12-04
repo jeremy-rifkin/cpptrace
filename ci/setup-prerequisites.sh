@@ -16,7 +16,7 @@ mkdir libdwarf
 cd libdwarf
 git init
 git remote add origin https://github.com/jeremy-rifkin/libdwarf-lite.git
-git fetch --depth 1 origin 97fd68c6026c0237943106d6bc3e83f3661d39e8
+git fetch --depth 1 origin fe09ca800b988e2ff21225ac5e7468ceade2a30e
 git checkout FETCH_HEAD
 mkdir build
 cd build
