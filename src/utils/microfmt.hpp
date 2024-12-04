@@ -50,19 +50,18 @@ namespace microfmt {
             char base = 'd';
         };
 
-        template<typename It> void do_write(std::string& out, It begin, It end, const format_options& options) {
+        template<typename OutputIt, typename InputIt>
+        void do_write(OutputIt out, InputIt begin, InputIt end, const format_options& options) {
             auto size = end - begin;
             if(static_cast<std::size_t>(size) >= options.width) {
-                out.append(begin, end);
+                std::copy(begin, end, out);
             } else {
-                auto out_size = out.size();
-                out.resize(out_size + options.width);
                 if(options.align == alignment::left) {
-                    std::copy(begin, end, out.begin() + out_size);
-                    std::fill(out.begin() + out_size + size, out.end(), options.fill);
+                    std::copy(begin, end, out);
+                    std::fill_n(out, options.width - size, options.fill);
                 } else {
-                    std::fill(out.begin() + out_size, out.begin() + out_size + (options.width - size), options.fill);
-                    std::copy(begin, end, out.begin() + out_size + (options.width - size));
+                    std::fill_n(out, options.width - size, options.fill);
+                    std::copy(begin, end, out);
                 }
             }
         }
@@ -99,15 +98,18 @@ namespace microfmt {
             }
         }
 
+        struct string_view {
+            const char* data;
+            std::size_t size;
+        };
+
         class format_value {
             enum class value_type {
                 char_value,
                 int64_value,
                 uint64_value,
                 string_value,
-                #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
                 string_view_value,
-                #endif
                 c_string_value,
             };
             union {
@@ -115,9 +117,7 @@ namespace microfmt {
                 std::int64_t int64_value;
                 std::uint64_t uint64_value;
                 const std::string* string_value;
-                #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
-                std::string_view string_view_value;
-                #endif
+                string_view string_view_value;
                 const char* c_string_value;
             };
             value_type value;
@@ -135,7 +135,8 @@ namespace microfmt {
             format_value(unsigned long long int_val) : uint64_value(int_val), value(value_type::uint64_value) {}
             format_value(const std::string& string) : string_value(&string), value(value_type::string_value) {}
             #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
-            format_value(std::string_view sv) : string_view_value(sv), value(value_type::string_view_value) {}
+            format_value(std::string_view sv)
+                : string_view_value{sv.data(), sv.size()}, value(value_type::string_view_value) {}
             #endif
             format_value(const char* c_string) : c_string_value(c_string), value(value_type::c_string_value) {}
 
@@ -148,7 +149,8 @@ namespace microfmt {
             }
 
         public:
-            void write(std::string& out, const format_options& options) const {
+            template<typename OutputIt>
+            void write(OutputIt out, const format_options& options) const {
                 switch(value) {
                     case value_type::char_value:
                         do_write(out, &char_value, &char_value + 1, options);
@@ -174,11 +176,9 @@ namespace microfmt {
                     case value_type::string_value:
                         do_write(out, string_value->begin(), string_value->end(), options);
                         break;
-                    #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
                     case value_type::string_view_value:
-                        do_write(out, string_view_value.begin(), string_view_value.end(), options);
+                        do_write(out, string_view_value.data, string_view_value.data + string_view_value.size, options);
                         break;
-                    #endif
                     case value_type::c_string_value:
                         do_write(out, c_string_value, c_string_value + std::strlen(c_string_value), options);
                         break;
@@ -186,9 +186,10 @@ namespace microfmt {
             }
         };
 
-        template<std::size_t N, typename It>
-        std::string format(It fmt_begin, It fmt_end, std::array<format_value, N> args) {
-            std::string str;
+        // note: previously used std::array and there was a bug with std::array<T, 0> affecting old msvc
+        // https://godbolt.org/z/88T8hrzzq mre: https://godbolt.org/z/drd8echbP
+        template<typename OutputIt, typename InputIt>
+        void format(OutputIt out, InputIt fmt_begin, InputIt fmt_end, const std::initializer_list<format_value>& args) {
             std::size_t arg_i = 0;
             auto it = fmt_begin;
             auto peek = [&] (std::size_t dist) -> char { // 0 on failure
@@ -230,7 +231,7 @@ namespace microfmt {
                                 return false;
                             }
                             it += 2;
-                            options.width = arg_i < args.size() ? args[arg_i++].unwrap_int() : 0;
+                            options.width = arg_i < args.size() ? args.begin()[arg_i++].unwrap_int() : 0;
                         }
                         // try to parse fill/base
                         if(it != fmt_end && *it == ':') {
@@ -250,7 +251,7 @@ namespace microfmt {
                             return false;
                         }
                         if(arg_i < args.size()) {
-                            args[arg_i++].write(str, options);
+                            args.begin()[arg_i++].write(out, options);
                         }
                         return true;
                     };
@@ -259,43 +260,40 @@ namespace microfmt {
                     }
                     it = saved_it; // go back
                 }
-                str += *it;
+                *out++ = *it;
             }
-            return str;
+        }
+
+        #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
+        template<typename OutputIt>
+        void format(OutputIt out, std::string_view fmt, const std::initializer_list<format_value>& args) {
+            return format(out, fmt.begin(), fmt.end(), args);
+        }
+        #endif
+
+        template<typename OutputIt>
+        void format(OutputIt out, const char* fmt, const std::initializer_list<format_value>& args) {
+            return format(out, fmt, fmt + std::strlen(fmt), args);
         }
 
         std::ostream& get_cout();
     }
 
-    #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
-    template<typename... Args>
-    std::string format(std::string_view fmt, Args&&... args) {
-        return detail::format<sizeof...(args)>(fmt.begin(), fmt.end(), {detail::format_value(args)...});
-    }
-
-    // working around an old msvc bug https://godbolt.org/z/88T8hrzzq mre: https://godbolt.org/z/drd8echbP
-    inline std::string format(std::string_view fmt) {
-        return detail::format<1>(fmt.begin(), fmt.end(), {detail::format_value(1)});
-    }
-    #endif
-
-    template<typename... Args>
-    std::string format(const char* fmt, Args&&... args) {
-        return detail::format<sizeof...(args)>(fmt, fmt + std::strlen(fmt), {detail::format_value(args)...});
-    }
-
-    inline std::string format(const char* fmt) {
-        return detail::format<1>(fmt, fmt + std::strlen(fmt), {detail::format_value(1)});
+    template<typename S, typename... Args>
+    std::string format(const S& fmt, Args&&... args) {
+        std::string str;
+        detail::format(std::back_inserter(str), fmt, {detail::format_value(args)...});
+        return str;
     }
 
     template<typename S, typename... Args>
     void print(const S& fmt, Args&&... args) {
-        detail::get_cout()<<format(fmt, args...);
+        detail::format(std::ostream_iterator<char>(detail::get_cout()), fmt, {args...});
     }
 
     template<typename S, typename... Args>
     void print(std::ostream& ostream, const S& fmt, Args&&... args) {
-        ostream<<format(fmt, args...);
+        detail::format(std::ostream_iterator<char>(ostream), fmt, {args...});
     }
 
     template<typename S, typename... Args>
