@@ -2,10 +2,11 @@
 #define MICROFMT_HPP
 
 #include <algorithm>
-#include <array>
 #include <cstdint>
 #include <cstring>
-#include <iosfwd>
+#include <initializer_list>
+#include <iostream>
+#include <iterator>
 #include <string>
 #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
  #include <string_view>
