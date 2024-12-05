@@ -138,6 +138,11 @@ jobs:
 
   unittest-linux:
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-10, clang++-18]
+        dwarf_version: [4, 5]
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
@@ -147,7 +152,7 @@ jobs:
            cpptrace/ci/setup-prerequisites-unittest.sh
     - name: build and test
       run: |
-           python3 ci/unittest.py
+           python3 ci/unittest.py --slice=compiler:${{matrix.compiler}} --slice=dwarf_version:${{matrix.dwarf_version}}
   unittest-linux-bazel:
     runs-on: ubuntu-22.04
     steps:
@@ -157,10 +162,10 @@ jobs:
            sudo apt install -y libtool libncurses5
     - name: test dbg
       run: |
-           bazel test //... -c dbg 
+           bazel test //... -c dbg
     - name: test opt
       run: |
-           bazel test //... -c opt 
+           bazel test //... -c opt
   unittest-macos:
     runs-on: macos-14
     steps:

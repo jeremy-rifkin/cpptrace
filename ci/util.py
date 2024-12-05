@@ -1,7 +1,7 @@
 import subprocess
 import sys
 import itertools
-from typing import List
+from typing import List, Dict
 from colorama import Fore, Back, Style
 import re
 import time
@@ -23,6 +23,7 @@ class MatrixRunner:
     def __init__(self, matrix, exclude):
         self.matrix = matrix
         self.exclude = exclude
+        self.include = self.parse_includes()
         self.keys = [*matrix.keys()]
         self.values = [*matrix.values()]
         self.results = {} # insertion-ordered
@@ -31,6 +32,17 @@ class MatrixRunner:
 
         self.last_matrix_config = None
         self.current_matrix_config = None
+
+    def parse_includes(self) -> Dict[str, List[str]]:
+        includes: Dict[str, List[str]] = dict()
+        for arg in sys.argv:
+            if arg.startswith("--slice="):
+                rest = arg[len("--slice="):]
+                key, value = rest.split(":")
+                if key not in includes:
+                    includes[key] = []
+                includes[key].append(value)
+        return includes
 
     def run_command(self, *args: List[str], always_output=False, output_matcher=None) -> bool:
         self.log(f"{Fore.CYAN}{Style.BRIGHT}Running Command \"{' '.join(args)}\"{Style.RESET_ALL}")
@@ -78,6 +90,11 @@ class MatrixRunner:
     def do_exclude(self, matrix_config, exclude):
         return all(map(lambda k: matrix_config[k] == exclude[k], exclude.keys()))
 
+    def do_include(self, matrix_config, include):
+        if len(include) == 0:
+            return True
+        return all(map(lambda k: matrix_config[k] in include[k], include.keys()))
+
     def assignment_to_matrix_config(self, assignment):
         matrix_config = {}
         for k, v in zip(self.matrix.keys(), assignment):
@@ -87,7 +104,10 @@ class MatrixRunner:
     def get_work(self):
         work = []
         for assignment in itertools.product(*self.matrix.values()):
-            if any(map(lambda ex: self.do_exclude(self.assignment_to_matrix_config(assignment), ex), self.exclude)):
+            config = self.assignment_to_matrix_config(assignment)
+            if any(map(lambda ex: self.do_exclude(config, ex), self.exclude)):
+                continue
+            if not self.do_include(config, self.include):
                 continue
             work.append(assignment)
         return work
