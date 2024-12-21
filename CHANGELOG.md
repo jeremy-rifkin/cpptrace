@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.7.4](#v074)
 - [v0.7.3](#v073)
 - [v0.7.2](#v072)
 - [v0.7.1](#v071)
@@ -22,6 +23,17 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.7.4
+
+Added:
+- Added `<cpptrace/version.hpp>` header with version macros
+
+Fixes:
+- Bumped libdwarf to 0.11.0 which fixes a number of dwarf 5 debug fission issues
+
+Other:
+- Various improvements to internal testing setup
 
 # v0.7.3
 
