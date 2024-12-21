@@ -787,8 +787,10 @@ Cpptrace provides a handful of headers to make inclusion more minimal.
 | `cpptrace/from_current.hpp` | [Traces From All Exceptions](#traces-from-all-exceptions)                                                                                                                                             |
 | `cpptrace/io.hpp`           | `operator<<` overloads for `std::ostream` and `std::formatter`s                                                                                                                                       |
 | `cpptrace/utils.hpp`        | Utility functions, configuration functions, and terminate utilities ([Utilities](#utilities), [Configuration](#configuration), and [Terminate Handling](#terminate-handling))                         |
+| `cpptrace/version.hpp`      | Library version macros                                                                                                                                                                                |
 
-The main cpptrace header is `cpptrace/cpptrace.hpp` which includes everything other than `from_current.hpp`.
+The main cpptrace header is `cpptrace/cpptrace.hpp` which includes everything other than `from_current.hpp` and
+`version.hpp`.
 
 # Supported Debug Formats
 

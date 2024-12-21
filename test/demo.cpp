@@ -1,4 +1,5 @@
 #include <cpptrace/cpptrace.hpp>
+#include <cpptrace/version.hpp>
 
 #include <algorithm>
 #include <cctype>
