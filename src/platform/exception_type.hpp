@@ -7,6 +7,7 @@
 
 // libstdc++ and libc++
 #if defined(CPPTRACE_HAS_CXX_EXCEPTION_TYPE) && (IS_LIBSTDCXX || IS_LIBCXX)
+ #include <typeinfo>
  #include <cxxabi.h>
  #include "demangle/demangle.hpp"
 #endif
