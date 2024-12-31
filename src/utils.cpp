@@ -40,7 +40,7 @@ namespace cpptrace {
         }
     }
 
-    [[noreturn]] void terminate_handler() {
+    [[noreturn]] void MSVC_CDECL terminate_handler() {
         // TODO: Support std::nested_exception?
         try {
             auto ptr = std::current_exception();
