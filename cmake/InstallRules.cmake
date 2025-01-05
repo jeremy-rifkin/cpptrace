@@ -7,7 +7,7 @@ install(
   "${PROJECT_SOURCE_DIR}/include/"     # our header files
   "${PROJECT_BINARY_DIR}/include/"     # generated header files
   DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-  COMPONENT ${package_name}-development
+  COMPONENT ${package_name}_development
   # PATTERN "**/third_party"    EXCLUDE  # skip third party directory
   # PATTERN "**/third_party/**" EXCLUDE  # skip third party files
 )
@@ -18,12 +18,12 @@ install(
   TARGETS ${target_name}
   EXPORT ${package_name}-targets
   RUNTIME #
-  COMPONENT ${package_name}-runtime
+  COMPONENT ${package_name}_runtime
   LIBRARY #
-  COMPONENT ${package_name}-runtime
-  NAMELINK_COMPONENT ${package_name}-development
+  COMPONENT ${package_name}_runtime
+  NAMELINK_COMPONENT ${package_name}_development
   ARCHIVE #
-  COMPONENT ${package_name}-development
+  COMPONENT ${package_name}_development
   INCLUDES #
   DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
@@ -39,7 +39,7 @@ configure_file(
 install(
   FILES "${PROJECT_BINARY_DIR}/cmake/${package_name}-config.cmake"
   DESTINATION "${CPPTRACE_INSTALL_CMAKEDIR}"
-  COMPONENT ${package_name}-development
+  COMPONENT ${package_name}_development
 )
 
 # create version file for consumer to check version in CMake
@@ -52,7 +52,7 @@ write_basic_package_version_file(
 install(
   FILES "${PROJECT_BINARY_DIR}/${package_name}-config-version.cmake"
   DESTINATION "${CPPTRACE_INSTALL_CMAKEDIR}"
-  COMPONENT ${package_name}-development
+  COMPONENT ${package_name}_development
 )
 
 # create targets file included by config file with targets for consumers
@@ -60,7 +60,7 @@ install(
   EXPORT ${package_name}-targets
   NAMESPACE cpptrace::
   DESTINATION "${CPPTRACE_INSTALL_CMAKEDIR}"
-  COMPONENT ${package_name}-development
+  COMPONENT ${package_name}_development
 )
 
 if(CPPTRACE_PROVIDE_EXPORT_SET)
