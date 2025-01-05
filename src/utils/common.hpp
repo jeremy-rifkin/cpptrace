@@ -25,6 +25,12 @@
  #define NODISCARD
 #endif
 
+#if IS_MSVC
+ #define MSVC_CDECL __cdecl
+#else
+ #define MSVC_CDECL
+#endif
+
 namespace cpptrace {
 namespace detail {
     static const stacktrace_frame null_frame {
