@@ -30,8 +30,12 @@ namespace detail {
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
-            auto base = elf_get_module_image_base(object_path);
+            auto obj = elf::open_elf(object_path);
             // TODO: Cache the error
+            if(!obj) {
+                return obj.unwrap_error();
+            }
+            auto base = obj.unwrap_value().get_module_image_base();
             if(base.is_error()) {
                 return std::move(base).unwrap_error();
             }

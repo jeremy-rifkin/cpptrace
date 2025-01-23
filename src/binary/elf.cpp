@@ -12,54 +12,17 @@
 
 namespace cpptrace {
 namespace detail {
-    template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
-    T elf_byteswap_if_needed(T value, bool elf_is_little) {
-        if(is_little_endian() == elf_is_little) {
-            return value;
-        } else {
-            return byteswap(value);
-        }
-    }
-
-    template<std::size_t Bits>
-    static Result<std::uintptr_t, internal_error> elf_get_module_image_base_from_program_table(
+    elf::elf(
+        file_wrapper file,
         const std::string& object_path,
-        std::FILE* file,
-        bool is_little_endian
-    ) {
-        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
-        using Header = typename std::conditional<Bits == 32, Elf32_Ehdr, Elf64_Ehdr>::type;
-        using PHeader = typename std::conditional<Bits == 32, Elf32_Phdr, Elf64_Phdr>::type;
-        auto loaded_header = load_bytes<Header>(file, 0);
-        if(loaded_header.is_error()) {
-            return std::move(loaded_header).unwrap_error();
-        }
-        const Header& file_header = loaded_header.unwrap_value();
-        if(file_header.e_ehsize != sizeof(Header)) {
-            return internal_error("ELF file header size mismatch" + object_path);
-        }
-        // PT_PHDR will occur at most once
-        // Should be somewhat reliable https://stackoverflow.com/q/61568612/15675011
-        // It should occur at the beginning but may as well loop just in case
-        for(int i = 0; i < file_header.e_phnum; i++) {
-            auto loaded_ph = load_bytes<PHeader>(file, file_header.e_phoff + file_header.e_phentsize * i);
-            if(loaded_ph.is_error()) {
-                return std::move(loaded_ph).unwrap_error();
-            }
-            const PHeader& program_header = loaded_ph.unwrap_value();
-            if(elf_byteswap_if_needed(program_header.p_type, is_little_endian) == PT_PHDR) {
-                return elf_byteswap_if_needed(program_header.p_vaddr, is_little_endian) -
-                       elf_byteswap_if_needed(program_header.p_offset, is_little_endian);
-            }
-        }
-        // Apparently some objects like shared objects can end up missing this header. 0 as a base seems correct.
-        return 0;
-    }
+        bool is_little_endian,
+        bool is_64
+    ) : file(std::move(file)), object_path(object_path), is_little_endian(is_little_endian), is_64(is_64) {}
 
-    Result<std::uintptr_t, internal_error> elf_get_module_image_base(const std::string& object_path) {
+    Result<elf, internal_error> elf::open_elf(const std::string& object_path) {
         auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
-            return internal_error("Unable to read object file " + object_path);
+            return internal_error("Unable to read object file {}", object_path);
         }
         // Initial checks/metadata
         auto magic = load_bytes<std::array<char, 4>>(file, 0);
@@ -86,14 +49,57 @@ namespace detail {
         if(ei_version.unwrap_value() != 1) {
             return internal_error("Unexpected ELF version " + object_path);
         }
+        return elf(std::move(file), object_path, is_little_endian, is_64);
+    }
+
+    Result<std::uintptr_t, internal_error> elf::get_module_image_base() {
         // get image base
         if(is_64) {
-            return elf_get_module_image_base_from_program_table<64>(object_path, file, is_little_endian);
+            return get_module_image_base_from_program_table<64>();
         } else {
-            return elf_get_module_image_base_from_program_table<32>(object_path, file, is_little_endian);
+            return get_module_image_base_from_program_table<32>();
         }
     }
 
+    template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type>
+    T elf::byteswap_if_needed(T value, bool elf_is_little) {
+        if(cpptrace::detail::is_little_endian() == elf_is_little) {
+            return value;
+        } else {
+            return byteswap(value);
+        }
+    }
+
+    template<std::size_t Bits>
+    Result<std::uintptr_t, internal_error> elf::get_module_image_base_from_program_table() {
+        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
+        using Header = typename std::conditional<Bits == 32, Elf32_Ehdr, Elf64_Ehdr>::type;
+        using PHeader = typename std::conditional<Bits == 32, Elf32_Phdr, Elf64_Phdr>::type;
+        auto loaded_header = load_bytes<Header>(file, 0);
+        if(loaded_header.is_error()) {
+            return std::move(loaded_header).unwrap_error();
+        }
+        const Header& file_header = loaded_header.unwrap_value();
+        if(file_header.e_ehsize != sizeof(Header)) {
+            return internal_error("ELF file header size mismatch" + object_path);
+        }
+        // PT_PHDR will occur at most once
+        // Should be somewhat reliable https://stackoverflow.com/q/61568612/15675011
+        // It should occur at the beginning but may as well loop just in case
+        for(int i = 0; i < file_header.e_phnum; i++) {
+            auto loaded_ph = load_bytes<PHeader>(file, file_header.e_phoff + file_header.e_phentsize * i);
+            if(loaded_ph.is_error()) {
+                return std::move(loaded_ph).unwrap_error();
+            }
+            const PHeader& program_header = loaded_ph.unwrap_value();
+            if(byteswap_if_needed(program_header.p_type, is_little_endian) == PT_PHDR) {
+                return byteswap_if_needed(program_header.p_vaddr, is_little_endian) -
+                       byteswap_if_needed(program_header.p_offset, is_little_endian);
+            }
+        }
+        // Apparently some objects like shared objects can end up missing this header. 0 as a base seems correct.
+        return 0;
+    }
 }
 }
 
