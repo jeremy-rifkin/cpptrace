@@ -38,7 +38,7 @@ namespace detail {
 	        throw internal_error("DuplicateHandle failed");
         }
 
-        if(!SymInitialize(proc, NULL, TRUE)) {
+        if(!SymInitialize(duplicatedHandle, NULL, TRUE)) {
 	        throw internal_error("SymInitialize failed {}", GetLastError());
         }
         cache[proc] = duplicatedHandle;
