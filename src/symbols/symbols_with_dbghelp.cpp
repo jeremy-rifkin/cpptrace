@@ -428,7 +428,7 @@ namespace dbghelp {
         SymSetOptions(SYMOPT_ALLOW_ABSOLUTE_SYMBOLS);
         HANDLE proc = GetCurrentProcess();
         if(get_cache_mode() == cache_mode::prioritize_speed) {
-            get_syminit_manager().init(proc);
+            proc = get_syminit_manager().init(proc);
         } else {
             if(!SymInitialize(proc, NULL, TRUE)) {
                 throw internal_error("SymInitialize failed");
