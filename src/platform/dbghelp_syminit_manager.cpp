@@ -34,7 +34,6 @@ namespace detail {
 
         if (itr != cache.end()) {
             return itr->second;
-
         }
         HANDLE duplicated_handle  = nullptr;
         if (!DuplicateHandle(proc, proc, proc, &duplicated_handle , 0, FALSE, DUPLICATE_SAME_ACCESS)) {
