@@ -427,21 +427,21 @@ namespace dbghelp {
         // TODO: When does this need to be called? Can it be moved to the symbolizer?
         SymSetOptions(SYMOPT_ALLOW_ABSOLUTE_SYMBOLS);
 
-        HANDLE duplicatedHandle = nullptr;
+        HANDLE duplicated_handle  = nullptr;
         HANDLE proc = GetCurrentProcess();
         if(get_cache_mode() == cache_mode::prioritize_speed) {
-            duplicatedHandle = get_syminit_manager().init(proc);
+            duplicated_handle  = get_syminit_manager().init(proc);
         } else {
-            if (!DuplicateHandle(proc, proc, proc, &duplicatedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
+            if (!DuplicateHandle(proc, proc, proc, &duplicated_handle , 0, FALSE, DUPLICATE_SAME_ACCESS)) {
                 throw internal_error("DuplicateHandle failed");
             }
-            if(!SymInitialize(duplicatedHandle, NULL, TRUE)) {
+            if(!SymInitialize(duplicated_handle , NULL, TRUE)) {
                 throw internal_error("SymInitialize failed");
             }
         }
         for(const auto frame : frames) {
             try {
-                trace.push_back(resolve_frame(duplicatedHandle, frame));
+                trace.push_back(resolve_frame(duplicated_handle , frame));
             } catch(...) { // NOSONAR
                 if(!detail::should_absorb_trace_exceptions()) {
                     throw;
@@ -452,10 +452,10 @@ namespace dbghelp {
             }
         }
         if(get_cache_mode() != cache_mode::prioritize_speed) {
-            if(!SymCleanup(duplicatedHandle)) {
+            if(!SymCleanup(duplicated_handle )) {
                 throw internal_error("SymCleanup failed");
             }
-            if (!CloseHandle(duplicatedHandle)) {
+            if (!CloseHandle(duplicated_handle )) {
                 throw internal_error("CloseHandle failed");
             }
         }

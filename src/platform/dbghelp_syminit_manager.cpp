@@ -36,16 +36,16 @@ namespace detail {
             return itr->second;
 
         }
-        HANDLE duplicatedHandle = nullptr;
-        if (!DuplicateHandle(proc, proc, proc, &duplicatedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
+        HANDLE duplicated_handle  = nullptr;
+        if (!DuplicateHandle(proc, proc, proc, &duplicated_handle , 0, FALSE, DUPLICATE_SAME_ACCESS)) {
 	        throw internal_error("DuplicateHandle failed");
         }
 
-        if(!SymInitialize(duplicatedHandle, NULL, TRUE)) {
+        if(!SymInitialize(duplicated_handle , NULL, TRUE)) {
 	        throw internal_error("SymInitialize failed {}", GetLastError());
         }
-        cache[proc] = duplicatedHandle;
-        return duplicatedHandle;
+        cache[proc] = duplicated_handle ;
+        return duplicated_handle ;
     }
 
     // Thread-safety: Must only be called from symbols_with_dbghelp while the dbghelp_lock lock is held
