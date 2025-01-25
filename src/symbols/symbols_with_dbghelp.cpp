@@ -433,10 +433,10 @@ namespace dbghelp {
             duplicated_handle  = get_syminit_manager().init(proc);
         } else {
             if (!DuplicateHandle(proc, proc, proc, &duplicated_handle , 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-                throw internal_error("DuplicateHandle failed");
+                throw internal_error("DuplicateHandle failed {}", GetLastError());
             }
             if(!SymInitialize(duplicated_handle , NULL, TRUE)) {
-                throw internal_error("SymInitialize failed");
+                throw internal_error("SymInitialize failed {}", GetLastError());
             }
         }
         for(const auto frame : frames) {

@@ -1,14 +1,14 @@
 #ifndef DBGHELP_SYMINIT_MANAGER_HPP
 #define DBGHELP_SYMINIT_MANAGER_HPP
 
-#include <map>
+#include <unordered_map>
 
 namespace cpptrace {
 namespace detail {
     struct dbghelp_syminit_manager {
         // The set below contains Windows `HANDLE` objects, `void*` is used to avoid 
         // including the (expensive) Windows header here
-        std::map<void*, void*> cache;
+        std::unordered_map<void*, void*> cache;
 
         ~dbghelp_syminit_manager();
         void* init(void* proc);

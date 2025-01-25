@@ -7,7 +7,7 @@
 #include "utils/error.hpp"
 #include "utils/microfmt.hpp"
 
-#include <map>
+#include <unordered_map>
 
 #ifndef WIN32_LEAN_AND_MEAN
  #define WIN32_LEAN_AND_MEAN
@@ -38,7 +38,7 @@ namespace detail {
         }
         HANDLE duplicated_handle  = nullptr;
         if (!DuplicateHandle(proc, proc, proc, &duplicated_handle , 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-	        throw internal_error("DuplicateHandle failed");
+	        throw internal_error("DuplicateHandle failed {}", GetLastError());
         }
 
         if(!SymInitialize(duplicated_handle , NULL, TRUE)) {
