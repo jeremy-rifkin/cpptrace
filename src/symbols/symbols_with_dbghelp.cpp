@@ -430,12 +430,12 @@ namespace dbghelp {
         HANDLE duplicated_handle  = nullptr;
         HANDLE proc = GetCurrentProcess();
         if(get_cache_mode() == cache_mode::prioritize_speed) {
-            duplicated_handle  = get_syminit_manager().init(proc);
+            duplicated_handle = get_syminit_manager().init(proc);
         } else {
-            if (!DuplicateHandle(proc, proc, proc, &duplicated_handle , 0, FALSE, DUPLICATE_SAME_ACCESS)) {
+            if(!DuplicateHandle(proc, proc, proc, &duplicated_handle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
                 throw internal_error("DuplicateHandle failed {}", GetLastError());
             }
-            if(!SymInitialize(duplicated_handle , NULL, TRUE)) {
+            if(!SymInitialize(duplicated_handle, NULL, TRUE)) {
                 throw internal_error("SymInitialize failed {}", GetLastError());
             }
         }
@@ -452,10 +452,10 @@ namespace dbghelp {
             }
         }
         if(get_cache_mode() != cache_mode::prioritize_speed) {
-            if(!SymCleanup(duplicated_handle )) {
+            if(!SymCleanup(duplicated_handle)) {
                 throw internal_error("SymCleanup failed");
             }
-            if (!CloseHandle(duplicated_handle )) {
+            if(!CloseHandle(duplicated_handle)) {
                 throw internal_error("CloseHandle failed");
             }
         }
