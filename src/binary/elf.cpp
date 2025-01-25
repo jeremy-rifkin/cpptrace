@@ -54,10 +54,35 @@ namespace detail {
 
     Result<std::uintptr_t, internal_error> elf::get_module_image_base() {
         // get image base
+        auto impl = [this]<std::size_t Bits>() -> Result<std::uintptr_t, internal_error> {
+            static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
+            using PHeader = typename std::conditional<Bits == 32, Elf32_Phdr, Elf64_Phdr>::type;
+            auto header = get_header_info();
+            if(header.is_error()) {
+                return std::move(header).unwrap_error();
+            }
+            const auto& header_info = header.unwrap_value();
+            // PT_PHDR will occur at most once
+            // Should be somewhat reliable https://stackoverflow.com/q/61568612/15675011
+            // It should occur at the beginning but may as well loop just in case
+            for(unsigned i = 0; i < header_info.e_phnum; i++) {
+                auto loaded_ph = load_bytes<PHeader>(file, header_info.e_phoff + header_info.e_phentsize * i);
+                if(loaded_ph.is_error()) {
+                    return std::move(loaded_ph).unwrap_error();
+                }
+                const PHeader& program_header = loaded_ph.unwrap_value();
+                if(byteswap_if_needed(program_header.p_type, is_little_endian) == PT_PHDR) {
+                    return byteswap_if_needed(program_header.p_vaddr, is_little_endian) -
+                        byteswap_if_needed(program_header.p_offset, is_little_endian);
+                }
+            }
+            // Apparently some objects like shared objects can end up missing this header. 0 as a base seems correct.
+            return 0;
+        };
         if(is_64) {
-            return get_module_image_base_from_program_table<64>();
+            return impl.operator()<64>();
         } else {
-            return get_module_image_base_from_program_table<32>();
+            return impl.operator()<32>();
         }
     }
 
@@ -70,35 +95,36 @@ namespace detail {
         }
     }
 
-    template<std::size_t Bits>
-    Result<std::uintptr_t, internal_error> elf::get_module_image_base_from_program_table() {
-        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
-        using Header = typename std::conditional<Bits == 32, Elf32_Ehdr, Elf64_Ehdr>::type;
-        using PHeader = typename std::conditional<Bits == 32, Elf32_Phdr, Elf64_Phdr>::type;
-        auto loaded_header = load_bytes<Header>(file, 0);
-        if(loaded_header.is_error()) {
-            return std::move(loaded_header).unwrap_error();
+    Result<elf::header_info, internal_error> elf::get_header_info() {
+        if(header) {
+            return header.unwrap();
         }
-        const Header& file_header = loaded_header.unwrap_value();
-        if(file_header.e_ehsize != sizeof(Header)) {
-            return internal_error("ELF file header size mismatch" + object_path);
-        }
-        // PT_PHDR will occur at most once
-        // Should be somewhat reliable https://stackoverflow.com/q/61568612/15675011
-        // It should occur at the beginning but may as well loop just in case
-        for(int i = 0; i < file_header.e_phnum; i++) {
-            auto loaded_ph = load_bytes<PHeader>(file, file_header.e_phoff + file_header.e_phentsize * i);
-            if(loaded_ph.is_error()) {
-                return std::move(loaded_ph).unwrap_error();
+        auto impl = [this]<std::size_t Bits>() -> Result<header_info, internal_error> {
+            static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
+            using Header = typename std::conditional<Bits == 32, Elf32_Ehdr, Elf64_Ehdr>::type;
+            auto loaded_header = load_bytes<Header>(file, 0);
+            if(loaded_header.is_error()) {
+                return std::move(loaded_header).unwrap_error();
             }
-            const PHeader& program_header = loaded_ph.unwrap_value();
-            if(byteswap_if_needed(program_header.p_type, is_little_endian) == PT_PHDR) {
-                return byteswap_if_needed(program_header.p_vaddr, is_little_endian) -
-                       byteswap_if_needed(program_header.p_offset, is_little_endian);
+            const Header& file_header = loaded_header.unwrap_value();
+            if(file_header.e_ehsize != sizeof(Header)) {
+                return internal_error("ELF file header size mismatch" + object_path);
             }
+            header_info info;
+            info.e_phoff = file_header.e_phoff;
+            info.e_phnum = file_header.e_phnum;
+            info.e_phentsize = file_header.e_phentsize;
+            info.e_shoff = file_header.e_shoff;
+            info.e_shnum = file_header.e_shnum;
+            info.e_shentsize = file_header.e_shentsize;
+            header = info;
+            return header.unwrap();
+        };
+        if(is_64) {
+            return impl.operator()<64>();
+        } else {
+            return impl.operator()<32>();
         }
-        // Apparently some objects like shared objects can end up missing this header. 0 as a base seems correct.
-        return 0;
     }
 }
 }
