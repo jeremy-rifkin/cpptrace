@@ -426,17 +426,22 @@ namespace dbghelp {
 
         // TODO: When does this need to be called? Can it be moved to the symbolizer?
         SymSetOptions(SYMOPT_ALLOW_ABSOLUTE_SYMBOLS);
+
+        HANDLE duplicatedHandle = nullptr;
         HANDLE proc = GetCurrentProcess();
         if(get_cache_mode() == cache_mode::prioritize_speed) {
-            get_syminit_manager().init(proc);
+            duplicatedHandle = get_syminit_manager().init(proc);
         } else {
-            if(!SymInitialize(proc, NULL, TRUE)) {
+            if (!DuplicateHandle(proc, proc, proc, &duplicatedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
+                throw internal_error("DuplicateHandle failed");
+            }
+            if(!SymInitialize(duplicatedHandle, NULL, TRUE)) {
                 throw internal_error("SymInitialize failed");
             }
         }
         for(const auto frame : frames) {
             try {
-                trace.push_back(resolve_frame(proc, frame));
+                trace.push_back(resolve_frame(duplicatedHandle, frame));
             } catch(...) { // NOSONAR
                 if(!detail::should_absorb_trace_exceptions()) {
                     throw;
@@ -447,8 +452,11 @@ namespace dbghelp {
             }
         }
         if(get_cache_mode() != cache_mode::prioritize_speed) {
-            if(!SymCleanup(proc)) {
+            if(!SymCleanup(duplicatedHandle)) {
                 throw internal_error("SymCleanup failed");
+            }
+            if (!CloseHandle(duplicatedHandle)) {
+                throw internal_error("CloseHandle failed");
             }
         }
         return trace;

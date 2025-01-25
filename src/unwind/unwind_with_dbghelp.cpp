@@ -152,6 +152,9 @@ namespace detail {
             if(!SymCleanup(duplicatedHandle)) {
                 throw internal_error("SymCleanup failed");
             }
+            if (!CloseHandle(duplicatedHandle)) {
+                throw internal_error("CloseHandle failed");
+            }
         }
         return trace;
     }

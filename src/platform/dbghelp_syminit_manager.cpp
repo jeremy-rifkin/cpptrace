@@ -23,6 +23,9 @@ namespace detail {
             if(!SymCleanup(kvp.second)) {
                 ASSERT(false, microfmt::format("Cpptrace SymCleanup failed with code {}\n", GetLastError()).c_str());
             }
+            if (!CloseHandle(kvp.second)) {
+                ASSERT(false, microfmt::format("Cpptrace CloseHandle failed with code {}\n", GetLastError()).c_str());
+            }
         }
     }
 
