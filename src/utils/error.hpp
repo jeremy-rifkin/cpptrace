@@ -1,6 +1,7 @@
 #ifndef ERROR_HPP
 #define ERROR_HPP
 
+#include <atomic>
 #include <exception>
 #include <string>
 #include <utility>
@@ -164,6 +165,8 @@ namespace detail {
      // Check condition in both debug. std::runtime_error on failure.
      #define ASSERT(...) PHONY_USE(__VA_ARGS__)
     #endif
+
+    extern std::atomic_bool absorb_trace_exceptions;
 }
 }
 
