@@ -32,13 +32,19 @@ namespace detail {
     public:
         static NODISCARD Result<elf, internal_error> open_elf(const std::string& object_path);
 
+    public:
         Result<std::uintptr_t, internal_error> get_module_image_base();
+    private:
+        template<std::size_t Bits>
+        Result<std::uintptr_t, internal_error> get_module_image_base_impl();
 
     private:
         template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
         T byteswap_if_needed(T value, bool elf_is_little);
 
         Result<header_info, internal_error> get_header_info();
+        template<std::size_t Bits>
+        Result<header_info, internal_error> get_header_info_impl();
     };
 }
 }
