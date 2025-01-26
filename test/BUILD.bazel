@@ -6,9 +6,17 @@ cc_test(
         "@googletest//:gtest_main"
     ],
     srcs = [
-        "unit/object_trace.cpp",
-        "unit/raw_trace.cpp",
-        "unit/stacktrace.cpp"
+        "unit/main.cpp",
+        "unit/tracing/raw_trace.cpp",
+        "unit/tracing/object_trace.cpp",
+        "unit/tracing/stacktrace.cpp",
+        "unit/tracing/from_current.cpp",
+        "unit/tracing/from_current_z.cpp",
+        "unit/tracing/traced_exception.cpp",
+        "unit/internals/optional.cpp",
+        "unit/internals/result.cpp",
+        "unit/internals/string_utils.cpp",
+        "unit/internals/general.cpp"
     ],
     linkstatic = 1,
 )
