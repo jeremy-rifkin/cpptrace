@@ -2,7 +2,9 @@
 
 #include "utils/result.hpp"
 
-using namespace cpptrace::detail;
+using cpptrace::detail::Result;
+
+namespace {
 
 // A simple custom error type that behaves like a standard exception.
 struct error {
@@ -95,4 +97,6 @@ TEST_F(ResultFixture, ValueOr) {
         EXPECT_EQ(res_with_error.value_or(-1), -1);
         EXPECT_EQ(std::move(res_with_error).value_or(-1), -1);
     }
+}
+
 }

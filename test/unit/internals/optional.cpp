@@ -2,7 +2,10 @@
 
 #include "utils/optional.hpp"
 
-using namespace cpptrace::detail;
+using cpptrace::detail::optional;
+using cpptrace::detail::nullopt;
+
+namespace {
 
 TEST(OptionalTest, DefaultConstructor) {
     optional<int> o;
@@ -116,4 +119,6 @@ TEST(OptionalTest, ValueOr) {
 
     optional<int> o2(nullopt);
     EXPECT_EQ(o2.value_or(100), 100);
+}
+
 }

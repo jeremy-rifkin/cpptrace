@@ -142,11 +142,6 @@ namespace detail {
     constexpr unsigned n_digits(unsigned value) noexcept {
         return value < 10 ? 1 : 1 + n_digits(value / 10);
     }
-    static_assert(n_digits(1) == 1, "n_digits utility producing the wrong result");
-    static_assert(n_digits(9) == 1, "n_digits utility producing the wrong result");
-    static_assert(n_digits(10) == 2, "n_digits utility producing the wrong result");
-    static_assert(n_digits(11) == 2, "n_digits utility producing the wrong result");
-    static_assert(n_digits(1024) == 4, "n_digits utility producing the wrong result");
 
     // TODO: Re-evaluate use of off_t
     template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>

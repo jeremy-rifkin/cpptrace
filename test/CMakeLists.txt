@@ -89,6 +89,8 @@ if(NOT CPPTRACE_SKIP_UNIT)
     unit/tracing/traced_exception.cpp
     unit/internals/optional.cpp
     unit/internals/result.cpp
+    unit/internals/string_utils.cpp
+    unit/internals/general.cpp
   )
   target_compile_features(unittest PRIVATE cxx_std_20)
   target_link_libraries(unittest PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
