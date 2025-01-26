@@ -60,19 +60,19 @@ namespace detail {
         }
 
         NODISCARD optional<T> value() const & {
-            return has_value() ? value_ : nullopt;
+            return has_value() ? optional<T>(value_) : nullopt;
         }
 
         NODISCARD optional<E> error() const & {
-            return is_error() ? error_ : nullopt;
+            return is_error() ? optional<E>(error_) : nullopt;
         }
 
         NODISCARD optional<T> value() && {
-            return has_value() ? std::move(value_) : nullopt;
+            return has_value() ? optional<T>(std::move(value_)) : nullopt;
         }
 
         NODISCARD optional<E> error() && {
-            return is_error() ? std::move(error_) : nullopt;
+            return is_error() ? optional<E>(std::move(error_)) : nullopt;
         }
 
         NODISCARD T& unwrap_value() & {

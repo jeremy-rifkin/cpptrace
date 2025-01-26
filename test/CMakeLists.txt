@@ -81,12 +81,14 @@ if(NOT CPPTRACE_SKIP_UNIT)
   add_executable(
     unittest
     unit/main.cpp
-    unit/raw_trace.cpp
-    unit/object_trace.cpp
-    unit/stacktrace.cpp
-    unit/from_current.cpp
-    unit/from_current_z.cpp
-    unit/traced_exception.cpp
+    unit/tracing/raw_trace.cpp
+    unit/tracing/object_trace.cpp
+    unit/tracing/stacktrace.cpp
+    unit/tracing/from_current.cpp
+    unit/tracing/from_current_z.cpp
+    unit/tracing/traced_exception.cpp
+    unit/internals/optional.cpp
+    unit/internals/result.cpp
   )
   target_compile_features(unittest PRIVATE cxx_std_20)
   target_link_libraries(unittest PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
@@ -101,5 +103,6 @@ if(NOT CPPTRACE_SKIP_UNIT)
   if(CPPTRACE_SANITIZER_BUILD)
     target_compile_definitions(unittest PRIVATE CPPTRACE_SANITIZER_BUILD)
   endif()
+  target_include_directories(unittest PRIVATE ../src)
   add_test(NAME unittest COMMAND unittest)
 endif()
