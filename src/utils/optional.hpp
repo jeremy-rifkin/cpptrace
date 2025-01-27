@@ -22,9 +22,9 @@ namespace detail {
             int
         >::type = 0
     >
-    using well_behaved = std::conditional_t<
-        std::is_reference<T>::value, std::reference_wrapper<std::remove_reference_t<T>>, T
-    >;
+    using well_behaved = typename std::conditional<
+        std::is_reference<T>::value, std::reference_wrapper<typename std::remove_reference<T>::type>, T
+    >::type;
 
     template<
         typename T,
