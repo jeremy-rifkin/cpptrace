@@ -33,6 +33,16 @@ namespace detail {
                 std::fprintf(stderr, "%s\n", unwrap_error().what());
             }
         }
+        template<
+            typename U = T,
+            typename std::enable_if<
+                !std::is_same<typename std::decay<U>::type, Result<T, E>>::value &&
+                std::is_constructible<value_type, U>::value &&
+                !std::is_constructible<E, U>::value,
+                int
+            >::type = 0
+        >
+        Result(U&& u) : Result(value_type(std::forward<U>(u))) {}
         Result(Result&& other) : active(other.active) {
             if(other.active == member::value) {
                 new (&value_) value_type(std::move(other.value_));
