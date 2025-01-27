@@ -131,6 +131,10 @@ namespace detail {
             Result<const elf::header_info&, internal_error> r = header.unwrap();
             return std::ref(header.unwrap());
         }
+        if(tried_to_load_header) {
+            return internal_error("previous header load failed " + object_path);
+        }
+        tried_to_load_header = true;
         if(is_64) {
             return get_header_info_impl<64>();
         } else {
