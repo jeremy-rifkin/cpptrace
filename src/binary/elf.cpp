@@ -88,6 +88,35 @@ namespace detail {
         return 0;
     }
 
+    std::string elf::lookup_symbol(frame_ptr pc) {
+        // TODO: Also search the SHT_DYNSYM at some point, maybe
+        auto symtab_ = get_symtab();
+        if(symtab_.is_error()) {
+            return "";
+        }
+        auto& symtab = symtab_.unwrap_value();
+        auto strtab_ = get_strtab(symtab.strtab_link);
+        if(strtab_.is_error()) {
+            return "";
+        }
+        auto& strtab = strtab_.unwrap_value();
+        auto it = first_less_than_or_equal(
+            symtab.entries.begin(),
+            symtab.entries.end(),
+            pc,
+            [] (frame_ptr pc, const symtab_entry& entry) {
+                return pc < entry.st_value;
+            }
+        );
+        if(it == symtab.entries.end()) {
+            return "";
+        }
+        if(pc <= it->st_value + it->st_size) {
+            return strtab.data() + it->st_name;
+        }
+        return "";
+    }
+
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type>
     T elf::byteswap_if_needed(T value, bool elf_is_little) {
         if(cpptrace::detail::is_little_endian() == elf_is_little) {
@@ -97,9 +126,10 @@ namespace detail {
         }
     }
 
-    Result<elf::header_info, internal_error> elf::get_header_info() {
+    Result<const elf::header_info&, internal_error> elf::get_header_info() {
         if(header) {
-            return header.unwrap();
+            Result<const elf::header_info&, internal_error> r = header.unwrap();
+            return std::ref(header.unwrap());
         }
         if(is_64) {
             return get_header_info_impl<64>();
@@ -109,7 +139,7 @@ namespace detail {
     }
 
     template<std::size_t Bits>
-    Result<elf::header_info, internal_error> elf::get_header_info_impl() {
+    Result<const elf::header_info&, internal_error> elf::get_header_info_impl() {
         static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
         using Header = typename std::conditional<Bits == 32, Elf32_Ehdr, Elf64_Ehdr>::type;
         auto loaded_header = load_bytes<Header>(file, 0);
@@ -121,14 +151,161 @@ namespace detail {
             return internal_error("ELF file header size mismatch" + object_path);
         }
         header_info info;
-        info.e_phoff = file_header.e_phoff;
-        info.e_phnum = file_header.e_phnum;
-        info.e_phentsize = file_header.e_phentsize;
-        info.e_shoff = file_header.e_shoff;
-        info.e_shnum = file_header.e_shnum;
-        info.e_shentsize = file_header.e_shentsize;
+        info.e_phoff = byteswap_if_needed(file_header.e_phoff, is_little_endian);
+        info.e_phnum = byteswap_if_needed(file_header.e_phnum, is_little_endian);
+        info.e_phentsize = byteswap_if_needed(file_header.e_phentsize, is_little_endian);
+        info.e_shoff = byteswap_if_needed(file_header.e_shoff, is_little_endian);
+        info.e_shnum = byteswap_if_needed(file_header.e_shnum, is_little_endian);
+        info.e_shentsize = byteswap_if_needed(file_header.e_shentsize, is_little_endian);
         header = info;
         return header.unwrap();
+    }
+
+    Result<const std::vector<elf::section_info>&, internal_error> elf::get_sections() {
+        if(did_load_sections) {
+            return sections;
+        }
+        if(tried_to_load_sections) {
+            return internal_error("previous sections load failed " + object_path);
+        }
+        tried_to_load_sections = true;
+        if(is_64) {
+            return get_sections_impl<64>();
+        } else {
+            return get_sections_impl<32>();
+        }
+    }
+
+    template<std::size_t Bits>
+    Result<const std::vector<elf::section_info>&, internal_error> elf::get_sections_impl() {
+        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
+        using SHeader = typename std::conditional<Bits == 32, Elf32_Shdr, Elf64_Shdr>::type;
+        auto header = get_header_info();
+        if(header.is_error()) {
+            return std::move(header).unwrap_error();
+        }
+        const auto& header_info = header.unwrap_value();
+        for(unsigned i = 0; i < header_info.e_shnum; i++) {
+            auto loaded_sh = load_bytes<SHeader>(file, header_info.e_shoff + header_info.e_shentsize * i);
+            if(loaded_sh.is_error()) {
+                return std::move(loaded_sh).unwrap_error();
+            }
+            const SHeader& section_header = loaded_sh.unwrap_value();
+            section_info info;
+            info.sh_type = byteswap_if_needed(section_header.sh_type, is_little_endian);
+            info.sh_addr = byteswap_if_needed(section_header.sh_addr, is_little_endian);
+            info.sh_offset = byteswap_if_needed(section_header.sh_offset, is_little_endian);
+            info.sh_size = byteswap_if_needed(section_header.sh_size, is_little_endian);
+            info.sh_entsize = byteswap_if_needed(section_header.sh_entsize, is_little_endian);
+            info.sh_link = byteswap_if_needed(section_header.sh_link, is_little_endian);
+            sections.push_back(info);
+        }
+        did_load_sections = true;
+        return sections;
+    }
+
+    Result<const std::vector<char>&, internal_error> elf::get_strtab(std::size_t index) {
+        auto res = strtab_entries.insert({index, {}});
+        auto it = res.first;
+        auto did_insert = res.second;
+        auto& entry = it->second;
+        if(!did_insert) {
+            if(entry.did_load_strtab) {
+                return entry.data;
+            }
+            if(entry.tried_to_load_strtab) {
+                return internal_error("previous strtab load failed {}", object_path);
+            }
+        }
+        entry.tried_to_load_strtab = true;
+        auto sections_ = get_sections();
+        if(sections_.is_error()) {
+            return std::move(sections_).unwrap_error();
+        }
+        const auto& sections = sections_.unwrap_value();
+        if(index >= sections.size()) {
+            return internal_error("requested strtab section index out of range");
+        }
+        const auto& section = sections[index];
+        if(section.sh_type != SHT_STRTAB) {
+            return internal_error("requested strtab section not a strtab (requested {} of {})", index, object_path);
+        }
+        entry.data.resize(section.sh_size + 1);
+        if(std::fseek(file, section.sh_offset, SEEK_SET) != 0) {
+            return internal_error("fseek error while loading elf string table");
+        }
+        if(std::fread(entry.data.data(), sizeof(char), section.sh_size, file) != section.sh_size) {
+            return internal_error("fread error while loading elf string table");
+        }
+        entry.data[section.sh_size] = 0; // just out of an abundance of caution
+        entry.did_load_strtab = true;
+        return entry.data;
+    }
+
+    Result<const elf::symtab_info&, internal_error> elf::get_symtab() {
+        if(did_load_symtab) {
+            return symtab;
+        }
+        if(tried_to_load_symtab) {
+            return internal_error("previous strtab load failed {}", object_path);
+        }
+        tried_to_load_symtab = true;
+        if(is_64) {
+            return get_symtab_impl<64>();
+        } else {
+            return get_symtab_impl<32>();
+        }
+    }
+
+    template<std::size_t Bits>
+    Result<const elf::symtab_info&, internal_error> elf::get_symtab_impl() {
+        // https://refspecs.linuxfoundation.org/elf/elf.pdf
+        // page 66: only one sht_symtab and sht_dynsym section per file
+        // page 32: symtab spec
+        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
+        using SymEntry = typename std::conditional<Bits == 32, Elf32_Sym, Elf64_Sym>::type;
+        auto sections_ = get_sections();
+        if(sections_.is_error()) {
+            return std::move(sections_).unwrap_error();
+        }
+        const auto& sections = sections_.unwrap_value();
+        for(const auto& section : sections) {
+            if(section.sh_type == SHT_SYMTAB) {
+                if(section.sh_entsize != sizeof(SymEntry)) {
+                    return internal_error("elf seems corrupted, sym entry mismatch {}", object_path);
+                }
+                if(section.sh_size % section.sh_entsize != 0) {
+                    return internal_error("elf seems corrupted, sym entry vs section size mismatch {}", object_path);
+                }
+                std::vector<SymEntry> buffer(section.sh_size / section.sh_entsize);
+                if(std::fseek(file, section.sh_offset, SEEK_SET) != 0) {
+                    return internal_error("fseek error while loading elf symbol table");
+                }
+                if(std::fread(buffer.data(), section.sh_entsize, buffer.size(), file) != buffer.size()) {
+                    return internal_error("fread error while loading elf symbol table");
+                }
+                symtab.entries.reserve(buffer.size());
+                for(const auto& entry : buffer) {
+                    symtab_entry normalized;
+                    normalized.st_name = byteswap_if_needed(entry.st_name, is_little_endian);
+                    normalized.st_info = byteswap_if_needed(entry.st_info, is_little_endian);
+                    normalized.st_other = byteswap_if_needed(entry.st_other, is_little_endian);
+                    normalized.st_shndx = byteswap_if_needed(entry.st_shndx, is_little_endian);
+                    normalized.st_value = byteswap_if_needed(entry.st_value, is_little_endian);
+                    normalized.st_size = byteswap_if_needed(entry.st_size, is_little_endian);
+                    symtab.entries.push_back(normalized);
+                }
+                std::sort(symtab.entries.begin(), symtab.entries.end(), [] (const symtab_entry& a, const symtab_entry& b) {
+                    return a.st_value < b.st_value;
+                });
+                symtab.strtab_link = section.sh_link;
+                did_load_symtab = true;
+                return symtab;
+            }
+        }
+        // OK to not have a symbol table
+        did_load_symtab = true;
+        return symtab;
     }
 }
 }
