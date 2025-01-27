@@ -1,6 +1,7 @@
 #ifndef OPTIONAL_HPP
 #define OPTIONAL_HPP
 
+#include <functional>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -16,12 +17,25 @@ namespace detail {
 
     template<
         typename T,
+        typename std::enable_if<
+            !std::is_same<typename std::decay<T>::type, void>::value && !std::is_rvalue_reference<T>::value,
+            int
+        >::type = 0
+    >
+    using well_behaved = std::conditional_t<
+        std::is_reference<T>::value, std::reference_wrapper<std::remove_reference_t<T>>, T
+    >;
+
+    template<
+        typename T,
         typename std::enable_if<!std::is_same<typename std::decay<T>::type, void>::value, int>::type = 0
     >
     class optional {
+        using value_type = well_behaved<T>;
+
         union {
             char x;
-            T uvalue;
+            value_type uvalue;
         };
 
         bool holds_value = false;
@@ -37,16 +51,16 @@ namespace detail {
 
         optional(const optional& other) : holds_value(other.holds_value) {
             if(holds_value) {
-                new (static_cast<void*>(std::addressof(uvalue))) T(other.uvalue);
+                new (static_cast<void*>(std::addressof(uvalue))) value_type(other.uvalue);
             }
         }
 
         optional(optional&& other)
-            noexcept(std::is_nothrow_move_constructible<T>::value)
+            noexcept(std::is_nothrow_move_constructible<value_type>::value)
             : holds_value(other.holds_value)
         {
             if(holds_value) {
-                new (static_cast<void*>(std::addressof(uvalue))) T(std::move(other.uvalue));
+                new (static_cast<void*>(std::addressof(uvalue))) value_type(std::move(other.uvalue));
             }
         }
 
@@ -57,11 +71,11 @@ namespace detail {
         }
 
         optional& operator=(optional&& other)
-            noexcept(std::is_nothrow_move_assignable<T>::value && std::is_nothrow_move_constructible<T>::value)
+            noexcept(std::is_nothrow_move_assignable<value_type>::value && std::is_nothrow_move_constructible<value_type>::value)
         {
             reset();
             if(other.holds_value) {
-                new (static_cast<void*>(std::addressof(uvalue))) T(std::move(other.uvalue));
+                new (static_cast<void*>(std::addressof(uvalue))) value_type(std::move(other.uvalue));
                 holds_value = true;
             }
             return *this;
@@ -72,7 +86,7 @@ namespace detail {
             typename std::enable_if<!std::is_same<typename std::decay<U>::type, optional<T>>::value, int>::type = 0
         >
         optional(U&& value) : holds_value(true) {
-            new (static_cast<void*>(std::addressof(uvalue))) T(std::forward<U>(value));
+            new (static_cast<void*>(std::addressof(uvalue))) value_type(std::forward<U>(value));
         }
 
         template<
@@ -94,11 +108,11 @@ namespace detail {
             if(holds_value && other.holds_value) {
                 std::swap(uvalue, other.uvalue);
             } else if(holds_value && !other.holds_value) {
-                new (&other.uvalue) T(std::move(uvalue));
-                uvalue.~T();
+                new (&other.uvalue) value_type(std::move(uvalue));
+                uvalue.~value_type();
             } else if(!holds_value && other.holds_value) {
-                new (static_cast<void*>(std::addressof(uvalue))) T(std::move(other.uvalue));
-                other.uvalue.~T();
+                new (static_cast<void*>(std::addressof(uvalue))) value_type(std::move(other.uvalue));
+                other.uvalue.~value_type();
             }
             std::swap(holds_value, other.holds_value);
         }
@@ -113,7 +127,7 @@ namespace detail {
 
         void reset() {
             if(holds_value) {
-                uvalue.~T();
+                uvalue.~value_type();
             }
             holds_value = false;
         }
@@ -140,12 +154,12 @@ namespace detail {
 
         template<typename U>
         NODISCARD T value_or(U&& default_value) const & {
-            return holds_value ? uvalue : static_cast<T>(std::forward<U>(default_value));
+            return holds_value ? static_cast<T>(uvalue) : static_cast<T>(std::forward<U>(default_value));
         }
 
         template<typename U>
         NODISCARD T value_or(U&& default_value) && {
-            return holds_value ? std::move(uvalue) : static_cast<T>(std::forward<U>(default_value));
+            return holds_value ? static_cast<T>(std::move(uvalue)) : static_cast<T>(std::forward<U>(default_value));
         }
     };
 }

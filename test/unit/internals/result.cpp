@@ -45,6 +45,11 @@ TEST_F(ResultFixture, ConstructWithValueLValue) {
 
     s = "x";
     EXPECT_EQ(result.unwrap_value(), "test");
+
+    cpptrace::detail::Result<std::string&, error> r2(s);
+    EXPECT_EQ(r2.unwrap_value(), "x");
+    s = "y";
+    EXPECT_EQ(r2.unwrap_value(), "y");
 }
 
 TEST_F(ResultFixture, ConstructWithErrorRValue) {
@@ -71,10 +76,18 @@ TEST_F(ResultFixture, ConstructWithErrorLValue) {
 TEST_F(ResultFixture, MoveConstructorValue) {
     cpptrace::detail::Result<std::string, error> original(std::string("move"));
     cpptrace::detail::Result<std::string, error> moved(std::move(original));
-
     EXPECT_TRUE(moved.has_value());
     EXPECT_EQ(moved.unwrap_value(), "move");
     EXPECT_TRUE(original.has_value());
+
+    std::string s = "test";
+    cpptrace::detail::Result<std::string&, error> r1(s);
+    cpptrace::detail::Result<std::string&, error> r2(std::move(r1));
+    EXPECT_TRUE(r2.has_value());
+    EXPECT_EQ(r2.unwrap_value(), "test");
+    s = "foo";
+    EXPECT_EQ(r2.unwrap_value(), "foo");
+    EXPECT_TRUE(r2.has_value());
 }
 
 TEST_F(ResultFixture, MoveConstructorError) {
@@ -96,6 +109,20 @@ TEST_F(ResultFixture, ValueOr) {
         cpptrace::detail::Result<int, error> res_with_error(error{});
         EXPECT_EQ(res_with_error.value_or(-1), -1);
         EXPECT_EQ(std::move(res_with_error).value_or(-1), -1);
+    }
+    {
+        int x = 2;
+        int y = 3;
+        cpptrace::detail::Result<int&, error> res_with_value(x);
+        EXPECT_EQ(res_with_value.value_or(y), 2);
+        EXPECT_EQ(std::move(res_with_value).value_or(y), 2);
+    }
+    {
+        int x = 2;
+        cpptrace::detail::Result<int&, error> res_with_error(error{});
+        EXPECT_EQ(res_with_error.value_or(x), 2);
+        EXPECT_EQ(&res_with_error.value_or(x), &x);
+        EXPECT_EQ(std::move(res_with_error).value_or(x), 2);
     }
 }
 

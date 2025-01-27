@@ -13,20 +13,21 @@ namespace cpptrace {
 namespace detail {
     template<typename T, typename E, typename std::enable_if<!std::is_same<T, E>::value, int>::type = 0>
     class Result {
+        using value_type = well_behaved<T>;
         union {
-            T value_;
+            value_type value_;
             E error_;
         };
         enum class member { value, error };
         member active;
     public:
-        Result(T&& value) : value_(std::move(value)), active(member::value) {}
+        Result(value_type&& value) : value_(std::move(value)), active(member::value) {}
         Result(E&& error) : error_(std::move(error)), active(member::error) {
             if(!should_absorb_trace_exceptions()) {
                 std::fprintf(stderr, "%s\n", unwrap_error().what());
             }
         }
-        Result(T& value) : value_(T(value)), active(member::value) {}
+        Result(value_type& value) : value_(value_type(value)), active(member::value) {}
         Result(E& error) : error_(E(error)), active(member::error) {
             if(!should_absorb_trace_exceptions()) {
                 std::fprintf(stderr, "%s\n", unwrap_error().what());
@@ -34,14 +35,14 @@ namespace detail {
         }
         Result(Result&& other) : active(other.active) {
             if(other.active == member::value) {
-                new (&value_) T(std::move(other.value_));
+                new (&value_) value_type(std::move(other.value_));
             } else {
                 new (&error_) E(std::move(other.error_));
             }
         }
         ~Result() {
             if(active == member::value) {
-                value_.~T();
+                value_.~value_type();
             } else {
                 error_.~E();
             }
@@ -107,12 +108,12 @@ namespace detail {
 
         template<typename U>
         NODISCARD T value_or(U&& default_value) const & {
-            return has_value() ? value_ : static_cast<T>(std::forward<U>(default_value));
+            return has_value() ? static_cast<T>(value_) : static_cast<T>(std::forward<U>(default_value));
         }
 
         template<typename U>
         NODISCARD T value_or(U&& default_value) && {
-            return has_value() ? std::move(value_) : static_cast<T>(std::forward<U>(default_value));
+            return has_value() ? static_cast<T>(std::move(value_)) : static_cast<T>(std::forward<U>(default_value));
         }
 
         void drop_error() const {
