@@ -132,8 +132,6 @@ namespace detail {
             }
         }
     };
-
-    struct monostate {};
 }
 }
 

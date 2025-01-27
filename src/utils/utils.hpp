@@ -185,6 +185,8 @@ namespace detail {
         return static_cast<U>(v);
     }
 
+    struct monostate {};
+
     // TODO: Rework some stuff here. Not sure deleters should be optional or moved.
     // Also allow file_wrapper file = std::fopen(object_path.c_str(), "rb");
     template<
