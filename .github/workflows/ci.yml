@@ -1,4 +1,4 @@
-name: test
+name: ci
 
 on:
   push:
@@ -134,6 +134,72 @@ jobs:
     - name: build and test
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}}
+
+
+  build-linux-all-remaining-configurations:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    needs: test-linux-all-configurations
+    steps:
+    - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
+           pip3 install colorama
+    - name: libdwarf
+      run: |
+           cd ..
+           cpptrace/ci/setup-prerequisites.sh
+    - name: build
+      run: |
+           python3 ci/build-in-all-remaining-configs.py --${{matrix.compiler}}
+  build-macos-all-remaining-configurations:
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    needs: test-macos-all-configurations
+    steps:
+    - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+           brew install ninja
+           python3 -m venv env
+           env/bin/pip install colorama
+    - name: libdwarf
+      run: |
+           cd ..
+           cpptrace/ci/setup-prerequisites.sh
+    - name: build
+      run: |
+           env/bin/python ci/build-in-all-remaining-configs.py --${{matrix.compiler}}
+  build-windows-all-remaining-configurations:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, clang, gcc]
+    needs: test-windows-all-configurations
+    steps:
+    - uses: actions/checkout@v4
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.13.0
+    - name: dependencies
+      run: |
+           pip3 install colorama
+    - name: libdwarf
+      run: |
+           if("${{matrix.compiler}}" -eq "gcc") {
+            cd ..
+            cpptrace/ci/setup-prerequisites-mingw.ps1
+           }
+    - name: build
+      run: |
+           python3 ci/build-in-all-remaining-configs.py --${{matrix.compiler}}
 
 
   unittest-linux:
