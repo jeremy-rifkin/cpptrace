@@ -9,6 +9,7 @@ using testing::ElementsAre;
 using cpptrace::detail::split;
 using cpptrace::detail::join;
 using cpptrace::detail::trim;
+using cpptrace::detail::starts_with;
 
 namespace {
 
@@ -75,6 +76,17 @@ TEST(TrimTest, Basic) {
     EXPECT_EQ(trim(" test "), "test");
     EXPECT_EQ(trim(" test\n "), "test");
     EXPECT_EQ(trim("\t   test\n "), "test");
+}
+
+TEST(StartsWith, Basic) {
+    EXPECT_TRUE(starts_with("", ""));
+    EXPECT_TRUE(starts_with("abc", ""));
+    EXPECT_FALSE(starts_with("", "abc"));
+    EXPECT_FALSE(starts_with("ab", "abc"));
+    EXPECT_TRUE(starts_with("test", "test"));
+    EXPECT_TRUE(starts_with("hello_world", "hello"));
+    EXPECT_FALSE(starts_with("hello_world", "world"));
+    EXPECT_FALSE(starts_with("abcd", "abce"));
 }
 
 }

@@ -2,6 +2,8 @@
 
 #include "demangle/demangle.hpp"
 
+#include "utils/utils.hpp"
+
 #include <cxxabi.h>
 
 #include <cstdlib>
@@ -11,6 +13,11 @@ namespace cpptrace {
 namespace detail {
     std::string demangle(const std::string& name) {
         int status;
+        // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
+        // check both _Z and __Z, apple prefixes all symbols with an underscore
+        if(!(starts_with(name, "_Z") || starts_with(name, "__Z"))) {
+            return name;
+        }
         // presumably thread-safe
         // it appears safe to pass nullptr for status however the docs don't explicitly say it's safe so I don't
         // want to rely on it

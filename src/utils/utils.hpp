@@ -83,6 +83,10 @@ namespace detail {
         return str.substr(left, right - left);
     }
 
+    inline bool starts_with(const std::string& str, const std::string& prefix) {
+        return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
+    }
+
     inline bool is_little_endian() {
         std::uint16_t num = 0x1;
         const auto* ptr = (std::uint8_t*)&num;
