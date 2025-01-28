@@ -36,7 +36,7 @@ namespace detail {
     }
 
     template<typename C>
-    inline std::string join(const C& container, const std::string& delim) {
+    std::string join(const C& container, const std::string& delim) {
         auto iter = std::begin(container);
         auto end = std::end(container);
         std::string str;
