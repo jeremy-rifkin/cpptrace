@@ -142,7 +142,12 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [g++-10, clang++-18]
+        stdlib: [libstdc++, libc++]
         dwarf_version: [4, 5]
+        split_dwarf: [OFF, ON]
+        exclude:
+          - compiler: g++-10
+            stdlib: libc++
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
@@ -152,7 +157,11 @@ jobs:
            cpptrace/ci/setup-prerequisites-unittest.sh
     - name: build and test
       run: |
-           python3 ci/unittest.py --slice=compiler:${{matrix.compiler}} --slice=dwarf_version:${{matrix.dwarf_version}}
+           python3 ci/unittest.py \
+            --slice=compiler:${{matrix.compiler}} \
+            --slice=stdlib:${{matrix.stdlib}} \
+            --slice=dwarf_version:${{matrix.dwarf_version}} \
+            --slice=split_dwarf:${{matrix.split_dwarf}}
   unittest-linux-bazel:
     runs-on: ubuntu-22.04
     steps:
