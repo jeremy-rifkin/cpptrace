@@ -1,3 +1,4 @@
+#include "utils/microfmt.hpp"
 #ifdef CPPTRACE_DEMANGLE_WITH_CXXABI
 
 #include "demangle/demangle.hpp"
@@ -18,6 +19,11 @@ namespace detail {
         if(!(starts_with(name, "_Z") || starts_with(name, "__Z"))) {
             return name;
         }
+        // Apple clang demangles __Z just fine but gcc doesn't, so just offset the leading underscore
+        std::size_t offset = 0;
+        if(starts_with(name, "__Z")) {
+            offset = 1;
+        }
         // Mangled names don't have spaces, we might add a space and some extra info somewhere but we still want it to
         // be demanglable. Look for a space, if there is one swap it with a null terminator briefly.
         auto end = name.find(' ');
@@ -33,7 +39,7 @@ namespace detail {
         // it appears safe to pass nullptr for status however the docs don't explicitly say it's safe so I don't
         // want to rely on it
         int status;
-        char* const demangled = abi::__cxa_demangle(to_demangle.get().c_str(), nullptr, nullptr, &status);
+        char* const demangled = abi::__cxa_demangle(to_demangle.get().c_str() + offset, nullptr, nullptr, &status);
         // demangled will always be nullptr on non-zero status, and if __cxa_demangle ever fails for any reason
         // we'll just quietly return the mangled name
         if(demangled) {
