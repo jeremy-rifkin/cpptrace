@@ -70,6 +70,19 @@ include(cmake/Autoconfig.cmake)
 
 # =================================================== Library Setup ====================================================
 
+if(NOT CPPTRACE_BUILD_NO_SYMBOLS)
+  set(
+    debug
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g>
+    $<$<CXX_COMPILER_ID:MSVC>:/DEBUG>
+  )
+else()
+  add_compile_options($<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g0>)
+  set(
+    debug
+  )
+endif()
+
 # Target that we can modify (can't modify ALIAS targets)
 # Target name should not be the same as ${PROJECT_NAME}, causes add_subdirectory issues
 set(target_name "cpptrace-lib")

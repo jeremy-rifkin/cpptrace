@@ -8,6 +8,8 @@
 
 #include <cpptrace/cpptrace.hpp>
 
+#include "common.hpp"
+
 using namespace std::literals;
 
 
@@ -48,26 +50,26 @@ TEST(TracedException, Basic) {
         size_t i = 0;
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(i, line_numbers.size());
-        EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("traced_exception.cpp"));
-        EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+        EXPECT_FILE(trace.frames[i].filename, "traced_exception.cpp");
+        EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
         EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_traced_object_3"));
         i++;
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(i, line_numbers.size());
-        EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("traced_exception.cpp"));
-        EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+        EXPECT_FILE(trace.frames[i].filename, "traced_exception.cpp");
+        EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
         EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_traced_object_2"));
         i++;
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(i, line_numbers.size());
-        EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("traced_exception.cpp"));
-        EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+        EXPECT_FILE(trace.frames[i].filename, "traced_exception.cpp");
+        EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
         EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_traced_object_1"));
         i++;
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(i, line_numbers.size());
-        EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("traced_exception.cpp"));
-        EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+        EXPECT_FILE(trace.frames[i].filename, "traced_exception.cpp");
+        EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
         EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("TracedException_Basic_Test::TestBody"));
     }
 }

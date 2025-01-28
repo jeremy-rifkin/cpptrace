@@ -1,3 +1,4 @@
+#include "common.hpp"
 #include <algorithm>
 #include <string_view>
 #include <string>
@@ -9,6 +10,8 @@
 
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
+
+#include "common.hpp"
 
 using namespace std::literals;
 
@@ -52,8 +55,7 @@ TEST(FromCurrentZ, Basic) {
             trace.frames.begin(),
             trace.frames.end(),
             [](const cpptrace::stacktrace_frame& frame) {
-                return frame.filename.find("from_current_z.cpp") != std::string::npos
-                    && frame.symbol.find("lambda") == std::string::npos; // due to msvc
+                return frame.symbol.find("stacktrace_from_current_z_3") != std::string::npos;
             }
         );
         ASSERT_NE(it, trace.frames.end());
@@ -61,29 +63,29 @@ TEST(FromCurrentZ, Basic) {
         int j = 0;
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(j, line_numbers.size());
-        EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("from_current_z.cpp"));
-        EXPECT_EQ(trace.frames[i].line.value(), line_numbers[j]);
+        EXPECT_FILE(trace.frames[i].filename, "from_current_z.cpp");
+        EXPECT_LINE(trace.frames[i].line.value(), line_numbers[j]);
         EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_from_current_z_3"));
         i++;
         j++;
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(j, line_numbers.size());
-        EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("from_current_z.cpp"));
-        EXPECT_EQ(trace.frames[i].line.value(), line_numbers[j]);
+        EXPECT_FILE(trace.frames[i].filename, "from_current_z.cpp");
+        EXPECT_LINE(trace.frames[i].line.value(), line_numbers[j]);
         EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_from_current_z_2"));
         i++;
         j++;
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(j, line_numbers.size());
-        EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("from_current_z.cpp"));
-        EXPECT_EQ(trace.frames[i].line.value(), line_numbers[j]);
+        EXPECT_FILE(trace.frames[i].filename, "from_current_z.cpp");
+        EXPECT_LINE(trace.frames[i].line.value(), line_numbers[j]);
         EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_from_current_z_1"));
         i++;
         j++;
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(j, line_numbers.size());
-        EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("from_current_z.cpp"));
-        EXPECT_EQ(trace.frames[i].line.value(), line_numbers[j]);
+        EXPECT_FILE(trace.frames[i].filename, "from_current_z.cpp");
+        EXPECT_LINE(trace.frames[i].line.value(), line_numbers[j]);
         EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("FromCurrentZ_Basic_Test::TestBody"));
     }
 }
@@ -104,8 +106,7 @@ TEST(FromCurrentZ, CorrectHandler) {
             trace.frames.begin(),
             trace.frames.end(),
             [](const cpptrace::stacktrace_frame& frame) {
-                return frame.filename.find("from_current_z.cpp") != std::string::npos
-                    && frame.symbol.find("lambda") == std::string::npos;
+                return frame.symbol.find("stacktrace_from_current_z_3") != std::string::npos;
             }
         );
         EXPECT_NE(it, trace.frames.end());
@@ -133,8 +134,7 @@ TEST(FromCurrentZ, RawTrace) {
             trace.frames.begin(),
             trace.frames.end(),
             [](const cpptrace::stacktrace_frame& frame) {
-                return frame.filename.find("from_current_z.cpp") != std::string::npos
-                    && frame.symbol.find("lambda") == std::string::npos;
+                return frame.symbol.find("stacktrace_from_current_z_3") != std::string::npos;
             }
         );
         EXPECT_NE(it, trace.frames.end());

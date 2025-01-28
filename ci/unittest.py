@@ -34,6 +34,7 @@ def build(runner: MatrixRunner):
             "-DCPPTRACE_STD_FORMAT=Off",
             "-DCPPTRACE_BUILD_TESTING=On",
             f"-DCPPTRACE_SANITIZER_BUILD={matrix['sanitizers']}",
+            f"-DCPPTRACE_BUILD_NO_SYMBOLS={matrix['symbols']}",
             f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['split_dwarf']}",
             f"-DCPPTRACE_BUILD_TESTING_DWARF_VERSION={matrix['dwarf_version']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
@@ -61,6 +62,7 @@ def build(runner: MatrixRunner):
             "-DCPPTRACE_STD_FORMAT=Off",
             "-DCPPTRACE_BUILD_TESTING=On",
             f"-DCPPTRACE_SANITIZER_BUILD={matrix['sanitizers']}",
+            f"-DCPPTRACE_BUILD_NO_SYMBOLS={matrix['symbols']}",
             # f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['split_dwarf']}",
             # f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['dwarf_version']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
@@ -122,6 +124,7 @@ def run_linux_matrix():
             "has_dl_find_object": ["OFF", "ON"],
             "split_dwarf": ["OFF", "ON"],
             "dwarf_version": ["4", "5"],
+            "symbols": ["On", "Off"],
         },
         exclude = [
             {
@@ -144,6 +147,7 @@ def run_macos_matrix():
             "build_type": ["Debug", "RelWithDebInfo"],
             "shared": ["OFF", "ON"],
             "dSYM": [True, False],
+            "symbols": ["On", "Off"],
         },
         exclude = [
             {

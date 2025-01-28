@@ -7,12 +7,6 @@ set(
   ${warning_options} $<$<CXX_COMPILER_ID:GNU>:-Wno-infinite-recursion>
 )
 
-set(
-  debug
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g>
-  $<$<CXX_COMPILER_ID:MSVC>:/DEBUG>
-)
-
 include(FetchContent)
 set(BENCHMARK_ENABLE_TESTING OFF)
 FetchContent_Declare(

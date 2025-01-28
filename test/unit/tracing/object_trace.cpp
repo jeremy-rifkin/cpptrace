@@ -5,7 +5,10 @@
 #include <gtest/gtest-matchers.h>
 #include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
+
 #include <cpptrace/cpptrace.hpp>
+
+#include "common.hpp"
 
 using namespace std::literals;
 
@@ -39,7 +42,7 @@ CPPTRACE_FORCE_NO_INLINE void object_basic_resolution() {
     auto line = __LINE__ + 1;
     auto trace = cpptrace::generate_object_trace().resolve();
     ASSERT_GE(trace.frames.size(), 1);
-    EXPECT_THAT(trace.frames[0].filename, testing::EndsWith("object_trace.cpp"));
+    EXPECT_FILE(trace.frames[0].filename, "object_trace.cpp");
     EXPECT_EQ(trace.frames[0].line.value(), line);
     EXPECT_THAT(trace.frames[0].symbol, testing::HasSubstr("object_basic_resolution"));
 }
@@ -75,20 +78,20 @@ CPPTRACE_FORCE_NO_INLINE int object_resolve_3(std::vector<int>& line_numbers) {
         return 2;
     }
     int i = 0;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("object_trace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "object_trace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("object_resolve_3"));
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("object_trace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "object_trace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("object_resolve_2"));
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("object_trace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "object_trace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("object_resolve_1"));
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("object_trace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "object_trace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("ObjectTrace_Resolution_Test::TestBody"));
     return 2;
 }

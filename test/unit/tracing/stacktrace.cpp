@@ -4,7 +4,10 @@
 #include <gtest/gtest-matchers.h>
 #include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
+
 #include <cpptrace/cpptrace.hpp>
+
+#include "common.hpp"
 
 using namespace std::literals;
 
@@ -29,8 +32,8 @@ CPPTRACE_FORCE_NO_INLINE void stacktrace_basic() {
     auto line = __LINE__ + 1;
     auto trace = cpptrace::generate_trace();
     ASSERT_GE(trace.frames.size(), 1);
-    EXPECT_THAT(trace.frames[0].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[0].line.value(), line);
+    EXPECT_FILE(trace.frames[0].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[0].line.value(), line);
     EXPECT_THAT(trace.frames[0].symbol, testing::HasSubstr("stacktrace_basic"));
 }
 
@@ -51,20 +54,20 @@ CPPTRACE_FORCE_NO_INLINE int stacktrace_multi_3(std::vector<int>& line_numbers) 
         return 2;
     }
     int i = 0;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_multi_3"));
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_multi_2"));
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_multi_1"));
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("Stacktrace_MultipleFrames_Test::TestBody"));
     return 2;
 }
@@ -114,25 +117,25 @@ TEST(Stacktrace, RawTraceResolution) {
     auto trace = raw.resolve();
     ASSERT_GE(trace.frames.size(), 4);
     int i = 0;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_raw_resolve_3"));
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_raw_resolve_2"));
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_raw_resolve_1"));
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("Stacktrace_RawTraceResolution_Test::TestBody"));
 }
 
 
-#ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
+#if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF) && !defined(CPPTRACE_BUILD_NO_SYMBOLS)
 CPPTRACE_FORCE_NO_INLINE int stacktrace_inline_resolution_3(std::vector<int>& line_numbers) {
     static volatile int lto_guard; lto_guard = lto_guard + 1;
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
@@ -142,29 +145,29 @@ CPPTRACE_FORCE_NO_INLINE int stacktrace_inline_resolution_3(std::vector<int>& li
         return 2;
     }
     int i = 0;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_inline_resolution_3"));
     EXPECT_FALSE(trace.frames[i].is_inline);
     EXPECT_NE(trace.frames[i].raw_address, 0);
     EXPECT_NE(trace.frames[i].object_address, 0);
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_inline_resolution_2"));
     EXPECT_TRUE(trace.frames[i].is_inline);
     EXPECT_EQ(trace.frames[i].raw_address, 0);
     EXPECT_EQ(trace.frames[i].object_address, 0);
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_inline_resolution_1"));
     EXPECT_FALSE(trace.frames[i].is_inline);
     EXPECT_NE(trace.frames[i].raw_address, 0);
     EXPECT_NE(trace.frames[i].object_address, 0);
     i++;
-    EXPECT_THAT(trace.frames[i].filename, testing::EndsWith("stacktrace.cpp"));
-    EXPECT_EQ(trace.frames[i].line.value(), line_numbers[i]);
+    EXPECT_FILE(trace.frames[i].filename, "stacktrace.cpp");
+    EXPECT_LINE(trace.frames[i].line.value(), line_numbers[i]);
     EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("Stacktrace_InlineResolution_Test::TestBody"));
     EXPECT_FALSE(trace.frames[i].is_inline);
     EXPECT_NE(trace.frames[i].raw_address, 0);
