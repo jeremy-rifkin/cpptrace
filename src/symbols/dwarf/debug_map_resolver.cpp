@@ -50,7 +50,7 @@ namespace libdwarf {
                 if(!obj) {
                     return this->symbols.unwrap();
                 }
-                auto symbol_table = obj.unwrap_value().symbol_table();
+                const auto& symbol_table = obj.unwrap_value().symbol_table();
                 if(!symbol_table) {
                     return this->symbols.unwrap();
                 }
@@ -100,7 +100,7 @@ namespace libdwarf {
         uint64_t size;
         std::string name;
         nullable<uint64_t> target_address; // T(-1) is used as a sentinel
-        std::size_t object_index;
+        std::size_t object_index; // index into target_objects
     };
 
     class debug_map_resolver : public symbol_resolver {
@@ -137,6 +137,7 @@ namespace libdwarf {
                 }
             }
             // sort for binary lookup later
+            // TODO: Redundant?
             std::sort(
                 symbols.begin(),
                 symbols.end(),

@@ -219,7 +219,7 @@ namespace detail {
 
     void mach_o::print_symbol_table_entry(
         const nlist_64& entry,
-        const std::unique_ptr<char[]>& stringtab,
+        const char* stringtab,
         std::size_t stringsize,
         std::size_t j
     ) const {
@@ -248,7 +248,7 @@ namespace detail {
             stringtab == nullptr
                 ? "Stringtab error"
                 : entry.n_un.n_strx < stringsize
-                    ? stringtab.get() + entry.n_un.n_strx
+                    ? stringtab + entry.n_un.n_strx
                     : "String index out of bounds"
         );
     }
@@ -286,7 +286,7 @@ namespace detail {
                     }
                     print_symbol_table_entry(
                         entry.unwrap_value(),
-                        std::move(stringtab).value_or(std::unique_ptr<char[]>(nullptr)),
+                        stringtab ? stringtab.unwrap_value().get() : nullptr,
                         symtab.strsize,
                         j
                     );
@@ -364,10 +364,17 @@ namespace detail {
         return debug_map;
     }
 
-    Result<std::vector<mach_o::symbol_entry>, internal_error> mach_o::symbol_table() {
+    Result<const std::vector<mach_o::symbol_entry>&, internal_error> mach_o::symbol_table() {
+        if(symbols) {
+            return symbols.unwrap();
+        }
+        if(tried_to_load_symbols) {
+            return internal_error("previous symbol table load failed");
+        }
+        tried_to_load_symbols = true;
+        std::vector<symbol_entry> symbol_table;
         // we have a bunch of symbols in our binary we need to pair up with symbols from various .o files
         // first collect symbols and the objects they come from
-        std::vector<symbol_entry> symbols;
         auto symtab_info_res = get_symtab_info();
         if(!symtab_info_res) {
             return std::move(symtab_info_res).unwrap_error();
@@ -394,13 +401,42 @@ namespace detail {
                 if(!str) {
                     return std::move(str).unwrap_error();
                 }
-                symbols.push_back({
+                symbol_table.push_back({
                     entry.n_value,
                     str.unwrap_value()
                 });
             }
         }
-        return symbols;
+        std::sort(
+            symbol_table.begin(),
+            symbol_table.end(),
+            [] (const symbol_entry& a, const symbol_entry& b) { return a.address < b.address; }
+        );
+        symbols = std::move(symbol_table);
+        return symbols.unwrap();
+    }
+
+    std::string mach_o::lookup_symbol(frame_ptr pc) {
+        auto symtab_ = symbol_table();
+        if(!symtab_) {
+            return "";
+        }
+        const auto& symtab = symtab_.unwrap_value();;
+        auto it = first_less_than_or_equal(
+            symtab.begin(),
+            symtab.end(),
+            pc,
+            [] (frame_ptr pc, const symbol_entry& entry) {
+                return pc < entry.address;
+            }
+        );
+        if(it == symtab.end()) {
+            return "";
+        }
+        ASSERT(pc >= it->address);
+        // TODO: We subtracted one from the address so name + diff won't show up in the objdump, decide if desirable
+        // to have an easier offset to lookup
+        return microfmt::format("{} + {}", it->name, pc - it->address);
     }
 
     // produce information similar to dsymutil -dump-debug-map
