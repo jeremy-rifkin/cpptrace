@@ -80,7 +80,7 @@ namespace detail {
 
     private:
         template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
-        T byteswap_if_needed(T value, bool elf_is_little);
+        T byteswap_if_needed(T value);
 
         Result<const header_info&, internal_error> get_header_info();
         template<std::size_t Bits>

@@ -79,9 +79,9 @@ namespace detail {
                 return std::move(loaded_ph).unwrap_error();
             }
             const PHeader& program_header = loaded_ph.unwrap_value();
-            if(byteswap_if_needed(program_header.p_type, is_little_endian) == PT_PHDR) {
-                return byteswap_if_needed(program_header.p_vaddr, is_little_endian) -
-                    byteswap_if_needed(program_header.p_offset, is_little_endian);
+            if(byteswap_if_needed(program_header.p_type) == PT_PHDR) {
+                return byteswap_if_needed(program_header.p_vaddr) -
+                    byteswap_if_needed(program_header.p_offset);
             }
         }
         // Apparently some objects like shared objects can end up missing this header. 0 as a base seems correct.
@@ -118,8 +118,8 @@ namespace detail {
     }
 
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type>
-    T elf::byteswap_if_needed(T value, bool elf_is_little) {
-        if(cpptrace::detail::is_little_endian() == elf_is_little) {
+    T elf::byteswap_if_needed(T value) {
+        if(cpptrace::detail::is_little_endian() == is_little_endian) {
             return value;
         } else {
             return byteswap(value);
@@ -155,12 +155,12 @@ namespace detail {
             return internal_error("ELF file header size mismatch" + object_path);
         }
         header_info info;
-        info.e_phoff = byteswap_if_needed(file_header.e_phoff, is_little_endian);
-        info.e_phnum = byteswap_if_needed(file_header.e_phnum, is_little_endian);
-        info.e_phentsize = byteswap_if_needed(file_header.e_phentsize, is_little_endian);
-        info.e_shoff = byteswap_if_needed(file_header.e_shoff, is_little_endian);
-        info.e_shnum = byteswap_if_needed(file_header.e_shnum, is_little_endian);
-        info.e_shentsize = byteswap_if_needed(file_header.e_shentsize, is_little_endian);
+        info.e_phoff = byteswap_if_needed(file_header.e_phoff);
+        info.e_phnum = byteswap_if_needed(file_header.e_phnum);
+        info.e_phentsize = byteswap_if_needed(file_header.e_phentsize);
+        info.e_shoff = byteswap_if_needed(file_header.e_shoff);
+        info.e_shnum = byteswap_if_needed(file_header.e_shnum);
+        info.e_shentsize = byteswap_if_needed(file_header.e_shentsize);
         header = info;
         return header.unwrap();
     }
@@ -196,12 +196,12 @@ namespace detail {
             }
             const SHeader& section_header = loaded_sh.unwrap_value();
             section_info info;
-            info.sh_type = byteswap_if_needed(section_header.sh_type, is_little_endian);
-            info.sh_addr = byteswap_if_needed(section_header.sh_addr, is_little_endian);
-            info.sh_offset = byteswap_if_needed(section_header.sh_offset, is_little_endian);
-            info.sh_size = byteswap_if_needed(section_header.sh_size, is_little_endian);
-            info.sh_entsize = byteswap_if_needed(section_header.sh_entsize, is_little_endian);
-            info.sh_link = byteswap_if_needed(section_header.sh_link, is_little_endian);
+            info.sh_type = byteswap_if_needed(section_header.sh_type);
+            info.sh_addr = byteswap_if_needed(section_header.sh_addr);
+            info.sh_offset = byteswap_if_needed(section_header.sh_offset);
+            info.sh_size = byteswap_if_needed(section_header.sh_size);
+            info.sh_entsize = byteswap_if_needed(section_header.sh_entsize);
+            info.sh_link = byteswap_if_needed(section_header.sh_link);
             sections.push_back(info);
         }
         did_load_sections = true;
@@ -291,12 +291,12 @@ namespace detail {
                 symtab.entries.reserve(buffer.size());
                 for(const auto& entry : buffer) {
                     symtab_entry normalized;
-                    normalized.st_name = byteswap_if_needed(entry.st_name, is_little_endian);
-                    normalized.st_info = byteswap_if_needed(entry.st_info, is_little_endian);
-                    normalized.st_other = byteswap_if_needed(entry.st_other, is_little_endian);
-                    normalized.st_shndx = byteswap_if_needed(entry.st_shndx, is_little_endian);
-                    normalized.st_value = byteswap_if_needed(entry.st_value, is_little_endian);
-                    normalized.st_size = byteswap_if_needed(entry.st_size, is_little_endian);
+                    normalized.st_name = byteswap_if_needed(entry.st_name);
+                    normalized.st_info = byteswap_if_needed(entry.st_info);
+                    normalized.st_other = byteswap_if_needed(entry.st_other);
+                    normalized.st_shndx = byteswap_if_needed(entry.st_shndx);
+                    normalized.st_value = byteswap_if_needed(entry.st_value);
+                    normalized.st_size = byteswap_if_needed(entry.st_size);
                     symtab.entries.push_back(normalized);
                 }
                 std::sort(symtab.entries.begin(), symtab.entries.end(), [] (const symtab_entry& a, const symtab_entry& b) {
