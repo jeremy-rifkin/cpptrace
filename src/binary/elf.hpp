@@ -76,7 +76,7 @@ namespace detail {
         Result<std::uintptr_t, internal_error> get_module_image_base_impl();
 
     public:
-        std::string lookup_symbol(frame_ptr pc);
+        optional<std::string> lookup_symbol(frame_ptr pc);
 
     private:
         template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>

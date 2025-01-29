@@ -112,7 +112,7 @@ namespace detail {
 
         Result<const std::vector<symbol_entry>&, internal_error> symbol_table();
 
-        std::string lookup_symbol(frame_ptr pc);
+        optional<std::string> lookup_symbol(frame_ptr pc);
 
         // produce information similar to dsymutil -dump-debug-map
         static void print_debug_map(const debug_map& debug_map);

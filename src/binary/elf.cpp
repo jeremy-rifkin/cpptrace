@@ -1,4 +1,5 @@
 #include "binary/elf.hpp"
+#include "utils/optional.hpp"
 
 #if IS_LINUX
 
@@ -88,23 +89,23 @@ namespace detail {
         return 0;
     }
 
-    std::string elf::lookup_symbol(frame_ptr pc) {
+    optional<std::string> elf::lookup_symbol(frame_ptr pc) {
         // TODO: Also search the SHT_DYNSYM at some point, maybe
         auto symtab_ = get_symtab();
         if(symtab_.is_error()) {
-            return "";
+            return nullopt;
         }
         auto& maybe_symtab = symtab_.unwrap_value();
         if(!maybe_symtab) {
-            return "";
+            return nullopt;
         }
         auto& symtab = maybe_symtab.unwrap();
         if(symtab.strtab_link == SHN_UNDEF) {
-            return "";
+            return nullopt;
         }
         auto strtab_ = get_strtab(symtab.strtab_link);
         if(strtab_.is_error()) {
-            return "";
+            return nullopt;
         }
         auto& strtab = strtab_.unwrap_value();
         auto it = first_less_than_or_equal(
@@ -116,12 +117,12 @@ namespace detail {
             }
         );
         if(it == symtab.entries.end()) {
-            return "";
+            return nullopt;
         }
         if(pc <= it->st_value + it->st_size) {
             return strtab.data() + it->st_name;
         }
-        return "";
+        return nullopt;
     }
 
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type>

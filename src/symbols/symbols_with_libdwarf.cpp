@@ -116,7 +116,7 @@ namespace libdwarf {
                     }
                     #if IS_LINUX || IS_APPLE
                     if(frame.frame.symbol.empty() && object.has_value()) {
-                        frame.frame.symbol = object.unwrap_value().lookup_symbol(dlframe.object_address);
+                        frame.frame.symbol = object.unwrap_value().lookup_symbol(dlframe.object_address).value_or("");
                     }
                     #endif
                 }

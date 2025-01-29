@@ -416,10 +416,10 @@ namespace detail {
         return symbols.unwrap();
     }
 
-    std::string mach_o::lookup_symbol(frame_ptr pc) {
+    optional<std::string> mach_o::lookup_symbol(frame_ptr pc) {
         auto symtab_ = symbol_table();
         if(!symtab_) {
-            return "";
+            return nullopt;
         }
         const auto& symtab = symtab_.unwrap_value();;
         auto it = first_less_than_or_equal(
@@ -431,7 +431,7 @@ namespace detail {
             }
         );
         if(it == symtab.end()) {
-            return "";
+            return nullopt;
         }
         ASSERT(pc >= it->address);
         // TODO: We subtracted one from the address so name + diff won't show up in the objdump, decide if desirable
