@@ -91,14 +91,17 @@ namespace detail {
     std::string elf::lookup_symbol(frame_ptr pc) {
         // TODO: Also search the SHT_DYNSYM at some point, maybe
         auto symtab_ = get_symtab();
-        if(
-            symtab_.is_error()
-            || symtab_.unwrap_value().strtab_link == SHN_UNDEF
-            || symtab_.unwrap_value().entries.empty()
-        ) {
+        if(symtab_.is_error()) {
             return "";
         }
-        auto& symtab = symtab_.unwrap_value();
+        auto& maybe_symtab = symtab_.unwrap_value();
+        if(!maybe_symtab) {
+            return "";
+        }
+        auto& symtab = maybe_symtab.unwrap();
+        if(symtab.strtab_link == SHN_UNDEF) {
+            return "";
+        }
         auto strtab_ = get_strtab(symtab.strtab_link);
         if(strtab_.is_error()) {
             return "";
@@ -250,7 +253,7 @@ namespace detail {
         return entry.data;
     }
 
-    Result<const elf::symtab_info&, internal_error> elf::get_symtab() {
+    Result<const optional<elf::symtab_info>&, internal_error> elf::get_symtab() {
         if(did_load_symtab) {
             return symtab;
         }
@@ -266,7 +269,7 @@ namespace detail {
     }
 
     template<std::size_t Bits>
-    Result<const elf::symtab_info&, internal_error> elf::get_symtab_impl() {
+    Result<const optional<elf::symtab_info>&, internal_error> elf::get_symtab_impl() {
         // https://refspecs.linuxfoundation.org/elf/elf.pdf
         // page 66: only one sht_symtab and sht_dynsym section per file
         // page 32: symtab spec
@@ -292,7 +295,8 @@ namespace detail {
                 if(std::fread(buffer.data(), section.sh_entsize, buffer.size(), file) != buffer.size()) {
                     return internal_error("fread error while loading elf symbol table");
                 }
-                symtab.entries.reserve(buffer.size());
+                symtab = symtab_info{};
+                symtab.unwrap().entries.reserve(buffer.size());
                 for(const auto& entry : buffer) {
                     symtab_entry normalized;
                     normalized.st_name = byteswap_if_needed(entry.st_name);
@@ -301,12 +305,16 @@ namespace detail {
                     normalized.st_shndx = byteswap_if_needed(entry.st_shndx);
                     normalized.st_value = byteswap_if_needed(entry.st_value);
                     normalized.st_size = byteswap_if_needed(entry.st_size);
-                    symtab.entries.push_back(normalized);
+                    symtab.unwrap().entries.push_back(normalized);
                 }
-                std::sort(symtab.entries.begin(), symtab.entries.end(), [] (const symtab_entry& a, const symtab_entry& b) {
-                    return a.st_value < b.st_value;
-                });
-                symtab.strtab_link = section.sh_link;
+                std::sort(
+                    symtab.unwrap().entries.begin(),
+                    symtab.unwrap().entries.end(),
+                    [] (const symtab_entry& a, const symtab_entry& b) {
+                        return a.st_value < b.st_value;
+                    }
+                );
+                symtab.unwrap().strtab_link = section.sh_link;
                 did_load_symtab = true;
                 return symtab;
             }

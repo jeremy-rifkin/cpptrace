@@ -62,7 +62,7 @@ namespace detail {
         };
         bool tried_to_load_symtab = false;
         bool did_load_symtab = false;
-        symtab_info symtab;
+        optional<symtab_info> symtab;
 
         elf(file_wrapper file, const std::string& object_path, bool is_little_endian, bool is_64);
 
@@ -92,9 +92,9 @@ namespace detail {
 
         Result<const std::vector<char>&, internal_error> get_strtab(std::size_t index);
 
-        Result<const symtab_info&, internal_error> get_symtab();
+        Result<const optional<symtab_info>&, internal_error> get_symtab();
         template<std::size_t Bits>
-        Result<const symtab_info&, internal_error> get_symtab_impl();
+        Result<const optional<symtab_info>&, internal_error> get_symtab_impl();
     };
 }
 }
