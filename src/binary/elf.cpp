@@ -8,7 +8,7 @@
 #include <cstring>
 #include <type_traits>
 
-#include <elf.h>
+#include "binary/defs/elf_defs.hpp"
 
 namespace cpptrace {
 namespace detail {

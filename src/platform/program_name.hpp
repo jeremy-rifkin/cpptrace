@@ -39,8 +39,12 @@ namespace detail {
 #elif IS_APPLE
 
 #include <cstdint>
-#include <mach-o/dyld.h>
+// #include <mach-o/dyld.h>
 #include <sys/syslimits.h>
+
+// https://github.com/opensource-apple/dyld/blob/3f928f32597888c5eac6003b9199d972d49857b5/include/mach-o/dyld.h#L92C1-L92C62
+// https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/dyld.3.html
+extern int _NSGetExecutablePath(char* buf, uint32_t* bufsize);
 
 #define CPPTRACE_MAX_PATH CPPTRACE_PATH_MAX
 

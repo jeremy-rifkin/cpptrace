@@ -13,9 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <mach-o/arch.h>
-#include <mach-o/loader.h>
-#include <mach-o/nlist.h>
+#include "binary/defs/mach-o-defs.hpp"
 
 namespace cpptrace {
 namespace detail {

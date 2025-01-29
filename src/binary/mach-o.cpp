@@ -19,16 +19,20 @@
 #include <iostream>
 #include <iomanip>
 
-#include <mach-o/loader.h>
-#include <mach-o/swap.h>
-#include <mach-o/fat.h>
-#include <crt_externs.h>
-#include <mach-o/nlist.h>
-#include <mach-o/stab.h>
-#include <mach-o/arch.h>
+#include "binary/defs/mach-o-defs.hpp"
+
+// #include <mach-o/loader.h>
+// #include <mach-o/swap.h>
+// #include <mach-o/fat.h>
+// #include <crt_externs.h>
+// #include <mach-o/nlist.h>
+// #include <mach-o/stab.h>
+// #include <mach-o/arch.h>
 
 namespace cpptrace {
 namespace detail {
+    // TODO: 64-bit fat??
+
     bool is_mach_o(std::uint32_t magic) {
         switch(magic) {
             case FAT_MAGIC:
@@ -71,27 +75,89 @@ namespace detail {
     }
 
     void swap_mach_header(mach_header_64& header) {
-        swap_mach_header_64(&header, NX_UnknownByteOrder);
+        header.magic = byteswap(header.magic);
+        header.cputype = byteswap(header.cputype);
+        header.cpusubtype = byteswap(header.cpusubtype);
+        header.filetype = byteswap(header.filetype);
+        header.ncmds = byteswap(header.ncmds);
+        header.sizeofcmds = byteswap(header.sizeofcmds);
+        header.flags = byteswap(header.flags);
+        header.reserved = byteswap(header.reserved);
     }
 
     void swap_mach_header(mach_header& header) {
-        swap_mach_header(&header, NX_UnknownByteOrder);
+        header.magic = byteswap(header.magic);
+        header.cputype = byteswap(header.cputype);
+        header.cpusubtype = byteswap(header.cpusubtype);
+        header.filetype = byteswap(header.filetype);
+        header.ncmds = byteswap(header.ncmds);
+        header.sizeofcmds = byteswap(header.sizeofcmds);
+        header.flags = byteswap(header.flags);
     }
 
     void swap_segment_command(segment_command_64& segment) {
-        swap_segment_command_64(&segment, NX_UnknownByteOrder);
+        segment.cmd = byteswap(segment.cmd);
+        segment.cmdsize = byteswap(segment.cmdsize);
+        segment.vmaddr = byteswap(segment.vmaddr);
+        segment.vmsize = byteswap(segment.vmsize);
+        segment.fileoff = byteswap(segment.fileoff);
+        segment.filesize = byteswap(segment.filesize);
+        segment.maxprot = byteswap(segment.maxprot);
+        segment.initprot = byteswap(segment.initprot);
+        segment.nsects = byteswap(segment.nsects);
+        segment.flags = byteswap(segment.flags);
     }
 
     void swap_segment_command(segment_command& segment) {
-        swap_segment_command(&segment, NX_UnknownByteOrder);
+        segment.cmd = byteswap(segment.cmd);
+        segment.cmdsize = byteswap(segment.cmdsize);
+        segment.vmaddr = byteswap(segment.vmaddr);
+        segment.vmsize = byteswap(segment.vmsize);
+        segment.fileoff = byteswap(segment.fileoff);
+        segment.filesize = byteswap(segment.filesize);
+        segment.maxprot = byteswap(segment.maxprot);
+        segment.initprot = byteswap(segment.initprot);
+        segment.nsects = byteswap(segment.nsects);
+        segment.flags = byteswap(segment.flags);
     }
 
-    void swap_nlist(struct nlist& entry) {
-        swap_nlist(&entry, 1, NX_UnknownByteOrder);
+    void swap_symtab_command(symtab_command& symtab) {
+        symtab.cmd = byteswap(symtab.cmd);
+        symtab.cmdsize = byteswap(symtab.cmdsize);
+        symtab.symoff = byteswap(symtab.symoff);
+        symtab.nsyms = byteswap(symtab.nsyms);
+        symtab.stroff = byteswap(symtab.stroff);
+        symtab.strsize = byteswap(symtab.strsize);
     }
 
-    void swap_nlist(struct nlist_64& entry) {
-        swap_nlist_64(&entry, 1, NX_UnknownByteOrder);
+    void swap_nlist(nlist& entry) {
+        entry.n_un.n_strx = byteswap(entry.n_un.n_strx);
+        entry.n_desc = byteswap(entry.n_desc);
+        entry.n_value = byteswap(entry.n_value);
+    }
+
+    void swap_nlist(nlist_64& entry) {
+        entry.n_un.n_strx = byteswap(entry.n_un.n_strx);
+        entry.n_desc = byteswap(entry.n_desc);
+        entry.n_value = byteswap(entry.n_value);
+    }
+
+    void swap_load_command(load_command& command) {
+        command.cmd = byteswap(command.cmd);
+        command.cmdsize = byteswap(command.cmdsize);
+    }
+
+    void swap_fat_header(fat_header& header) {
+        header.magic = byteswap(header.magic);
+        header.nfat_arch = byteswap(header.nfat_arch);
+    }
+
+    void swap_fat_arch(fat_arch& arch) {
+        arch.cputype = byteswap(arch.cputype);
+        arch.cpusubtype = byteswap(arch.cpusubtype);
+        arch.offset = byteswap(arch.offset);
+        arch.size = byteswap(arch.size);
+        arch.align = byteswap(arch.align);
     }
 
     #ifdef __LP64__
@@ -491,7 +557,7 @@ namespace detail {
             }
             load_command& cmd = load_cmd.unwrap_value();
             if(should_swap()) {
-                swap_load_command(&cmd, NX_UnknownByteOrder);
+                swap_load_command(cmd);
             }
             load_commands.push_back({ actual_offset, cmd.cmd, cmd.cmdsize });
             actual_offset += cmd.cmdsize;
@@ -508,7 +574,7 @@ namespace detail {
         }
         fat_header& header = load_header.unwrap_value();
         if(should_swap()) {
-            swap_fat_header(&header, NX_UnknownByteOrder);
+            swap_fat_header(header);
         }
         // thread_local static struct LP(mach_header)* mhp = _NSGetMachExecuteHeader();
         // off_t arch_offset = (off_t)header_size;
@@ -546,7 +612,7 @@ namespace detail {
             }
             fat_arch& arch = load_arch.unwrap_value();
             if(should_swap()) {
-                swap_fat_arch(&arch, 1, NX_UnknownByteOrder);
+                swap_fat_arch(arch);
             }
             fat_arches.push_back(arch);
             arch_offset += arch_size;
@@ -614,7 +680,7 @@ namespace detail {
         symtab_command& symtab = load_symtab.unwrap_value();
         ASSERT(symtab.cmd == LC_SYMTAB);
         if(should_swap()) {
-            swap_symtab_command(&symtab, NX_UnknownByteOrder);
+            swap_symtab_command(symtab);
         }
         return symtab;
     }
