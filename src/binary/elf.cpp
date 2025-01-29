@@ -91,7 +91,11 @@ namespace detail {
     std::string elf::lookup_symbol(frame_ptr pc) {
         // TODO: Also search the SHT_DYNSYM at some point, maybe
         auto symtab_ = get_symtab();
-        if(symtab_.is_error()) {
+        if(
+            symtab_.is_error()
+            || symtab_.unwrap_value().strtab_link == SHN_UNDEF
+            || symtab_.unwrap_value().entries.empty()
+        ) {
             return "";
         }
         auto& symtab = symtab_.unwrap_value();
