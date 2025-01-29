@@ -64,6 +64,10 @@ namespace detail {
         bool did_load_symtab = false;
         optional<symtab_info> symtab;
 
+        bool tried_to_load_dynamic_symtab = false;
+        bool did_load_dynamic_symtab = false;
+        optional<symtab_info> dynamic_symtab;
+
         elf(file_wrapper file, const std::string& object_path, bool is_little_endian, bool is_64);
 
     public:
@@ -77,6 +81,8 @@ namespace detail {
 
     public:
         optional<std::string> lookup_symbol(frame_ptr pc);
+    private:
+        optional<std::string> lookup_symbol(frame_ptr pc, const optional<symtab_info>& maybe_symtab);
 
     private:
         template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
@@ -93,8 +99,9 @@ namespace detail {
         Result<const std::vector<char>&, internal_error> get_strtab(std::size_t index);
 
         Result<const optional<symtab_info>&, internal_error> get_symtab();
+        Result<const optional<symtab_info>&, internal_error> get_dynamic_symtab();
         template<std::size_t Bits>
-        Result<const optional<symtab_info>&, internal_error> get_symtab_impl();
+        Result<optional<symtab_info>, internal_error> get_symtab_impl(bool dynamic);
     };
 }
 }

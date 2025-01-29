@@ -90,12 +90,20 @@ namespace detail {
     }
 
     optional<std::string> elf::lookup_symbol(frame_ptr pc) {
-        // TODO: Also search the SHT_DYNSYM at some point, maybe
-        auto symtab_ = get_symtab();
-        if(symtab_.is_error()) {
-            return nullopt;
+        if(auto symtab = get_symtab()) {
+            if(auto symbol = lookup_symbol(pc, symtab.unwrap_value())) {
+                return symbol;
+            }
         }
-        auto& maybe_symtab = symtab_.unwrap_value();
+        if(auto dynamic_symtab = get_dynamic_symtab()) {
+            if(auto symbol = lookup_symbol(pc, dynamic_symtab.unwrap_value())) {
+                return symbol;
+            }
+        }
+        return nullopt;
+    }
+
+    optional<std::string> elf::lookup_symbol(frame_ptr pc, const optional<symtab_info>& maybe_symtab) {
         if(!maybe_symtab) {
             return nullopt;
         }
@@ -259,18 +267,61 @@ namespace detail {
             return symtab;
         }
         if(tried_to_load_symtab) {
-            return internal_error("previous strtab load failed {}", object_path);
+            return internal_error("previous symtab load failed {}", object_path);
         }
         tried_to_load_symtab = true;
         if(is_64) {
-            return get_symtab_impl<64>();
+            auto res = get_symtab_impl<64>(false);
+            if(res.has_value()) {
+                symtab = std::move(res).unwrap_value();
+                did_load_symtab = true;
+                return symtab;
+            } else {
+                return std::move(res).unwrap_error();
+            }
         } else {
-            return get_symtab_impl<32>();
+            auto res = get_symtab_impl<32>(false);
+            if(res.has_value()) {
+                symtab = std::move(res).unwrap_value();
+                did_load_symtab = true;
+                return symtab;
+            } else {
+                return std::move(res).unwrap_error();
+            }
+        }
+    }
+
+    Result<const optional<elf::symtab_info>&, internal_error> elf::get_dynamic_symtab() {
+        if(did_load_dynamic_symtab) {
+            return dynamic_symtab;
+        }
+        if(tried_to_load_dynamic_symtab) {
+            return internal_error("previous dynamic symtab load failed {}", object_path);
+        }
+        tried_to_load_dynamic_symtab = true;
+        if(is_64) {
+            auto res = get_symtab_impl<64>(true);
+            if(res.has_value()) {
+                dynamic_symtab = std::move(res).unwrap_value();
+                did_load_dynamic_symtab = true;
+                return dynamic_symtab;
+            } else {
+                return std::move(res).unwrap_error();
+            }
+        } else {
+            auto res = get_symtab_impl<32>(true);
+            if(res.has_value()) {
+                dynamic_symtab = std::move(res).unwrap_value();
+                did_load_dynamic_symtab = true;
+                return dynamic_symtab;
+            } else {
+                return std::move(res).unwrap_error();
+            }
         }
     }
 
     template<std::size_t Bits>
-    Result<const optional<elf::symtab_info>&, internal_error> elf::get_symtab_impl() {
+    Result<optional<elf::symtab_info>, internal_error> elf::get_symtab_impl(bool dynamic) {
         // https://refspecs.linuxfoundation.org/elf/elf.pdf
         // page 66: only one sht_symtab and sht_dynsym section per file
         // page 32: symtab spec
@@ -281,8 +332,9 @@ namespace detail {
             return std::move(sections_).unwrap_error();
         }
         const auto& sections = sections_.unwrap_value();
+        optional<symtab_info> symbol_table;
         for(const auto& section : sections) {
-            if(section.sh_type == SHT_SYMTAB) {
+            if(section.sh_type == (dynamic ? SHT_DYNSYM : SHT_SYMTAB)) {
                 if(section.sh_entsize != sizeof(SymEntry)) {
                     return internal_error("elf seems corrupted, sym entry mismatch {}", object_path);
                 }
@@ -296,8 +348,8 @@ namespace detail {
                 if(std::fread(buffer.data(), section.sh_entsize, buffer.size(), file) != buffer.size()) {
                     return internal_error("fread error while loading elf symbol table");
                 }
-                symtab = symtab_info{};
-                symtab.unwrap().entries.reserve(buffer.size());
+                symbol_table = symtab_info{};
+                symbol_table.unwrap().entries.reserve(buffer.size());
                 for(const auto& entry : buffer) {
                     symtab_entry normalized;
                     normalized.st_name = byteswap_if_needed(entry.st_name);
@@ -306,23 +358,20 @@ namespace detail {
                     normalized.st_shndx = byteswap_if_needed(entry.st_shndx);
                     normalized.st_value = byteswap_if_needed(entry.st_value);
                     normalized.st_size = byteswap_if_needed(entry.st_size);
-                    symtab.unwrap().entries.push_back(normalized);
+                    symbol_table.unwrap().entries.push_back(normalized);
                 }
                 std::sort(
-                    symtab.unwrap().entries.begin(),
-                    symtab.unwrap().entries.end(),
+                    symbol_table.unwrap().entries.begin(),
+                    symbol_table.unwrap().entries.end(),
                     [] (const symtab_entry& a, const symtab_entry& b) {
                         return a.st_value < b.st_value;
                     }
                 );
-                symtab.unwrap().strtab_link = section.sh_link;
-                did_load_symtab = true;
-                return symtab;
+                symbol_table.unwrap().strtab_link = section.sh_link;
+                break;
             }
         }
-        // OK to not have a symbol table
-        did_load_symtab = true;
-        return symtab;
+        return symbol_table;
     }
 }
 }
