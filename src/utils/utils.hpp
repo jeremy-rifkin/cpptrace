@@ -189,6 +189,13 @@ namespace detail {
         return static_cast<U>(v);
     }
 
+    template<typename T, typename U = T>
+    T exchange(T& obj, U&& value) {
+        T old = std::move(obj);
+        obj = std::forward<U>(value);
+        return old;
+    }
+
     struct monostate {};
 
     // TODO: Rework some stuff here. Not sure deleters should be optional or moved.

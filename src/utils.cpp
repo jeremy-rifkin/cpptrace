@@ -1,5 +1,6 @@
 #include <cpptrace/utils.hpp>
 #include <cpptrace/exceptions.hpp>
+#include <cpptrace/formatting.hpp>
 
 #include <iostream>
 
@@ -27,12 +28,9 @@ namespace cpptrace {
 
     CPPTRACE_FORCE_NO_INLINE void print_terminate_trace() {
         try { // try/catch can never be hit but it's needed to prevent TCO
-            generate_trace(1).print(
-                std::cerr,
-                isatty(stderr_fileno),
-                true,
-                "Stack trace to reach terminate handler (most recent call first):"
-            );
+            formatter{}
+                .set_header("Stack trace to reach terminate handler (most recent call first):")
+                .print(std::cerr, generate_trace(1));
         } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;

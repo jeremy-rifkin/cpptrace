@@ -1,4 +1,5 @@
 #include <cpptrace/cpptrace.hpp>
+#include <cpptrace/formatting.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -9,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "cpptrace/basic.hpp"
 #include "symbols/symbols.hpp"
 #include "unwind/unwind.hpp"
 #include "demangle/demangle.hpp"
@@ -129,41 +131,13 @@ namespace cpptrace {
         return detail::get_frame_object_info(raw_address);
     }
 
-    static std::string frame_to_string(
-        bool color,
-        const stacktrace_frame& frame
-    ) {
-        const auto reset   = color ? RESET : "";
-        const auto green   = color ? GREEN : "";
-        const auto yellow  = color ? YELLOW : "";
-        const auto blue    = color ? BLUE : "";
-        std::string str;
-        if(frame.is_inline) {
-            str += microfmt::format("{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
-        } else {
-            str += microfmt::format("{}0x{>{}:0h}{}", blue, 2 * sizeof(frame_ptr), frame.raw_address, reset);
-        }
-        if(!frame.symbol.empty()) {
-            str += microfmt::format(" in {}{}{}", yellow, frame.symbol, reset);
-        }
-        if(!frame.filename.empty()) {
-            str += microfmt::format(" at {}{}{}", green, frame.filename, reset);
-            if(frame.line.has_value()) {
-                str += microfmt::format(":{}{}{}", blue, frame.line.value(), reset);
-                if(frame.column.has_value()) {
-                    str += microfmt::format(":{}{}{}", blue, frame.column.value(), reset);
-                }
-            }
-        }
-        return str;
-    }
-
     std::string stacktrace_frame::to_string() const {
         return to_string(false);
     }
 
     std::string stacktrace_frame::to_string(bool color) const {
-        return frame_to_string(color, *this);
+        // return frame_to_string(color, *this);
+        return get_default_formatter().format(*this, color);
     }
 
     std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame) {
@@ -195,89 +169,34 @@ namespace cpptrace {
     }
 
     void stacktrace::print() const {
-        print(std::cerr, true);
+        get_default_formatter().print(*this);
     }
 
     void stacktrace::print(std::ostream& stream) const {
-        print(stream, true);
+        get_default_formatter().print(stream, *this);
     }
 
     void stacktrace::print(std::ostream& stream, bool color) const {
-        print(stream, color, true, nullptr);
+        get_default_formatter().print(stream, *this, color);
     }
 
-    static void print_frame(
-        std::ostream& stream,
-        bool color,
-        unsigned frame_number_width,
-        std::size_t counter,
-        const stacktrace_frame& frame
-    ) {
-        std::string line = microfmt::format("#{<{}} {}", frame_number_width, counter, frame.to_string(color));
-        stream << line;
-    }
-
-    void stacktrace::print(std::ostream& stream, bool color, bool newline_at_end, const char* header) const {
-        if(
-            color && (
-                (&stream == &std::cout && isatty(stdout_fileno)) || (&stream == &std::cerr && isatty(stderr_fileno))
-            )
-        ) {
-            detail::enable_virtual_terminal_processing_if_needed();
-        }
-        stream << (header ? header : "Stack trace (most recent call first):") << '\n';
-        std::size_t counter = 0;
-        if(frames.empty()) {
-            stream << "<empty trace>\n";
-            return;
-        }
-        const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
-        for(const auto& frame : frames) {
-            print_frame(stream, color, frame_number_width, counter, frame);
-            if(newline_at_end || &frame != &frames.back()) {
-                stream << '\n';
-            }
-            counter++;
+    namespace detail {
+        const formatter& get_default_snippet_formatter() {
+            static formatter snippet_formatter = formatter{}.set_snippets(true);
+            return snippet_formatter;
         }
     }
 
     void stacktrace::print_with_snippets() const {
-        print_with_snippets(std::cerr, true);
+        detail::get_default_snippet_formatter().print(*this);
     }
 
     void stacktrace::print_with_snippets(std::ostream& stream) const {
-        print_with_snippets(stream, true);
+        detail::get_default_snippet_formatter().print(stream, *this);
     }
 
     void stacktrace::print_with_snippets(std::ostream& stream, bool color) const {
-        print_with_snippets(stream, color, true, nullptr);
-    }
-
-    void stacktrace::print_with_snippets(std::ostream& stream, bool color, bool newline_at_end, const char* header) const {
-        if(
-            color && (
-                (&stream == &std::cout && isatty(stdout_fileno)) || (&stream == &std::cerr && isatty(stderr_fileno))
-            )
-        ) {
-            detail::enable_virtual_terminal_processing_if_needed();
-        }
-        stream << (header ? header : "Stack trace (most recent call first):") << '\n';
-        std::size_t counter = 0;
-        if(frames.empty()) {
-            stream << "<empty trace>" << '\n';
-            return;
-        }
-        const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
-        for(const auto& frame : frames) {
-            print_frame(stream, color, frame_number_width, counter, frame);
-            if(newline_at_end || &frame != &frames.back()) {
-                stream << '\n';
-            }
-            if(frame.line.has_value() && !frame.filename.empty()) {
-                stream << detail::get_snippet(frame.filename, frame.line.value(), 2, color);
-            }
-            counter++;
-        }
+        detail::get_default_snippet_formatter().print(stream, *this, color);
     }
 
     void stacktrace::clear() {
@@ -289,13 +208,12 @@ namespace cpptrace {
     }
 
     std::string stacktrace::to_string(bool color) const {
-        std::ostringstream oss;
-        print(oss, color, false, nullptr);
-        return std::move(oss).str();
+        return get_default_formatter().format(*this, color);
     }
 
     std::ostream& operator<<(std::ostream& stream, const stacktrace& trace) {
-        return stream << trace.to_string();
+        get_default_formatter().print(stream, trace);
+        return stream;
     }
 
     CPPTRACE_FORCE_NO_INLINE
