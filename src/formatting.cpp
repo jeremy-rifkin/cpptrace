@@ -21,7 +21,7 @@ namespace cpptrace {
             bool snippets = false;
             int context_lines = 2;
             bool columns = true;
-            std::function<bool(const stacktrace_frame&)> filter = [] (const stacktrace_frame&) { return true; };
+            std::function<bool(const stacktrace_frame&)> filter;
         } options;
 
     public:
@@ -139,6 +139,10 @@ namespace cpptrace {
             }
             const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
             for(const auto& frame : frames) {
+                if(options.filter && !options.filter(frame)) {
+                    counter++;
+                    continue;
+                }
                 print_frame_internal(stream, frame, color, frame_number_width, counter);
                 if(newline_at_end || &frame != &frames.back()) {
                     stream << '\n';
