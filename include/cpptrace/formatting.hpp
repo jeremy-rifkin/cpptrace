@@ -9,7 +9,7 @@
 
 namespace cpptrace {
     class CPPTRACE_EXPORT formatter {
-        class impl;
+        class CPPTRACE_EXPORT impl;
         std::unique_ptr<impl> pimpl;
 
     public:
