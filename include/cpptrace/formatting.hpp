@@ -16,9 +16,9 @@ namespace cpptrace {
         formatter();
         ~formatter();
 
-        formatter(formatter&&) = default;
+        formatter(formatter&&);
         formatter(const formatter&);
-        formatter& operator=(formatter&&) = default;
+        formatter& operator=(formatter&&);
         formatter& operator=(const formatter&);
 
         formatter& set_header(std::string);

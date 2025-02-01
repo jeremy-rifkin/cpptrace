@@ -202,7 +202,9 @@ namespace cpptrace {
     formatter::formatter() : pimpl(std::unique_ptr<impl>(new impl)) {}
     formatter::~formatter() = default;
 
+    formatter::formatter(formatter&&) = default;
     formatter::formatter(const formatter& other) : pimpl(std::unique_ptr<impl>(new impl(*other.pimpl))) {}
+    formatter& formatter::operator=(formatter&&) = default;
     formatter& formatter::operator=(const formatter& other) {
         pimpl = std::unique_ptr<impl>(new impl(*other.pimpl));
         return *this;
