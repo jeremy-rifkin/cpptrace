@@ -144,11 +144,20 @@ namespace cpptrace {
                     continue;
                 }
                 print_frame_internal(stream, frame, color, frame_number_width, counter);
+                if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
+                    auto snippet = detail::get_snippet(
+                        frame.filename,
+                        frame.line.value(),
+                        options.context_lines,
+                        color
+                    );
+                    if(!snippet.empty()) {
+                        stream << '\n';
+                        stream << snippet;
+                    }
+                }
                 if(newline_at_end || &frame != &frames.back()) {
                     stream << '\n';
-                }
-                if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
-                    stream << detail::get_snippet(frame.filename, frame.line.value(), options.context_lines, color);
                 }
                 counter++;
             }

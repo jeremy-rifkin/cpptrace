@@ -135,7 +135,10 @@ namespace detail {
             if(color && line == target_line) {
                 snippet += RESET;
             }
-            snippet += lines[line - original_begin] + "\n";
+            snippet += lines[line - original_begin];
+            if(line != end) {
+                snippet += '\n';
+            }
         }
         return snippet;
     }
