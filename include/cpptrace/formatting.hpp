@@ -9,8 +9,9 @@
 
 namespace cpptrace {
     class CPPTRACE_EXPORT formatter {
-        class CPPTRACE_EXPORT impl;
-        std::unique_ptr<impl> pimpl;
+        class impl;
+        // can't be a std::unique_ptr due to msvc awfulness with dllimport/dllexport and https://stackoverflow.com/q/4145605/15675011
+        impl* pimpl;
 
     public:
         formatter();

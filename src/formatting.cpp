@@ -212,14 +212,25 @@ namespace cpptrace {
         }
     };
 
-    formatter::formatter() : pimpl(std::unique_ptr<impl>(new impl)) {}
-    formatter::~formatter() = default;
+    formatter::formatter() : pimpl(new impl) {}
+    formatter::~formatter() {
+        delete pimpl;
+    }
 
-    formatter::formatter(formatter&&) = default;
-    formatter::formatter(const formatter& other) : pimpl(std::unique_ptr<impl>(new impl(*other.pimpl))) {}
-    formatter& formatter::operator=(formatter&&) = default;
+    formatter::formatter(formatter&& other) : pimpl(detail::exchange(other.pimpl, nullptr)) {}
+    formatter::formatter(const formatter& other) : pimpl(new impl(*other.pimpl)) {}
+    formatter& formatter::operator=(formatter&& other) {
+        if(pimpl) {
+            delete pimpl;
+        }
+        pimpl = detail::exchange(other.pimpl, nullptr);
+        return *this;
+    }
     formatter& formatter::operator=(const formatter& other) {
-        pimpl = std::unique_ptr<impl>(new impl(*other.pimpl));
+        if(pimpl) {
+            delete pimpl;
+        }
+        pimpl = new impl(*other.pimpl);
         return *this;
     }
 
