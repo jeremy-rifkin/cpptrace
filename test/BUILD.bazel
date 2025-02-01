@@ -17,7 +17,9 @@ cc_test(
         "unit/internals/optional.cpp",
         "unit/internals/result.cpp",
         "unit/internals/string_utils.cpp",
-        "unit/internals/general.cpp"
+        "unit/internals/general.cpp",
+        "unit/lib/formatting.cpp",
+        "unit/lib/nullable.cpp"
     ],
     linkstatic = 1,
 )

@@ -87,6 +87,8 @@ if(NOT CPPTRACE_SKIP_UNIT)
     unit/internals/result.cpp
     unit/internals/string_utils.cpp
     unit/internals/general.cpp
+    unit/lib/formatting.cpp
+    unit/lib/nullable.cpp
   )
   target_compile_features(unittest PRIVATE cxx_std_20)
   target_link_libraries(unittest PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
