@@ -199,4 +199,60 @@ TEST(FormatterTest, Filtering) {
     );
 }
 
+TEST(FormatterTest, MoveSemantics) {
+    auto formatter = cpptrace::formatter{}
+        .set_filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
+            return frame.filename.find("foo.cpp") != std::string::npos;
+        });
+    auto formatter2 = std::move(formatter);
+    auto res = split(formatter2.format(make_test_stacktrace()), "\n");
+    EXPECT_THAT(
+        res,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+        )
+    );
+    cpptrace::formatter formatter3;
+    formatter3 = std::move(formatter);
+    auto res2 = split(formatter2.format(make_test_stacktrace()), "\n");
+    EXPECT_THAT(
+        res2,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+        )
+    );
+}
+
+TEST(FormatterTest, CopySemantics) {
+    auto formatter = cpptrace::formatter{}
+        .set_filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
+            return frame.filename.find("foo.cpp") != std::string::npos;
+        });
+    auto formatter2 = formatter;
+    auto res = split(formatter2.format(make_test_stacktrace()), "\n");
+    EXPECT_THAT(
+        res,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+        )
+    );
+    cpptrace::formatter formatter3;
+    formatter3 = formatter;
+    auto res2 = split(formatter2.format(make_test_stacktrace()), "\n");
+    EXPECT_THAT(
+        res2,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+        )
+    );
+}
+
 }
