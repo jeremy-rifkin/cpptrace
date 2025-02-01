@@ -27,10 +27,11 @@ namespace libdwarf {
 
     [[noreturn]] inline void handle_dwarf_error(Dwarf_Debug dbg, Dwarf_Error error) {
         Dwarf_Unsigned ev = dwarf_errno(error);
-        char* msg = dwarf_errmsg(error);
-        (void)dbg;
-        // dwarf_dealloc_error(dbg, error);
-        throw internal_error("dwarf error {} {}", ev, msg);
+        const char* msg = dwarf_errmsg(error);
+        // dwarf_dealloc_error deallocates the message
+        auto error_message = microfmt::format("dwarf error {} {}", ev, msg);
+        dwarf_dealloc_error(dbg, error);
+        throw internal_error(std::move(error_message));
     }
 
     struct die_object {
