@@ -14,39 +14,41 @@
 
 namespace cpptrace {
     class formatter::impl {
-        std::string header = "Stack trace (most recent call first):";
-        color_mode color = color_mode::automatic;
-        address_mode addresses = address_mode::raw;
-        bool snippets = false;
-        int context_lines = 2;
-        bool columns = true;
-        std::function<bool(const stacktrace_frame&)> filter = [] (const stacktrace_frame&) { return true; };
+        struct {
+            std::string header = "Stack trace (most recent call first):";
+            color_mode color = color_mode::automatic;
+            address_mode addresses = address_mode::raw;
+            bool snippets = false;
+            int context_lines = 2;
+            bool columns = true;
+            std::function<bool(const stacktrace_frame&)> filter = [] (const stacktrace_frame&) { return true; };
+        } options;
 
     public:
         void set_header(std::string header) {
-            this->header = std::move(header);
+            options.header = std::move(header);
         }
         void set_color_mode(formatter::color_mode mode) {
-            this->color = mode;
+            options.color = mode;
         }
         void set_address_mode(formatter::address_mode mode) {
-            this->addresses = mode;
+            options.addresses = mode;
         }
         void set_snippets(bool snippets) {
-            this->snippets = snippets;
+            options.snippets = snippets;
         }
         void set_snippet_context(int lines) {
-            this->context_lines = lines;
+            options.context_lines = lines;
         }
         void include_column(bool columns) {
-            this->columns = columns;
+            options.columns = columns;
         }
         void set_filter(std::function<bool(const stacktrace_frame&)> filter) {
-            this->filter = filter;
+            options.filter = filter;
         }
 
         std::string format(const stacktrace_frame& frame, detail::optional<bool> color_override = detail::nullopt) const {
-            return frame_to_string(frame, color_override.value_or(color == color_mode::always));
+            return frame_to_string(frame, color_override.value_or(options.color == color_mode::always));
         }
 
         std::string format(const stacktrace& trace, detail::optional<bool> color_override = detail::nullopt) const {
@@ -107,9 +109,9 @@ namespace cpptrace {
         }
 
         bool should_do_color(std::ostream& stream, detail::optional<bool> color_override) const {
-            bool do_color = color == color_mode::always || color_override.value_or(false);
+            bool do_color = options.color == color_mode::always || color_override.value_or(false);
             if(
-                (color == color_mode::automatic || color == color_mode::always) &&
+                (options.color == color_mode::automatic || options.color == color_mode::always) &&
                 (!color_override || color_override.unwrap() != false) &&
                 stream_is_tty(stream)
             ) {
@@ -126,8 +128,8 @@ namespace cpptrace {
         }
 
         void print_internal(std::ostream& stream, const stacktrace& trace, bool newline_at_end, bool color) const {
-            if(!header.empty()) {
-                stream << header << '\n';
+            if(!options.header.empty()) {
+                stream << options.header << '\n';
             }
             std::size_t counter = 0;
             const auto& frames = trace.frames;
@@ -141,8 +143,8 @@ namespace cpptrace {
                 if(newline_at_end || &frame != &frames.back()) {
                     stream << '\n';
                 }
-                if(frame.line.has_value() && !frame.filename.empty() && snippets) {
-                    stream << detail::get_snippet(frame.filename, frame.line.value(), context_lines, color);
+                if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
+                    stream << detail::get_snippet(frame.filename, frame.line.value(), options.context_lines, color);
                 }
                 counter++;
             }
@@ -178,7 +180,7 @@ namespace cpptrace {
             if(frame.is_inline) {
                 str += microfmt::format("{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
             } else {
-                auto address = addresses == address_mode::raw ? frame.raw_address : frame.object_address;
+                auto address = options.addresses == address_mode::raw ? frame.raw_address : frame.object_address;
                 str += microfmt::format("{}0x{>{}:0h}{}", blue, 2 * sizeof(frame_ptr), address, reset);
             }
             if(!frame.symbol.empty()) {
@@ -188,7 +190,7 @@ namespace cpptrace {
                 str += microfmt::format(" at {}{}{}", green, frame.filename, reset);
                 if(frame.line.has_value()) {
                     str += microfmt::format(":{}{}{}", blue, frame.line.value(), reset);
-                    if(frame.column.has_value() && columns) {
+                    if(frame.column.has_value() && options.columns) {
                         str += microfmt::format(":{}{}{}", blue, frame.column.value(), reset);
                     }
                 }
