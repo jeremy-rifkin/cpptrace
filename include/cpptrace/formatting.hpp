@@ -37,6 +37,7 @@ namespace cpptrace {
         formatter& set_snippets(bool);
         formatter& set_snippet_context(int);
         formatter& include_column(bool);
+        formatter& show_filtered_frames(bool);
         formatter& set_filter(std::function<bool(const stacktrace_frame&)>);
 
         std::string format(const stacktrace_frame&) const;

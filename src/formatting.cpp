@@ -21,6 +21,7 @@ namespace cpptrace {
             bool snippets = false;
             int context_lines = 2;
             bool columns = true;
+            bool show_filtered_frames = true;
             std::function<bool(const stacktrace_frame&)> filter;
         } options;
 
@@ -42,6 +43,9 @@ namespace cpptrace {
         }
         void include_column(bool columns) {
             options.columns = columns;
+        }
+        void show_filtered_frames(bool show) {
+            options.show_filtered_frames = show;
         }
         void set_filter(std::function<bool(const stacktrace_frame&)> filter) {
             options.filter = filter;
@@ -140,20 +144,24 @@ namespace cpptrace {
             const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
             for(const auto& frame : frames) {
                 if(options.filter && !options.filter(frame)) {
-                    counter++;
-                    continue;
-                }
-                print_frame_internal(stream, frame, color, frame_number_width, counter);
-                if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
-                    auto snippet = detail::get_snippet(
-                        frame.filename,
-                        frame.line.value(),
-                        options.context_lines,
-                        color
-                    );
-                    if(!snippet.empty()) {
-                        stream << '\n';
-                        stream << snippet;
+                    if(!options.show_filtered_frames) {
+                        counter++;
+                        continue;
+                    }
+                    print_placeholder_frame(stream, frame_number_width, counter);
+                } else {
+                    print_frame_internal(stream, frame, color, frame_number_width, counter);
+                    if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
+                        auto snippet = detail::get_snippet(
+                            frame.filename,
+                            frame.line.value(),
+                            options.context_lines,
+                            color
+                        );
+                        if(!snippet.empty()) {
+                            stream << '\n';
+                            stream << snippet;
+                        }
                     }
                 }
                 if(newline_at_end || &frame != &frames.back()) {
@@ -171,6 +179,11 @@ namespace cpptrace {
             std::size_t counter
         ) const {
             std::string line = microfmt::format("#{<{}} {}", frame_number_width, counter, frame_to_string(frame, color));
+            stream << line;
+        }
+
+        void print_placeholder_frame(std::ostream& stream, unsigned frame_number_width, std::size_t counter) const {
+            std::string line = microfmt::format("#{<{}} (filtered)", frame_number_width, counter);
             stream << line;
         }
 
@@ -256,6 +269,10 @@ namespace cpptrace {
     }
     formatter& formatter::include_column(bool columns) {
         pimpl->include_column(columns);
+        return *this;
+    }
+    formatter& formatter::show_filtered_frames(bool show) {
+        pimpl->show_filtered_frames(show);
         return *this;
     }
     formatter& formatter::set_filter(std::function<bool(const stacktrace_frame&)> filter) {

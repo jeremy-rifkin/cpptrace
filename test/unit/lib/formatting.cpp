@@ -196,6 +196,24 @@ TEST(FormatterTest, Filtering) {
         ElementsAre(
             "Stack trace (most recent call first):",
             "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#1 (filtered)",
+            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+        )
+    );
+}
+
+TEST(FormatterTest, DontShowFilteredFrames) {
+    auto formatter = cpptrace::formatter{}
+        .set_filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
+            return frame.filename.find("foo.cpp") != std::string::npos;
+        })
+        .show_filtered_frames(false);
+    auto res = split(formatter.format(make_test_stacktrace()), "\n");
+    EXPECT_THAT(
+        res,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
             "#2 0x0000000000000003 in main at foo.cpp:40:25"
         )
     );
@@ -213,6 +231,7 @@ TEST(FormatterTest, MoveSemantics) {
         ElementsAre(
             "Stack trace (most recent call first):",
             "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#1 (filtered)",
             "#2 0x0000000000000003 in main at foo.cpp:40:25"
         )
     );
@@ -224,6 +243,7 @@ TEST(FormatterTest, MoveSemantics) {
         ElementsAre(
             "Stack trace (most recent call first):",
             "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#1 (filtered)",
             "#2 0x0000000000000003 in main at foo.cpp:40:25"
         )
     );
@@ -241,6 +261,7 @@ TEST(FormatterTest, CopySemantics) {
         ElementsAre(
             "Stack trace (most recent call first):",
             "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#1 (filtered)",
             "#2 0x0000000000000003 in main at foo.cpp:40:25"
         )
     );
@@ -252,6 +273,7 @@ TEST(FormatterTest, CopySemantics) {
         ElementsAre(
             "Stack trace (most recent call first):",
             "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#1 (filtered)",
             "#2 0x0000000000000003 in main at foo.cpp:40:25"
         )
     );
