@@ -52,7 +52,9 @@ namespace cpptrace {
         }
 
         std::string format(const stacktrace_frame& frame, detail::optional<bool> color_override = detail::nullopt) const {
-            return frame_to_string(frame, color_override.value_or(options.color == color_mode::always));
+            std::ostringstream oss;
+            print_frame_inner(oss, frame, color_override.value_or(options.color == color_mode::always));
+            return std::move(oss).str();
         }
 
         std::string format(const stacktrace& trace, detail::optional<bool> color_override = detail::nullopt) const {
@@ -178,13 +180,12 @@ namespace cpptrace {
             unsigned frame_number_width,
             std::size_t counter
         ) const {
-            std::string line = microfmt::format("#{<{}} {}", frame_number_width, counter, frame_to_string(frame, color));
-            stream << line;
+            microfmt::print(stream, "#{<{}} ", frame_number_width, counter);
+            print_frame_inner(stream, frame, color);
         }
 
         void print_placeholder_frame(std::ostream& stream, unsigned frame_number_width, std::size_t counter) const {
-            std::string line = microfmt::format("#{<{}} (filtered)", frame_number_width, counter);
-            stream << line;
+            microfmt::print(stream, "#{<{}} (filtered)", frame_number_width, counter);
         }
 
         void print_frame_internal(
@@ -194,34 +195,32 @@ namespace cpptrace {
         ) const {
             bool do_color = should_do_color(stream, color_override);
             maybe_ensure_virtual_terminal_processing(stream, do_color);
-            stream << frame_to_string(frame, do_color);
+            print_frame_inner(stream, frame, do_color);
         }
 
-        std::string frame_to_string(const stacktrace_frame& frame, bool color) const {
+        void print_frame_inner(std::ostream& stream, const stacktrace_frame& frame, bool color) const {
             const auto reset  = color ? RESET : "";
             const auto green  = color ? GREEN : "";
             const auto yellow = color ? YELLOW : "";
             const auto blue   = color ? BLUE : "";
-            std::string str;
             if(frame.is_inline) {
-                str += microfmt::format("{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
+                microfmt::print(stream, "{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
             } else {
                 auto address = options.addresses == address_mode::raw ? frame.raw_address : frame.object_address;
-                str += microfmt::format("{}0x{>{}:0h}{}", blue, 2 * sizeof(frame_ptr), address, reset);
+                microfmt::print(stream, "{}0x{>{}:0h}{}", blue, 2 * sizeof(frame_ptr), address, reset);
             }
             if(!frame.symbol.empty()) {
-                str += microfmt::format(" in {}{}{}", yellow, frame.symbol, reset);
+                microfmt::print(stream, " in {}{}{}", yellow, frame.symbol, reset);
             }
             if(!frame.filename.empty()) {
-                str += microfmt::format(" at {}{}{}", green, frame.filename, reset);
+                microfmt::print(stream, " at {}{}{}", green, frame.filename, reset);
                 if(frame.line.has_value()) {
-                    str += microfmt::format(":{}{}{}", blue, frame.line.value(), reset);
+                    microfmt::print(stream, ":{}{}{}", blue, frame.line.value(), reset);
                     if(frame.column.has_value() && options.columns) {
-                        str += microfmt::format(":{}{}{}", blue, frame.column.value(), reset);
+                        microfmt::print(stream, ":{}{}{}", blue, frame.column.value(), reset);
                     }
                 }
             }
-            return str;
         }
     };
 
