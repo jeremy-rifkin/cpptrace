@@ -21,24 +21,24 @@ namespace cpptrace {
         formatter& operator=(formatter&&);
         formatter& operator=(const formatter&);
 
-        formatter& set_header(std::string);
+        formatter& header(std::string);
         enum class color_mode {
             always,
             none,
             automatic,
         };
-        formatter& set_color_mode(color_mode);
+        formatter& colors(color_mode);
         enum class address_mode {
             raw,
             object,
             none,
         };
-        formatter& set_address_mode(address_mode);
-        formatter& set_snippets(bool);
-        formatter& set_snippet_context(int);
-        formatter& include_column(bool);
-        formatter& show_filtered_frames(bool);
-        formatter& set_filter(std::function<bool(const stacktrace_frame&)>);
+        formatter& addresses(address_mode);
+        formatter& snippets(bool);
+        formatter& snippet_context(int);
+        formatter& columns(bool);
+        formatter& filtered_frame_placeholders(bool);
+        formatter& filter(std::function<bool(const stacktrace_frame&)>);
 
         std::string format(const stacktrace_frame&) const;
         std::string format(const stacktrace_frame&, bool color) const;

@@ -26,28 +26,28 @@ namespace cpptrace {
         } options;
 
     public:
-        void set_header(std::string header) {
+        void header(std::string header) {
             options.header = std::move(header);
         }
-        void set_color_mode(formatter::color_mode mode) {
+        void colors(formatter::color_mode mode) {
             options.color = mode;
         }
-        void set_address_mode(formatter::address_mode mode) {
+        void addresses(formatter::address_mode mode) {
             options.addresses = mode;
         }
-        void set_snippets(bool snippets) {
+        void snippets(bool snippets) {
             options.snippets = snippets;
         }
-        void set_snippet_context(int lines) {
+        void snippet_context(int lines) {
             options.context_lines = lines;
         }
-        void include_column(bool columns) {
+        void columns(bool columns) {
             options.columns = columns;
         }
-        void show_filtered_frames(bool show) {
+        void filtered_frame_placeholders(bool show) {
             options.show_filtered_frames = show;
         }
-        void set_filter(std::function<bool(const stacktrace_frame&)> filter) {
+        void filter(std::function<bool(const stacktrace_frame&)> filter) {
             options.filter = filter;
         }
 
@@ -246,36 +246,36 @@ namespace cpptrace {
         return *this;
     }
 
-    formatter& formatter::set_header(std::string header) {
-        pimpl->set_header(std::move(header));
+    formatter& formatter::header(std::string header) {
+        pimpl->header(std::move(header));
         return *this;
     }
-    formatter& formatter::set_color_mode(color_mode mode) {
-        pimpl->set_color_mode(mode);
+    formatter& formatter::colors(color_mode mode) {
+        pimpl->colors(mode);
         return *this;
     }
-    formatter& formatter::set_address_mode(address_mode mode) {
-        pimpl->set_address_mode(mode);
+    formatter& formatter::addresses(address_mode mode) {
+        pimpl->addresses(mode);
         return *this;
     }
-    formatter& formatter::set_snippets(bool snippets) {
-        pimpl->set_snippets(snippets);
+    formatter& formatter::snippets(bool snippets) {
+        pimpl->snippets(snippets);
         return *this;
     }
-    formatter& formatter::set_snippet_context(int lines) {
-        pimpl->set_snippet_context(lines);
+    formatter& formatter::snippet_context(int lines) {
+        pimpl->snippet_context(lines);
         return *this;
     }
-    formatter& formatter::include_column(bool columns) {
-        pimpl->include_column(columns);
+    formatter& formatter::columns(bool columns) {
+        pimpl->columns(columns);
         return *this;
     }
-    formatter& formatter::show_filtered_frames(bool show) {
-        pimpl->show_filtered_frames(show);
+    formatter& formatter::filtered_frame_placeholders(bool show) {
+        pimpl->filtered_frame_placeholders(show);
         return *this;
     }
-    formatter& formatter::set_filter(std::function<bool(const stacktrace_frame&)> filter) {
-        pimpl->set_filter(std::move(filter));
+    formatter& formatter::filter(std::function<bool(const stacktrace_frame&)> filter) {
+        pimpl->filter(std::move(filter));
         return *this;
     }
 

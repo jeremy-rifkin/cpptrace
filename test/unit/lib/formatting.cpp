@@ -53,7 +53,7 @@ TEST(FormatterTest, Inlines) {
 
 TEST(FormatterTest, Header) {
     auto formatter = cpptrace::formatter{}
-        .set_header("Stack trace:");
+        .header("Stack trace:");
     auto res = split(formatter.format(make_test_stacktrace()), "\n");
     EXPECT_THAT(
         res,
@@ -68,7 +68,7 @@ TEST(FormatterTest, Header) {
 
 TEST(FormatterTest, NoColumn) {
     auto formatter = cpptrace::formatter{}
-        .include_column(false);
+        .columns(false);
     auto res = split(formatter.format(make_test_stacktrace()), "\n");
     EXPECT_THAT(
         res,
@@ -83,7 +83,7 @@ TEST(FormatterTest, NoColumn) {
 
 TEST(FormatterTest, ObjectAddresses) {
     auto formatter = cpptrace::formatter{}
-        .set_address_mode(cpptrace::formatter::address_mode::object);
+        .addresses(cpptrace::formatter::address_mode::object);
     auto res = split(formatter.format(make_test_stacktrace()), "\n");
     EXPECT_THAT(
         res,
@@ -103,7 +103,7 @@ TEST(FormatterTest, Snippets) {
     trace.frames.push_back({0x1, 0x1001, {line}, {20}, __FILE__, "foo()", false});
     trace.frames.push_back({0x2, 0x1002, {line + 1}, {20}, __FILE__, "foo()", false});
     auto formatter = cpptrace::formatter{}
-        .set_snippets(true);
+        .snippets(true);
     auto res = split(formatter.format(trace), "\n");
     EXPECT_THAT(
         res,
@@ -134,10 +134,10 @@ TEST(FormatterTest, Snippets) {
                 line + 1
             ),
             cpptrace::microfmt::format("     {}:     auto formatter = cpptrace::formatter{{}}", line + 2),
-            cpptrace::microfmt::format("     {}:         .set_snippets(true);", line + 3)
+            cpptrace::microfmt::format("     {}:         .snippets(true);", line + 3)
         )
     );
-    formatter.set_snippet_context(1);
+    formatter.snippet_context(1);
     res = split(formatter.format(trace), "\n");
     EXPECT_THAT(
         res,
@@ -172,7 +172,7 @@ TEST(FormatterTest, Snippets) {
 
 TEST(FormatterTest, Colors) {
     auto formatter = cpptrace::formatter{}
-        .set_color_mode(cpptrace::formatter::color_mode::always);
+        .colors(cpptrace::formatter::color_mode::always);
     auto res = split(formatter.format(make_test_stacktrace()), "\n");
     EXPECT_THAT(
         res,
@@ -187,7 +187,7 @@ TEST(FormatterTest, Colors) {
 
 TEST(FormatterTest, Filtering) {
     auto formatter = cpptrace::formatter{}
-        .set_filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
+        .filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
             return frame.filename.find("foo.cpp") != std::string::npos;
         });
     auto res = split(formatter.format(make_test_stacktrace()), "\n");
@@ -204,10 +204,10 @@ TEST(FormatterTest, Filtering) {
 
 TEST(FormatterTest, DontShowFilteredFrames) {
     auto formatter = cpptrace::formatter{}
-        .set_filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
+        .filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
             return frame.filename.find("foo.cpp") != std::string::npos;
         })
-        .show_filtered_frames(false);
+        .filtered_frame_placeholders(false);
     auto res = split(formatter.format(make_test_stacktrace()), "\n");
     EXPECT_THAT(
         res,
@@ -221,7 +221,7 @@ TEST(FormatterTest, DontShowFilteredFrames) {
 
 TEST(FormatterTest, MoveSemantics) {
     auto formatter = cpptrace::formatter{}
-        .set_filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
+        .filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
             return frame.filename.find("foo.cpp") != std::string::npos;
         });
     auto formatter2 = std::move(formatter);
@@ -251,7 +251,7 @@ TEST(FormatterTest, MoveSemantics) {
 
 TEST(FormatterTest, CopySemantics) {
     auto formatter = cpptrace::formatter{}
-        .set_filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
+        .filter([] (const cpptrace::stacktrace_frame& frame) -> bool {
             return frame.filename.find("foo.cpp") != std::string::npos;
         });
     auto formatter2 = formatter;

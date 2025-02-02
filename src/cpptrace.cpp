@@ -183,7 +183,7 @@ namespace cpptrace {
 
     namespace detail {
         const formatter& get_default_snippet_formatter() {
-            static formatter snippet_formatter = formatter{}.set_snippets(true);
+            static formatter snippet_formatter = formatter{}.snippets(true);
             return snippet_formatter;
         }
     }
