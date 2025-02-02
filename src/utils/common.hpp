@@ -4,7 +4,6 @@
 #include <cpptrace/basic.hpp>
 
 #include "platform/platform.hpp"
-#include "options.hpp"
 
 #include <cstdint>
 

@@ -3,7 +3,6 @@
 
 #include <cpptrace/basic.hpp>
 
-#include <memory>
 #include <string>
 #include <functional>
 
