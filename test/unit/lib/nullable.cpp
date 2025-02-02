@@ -13,20 +13,26 @@ TEST(NullableTest, Basic) {
     nullable<std::uint32_t> a{12};
     EXPECT_EQ(a.value(), 12);
     EXPECT_EQ(a.raw_value, 12);
-    // TODO: =
+    nullable<std::uint32_t> b = 20;
+    EXPECT_EQ(b.value(), 20);
 }
 
 TEST(NullableTest, Null) {
     auto a = nullable<std::uint32_t>::null();
     EXPECT_FALSE(a.has_value());
     EXPECT_EQ(a.raw_value, (std::numeric_limits<std::uint32_t>::max)());
-    // TODO: default construct
+    nullable<std::uint32_t> b;
+    EXPECT_FALSE(b.has_value());
+    EXPECT_EQ(b.raw_value, nullable<std::uint32_t>::null_value());
 }
 
 TEST(NullableTest, Assignment) {
     nullable<std::uint32_t> a;
     a = 12;
     EXPECT_EQ(a.value(), 12);
+    nullable<std::uint32_t> b = 20;
+    a = b;
+    EXPECT_EQ(a.value(), 20);
 }
 
 TEST(NullableTest, Reset) {
@@ -49,7 +55,7 @@ TEST(NullableTest, Comparison) {
 
 TEST(NullableTest, Swap) {
     auto a = nullable<std::uint32_t>::null();
-    nullable<std::uint32_t> b{12};
+    nullable<std::uint32_t> b = 12;
     EXPECT_FALSE(a.has_value());
     EXPECT_EQ(b.value(), 12);
     a.swap(b);

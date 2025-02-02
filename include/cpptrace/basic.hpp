@@ -95,37 +95,42 @@ namespace cpptrace {
     // use.
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
     struct nullable {
-        T raw_value;
-        nullable& operator=(T value) {
+        T raw_value = null_value();
+        constexpr nullable() noexcept = default;
+        constexpr nullable(T value) noexcept : raw_value(value) {}
+        constexpr nullable& operator=(T value) noexcept {
             raw_value = value;
             return *this;
         }
-        bool has_value() const noexcept {
-            return raw_value != (std::numeric_limits<T>::max)();
+        constexpr bool has_value() const noexcept {
+            return raw_value != null_value();
         }
-        T& value() noexcept {
+        constexpr T& value() noexcept {
             return raw_value;
         }
-        const T& value() const noexcept {
+        constexpr const T& value() const noexcept {
             return raw_value;
         }
-        T value_or(T alternative) const noexcept {
+        constexpr T value_or(T alternative) const noexcept {
             return has_value() ? raw_value : alternative;
         }
-        void swap(nullable& other) noexcept {
+        constexpr void swap(nullable& other) noexcept {
             std::swap(raw_value, other.raw_value);
         }
-        void reset() noexcept {
+        constexpr void reset() noexcept {
             raw_value = (std::numeric_limits<T>::max)();
         }
-        bool operator==(const nullable& other) const noexcept {
+        constexpr bool operator==(const nullable& other) const noexcept {
             return raw_value == other.raw_value;
         }
-        bool operator!=(const nullable& other) const noexcept {
+        constexpr bool operator!=(const nullable& other) const noexcept {
             return raw_value != other.raw_value;
         }
+        constexpr static T null_value() noexcept {
+            return (std::numeric_limits<T>::max)();
+        }
         constexpr static nullable null() noexcept {
-            return { (std::numeric_limits<T>::max)() };
+            return { null_value() };
         }
     };
 
