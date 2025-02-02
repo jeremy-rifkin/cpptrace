@@ -8,6 +8,7 @@
 #include "snippets/snippet.hpp"
 #include "utils/utils.hpp"
 #include "platform/exception_type.hpp"
+#include "options.hpp"
 
 namespace cpptrace {
     std::string demangle(const std::string& name) {

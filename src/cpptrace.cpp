@@ -20,6 +20,7 @@
 #include "binary/object.hpp"
 #include "binary/safe_dl.hpp"
 #include "snippets/snippet.hpp"
+#include "options.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE

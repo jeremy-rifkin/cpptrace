@@ -6,6 +6,7 @@
 #include "binary/object.hpp"
 #include "utils/common.hpp"
 #include "utils/error.hpp"
+#include "options.hpp"
 
 #include <mutex>
 #include <regex>

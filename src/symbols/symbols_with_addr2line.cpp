@@ -22,6 +22,7 @@
 #endif
 
 #include "binary/object.hpp"
+#include "options.hpp"
 
 namespace cpptrace {
 namespace detail {

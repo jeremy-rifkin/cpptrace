@@ -8,6 +8,7 @@
 #include "utils/common.hpp"
 #include "utils/error.hpp"
 #include "utils/optional.hpp"
+#include "options.hpp"
 
 namespace cpptrace {
 namespace detail {

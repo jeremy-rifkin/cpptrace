@@ -10,6 +10,7 @@
 
 #include "platform/exception_type.hpp"
 #include "utils/common.hpp"
+#include "options.hpp"
 
 namespace cpptrace {
     namespace detail {
