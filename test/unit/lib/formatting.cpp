@@ -96,6 +96,7 @@ TEST(FormatterTest, ObjectAddresses) {
     );
 }
 
+#ifndef CPPTRACE_NO_TEST_SNIPPETS
 TEST(FormatterTest, Snippets) {
     cpptrace::stacktrace trace;
     unsigned line = __LINE__ + 1;
@@ -167,6 +168,7 @@ TEST(FormatterTest, Snippets) {
         )
     );
 }
+#endif
 
 TEST(FormatterTest, Colors) {
     auto formatter = cpptrace::formatter{}

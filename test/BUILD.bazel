@@ -21,5 +21,8 @@ cc_test(
         "unit/lib/formatting.cpp",
         "unit/lib/nullable.cpp"
     ],
+    local_defines = [
+        "CPPTRACE_NO_TEST_SNIPPETS"
+    ],
     linkstatic = 1,
 )
