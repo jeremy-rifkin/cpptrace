@@ -31,6 +31,12 @@
 #  endif
 #endif
 
+#if __cplusplus >= 201703L
+ #define CONSTEXPR_SINCE_CPP17 constexpr
+#else
+ #define CONSTEXPR_SINCE_CPP17
+#endif
+
 #ifdef _MSC_VER
  #define CPPTRACE_FORCE_NO_INLINE __declspec(noinline)
 #else
@@ -98,14 +104,14 @@ namespace cpptrace {
         T raw_value = null_value();
         constexpr nullable() noexcept = default;
         constexpr nullable(T value) noexcept : raw_value(value) {}
-        constexpr nullable& operator=(T value) noexcept {
+        CONSTEXPR_SINCE_CPP17 nullable& operator=(T value) noexcept {
             raw_value = value;
             return *this;
         }
         constexpr bool has_value() const noexcept {
             return raw_value != null_value();
         }
-        constexpr T& value() noexcept {
+        CONSTEXPR_SINCE_CPP17 T& value() noexcept {
             return raw_value;
         }
         constexpr const T& value() const noexcept {
@@ -114,10 +120,10 @@ namespace cpptrace {
         constexpr T value_or(T alternative) const noexcept {
             return has_value() ? raw_value : alternative;
         }
-        constexpr void swap(nullable& other) noexcept {
+        CONSTEXPR_SINCE_CPP17 void swap(nullable& other) noexcept {
             std::swap(raw_value, other.raw_value);
         }
-        constexpr void reset() noexcept {
+        CONSTEXPR_SINCE_CPP17 void reset() noexcept {
             raw_value = (std::numeric_limits<T>::max)();
         }
         constexpr bool operator==(const nullable& other) const noexcept {
