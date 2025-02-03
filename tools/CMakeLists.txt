@@ -45,3 +45,4 @@ endfunction()
 
 add_subdirectory(dwarfdump)
 add_subdirectory(symbol_tables)
+add_subdirectory(resolver)
