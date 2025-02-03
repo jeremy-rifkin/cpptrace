@@ -18,28 +18,29 @@ using namespace cpptrace::detail;
 
 template<> struct fmt::formatter<lyra::cli> : ostream_formatter {};
 
-void resolve(std::filesystem::path path, const std::vector<cpptrace::frame_ptr>& addresses) {
-    auto formatter = cpptrace::formatter{}.addresses(cpptrace::formatter::address_mode::object);
-    for(const auto& address : addresses) {
-        cpptrace::object_frame obj_frame{0, address, path};
-        std::vector<cpptrace::stacktrace_frame> trace = cpptrace::detail::resolve_frames({obj_frame});
-        if(trace.size() != 1) {
-            throw std::runtime_error("Something went wrong, trace vector size didn't match");
-        }
-        trace[0].symbol = cpptrace::detail::demangle(trace[0].symbol);
-        formatter.print(trace[0]);
-        std::cout<<std::endl;
+auto formatter = cpptrace::formatter{}.addresses(cpptrace::formatter::address_mode::object);
+
+void resolve(const std::filesystem::path& path, cpptrace::frame_ptr address) {
+    cpptrace::object_frame obj_frame{0, address, path};
+    std::vector<cpptrace::stacktrace_frame> trace = cpptrace::detail::resolve_frames({obj_frame});
+    if(trace.size() != 1) {
+        throw std::runtime_error("Something went wrong, trace vector size didn't match");
     }
+    trace[0].symbol = cpptrace::detail::demangle(trace[0].symbol);
+    formatter.print(trace[0]);
+    std::cout<<std::endl;
 }
 
 int main(int argc, char** argv) CPPTRACE_TRY {
     bool show_help = false;
     std::filesystem::path path;
     std::vector<std::string> address_strings;
+    bool from_stdin = false;
     auto cli = lyra::cli()
         | lyra::help(show_help)
+        | lyra::opt(from_stdin)["--stdin"]("read addresses from stdin")
         | lyra::arg(path, "binary path")("binary to look in").required()
-        | lyra::arg(address_strings, "addresses")("addresses").required();
+        | lyra::arg(address_strings, "addresses")("addresses");
     if(auto result = cli.parse({ argc, argv }); !result) {
         fmt::println(stderr, "Error in command line: {}", result.message());
         fmt::println("{}", cli);
@@ -57,11 +58,15 @@ int main(int argc, char** argv) CPPTRACE_TRY {
         fmt::println(stderr, "Error: Path isn't a regular file {}", path);
         return 1;
     }
-    std::vector<cpptrace::frame_ptr> addresses;
     for(const auto& address : address_strings) {
-        addresses.push_back(std::stoi(address, nullptr, 16));
+        resolve(path, std::stoi(address, nullptr, 16));
     }
-    resolve(path, addresses);
+    if(from_stdin) {
+        std::string word;
+        while(std::cin >> word) {
+            resolve(path, std::stoi(word, nullptr, 16));
+        }
+    }
 } CPPTRACE_CATCH(const std::exception& e) {
     fmt::println(stderr, "Caught exception {}: {}", cpptrace::demangle(typeid(e).name()), e.what());
     cpptrace::from_current_exception().print();
