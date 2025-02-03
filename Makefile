@@ -9,12 +9,12 @@ help: # with thanks to Ben Rady
 build: debug  ## build in debug mode
 
 build/configured-debug:
-	cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On
+	cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On -DCPPTRACE_BUILD_TOOLS=On
 	rm -f build/configured-release
 	touch build/configured-debug
 
 build/configured-release:
-	cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On
+	cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On -DCPPTRACE_BUILD_TOOLS=On
 	rm -f build/configured-debug
 	touch build/configured-release
 
@@ -34,12 +34,12 @@ release: configure-release  ## build in release mode (with debug info)
 
 .PHONY: debug-msvc
 debug-msvc:  ## build in debug mode
-	cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On
+	cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On -DCPPTRACE_BUILD_TOOLS=On
 	cmake --build build --config Debug
 
 .PHONY: release-msvc
 release-msvc:  ## build in release mode (with debug info)
-	cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On
+	cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCPPTRACE_BUILD_TESTING=On -DCPPTRACE_BUILD_TOOLS=On
 	cmake --build build --config RelWithDebInfo
 
 .PHONY: clean
