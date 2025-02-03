@@ -28,8 +28,8 @@ namespace detail {
                 std::fprintf(stderr, "%s\n", unwrap_error().what());
             }
         }
-        Result(value_type& value) : value_(value_type(value)), active(member::value) {}
-        Result(E& error) : error_(E(error)), active(member::error) {
+        Result(const value_type& value) : value_(value_type(value)), active(member::value) {}
+        Result(const E& error) : error_(E(error)), active(member::error) {
             if(!should_absorb_trace_exceptions()) {
                 std::fprintf(stderr, "%s\n", unwrap_error().what());
             }

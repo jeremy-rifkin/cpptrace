@@ -44,3 +44,4 @@ function(binary TARGET)
 endfunction()
 
 add_subdirectory(dwarfdump)
+add_subdirectory(symbol_tables)

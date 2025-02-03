@@ -84,6 +84,20 @@ namespace detail {
     private:
         optional<std::string> lookup_symbol(frame_ptr pc, const optional<symtab_info>& maybe_symtab);
 
+    public:
+        struct symbol_entry {
+            std::string st_name;
+            uint16_t st_shndx;
+            uint64_t st_value;
+            uint64_t st_size;
+        };
+        Result<optional<std::vector<symbol_entry>>, internal_error> get_symtab_entries();
+        Result<optional<std::vector<symbol_entry>>, internal_error> get_dynamic_symtab_entries();
+    private:
+        Result<optional<std::vector<symbol_entry>>, internal_error> resolve_symtab_entries(
+            const Result<const optional<symtab_info> &, internal_error>&
+        );
+
     private:
         template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
         T byteswap_if_needed(T value);

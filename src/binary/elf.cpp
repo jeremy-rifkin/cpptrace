@@ -133,6 +133,43 @@ namespace detail {
         return nullopt;
     }
 
+    Result<optional<std::vector<elf::symbol_entry>>, internal_error> elf::get_symtab_entries() {
+        return resolve_symtab_entries(get_symtab());
+    }
+    Result<optional<std::vector<elf::symbol_entry>>, internal_error> elf::get_dynamic_symtab_entries() {
+        return resolve_symtab_entries(get_dynamic_symtab());
+    }
+
+    Result<optional<std::vector<elf::symbol_entry>>, internal_error> elf::resolve_symtab_entries(
+        const Result<const optional<elf::symtab_info> &, internal_error>& symtab
+    ) {
+        if(!symtab) {
+            return symtab.unwrap_error();
+        }
+        if(!symtab.unwrap_value()) {
+            return nullopt;
+        }
+        const auto& info = symtab.unwrap_value().unwrap();
+        optional<const std::vector<char>&> strtab;
+        if(info.strtab_link != SHN_UNDEF) {
+            auto strtab_ = get_strtab(info.strtab_link);
+            if(strtab_.is_error()) {
+                return strtab_.unwrap_error();
+            }
+            strtab = strtab_.unwrap_value();
+        }
+        std::vector<symbol_entry> res;
+        for(const auto& entry : info.entries) {
+            res.push_back({
+                strtab.unwrap().data() + entry.st_name,
+                entry.st_shndx,
+                entry.st_value,
+                entry.st_size
+            });
+        }
+        return res;
+    }
+
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type>
     T elf::byteswap_if_needed(T value) {
         if(cpptrace::detail::is_little_endian() == is_little_endian) {
