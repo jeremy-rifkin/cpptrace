@@ -14,11 +14,12 @@
 namespace cpptrace {
 namespace detail {
     std::string demangle(const std::string& name) {
-        // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
-        // check both _Z and __Z, apple prefixes all symbols with an underscore
-        if(!(starts_with(name, "_Z") || starts_with(name, "__Z"))) {
-            return name;
-        }
+        // TODO: Do a special check to ensure external names start with _Z?
+        // // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
+        // // check both _Z and __Z, apple prefixes all symbols with an underscore
+        // if(!(starts_with(name, "_Z") || starts_with(name, "__Z"))) {
+        //     return name;
+        // }
         // Apple clang demangles __Z just fine but gcc doesn't, so just offset the leading underscore
         std::size_t offset = 0;
         if(starts_with(name, "__Z")) {
