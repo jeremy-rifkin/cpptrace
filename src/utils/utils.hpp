@@ -162,9 +162,9 @@ namespace detail {
     // shamelessly stolen from stackoverflow
     bool directory_exists(const std::string& path);
 
-    inline std::string basename(const std::string& path) {
+    inline std::string basename(const std::string& path, bool maybe_windows = false) {
         // Assumes no trailing /'s
-        auto pos = path.rfind('/');
+        auto pos = path.find_last_of(maybe_windows ? "/\\" : "/");
         if(pos == std::string::npos) {
             return path;
         } else {

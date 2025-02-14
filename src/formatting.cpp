@@ -18,6 +18,7 @@ namespace cpptrace {
             std::string header = "Stack trace (most recent call first):";
             color_mode color = color_mode::automatic;
             address_mode addresses = address_mode::raw;
+            path_mode paths = path_mode::full;
             bool snippets = false;
             int context_lines = 2;
             bool columns = true;
@@ -34,6 +35,9 @@ namespace cpptrace {
         }
         void addresses(formatter::address_mode mode) {
             options.addresses = mode;
+        }
+        void paths(path_mode mode) {
+            options.paths = mode;
         }
         void snippets(bool snippets) {
             options.snippets = snippets;
@@ -213,7 +217,13 @@ namespace cpptrace {
                 microfmt::print(stream, " in {}{}{}", yellow, frame.symbol, reset);
             }
             if(!frame.filename.empty()) {
-                microfmt::print(stream, " at {}{}{}", green, frame.filename, reset);
+                microfmt::print(
+                    stream,
+                    " at {}{}{}",
+                    green,
+                    options.paths == path_mode::full ? frame.filename : detail::basename(frame.filename, true),
+                    reset
+                );
                 if(frame.line.has_value()) {
                     microfmt::print(stream, ":{}{}{}", blue, frame.line.value(), reset);
                     if(frame.column.has_value() && options.columns) {
@@ -256,6 +266,10 @@ namespace cpptrace {
     }
     formatter& formatter::addresses(address_mode mode) {
         pimpl->addresses(mode);
+        return *this;
+    }
+    formatter& formatter::paths(path_mode mode) {
+        pimpl->paths(mode);
         return *this;
     }
     formatter& formatter::snippets(bool snippets) {

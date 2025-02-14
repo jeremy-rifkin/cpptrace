@@ -96,6 +96,27 @@ TEST(FormatterTest, ObjectAddresses) {
     );
 }
 
+TEST(FormatterTest, PathShortening) {
+    cpptrace::stacktrace trace;
+    trace.frames.push_back({0x1, 0x1001, {20}, {30}, "/home/foo/foo.cpp", "foo()", false});
+    trace.frames.push_back({0x2, 0x1002, {30}, {40}, "/bar.cpp", "bar()", false});
+    trace.frames.push_back({0x3, 0x1003, {40}, {25}, "baz/foo.cpp", "main", false});
+    trace.frames.push_back({0x3, 0x1003, {50}, {25}, "C:\\foo\\bar\\baz.cpp", "main", false});
+    auto formatter = cpptrace::formatter{}
+        .paths(cpptrace::formatter::path_mode::basename);
+    auto res = split(formatter.format(trace), "\n");
+    EXPECT_THAT(
+        res,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#1 0x0000000000000002 in bar() at bar.cpp:30:40",
+            "#2 0x0000000000000003 in main at foo.cpp:40:25",
+            "#3 0x0000000000000003 in main at baz.cpp:50:25"
+        )
+    );
+}
+
 #ifndef CPPTRACE_NO_TEST_SNIPPETS
 TEST(FormatterTest, Snippets) {
     cpptrace::stacktrace trace;

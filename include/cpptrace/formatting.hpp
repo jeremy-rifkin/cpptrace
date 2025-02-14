@@ -34,6 +34,13 @@ namespace cpptrace {
             none,
         };
         formatter& addresses(address_mode);
+        enum class path_mode {
+            // full path is used
+            full,
+            // only the file name is used
+            basename,
+        };
+        formatter& paths(path_mode);
         formatter& snippets(bool);
         formatter& snippet_context(int);
         formatter& columns(bool);
