@@ -107,7 +107,7 @@ CTRACE_FORMAT_EPILOGUE
         new_frame.line      = frame.line.value_or(invalid_pos);
         new_frame.column    = frame.column.value_or(invalid_pos);
         new_frame.filename  = generate_owning_string(frame.filename).data;
-        new_frame.symbol    = generate_owning_string(cpptrace::detail::demangle(frame.symbol)).data;
+        new_frame.symbol    = generate_owning_string(cpptrace::detail::demangle(frame.symbol, true)).data;
         new_frame.is_inline = ctrace_bool(frame.is_inline);
         return new_frame;
     }

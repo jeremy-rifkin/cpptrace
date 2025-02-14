@@ -6,7 +6,7 @@
 
 namespace cpptrace {
 namespace detail {
-    std::string demangle(const std::string& name) {
+    std::string demangle(const std::string& name, bool) {
         return name;
     }
 }

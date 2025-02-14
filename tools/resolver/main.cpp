@@ -26,7 +26,7 @@ void resolve(const std::filesystem::path& path, cpptrace::frame_ptr address) {
     if(trace.size() != 1) {
         throw std::runtime_error("Something went wrong, trace vector size didn't match");
     }
-    trace[0].symbol = cpptrace::detail::demangle(trace[0].symbol);
+    trace[0].symbol = cpptrace::demangle(trace[0].symbol);
     formatter.print(trace[0]);
     std::cout<<std::endl;
 }

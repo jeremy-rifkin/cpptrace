@@ -12,7 +12,7 @@
 
 namespace cpptrace {
 namespace detail {
-    std::string demangle(const std::string& name) {
+    std::string demangle(const std::string& name, bool) {
         char buffer[500];
         auto ret = UnDecorateSymbolName(name.c_str(), buffer, sizeof(buffer) - 1, 0);
         if(ret == 0) {

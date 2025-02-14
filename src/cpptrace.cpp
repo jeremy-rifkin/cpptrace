@@ -62,7 +62,7 @@ namespace cpptrace {
         try {
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
             for(auto& frame : trace) {
-                frame.symbol = detail::demangle(frame.symbol);
+                frame.symbol = detail::demangle(frame.symbol, true);
             }
             return {std::move(trace)};
         } catch(...) { // NOSONAR
@@ -109,7 +109,7 @@ namespace cpptrace {
         try {
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
             for(auto& frame : trace) {
-                frame.symbol = detail::demangle(frame.symbol);
+                frame.symbol = detail::demangle(frame.symbol, true);
             }
             return {std::move(trace)};
         } catch(...) { // NOSONAR
@@ -312,7 +312,7 @@ namespace cpptrace {
             std::vector<frame_ptr> frames = detail::capture_frames(skip + 1, max_depth);
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
             for(auto& frame : trace) {
-                frame.symbol = detail::demangle(frame.symbol);
+                frame.symbol = detail::demangle(frame.symbol, true);
             }
             return {std::move(trace)};
         } catch(...) { // NOSONAR

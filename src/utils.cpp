@@ -12,7 +12,7 @@
 
 namespace cpptrace {
     std::string demangle(const std::string& name) {
-        return detail::demangle(name);
+        return detail::demangle(name, false);
     }
 
     std::string get_snippet(const std::string& path, std::size_t line, std::size_t context_size, bool color) {

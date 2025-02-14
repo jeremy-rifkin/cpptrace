@@ -5,7 +5,7 @@
 
 namespace cpptrace {
 namespace detail {
-    std::string demangle(const std::string&);
+    std::string demangle(const std::string& name, bool check_prefix);
 }
 }
 
