@@ -161,7 +161,7 @@ namespace detail {
         std::vector<symbol_entry> res;
         for(const auto& entry : info.entries) {
             res.push_back({
-                strtab.unwrap().data() + entry.st_name,
+                strtab.has_value() ? strtab.unwrap().data() + entry.st_name : "<strtab error>",
                 entry.st_shndx,
                 entry.st_value,
                 entry.st_size
