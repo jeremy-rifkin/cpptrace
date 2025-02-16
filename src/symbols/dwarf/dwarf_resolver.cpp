@@ -212,6 +212,10 @@ namespace libdwarf {
             split_full_cu_resolvers.clear();
             skeleton.reset();
             if(aranges) {
+                for(int i = 0; i < arange_count; i++) {
+                    dwarf_dealloc(dbg, aranges[i], DW_DLA_ARANGE);
+                    aranges[i] = nullptr;
+                }
                 dwarf_dealloc(dbg, aranges, DW_DLA_LIST);
             }
             cu_cache.clear();
