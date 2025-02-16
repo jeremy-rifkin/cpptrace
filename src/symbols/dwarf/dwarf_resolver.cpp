@@ -166,6 +166,7 @@ namespace libdwarf {
             if(use_buffer) {
                 buffer = std::unique_ptr<char[]>(new char[CPPTRACE_MAX_PATH]);
             }
+            dwarf_set_de_alloc_flag(0);
             auto ret = wrap(
                 dwarf_init_path_a,
                 object_path.c_str(),
