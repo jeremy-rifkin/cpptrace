@@ -93,7 +93,7 @@ namespace libdwarf {
         std::vector<cu_entry> cu_cache;
         bool generated_cu_cache = false;
         // Map from CU -> {srcfiles, count}
-        std::unordered_map<Dwarf_Off, std::pair<char**, Dwarf_Signed>> srcfiles_cache;
+        std::unordered_map<Dwarf_Off, srcfiles> srcfiles_cache;
         // Map from CU -> split full cu resolver
         std::unordered_map<Dwarf_Off, std::unique_ptr<dwarf_resolver>> split_full_cu_resolvers;
         // info for resolving a dwo object
@@ -204,15 +204,6 @@ namespace libdwarf {
             // for thoroughness
             for(auto& entry : line_tables) {
                 dwarf_srclines_dealloc_b(entry.second.line_context);
-            }
-            for(auto& entry : srcfiles_cache) {
-                auto srcfiles = entry.second.first;
-                auto count = entry.second.second;
-                for(int i = 0; i < count; i++) {
-                    dwarf_dealloc(dbg, srcfiles[i], DW_DLA_STRING);
-                    srcfiles[i] = nullptr;
-                }
-                dwarf_dealloc(dbg, srcfiles, DW_DLA_LIST);
             }
             // subprograms_cache needs to be destroyed before dbg otherwise there will be another use after free
             subprograms_cache.clear();
@@ -354,15 +345,11 @@ namespace libdwarf {
                 char** dw_srcfiles;
                 Dwarf_Signed dw_filecount;
                 VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
+                srcfiles srcfiles(cu_die.dbg, dw_srcfiles, dw_filecount);
                 if(Dwarf_Signed(file_i) < dw_filecount) {
                     // dwarf is using 1-indexing
-                    filename = dw_srcfiles[file_i];
+                    filename = srcfiles.get(file_i);
                 }
-                for(int i = 0; i < dw_filecount; i++) {
-                    dwarf_dealloc(cu_die.dbg, dw_srcfiles[i], DW_DLA_STRING);
-                    dw_srcfiles[i] = nullptr;
-                }
-                dwarf_dealloc(cu_die.dbg, dw_srcfiles, DW_DLA_LIST);
             } else {
                 auto off = cu_die.get_global_offset();
                 auto it = srcfiles_cache.find(off);
@@ -370,13 +357,11 @@ namespace libdwarf {
                     char** dw_srcfiles;
                     Dwarf_Signed dw_filecount;
                     VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
-                    it = srcfiles_cache.insert(it, {off, {dw_srcfiles, dw_filecount}});
+                    it = srcfiles_cache.insert(it, {off, srcfiles{cu_die.dbg, dw_srcfiles, dw_filecount}});
                 }
-                char** dw_srcfiles = it->second.first;
-                Dwarf_Signed dw_filecount = it->second.second;
-                if(Dwarf_Signed(file_i) < dw_filecount) {
+                if(file_i < it->second.count()) {
                     // dwarf is using 1-indexing
-                    filename = dw_srcfiles[file_i];
+                    filename = it->second.get(file_i);
                 }
             }
             return filename;
