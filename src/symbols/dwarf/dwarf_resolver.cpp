@@ -682,24 +682,6 @@ namespace libdwarf {
                             }
                         }
                         line = line_buffer[j - 1];
-                        // {
-                        //     Dwarf_Unsigned line_number = 0;
-                        //     VERIFY(wrap(dwarf_lineno, line, &line_number) == DW_DLV_OK);
-                        //     frame.line = static_cast<std::uint32_t>(line_number);
-                        //     char* filename = nullptr;
-                        //     VERIFY(wrap(dwarf_linesrc, line, &filename) == DW_DLV_OK);
-                        //     auto wrapper = raii_wrap(
-                        //         filename,
-                        //         [this] (char* str) { if(str) dwarf_dealloc(dbg, str, DW_DLA_STRING); }
-                        //     );
-                        //     frame.filename = filename;
-                        //     printf("%s : %d\n", filename, line_number);
-                        //     Dwarf_Bool is_line_end;
-                        //     VERIFY(wrap(dwarf_lineendsequence, line, &is_line_end) == DW_DLV_OK);
-                        //     if(is_line_end) {
-                        //         puts("Line end");
-                        //     }
-                        // }
                         line_entries.push_back({
                             low_addr,
                             line
