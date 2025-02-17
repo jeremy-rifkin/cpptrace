@@ -80,7 +80,10 @@ namespace libdwarf {
 
     class dwarf_resolver : public symbol_resolver {
         std::string object_path;
-        Dwarf_Debug dbg = nullptr;
+        // dwarf_finish needs to be called after all other dwarf stuff is cleaned up, e.g. `srcfiles` and aranges etc
+        // raii_wrapping ensures this is the last thing done after the destructor logic and all other data members are
+        // cleaned up
+        raii_wrapper<Dwarf_Debug, void(*)(Dwarf_Debug)> dbg{nullptr, [](Dwarf_Debug dbg) { dwarf_finish(dbg); }};
         bool ok = false;
         // .debug_aranges cache
         Dwarf_Arange* aranges = nullptr;
@@ -176,7 +179,7 @@ namespace libdwarf {
                 universal_number,
                 nullptr,
                 nullptr,
-                &dbg
+                &dbg.get()
             );
             if(ret == DW_DLV_OK) {
                 ok = true;
@@ -200,15 +203,9 @@ namespace libdwarf {
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         ~dwarf_resolver() override {
-            // TODO: Maybe redundant since dwarf_finish(dbg); will clean up the line stuff anyway but may as well just
-            // for thoroughness
             for(auto& entry : line_tables) {
                 dwarf_srclines_dealloc_b(entry.second.line_context);
             }
-            // subprograms_cache needs to be destroyed before dbg otherwise there will be another use after free
-            subprograms_cache.clear();
-            split_full_cu_resolvers.clear();
-            skeleton.reset();
             if(aranges) {
                 for(int i = 0; i < arange_count; i++) {
                     dwarf_dealloc(dbg, aranges[i], DW_DLA_ARANGE);
@@ -216,8 +213,6 @@ namespace libdwarf {
                 }
                 dwarf_dealloc(dbg, aranges, DW_DLA_LIST);
             }
-            cu_cache.clear();
-            dwarf_finish(dbg);
         }
 
         dwarf_resolver(const dwarf_resolver&) = delete;
