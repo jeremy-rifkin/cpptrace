@@ -63,10 +63,32 @@ namespace libdwarf {
 
     struct line_table_info {
         Dwarf_Unsigned version;
-        Dwarf_Line_Context line_context;
+        Dwarf_Line_Context line_context = nullptr;
         // sorted by low_addr
         // TODO: Make this optional at some point, it may not be generated if cache mode switches during program exec...
         std::vector<line_entry> line_entries;
+
+        line_table_info(
+            Dwarf_Unsigned version,
+            Dwarf_Line_Context line_context,
+            std::vector<line_entry>&& line_entries
+        ) : version(version), line_context(line_context), line_entries(std::move(line_entries)) {}
+        ~line_table_info() {
+            dwarf_srclines_dealloc_b(line_context);
+        }
+        line_table_info(const line_table_info&) = delete;
+        line_table_info(line_table_info&& other) {
+            std::swap(version, other.version);
+            std::swap(line_context, other.line_context);
+            std::swap(line_entries, other.line_entries);
+        }
+        line_table_info& operator=(const line_table_info&) = delete;
+        line_table_info& operator=(line_table_info&& other) {
+            std::swap(version, other.version);
+            std::swap(line_context, other.line_context);
+            std::swap(line_entries, other.line_entries);
+            return *this;
+        }
     };
 
     class dwarf_resolver;
@@ -203,9 +225,6 @@ namespace libdwarf {
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
         ~dwarf_resolver() override {
-            for(auto& entry : line_tables) {
-                dwarf_srclines_dealloc_b(entry.second.line_context);
-            }
             if(aranges) {
                 for(int i = 0; i < arange_count; i++) {
                     dwarf_dealloc(dbg, aranges[i], DW_DLA_ARANGE);
@@ -689,7 +708,7 @@ namespace libdwarf {
                     });
                 }
 
-                it = line_tables.insert({off, {version, line_context, std::move(line_entries)}}).first;
+                it = line_tables.insert({off, line_table_info{version, line_context, std::move(line_entries)}}).first;
                 return it->second;
             }
         }
