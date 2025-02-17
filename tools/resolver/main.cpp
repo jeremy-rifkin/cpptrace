@@ -1,14 +1,18 @@
 #include "cpptrace/formatting.hpp"
 #include "cpptrace/forward.hpp"
+#include <chrono>
 #include <lyra/lyra.hpp>
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <fmt/ostream.h>
+#include <fmt/chrono.h>
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 
 #include <filesystem>
 #include <stdexcept>
+#include <string>
+#include <thread>
 
 #include "symbols/symbols.hpp"
 #include "demangle/demangle.hpp"
@@ -20,51 +24,71 @@ template<> struct fmt::formatter<lyra::cli> : ostream_formatter {};
 
 auto formatter = cpptrace::formatter{}.addresses(cpptrace::formatter::address_mode::object);
 
-void resolve(const std::filesystem::path& path, cpptrace::frame_ptr address) {
-    cpptrace::object_frame obj_frame{0, address, path};
+struct options {
+    bool show_help = false;
+    std::filesystem::path path;
+    std::vector<std::string> address_strings;
+    bool from_stdin = false;
+    bool keepalive = false;
+    bool timing = false;
+};
+
+void resolve(const options& opts, cpptrace::frame_ptr address) {
+    cpptrace::object_frame obj_frame{0, address, opts.path};
+    auto start = std::chrono::high_resolution_clock::now();
     std::vector<cpptrace::stacktrace_frame> trace = cpptrace::detail::resolve_frames({obj_frame});
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     if(trace.size() != 1) {
         throw std::runtime_error("Something went wrong, trace vector size didn't match");
     }
     trace[0].symbol = cpptrace::demangle(trace[0].symbol);
     formatter.print(trace[0]);
     std::cout<<std::endl;
+    if(opts.timing) {
+        fmt::println("resolve time: {}", duration);
+    }
 }
 
 int main(int argc, char** argv) CPPTRACE_TRY {
-    bool show_help = false;
-    std::filesystem::path path;
-    std::vector<std::string> address_strings;
-    bool from_stdin = false;
+    options opts;
     auto cli = lyra::cli()
-        | lyra::help(show_help)
-        | lyra::opt(from_stdin)["--stdin"]("read addresses from stdin")
-        | lyra::arg(path, "binary path")("binary to look in").required()
-        | lyra::arg(address_strings, "addresses")("addresses");
+        | lyra::help(opts.show_help)
+        | lyra::opt(opts.from_stdin)["--stdin"]("read addresses from stdin")
+        | lyra::opt(opts.keepalive)["--keepalive"]("keep the program alive after resolution finishes (useful for debugging)")
+        | lyra::opt(opts.timing)["--timing"]("provide timing stats")
+        | lyra::arg(opts.path, "binary path")("binary to look in").required()
+        | lyra::arg(opts.address_strings, "addresses")("addresses");
     if(auto result = cli.parse({ argc, argv }); !result) {
         fmt::println(stderr, "Error in command line: {}", result.message());
         fmt::println("{}", cli);
         return 1;
     }
-    if(show_help) {
+    if(opts.show_help) {
         fmt::println("{}", cli);
         return 0;
     }
-    if(!std::filesystem::exists(path)) {
-        fmt::println(stderr, "Error: Path doesn't exist {}", path);
+    if(!std::filesystem::exists(opts.path)) {
+        fmt::println(stderr, "Error: Path doesn't exist {}", opts.path);
         return 1;
     }
-    if(!std::filesystem::is_regular_file(path)) {
-        fmt::println(stderr, "Error: Path isn't a regular file {}", path);
+    if(!std::filesystem::is_regular_file(opts.path)) {
+        fmt::println(stderr, "Error: Path isn't a regular file {}", opts.path);
         return 1;
     }
-    for(const auto& address : address_strings) {
-        resolve(path, std::stoi(address, nullptr, 16));
+    for(const auto& address : opts.address_strings) {
+        resolve(opts, std::stoi(address, nullptr, 16));
     }
-    if(from_stdin) {
+    if(opts.from_stdin) {
         std::string word;
         while(std::cin >> word) {
-            resolve(path, std::stoi(word, nullptr, 16));
+            resolve(opts, std::stoi(word, nullptr, 16));
+        }
+    }
+    if(opts.keepalive) {
+        fmt::println("Done");
+        while(true) {
+            std::this_thread::sleep_for(std::chrono::seconds(60));
         }
     }
 } CPPTRACE_CATCH(const std::exception& e) {
