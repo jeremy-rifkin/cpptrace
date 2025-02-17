@@ -137,7 +137,6 @@ namespace cpptrace {
     }
 
     std::string stacktrace_frame::to_string(bool color) const {
-        // return frame_to_string(color, *this);
         return get_default_formatter().format(*this, color);
     }
 
