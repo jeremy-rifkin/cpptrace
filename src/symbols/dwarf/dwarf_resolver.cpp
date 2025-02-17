@@ -206,7 +206,13 @@ namespace libdwarf {
                 dwarf_srclines_dealloc_b(entry.second.line_context);
             }
             for(auto& entry : srcfiles_cache) {
-                dwarf_dealloc(dbg, entry.second.first, DW_DLA_LIST);
+                auto srcfiles = entry.second.first;
+                auto count = entry.second.second;
+                for(int i = 0; i < count; i++) {
+                    dwarf_dealloc(dbg, srcfiles[i], DW_DLA_STRING);
+                    srcfiles[i] = nullptr;
+                }
+                dwarf_dealloc(dbg, srcfiles, DW_DLA_LIST);
             }
             // subprograms_cache needs to be destroyed before dbg otherwise there will be another use after free
             subprograms_cache.clear();
@@ -351,6 +357,10 @@ namespace libdwarf {
                 if(Dwarf_Signed(file_i) < dw_filecount) {
                     // dwarf is using 1-indexing
                     filename = dw_srcfiles[file_i];
+                }
+                for(int i = 0; i < dw_filecount; i++) {
+                    dwarf_dealloc(cu_die.dbg, dw_srcfiles[i], DW_DLA_STRING);
+                    dw_srcfiles[i] = nullptr;
                 }
                 dwarf_dealloc(cu_die.dbg, dw_srcfiles, DW_DLA_LIST);
             } else {
