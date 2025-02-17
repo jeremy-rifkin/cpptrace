@@ -555,9 +555,7 @@ namespace libdwarf {
         }
         srcfiles(const srcfiles&) = delete;
         srcfiles(srcfiles&& other) {
-            std::swap(dbg, other.dbg);
-            std::swap(dw_srcfiles, other.dw_srcfiles);
-            std::swap(dw_filecount, other.dw_filecount);
+            *this = std::move(other);
         }
         srcfiles& operator=(const srcfiles&) = delete;
         srcfiles& operator=(srcfiles&& other) {

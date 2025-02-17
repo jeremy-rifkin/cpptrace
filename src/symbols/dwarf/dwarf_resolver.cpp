@@ -78,9 +78,7 @@ namespace libdwarf {
         }
         line_table_info(const line_table_info&) = delete;
         line_table_info(line_table_info&& other) {
-            std::swap(version, other.version);
-            std::swap(line_context, other.line_context);
-            std::swap(line_entries, other.line_entries);
+            *this = std::move(other);
         }
         line_table_info& operator=(const line_table_info&) = delete;
         line_table_info& operator=(line_table_info&& other) {
