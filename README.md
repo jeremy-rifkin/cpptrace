@@ -26,6 +26,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Object Traces](#object-traces)
   - [Raw Traces](#raw-traces)
   - [Utilities](#utilities)
+  - [Formatting](#formatting)
   - [Configuration](#configuration)
   - [Traces From All Exceptions](#traces-from-all-exceptions)
     - [Removing the `CPPTRACE_` prefix](#removing-the-cpptrace_-prefix)
@@ -125,6 +126,7 @@ Additional notable features:
 - Utilities for catching `std::exception`s and wrapping them in traced exceptions
 - Signal-safe stack tracing
 - Source code snippets in traces
+- Extensive configuration options for [trace formatting](#formatting)
 
 ![Snippets](res/snippets.png)
 
@@ -339,6 +341,86 @@ namespace cpptrace {
     extern const int stdout_fileno;
 
     void register_terminate_handler();
+}
+```
+
+## Formatting
+
+Cpptrace provides a configurable formatter for stack trace printing supporting common options. Formatters are configured
+following a sort of builder pattern, e.g.
+```cpp
+auto formatter = cpptrace::formatter{}
+    .header("Stack trace:")
+    .addresses(cpptrace::formatter::address_mode::object)
+    .snippets(true);
+```
+
+To use this API be sure to `#include <cpptrace/formatting.hpp>`.
+
+Synopsis:
+```cpp
+namespace cpptrace {
+    class formatter {
+        formatter& header(std::string);
+        enum class color_mode { always, none, automatic };
+        formatter& colors(color_mode);
+        enum class address_mode { raw, object, none };
+        formatter& addresses(address_mode);
+        enum class path_mode { full, basename };
+        formatter& paths(path_mode);
+        formatter& snippets(bool);
+        formatter& snippet_context(int);
+        formatter& columns(bool);
+        formatter& filtered_frame_placeholders(bool);
+        formatter& filter(std::function<bool(const stacktrace_frame&)>);
+
+        std::string format(const stacktrace_frame&) const;
+        std::string format(const stacktrace_frame&, bool color) const;
+
+        std::string format(const stacktrace&) const;
+        std::string format(const stacktrace&, bool color) const;
+
+        void print(const stacktrace_frame&) const;
+        void print(const stacktrace_frame&, bool color) const;
+        void print(std::ostream&, const stacktrace_frame&) const;
+        void print(std::ostream&, const stacktrace_frame&, bool color) const;
+        void print(std::FILE*, const stacktrace_frame&) const;
+        void print(std::FILE*, const stacktrace_frame&, bool color) const;
+
+        void print(const stacktrace&) const;
+        void print(const stacktrace&, bool color) const;
+        void print(std::ostream&, const stacktrace&) const;
+        void print(std::ostream&, const stacktrace&, bool color) const;
+        void print(std::FILE*, const stacktrace&) const;
+        void print(std::FILE*, const stacktrace&, bool color) const;
+    };
+}
+```
+
+Options:
+| Setting                       | Description                                                    | Default                                                                  |
+| ----------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `header`                      | Header line printed before the trace                           | `Stack trace (most recent call first):`                                  |
+| `colors`                      | Default color mode for the trace                               | `automatic`, which attempts to detect if the target stream is a terminal |
+| `addresses`                   | Raw addresses, object addresses, or no addresses               | `raw`                                                                    |
+| `paths`                       | Full paths or just filenames                                   | `full`                                                                   |
+| `snippets`                    | Whether to include source code snippets                        | `false`                                                                  |
+| `snippet_context`             | How many lines of source context to show in a snippet          | `2`                                                                      |
+| `columns`                     | Whether to include column numbers if present                   | `true`                                                                   |
+| `filtered_frame_placeholders` | Whether to still print filtered frames as just `#n (filtered)` | `true`                                                                   |
+| `filter`                      | A predicate to filter frames with                              | None                                                                     |
+
+The `automatic` color mode only works for a stream that may be attached to a terminal, e.g. `cout` or `stdout`,
+`formatter::format` and `formatter::print` methods have overloads taking a color parameter. This color parameter will
+override configured color mode.
+
+Recommended practice with formatters: It's generally preferable to create formatters objects that are long-lived rather
+than to create them on the fly every time a trace needs to be formatted.
+
+Cpptrace provides access to a formatter with default settings with `get_default_formatter`:
+```cpp
+namespace cpptrace {
+    const formatter& get_default_formatter();
 }
 ```
 
@@ -785,6 +867,7 @@ Cpptrace provides a handful of headers to make inclusion more minimal.
 | `cpptrace/exceptions.hpp`   | [Traced Exception Objects](#traced-exception-objects) and related utilities ([Wrapping std::exceptions](#wrapping-stdexceptions))                                                                     |
 | `cpptrace/from_current.hpp` | [Traces From All Exceptions](#traces-from-all-exceptions)                                                                                                                                             |
 | `cpptrace/io.hpp`           | `operator<<` overloads for `std::ostream` and `std::formatter`s                                                                                                                                       |
+| `cpptrace/formatting.hpp`   | Configurable formatter API                                                                                                                                                                            |
 | `cpptrace/utils.hpp`        | Utility functions, configuration functions, and terminate utilities ([Utilities](#utilities), [Configuration](#configuration), and [Terminate Handling](#terminate-handling))                         |
 | `cpptrace/version.hpp`      | Library version macros                                                                                                                                                                                |
 
