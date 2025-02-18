@@ -30,6 +30,13 @@
  #define MSVC_CDECL
 #endif
 
+// support is pretty good https://godbolt.org/z/djTqv7WMY, checked in cmake during config
+#ifdef HAS_ATTRIBUTE_PACKED
+ #define PACKED __attribute__((packed))
+#else
+ #define PACKED
+#endif
+
 namespace cpptrace {
 namespace detail {
     static const stacktrace_frame null_frame {

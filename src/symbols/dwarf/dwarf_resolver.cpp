@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -44,19 +45,15 @@ namespace libdwarf {
     class die_cache {
     public:
         struct die_handle {
-            std::size_t die_index;
+            std::uint32_t die_index;
         };
     private:
-        struct basic_range_entry {
+        struct PACKED basic_range_entry {
             die_handle die;
             Dwarf_Addr low;
             Dwarf_Addr high;
         };
-        static_assert(
-            sizeof(basic_range_entry) == 3 * sizeof(void*),
-            "Expected basic_range_entry to be smaller (this is memory critical)"
-        );
-        struct annotated_range_entry {
+        struct PACKED annotated_range_entry {
             die_handle die;
             Dwarf_Addr low;
             Dwarf_Addr high;
@@ -72,7 +69,8 @@ namespace libdwarf {
     public:
         die_handle add_die(die_object&& die) {
             dies.push_back(std::move(die));
-            return die_handle{dies.size() - 1};
+            VERIFY(dies.size() < std::numeric_limits<std::uint32_t>::max());
+            return die_handle{static_cast<std::uint32_t>(dies.size() - 1)};
         }
         template<typename Void = void>
         auto insert(die_handle die, Dwarf_Addr low, Dwarf_Addr high)

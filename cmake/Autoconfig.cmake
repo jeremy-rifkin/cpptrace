@@ -15,6 +15,10 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   check_support(HAS_CXXABI has_cxxabi.cpp "" "" "")
 endif()
 
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  check_support(HAS_ATTRIBUTE_PACKED has_attribute_packed.cpp "" "" "")
+endif()
+
 if(NOT WIN32)
   check_support(HAS_UNWIND has_unwind.cpp "" "" "")
   check_support(HAS_EXECINFO has_execinfo.cpp "" "" "")

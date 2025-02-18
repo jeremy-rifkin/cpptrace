@@ -223,6 +223,10 @@ target_compile_features(
 
 target_compile_definitions(${target_name} PRIVATE NOMINMAX)
 
+if(HAS_ATTRIBUTE_PACKED)
+  target_compile_definitions(${target_name} PRIVATE HAS_ATTRIBUTE_PACKED)
+endif()
+
 if(NOT CPPTRACE_STD_FORMAT)
   target_compile_definitions(${target_name} PUBLIC CPPTRACE_NO_STD_FORMAT)
 endif()
