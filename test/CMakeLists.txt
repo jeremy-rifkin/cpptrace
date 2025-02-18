@@ -84,6 +84,7 @@ if(NOT CPPTRACE_SKIP_UNIT)
     unit/tracing/from_current_z.cpp
     unit/tracing/traced_exception.cpp
     unit/internals/optional.cpp
+    unit/internals/lru_cache.cpp
     unit/internals/result.cpp
     unit/internals/string_utils.cpp
     unit/internals/general.cpp
