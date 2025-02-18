@@ -39,6 +39,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Signal-Safe Tracing](#signal-safe-tracing)
   - [Utility Types](#utility-types)
   - [Headers](#headers)
+  - [Libdwarf Tuning](#libdwarf-tuning)
 - [Supported Debug Formats](#supported-debug-formats)
 - [How to Include The Library](#how-to-include-the-library)
   - [CMake FetchContent](#cmake-fetchcontent)
