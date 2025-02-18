@@ -1,3 +1,4 @@
+#include "cpptrace/basic.hpp"
 #include "cpptrace/formatting.hpp"
 #include "cpptrace/forward.hpp"
 #include <chrono>
@@ -32,6 +33,7 @@ struct options {
     bool keepalive = false;
     bool timing = false;
     bool disable_aranges = false;
+    cpptrace::nullable<std::size_t> line_table_cache_size;
 };
 
 void resolve(const options& opts, cpptrace::frame_ptr address) {
@@ -59,6 +61,7 @@ int main(int argc, char** argv) CPPTRACE_TRY {
         | lyra::opt(opts.keepalive)["--keepalive"]("keep the program alive after resolution finishes (useful for debugging)")
         | lyra::opt(opts.timing)["--timing"]("provide timing stats")
         | lyra::opt(opts.disable_aranges)["--disable-aranges"]("don't use the .debug_aranges accelerated address lookup table")
+        | lyra::opt(opts.line_table_cache_size.raw_value, "line table cache size")["--line-table-cache-size"]("limit the size of cpptrace's line table cache")
         | lyra::arg(opts.path, "binary path")("binary to look in").required()
         | lyra::arg(opts.address_strings, "addresses")("addresses");
     if(auto result = cli.parse({ argc, argv }); !result) {
@@ -80,6 +83,9 @@ int main(int argc, char** argv) CPPTRACE_TRY {
     }
     if(opts.disable_aranges) {
         cpptrace::experimental::set_dwarf_resolver_disable_aranges(true);
+    }
+    if(opts.line_table_cache_size.has_value()) {
+        cpptrace::experimental::set_dwarf_resolver_line_table_cache_size(opts.line_table_cache_size);
     }
     for(const auto& address : opts.address_strings) {
         resolve(opts, std::stoi(address, nullptr, 16));
