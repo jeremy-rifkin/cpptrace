@@ -297,7 +297,7 @@ namespace libdwarf {
                 VERIFY(wrap(dwarf_set_tied_dbg, dbg, skeleton.unwrap().resolver.dbg) == DW_DLV_OK);
             }
 
-            if(ok) {
+            if(ok && !get_dwarf_resolver_disable_aranges()) {
                 // Check for .debug_aranges for fast lookup
                 wrap(dwarf_get_aranges, dbg, &aranges, &arange_count);
             }
