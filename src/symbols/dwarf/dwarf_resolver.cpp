@@ -39,17 +39,82 @@ namespace libdwarf {
     constexpr bool dump_dwarf = false;
     constexpr bool trace_dwarf = false;
 
-    struct subprogram_entry {
-        die_object die;
-        Dwarf_Addr low;
-        Dwarf_Addr high;
-    };
-
     struct cu_entry {
         die_object die;
         Dwarf_Half dwversion;
         Dwarf_Addr low;
         Dwarf_Addr high;
+    };
+
+    // sorted range entries for dies
+    template<typename T>
+    class die_cache {
+    public:
+        struct die_handle {
+            std::size_t die_index;
+        };
+    private:
+        struct basic_range_entry {
+            die_handle die;
+            Dwarf_Addr low;
+            Dwarf_Addr high;
+        };
+        static_assert(
+            sizeof(basic_range_entry) == 3 * sizeof(void*),
+            "Expected basic_range_entry to be smaller (this is memory critical)"
+        );
+        struct annotated_range_entry {
+            die_handle die;
+            Dwarf_Addr low;
+            Dwarf_Addr high;
+            T data;
+        };
+        using range_entry = typename std::conditional<
+            std::is_same<T, monostate>::value,
+            basic_range_entry,
+            annotated_range_entry
+        >::type;
+        std::vector<die_object> dies;
+        std::vector<range_entry> range_entries;
+    public:
+        die_handle add_die(die_object&& die) {
+            dies.push_back(std::move(die));
+            return die_handle{dies.size() - 1};
+        }
+        template<typename Void = void>
+        auto insert(die_handle die, Dwarf_Addr low, Dwarf_Addr high)
+            -> typename std::enable_if<std::is_same<T, monostate>::value, Void>::type
+        {
+            range_entries.push_back({die, low, high});
+        }
+        template<typename Void = void>
+        auto insert(die_handle die, Dwarf_Addr low, Dwarf_Addr high, const T& t)
+            -> typename std::enable_if<!std::is_same<T, monostate>::value, Void>::type
+        {
+            range_entries.push_back({die, low, high, t});
+        }
+        void finalize() {
+            std::sort(range_entries.begin(), range_entries.end(), [] (const range_entry& a, const range_entry& b) {
+                return a.low < b.low;
+            });
+        }
+        std::size_t ranges_count() const {
+            return range_entries.size();
+        }
+        optional<const die_object&> lookup(Dwarf_Addr pc) const {
+            auto vec_it = first_less_than_or_equal(
+                range_entries.begin(),
+                range_entries.end(),
+                pc,
+                [] (Dwarf_Addr pc, const range_entry& entry) {
+                    return pc < entry.low;
+                }
+            );
+            if(vec_it == range_entries.end()) {
+                return nullopt;
+            }
+            return dies.at(vec_it->die.die_index);
+        }
     };
 
     struct line_entry {
@@ -113,7 +178,7 @@ namespace libdwarf {
         // Map from CU -> Line context
         lru_cache<Dwarf_Off, line_table_info> line_tables{get_dwarf_resolver_line_table_cache_size()};
         // Map from CU -> Sorted subprograms vector
-        std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
+        std::unordered_map<Dwarf_Off, die_cache<monostate>> subprograms_cache;
         // Vector of ranges and their corresponding CU offsets
         std::vector<cu_entry> cu_cache;
         bool generated_cu_cache = false;
@@ -545,26 +610,28 @@ namespace libdwarf {
             const die_object& cu_die,
             const die_object& die,
             Dwarf_Half dwversion,
-            std::vector<subprogram_entry>& vec
+            die_cache<monostate>& subprogram_cache
         ) {
             walk_die_list(
                 die,
-                [this, &cu_die, dwversion, &vec] (const die_object& die) {
+                [this, &cu_die, dwversion, &subprogram_cache] (const die_object& die) {
                     switch(die.get_tag()) {
                         case DW_TAG_subprogram:
                             {
                                 auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
                                 // TODO: Feels super inefficient and some day should maybe use an interval tree.
-                                for(auto range : ranges_vec) {
-                                    // TODO: Reduce cloning here
-                                    vec.push_back({ die.clone(), range.first, range.second });
+                                if(!ranges_vec.empty()) {
+                                    auto die_handle = subprogram_cache.add_die(die.clone());
+                                    for(auto range : ranges_vec) {
+                                        subprogram_cache.insert(die_handle, range.first, range.second);
+                                    }
                                 }
                                 // Walk children to get things like lambdas
                                 // TODO: Somehow find a way to get better names here? For gcc it's just "operator()"
                                 // On clang it's better
                                 auto child = die.get_child();
                                 if(child) {
-                                    preprocess_subprograms(cu_die, child, dwversion, vec);
+                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache);
                                 }
                             }
                             break;
@@ -577,7 +644,7 @@ namespace libdwarf {
                             {
                                 auto child = die.get_child();
                                 if(child) {
-                                    preprocess_subprograms(cu_die, child, dwversion, vec);
+                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache);
                                 }
                             }
                             break;
@@ -607,30 +674,21 @@ namespace libdwarf {
                 auto it = subprograms_cache.find(off);
                 if(it == subprograms_cache.end()) {
                     // TODO: Refactor. Do the sort in the preprocess function and return the vec directly.
-                    std::vector<subprogram_entry> vec;
-                    preprocess_subprograms(cu_die, cu_die, dwversion, vec);
-                    std::sort(vec.begin(), vec.end(), [] (const subprogram_entry& a, const subprogram_entry& b) {
-                        return a.low < b.low;
-                    });
-                    subprograms_cache.emplace(off, std::move(vec));
+                    die_cache<monostate> subprogram_cache;
+                    preprocess_subprograms(cu_die, cu_die, dwversion, subprogram_cache);
+                    subprogram_cache.finalize();
+                    subprograms_cache.emplace(off, std::move(subprogram_cache));
                     it = subprograms_cache.find(off);
                 }
-                auto& vec = it->second;
-                auto vec_it = first_less_than_or_equal(
-                    vec.begin(),
-                    vec.end(),
-                    pc,
-                    [] (Dwarf_Addr pc, const subprogram_entry& entry) {
-                        return pc < entry.low;
-                    }
-                );
+                const auto& subprogram_cache = it->second;
+                auto maybe_die = subprogram_cache.lookup(pc);
                 // If the vector has been empty this can happen
-                if(vec_it != vec.end()) {
-                    if(vec_it->die.pc_in_die(cu_die, dwversion, pc)) {
-                        frame.symbol = retrieve_symbol_for_subprogram(cu_die, vec_it->die, pc, dwversion, inlines);
+                if(maybe_die.has_value()) {
+                    if(maybe_die.unwrap().pc_in_die(cu_die, dwversion, pc)) {
+                        frame.symbol = retrieve_symbol_for_subprogram(cu_die, maybe_die.unwrap(), pc, dwversion, inlines);
                     }
                 } else {
-                    ASSERT(vec.size() == 0, "Vec should be empty?");
+                    ASSERT(subprogram_cache.ranges_count() == 0, "subprogram_cache.ranges_count() should be 0?");
                 }
             }
         }
