@@ -121,6 +121,7 @@ target_sources(
     src/demangle/demangle_with_winapi.cpp
     src/snippets/snippet.cpp
     src/symbols/dwarf/debug_map_resolver.cpp
+    src/symbols/dwarf/dwarf_options.cpp
     src/symbols/dwarf/dwarf_resolver.cpp
     src/symbols/symbols_core.cpp
     src/symbols/symbols_with_addr2line.cpp

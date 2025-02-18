@@ -4,10 +4,12 @@
 
 #include <cpptrace/basic.hpp>
 #include "symbols/dwarf/dwarf.hpp" // has dwarf #includes
+#include "symbols/dwarf/dwarf_options.hpp"
 #include "symbols/symbols.hpp"
 #include "utils/common.hpp"
 #include "utils/error.hpp"
 #include "utils/utils.hpp"
+#include "utils/lru_cache.hpp"
 #include "platform/path.hpp"
 #include "platform/program_name.hpp" // For CPPTRACE_MAX_PATH
 
@@ -109,7 +111,7 @@ namespace libdwarf {
         Dwarf_Arange* aranges = nullptr;
         Dwarf_Signed arange_count = 0;
         // Map from CU -> Line context
-        std::unordered_map<Dwarf_Off, line_table_info> line_tables;
+        lru_cache<Dwarf_Off, line_table_info> line_tables{get_dwarf_resolver_line_table_cache_size()};
         // Map from CU -> Sorted subprograms vector
         std::unordered_map<Dwarf_Off, std::vector<subprogram_entry>> subprograms_cache;
         // Vector of ranges and their corresponding CU offsets
@@ -409,7 +411,7 @@ namespace libdwarf {
                             if(file_i) {
                                 // for dwarf 2, 3, 4, and experimental line table version 0xfe06 1-indexing is used
                                 // for dwarf 5 0-indexing is used
-                                optional<std::reference_wrapper<line_table_info>> line_table_opt;
+                                optional<line_table_info&> line_table_opt;
                                 if(skeleton) {
                                     line_table_opt = skeleton.unwrap().resolver.get_line_table(
                                         skeleton.unwrap().cu_die
@@ -418,7 +420,7 @@ namespace libdwarf {
                                     line_table_opt = get_line_table(cu_die);
                                 }
                                 if(line_table_opt) {
-                                    auto& line_table = line_table_opt.unwrap().get();
+                                    auto& line_table = line_table_opt.unwrap();
                                     if(line_table.version != 5) {
                                         if(file_i.unwrap() == 0) {
                                             file_i.reset(); // 0 means no name to be found
@@ -635,11 +637,11 @@ namespace libdwarf {
 
         // returns a reference to a CU's line table, may be invalidated if the line_tables map is modified
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        optional<std::reference_wrapper<line_table_info>> get_line_table(const die_object& cu_die) {
+        optional<line_table_info&> get_line_table(const die_object& cu_die) {
             auto off = cu_die.get_global_offset();
-            auto it = line_tables.find(off);
-            if(it != line_tables.end()) {
-                return it->second;
+            auto res = line_tables.maybe_get(off);
+            if(res) {
+                return res;
             } else {
                 Dwarf_Unsigned version;
                 Dwarf_Small table_count;
@@ -706,8 +708,7 @@ namespace libdwarf {
                     });
                 }
 
-                it = line_tables.insert({off, line_table_info{version, line_context, std::move(line_entries)}}).first;
-                return it->second;
+                return line_tables.insert(off, line_table_info{version, line_context, std::move(line_entries)});
             }
         }
 
@@ -725,7 +726,7 @@ namespace libdwarf {
             if(!table_info_opt) {
                 return; // failing silently for now
             }
-            auto& table_info = table_info_opt.unwrap().get();
+            auto& table_info = table_info_opt.unwrap();
             if(get_cache_mode() == cache_mode::prioritize_speed) {
                 // Lookup in the table
                 auto& line_entries = table_info.line_entries;
