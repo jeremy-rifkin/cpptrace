@@ -816,6 +816,7 @@ namespace cpptrace {
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
     struct nullable {
         T raw_value;
+        // all members are constexpr for c++17 and beyond, some are constexpr before c++17
         nullable& operator=(T value)
         bool has_value() const noexcept;
         T& value() noexcept;
@@ -825,6 +826,7 @@ namespace cpptrace {
         void reset() noexcept;
         bool operator==(const nullable& other) const noexcept;
         bool operator!=(const nullable& other) const noexcept;
+        constexpr static T null_value() noexcept; // returns the raw null value
         constexpr static nullable null() noexcept; // returns a null instance
     };
 
