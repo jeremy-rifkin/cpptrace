@@ -41,7 +41,10 @@ namespace libdwarf {
     constexpr bool trace_dwarf = false;
 
     // sorted range entries for dies
-    template<typename T>
+    template<
+        typename T,
+        typename std::enable_if<std::is_trivially_copyable<T>::value && sizeof(T) <= 16, int>::type = 0
+    >
     class die_cache {
     public:
         struct die_handle {
@@ -95,7 +98,7 @@ namespace libdwarf {
 
         struct die_and_data {
             const die_object& die;
-            const T& data;
+            T data;
         };
         template<typename Ret = const die_object&>
         auto make_lookup_result(typename std::vector<range_entry>::const_iterator vec_it) const
