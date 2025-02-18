@@ -101,7 +101,16 @@ namespace libdwarf {
         std::size_t ranges_count() const {
             return range_entries.size();
         }
-        optional<const die_object&> lookup(Dwarf_Addr pc) const {
+        struct die_and_data {
+            const die_object& die;
+            const T& data;
+        };
+        using lookup_result = typename std::conditional<
+            std::is_same<T, monostate>::value,
+            const die_object&,
+            die_and_data
+        >::type;
+        optional<lookup_result> lookup(Dwarf_Addr pc) const {
             auto vec_it = first_less_than_or_equal(
                 range_entries.begin(),
                 range_entries.end(),
@@ -113,7 +122,11 @@ namespace libdwarf {
             if(vec_it == range_entries.end()) {
                 return nullopt;
             }
-            return dies.at(vec_it->die.die_index);
+            if constexpr(std::is_same<T, monostate>::value) {
+                return dies.at(vec_it->die.die_index);
+            } else {
+                return die_and_data{dies.at(vec_it->die.die_index), vec_it->data};
+            }
         }
     };
 
@@ -180,7 +193,8 @@ namespace libdwarf {
         // Map from CU -> Sorted subprograms vector
         std::unordered_map<Dwarf_Off, die_cache<monostate>> subprograms_cache;
         // Vector of ranges and their corresponding CU offsets
-        std::vector<cu_entry> cu_cache;
+        // data stored for each cache entry is a Dwarf_Half dwversion
+        die_cache<Dwarf_Half> cu_cache;
         bool generated_cu_cache = false;
         // Map from CU -> {srcfiles, count}
         std::unordered_map<Dwarf_Off, srcfiles> srcfiles_cache;
@@ -365,23 +379,25 @@ namespace libdwarf {
                         // TODO: Also assuming same dwversion
                         const auto& skeleton_cu = skeleton.unwrap().cu_die;
                         auto ranges_vec = skeleton_cu.get_rangelist_entries(skeleton_cu, dwversion);
-                        for(auto range : ranges_vec) {
-                            // TODO: Reduce cloning here
-                            cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
+                        if(!ranges_vec.empty()) {
+                            auto cu_die_handle = cu_cache.add_die(cu_die.clone());
+                            for(auto range : ranges_vec) {
+                                cu_cache.insert(cu_die_handle, range.first, range.second, dwversion);
+                            }
                         }
                         return false;
                     } else {
                         auto ranges_vec = cu_die.get_rangelist_entries(cu_die, dwversion);
-                        for(auto range : ranges_vec) {
-                            // TODO: Reduce cloning here
-                            cu_cache.push_back({ cu_die.clone(), dwversion, range.first, range.second });
+                        if(!ranges_vec.empty()) {
+                            auto cu_die_handle = cu_cache.add_die(cu_die.clone());
+                            for(auto range : ranges_vec) {
+                                cu_cache.insert(cu_die_handle, range.first, range.second, dwversion);
+                            }
                         }
                         return true;
                     }
                 });
-                std::sort(cu_cache.begin(), cu_cache.end(), [] (const cu_entry& a, const cu_entry& b) {
-                    return a.low < b.low;
-                });
+                cu_cache.finalize();
                 generated_cu_cache = true;
             }
         }
@@ -969,17 +985,13 @@ namespace libdwarf {
             } else {
                 lazy_generate_cu_cache();
                 // look up the cu
-                auto vec_it = first_less_than_or_equal(
-                    cu_cache.begin(),
-                    cu_cache.end(),
-                    pc,
-                    [] (Dwarf_Addr pc, const cu_entry& entry) {
-                        return pc < entry.low;
-                    }
-                );
-                // TODO: Vec-it is already range-based, this range check is redundant
-                // If the vector has been empty this can happen
-                if(vec_it != cu_cache.end()) {
+                auto res = cu_cache.lookup(pc);
+                // res can be nullopt if the cu_cache vector is empty
+                // It can also happen for something like _start, where there is a cached CU for the object but
+                // _start is outside of the CU's PC range
+                if(res) {
+                    const auto& die = res.unwrap().die;
+                    const auto dwversion = res.unwrap().data;
                     // TODO: Cache the range list?
                     // NOTE: If we have a corresponding skeleton, we assume we have one CU matching the skeleton CU
                     if(
@@ -990,14 +1002,10 @@ namespace libdwarf {
                                 skeleton.unwrap().dwversion,
                                 pc
                             )
-                        ) || vec_it->die.pc_in_die(vec_it->die, vec_it->dwversion, pc)
+                        ) || die.pc_in_die(die, dwversion, pc)
                     ) {
-                        return cu_info{maybe_owned_die_object::ref(vec_it->die), vec_it->dwversion};
+                        return cu_info{maybe_owned_die_object::ref(die), dwversion};
                     }
-                } else {
-                    // I've had this happen for _start, where there is a cached CU for the object but _start is outside
-                    // of the CU's PC range
-                    // ASSERT(cu_cache.size() == 0, "Vec should be empty?");
                 }
                 return nullopt;
             }
