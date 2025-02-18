@@ -31,6 +31,7 @@ struct options {
     bool from_stdin = false;
     bool keepalive = false;
     bool timing = false;
+    bool disable_aranges = false;
 };
 
 void resolve(const options& opts, cpptrace::frame_ptr address) {
@@ -57,6 +58,7 @@ int main(int argc, char** argv) CPPTRACE_TRY {
         | lyra::opt(opts.from_stdin)["--stdin"]("read addresses from stdin")
         | lyra::opt(opts.keepalive)["--keepalive"]("keep the program alive after resolution finishes (useful for debugging)")
         | lyra::opt(opts.timing)["--timing"]("provide timing stats")
+        | lyra::opt(opts.disable_aranges)["--disable-aranges"]("don't use the .debug_aranges accelerated address lookup table")
         | lyra::arg(opts.path, "binary path")("binary to look in").required()
         | lyra::arg(opts.address_strings, "addresses")("addresses");
     if(auto result = cli.parse({ argc, argv }); !result) {
@@ -75,6 +77,9 @@ int main(int argc, char** argv) CPPTRACE_TRY {
     if(!std::filesystem::is_regular_file(opts.path)) {
         fmt::println(stderr, "Error: Path isn't a regular file {}", opts.path);
         return 1;
+    }
+    if(opts.disable_aranges) {
+        cpptrace::experimental::set_dwarf_resolver_disable_aranges(true);
     }
     for(const auto& address : opts.address_strings) {
         resolve(opts, std::stoi(address, nullptr, 16));
