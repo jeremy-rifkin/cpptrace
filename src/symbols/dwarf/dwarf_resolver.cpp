@@ -62,7 +62,7 @@ namespace libdwarf {
     };
 
     struct line_table_info {
-        Dwarf_Unsigned version;
+        Dwarf_Unsigned version = 0;
         Dwarf_Line_Context line_context = nullptr;
         // sorted by low_addr
         // TODO: Make this optional at some point, it may not be generated if cache mode switches during program exec...
