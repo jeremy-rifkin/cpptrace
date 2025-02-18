@@ -39,13 +39,6 @@ namespace libdwarf {
     constexpr bool dump_dwarf = false;
     constexpr bool trace_dwarf = false;
 
-    struct cu_entry {
-        die_object die;
-        Dwarf_Half dwversion;
-        Dwarf_Addr low;
-        Dwarf_Addr high;
-    };
-
     // sorted range entries for dies
     template<typename T>
     class die_cache {
@@ -101,10 +94,23 @@ namespace libdwarf {
         std::size_t ranges_count() const {
             return range_entries.size();
         }
+
         struct die_and_data {
             const die_object& die;
             const T& data;
         };
+        template<typename Ret = const die_object&>
+        auto make_lookup_result(typename std::vector<range_entry>::const_iterator vec_it) const
+            -> typename std::enable_if<std::is_same<T, monostate>::value, Ret>::type
+        {
+            return dies.at(vec_it->die.die_index);
+        }
+        template<typename Ret = die_and_data>
+        auto make_lookup_result(typename std::vector<range_entry>::const_iterator vec_it) const
+            -> typename std::enable_if<!std::is_same<T, monostate>::value, Ret>::type
+        {
+            return die_and_data{dies.at(vec_it->die.die_index), vec_it->data};
+        }
         using lookup_result = typename std::conditional<
             std::is_same<T, monostate>::value,
             const die_object&,
@@ -122,11 +128,8 @@ namespace libdwarf {
             if(vec_it == range_entries.end()) {
                 return nullopt;
             }
-            if constexpr(std::is_same<T, monostate>::value) {
-                return dies.at(vec_it->die.die_index);
-            } else {
-                return die_and_data{dies.at(vec_it->die.die_index), vec_it->data};
-            }
+            // This would be an if constexpr if only C++17...
+            return make_lookup_result(vec_it);
         }
     };
 
