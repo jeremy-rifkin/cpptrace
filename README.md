@@ -876,6 +876,32 @@ Cpptrace provides a handful of headers to make inclusion more minimal.
 The main cpptrace header is `cpptrace/cpptrace.hpp` which includes everything other than `from_current.hpp` and
 `version.hpp`.
 
+## Libdwarf Tuning
+
+For extraordinarily large binaries (multiple gigabytes), cpptrace's internal caching can result in a lot of memory
+usage. Cpptrace provides a couple options to control the caching done by libdwarf so that this memory usage can be
+reduced in exchange for performance.
+
+Synopsis:
+
+```cpp
+namespace cpptrace {
+    namespace experimental {
+        void set_dwarf_resolver_line_table_cache_size(nullable<std::size_t> max_entries);
+        void set_dwarf_resolver_disable_aranges(bool disable);
+    }
+}
+```
+
+Explanation:
+- `set_dwarf_resolver_line_table_cache_size` can be used to set a limit to the cache size with evictions done LRU.
+  Cpptrace loads and caches line tables for dwarf compile units. These can take a lot of space for large binaries with
+  lots of debug info. Passing `nullable<std::size_t>::null()` will disable the cache size (which is the default
+  behavior).
+- `set_dwarf_resolver_disable_aranges` can be used to disable use of dwarf `.debug_aranges`, an accelerated range lookup
+  table for compile units emitted by most compilers. Cpptrace uses these by default since they can speed up resolution,
+  however, they can also result in significant memory usage.
+
 # Supported Debug Formats
 
 | Format                       | Supported |
