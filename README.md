@@ -347,8 +347,8 @@ namespace cpptrace {
 
 ## Formatting
 
-Cpptrace provides a configurable formatter for stack trace printing supporting common options. Formatters are configured
-following a sort of builder pattern, e.g.
+Cpptrace provides a configurable formatter for stack trace printing which supports some common options. Formatters are
+configured with a sort of builder pattern, e.g.:
 ```cpp
 auto formatter = cpptrace::formatter{}
     .header("Stack trace:")
@@ -356,7 +356,7 @@ auto formatter = cpptrace::formatter{}
     .snippets(true);
 ```
 
-To use this API be sure to `#include <cpptrace/formatting.hpp>`.
+This API is available through the `<cpptrace/formatting.hpp>` header.
 
 Synopsis:
 ```cpp
@@ -411,9 +411,10 @@ Options:
 | `filtered_frame_placeholders` | Whether to still print filtered frames as just `#n (filtered)` | `true`                                                                   |
 | `filter`                      | A predicate to filter frames with                              | None                                                                     |
 
-The `automatic` color mode only works for a stream that may be attached to a terminal, e.g. `cout` or `stdout`,
-`formatter::format` and `formatter::print` methods have overloads taking a color parameter. This color parameter will
-override configured color mode.
+The `automatic` color mode attempts to detect if a stream that may be attached to a terminal. As such, it will not use
+colors for the `formatter::format` method and it may not be able to detect if some ostreams correspond to terminals or
+not. For this reason, `formatter::format` and `formatter::print` methods have overloads taking a color parameter. This
+color parameter will override configured color mode.
 
 Recommended practice with formatters: It's generally preferable to create formatters objects that are long-lived rather
 than to create them on the fly every time a trace needs to be formatted.
@@ -880,8 +881,8 @@ The main cpptrace header is `cpptrace/cpptrace.hpp` which includes everything ot
 ## Libdwarf Tuning
 
 For extraordinarily large binaries (multiple gigabytes), cpptrace's internal caching can result in a lot of memory
-usage. Cpptrace provides a couple options to control the caching done by libdwarf so that this memory usage can be
-reduced in exchange for performance.
+usage. Cpptrace provides some options to reduce memory usage in exchange for performance in memory-constrained
+applications.
 
 Synopsis:
 
@@ -900,8 +901,8 @@ Explanation:
   lots of debug info. Passing `nullable<std::size_t>::null()` will disable the cache size (which is the default
   behavior).
 - `set_dwarf_resolver_disable_aranges` can be used to disable use of dwarf `.debug_aranges`, an accelerated range lookup
-  table for compile units emitted by most compilers. Cpptrace uses these by default since they can speed up resolution,
-  however, they can also result in significant memory usage.
+  table for compile units emitted by many compilers. Cpptrace uses these by default if they are present since they can
+  speed up resolution, however, they can also result in significant memory usage.
 
 # Supported Debug Formats
 
