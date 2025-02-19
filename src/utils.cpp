@@ -27,11 +27,17 @@ namespace cpptrace {
     extern const int stdout_fileno = detail::fileno(stdout);
     extern const int stderr_fileno = detail::fileno(stderr);
 
+    namespace detail {
+        const formatter& get_terminate_formatter() {
+            static formatter the_formatter = formatter{}
+                .header("Stack trace to reach terminate handler (most recent call first):");
+            return the_formatter;
+        }
+    }
+
     CPPTRACE_FORCE_NO_INLINE void print_terminate_trace() {
         try { // try/catch can never be hit but it's needed to prevent TCO
-            formatter{}
-                .header("Stack trace to reach terminate handler (most recent call first):")
-                .print(std::cerr, generate_trace(1));
+            detail::get_terminate_formatter().print(std::cerr, generate_trace(1));
         } catch(...) {
             if(!detail::should_absorb_trace_exceptions()) {
                 throw;
