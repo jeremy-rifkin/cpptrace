@@ -531,54 +531,6 @@ namespace libdwarf {
             }
         }
     };
-
-    class srcfiles {
-        Dwarf_Debug dbg = nullptr;
-        char** dw_srcfiles = nullptr;
-        Dwarf_Unsigned dw_filecount = 0;
-    public:
-        srcfiles(Dwarf_Debug dbg, char** dw_srcfiles, Dwarf_Signed filecount)
-            : dbg(dbg), dw_srcfiles(dw_srcfiles), dw_filecount(static_cast<Dwarf_Unsigned>(filecount))
-        {
-            if(filecount < 0) {
-                throw internal_error(microfmt::format("Unexpected dw_filecount {}", filecount));
-            }
-        }
-        ~srcfiles() {
-            if(dw_srcfiles) {
-                for(unsigned i = 0; i < dw_filecount; i++) {
-                    dwarf_dealloc(dbg, dw_srcfiles[i], DW_DLA_STRING);
-                    dw_srcfiles[i] = nullptr;
-                }
-                dwarf_dealloc(dbg, dw_srcfiles, DW_DLA_LIST);
-            }
-        }
-        srcfiles(const srcfiles&) = delete;
-        srcfiles(srcfiles&& other) {
-            *this = std::move(other);
-        }
-        srcfiles& operator=(const srcfiles&) = delete;
-        srcfiles& operator=(srcfiles&& other) {
-            std::swap(dbg, other.dbg);
-            std::swap(dw_srcfiles, other.dw_srcfiles);
-            std::swap(dw_filecount, other.dw_filecount);
-            return *this;
-        }
-        // note: dwarf uses 1-indexing
-        const char* get(Dwarf_Unsigned file_i) const {
-            if(file_i >= dw_filecount) {
-                throw internal_error(microfmt::format(
-                    "Error while accessing the srcfiles list, requested index {} is out of bounds (count = {})",
-                    file_i,
-                    dw_filecount
-                ));
-            }
-            return dw_srcfiles[file_i];
-        }
-        Dwarf_Unsigned count() const {
-            return dw_filecount;
-        }
-    };
 }
 }
 }

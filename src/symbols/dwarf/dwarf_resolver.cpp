@@ -4,6 +4,7 @@
 
 #include <cpptrace/basic.hpp>
 #include "symbols/dwarf/dwarf.hpp" // has dwarf #includes
+#include "symbols/dwarf/dwarf_utils.hpp"
 #include "symbols/dwarf/dwarf_options.hpp"
 #include "symbols/symbols.hpp"
 #include "utils/common.hpp"
@@ -39,139 +40,6 @@ namespace libdwarf {
     // printbugging as we go
     constexpr bool dump_dwarf = false;
     constexpr bool trace_dwarf = false;
-
-    // sorted range entries for dies
-    template<
-        typename T,
-        typename std::enable_if<std::is_trivially_copyable<T>::value && sizeof(T) <= 16, int>::type = 0
-    >
-    class die_cache {
-    public:
-        struct die_handle {
-            std::uint32_t die_index;
-        };
-    private:
-        struct PACKED basic_range_entry {
-            die_handle die;
-            Dwarf_Addr low;
-            Dwarf_Addr high;
-        };
-        struct PACKED annotated_range_entry {
-            die_handle die;
-            Dwarf_Addr low;
-            Dwarf_Addr high;
-            T data;
-        };
-        using range_entry = typename std::conditional<
-            std::is_same<T, monostate>::value,
-            basic_range_entry,
-            annotated_range_entry
-        >::type;
-        std::vector<die_object> dies;
-        std::vector<range_entry> range_entries;
-    public:
-        die_handle add_die(die_object&& die) {
-            dies.push_back(std::move(die));
-            VERIFY(dies.size() < std::numeric_limits<std::uint32_t>::max());
-            return die_handle{static_cast<std::uint32_t>(dies.size() - 1)};
-        }
-        template<typename Void = void>
-        auto insert(die_handle die, Dwarf_Addr low, Dwarf_Addr high)
-            -> typename std::enable_if<std::is_same<T, monostate>::value, Void>::type
-        {
-            range_entries.push_back({die, low, high});
-        }
-        template<typename Void = void>
-        auto insert(die_handle die, Dwarf_Addr low, Dwarf_Addr high, const T& t)
-            -> typename std::enable_if<!std::is_same<T, monostate>::value, Void>::type
-        {
-            range_entries.push_back({die, low, high, t});
-        }
-        void finalize() {
-            std::sort(range_entries.begin(), range_entries.end(), [] (const range_entry& a, const range_entry& b) {
-                return a.low < b.low;
-            });
-        }
-        std::size_t ranges_count() const {
-            return range_entries.size();
-        }
-
-        struct die_and_data {
-            const die_object& die;
-            T data;
-        };
-        template<typename Ret = const die_object&>
-        auto make_lookup_result(typename std::vector<range_entry>::const_iterator vec_it) const
-            -> typename std::enable_if<std::is_same<T, monostate>::value, Ret>::type
-        {
-            return dies.at(vec_it->die.die_index);
-        }
-        template<typename Ret = die_and_data>
-        auto make_lookup_result(typename std::vector<range_entry>::const_iterator vec_it) const
-            -> typename std::enable_if<!std::is_same<T, monostate>::value, Ret>::type
-        {
-            return die_and_data{dies.at(vec_it->die.die_index), vec_it->data};
-        }
-        using lookup_result = typename std::conditional<
-            std::is_same<T, monostate>::value,
-            const die_object&,
-            die_and_data
-        >::type;
-        optional<lookup_result> lookup(Dwarf_Addr pc) const {
-            auto vec_it = first_less_than_or_equal(
-                range_entries.begin(),
-                range_entries.end(),
-                pc,
-                [] (Dwarf_Addr pc, const range_entry& entry) {
-                    return pc < entry.low;
-                }
-            );
-            if(vec_it == range_entries.end()) {
-                return nullopt;
-            }
-            // This would be an if constexpr if only C++17...
-            return make_lookup_result(vec_it);
-        }
-    };
-
-    struct line_entry {
-        Dwarf_Addr low;
-        // Dwarf_Addr high;
-        // int i;
-        Dwarf_Line line;
-        optional<std::string> path;
-        optional<std::uint32_t> line_number;
-        optional<std::uint32_t> column_number;
-        line_entry(Dwarf_Addr low, Dwarf_Line line) : low(low), line(line) {}
-    };
-
-    struct line_table_info {
-        Dwarf_Unsigned version = 0;
-        Dwarf_Line_Context line_context = nullptr;
-        // sorted by low_addr
-        // TODO: Make this optional at some point, it may not be generated if cache mode switches during program exec...
-        std::vector<line_entry> line_entries;
-
-        line_table_info(
-            Dwarf_Unsigned version,
-            Dwarf_Line_Context line_context,
-            std::vector<line_entry>&& line_entries
-        ) : version(version), line_context(line_context), line_entries(std::move(line_entries)) {}
-        ~line_table_info() {
-            dwarf_srclines_dealloc_b(line_context);
-        }
-        line_table_info(const line_table_info&) = delete;
-        line_table_info(line_table_info&& other) {
-            *this = std::move(other);
-        }
-        line_table_info& operator=(const line_table_info&) = delete;
-        line_table_info& operator=(line_table_info&& other) {
-            std::swap(version, other.version);
-            std::swap(line_context, other.line_context);
-            std::swap(line_entries, other.line_entries);
-            return *this;
-        }
-    };
 
     class dwarf_resolver;
 
