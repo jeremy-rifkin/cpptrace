@@ -20,6 +20,7 @@ namespace detail {
         mutable list_type lru;
         std::unordered_map<K, list_iterator> map;
         optional<std::size_t> max_size;
+
     public:
         lru_cache() = default;
         lru_cache(optional<std::size_t> max_size) : max_size(max_size) {
