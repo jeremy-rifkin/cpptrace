@@ -39,13 +39,14 @@ namespace detail {
         // it appears safe to pass nullptr for status however the docs don't explicitly say it's safe so I don't
         // want to rely on it
         int status;
-        char* const demangled = abi::__cxa_demangle(to_demangle.get().c_str() + offset, nullptr, nullptr, &status);
+        auto demangled = raii_wrap(
+            abi::__cxa_demangle(to_demangle.get().c_str() + offset, nullptr, nullptr, &status),
+            [] (char* str) { std::free(str); }
+        );
         // demangled will always be nullptr on non-zero status, and if __cxa_demangle ever fails for any reason
         // we'll just quietly return the mangled name
-        if(demangled) {
-            // TODO: raii_wrap the char*?
-            std::string str = demangled;
-            std::free(demangled);
+        if(demangled.get()) {
+            std::string str = demangled.get();
             if(!rest.empty()) {
                 str += rest;
             }
