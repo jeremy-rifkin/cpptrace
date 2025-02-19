@@ -1,18 +1,18 @@
 include(FetchContent)
 
 FetchContent_Declare(
-    lyra
-    GIT_SHALLOW ON
-    GIT_REPOSITORY "https://github.com/bfgroup/Lyra.git"
-    GIT_TAG "ee3c076fa6b9d64c9d249a21f5b9b5a8dae92cd8"
+  lyra
+  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY "https://github.com/bfgroup/Lyra.git"
+  GIT_TAG        "ee3c076fa6b9d64c9d249a21f5b9b5a8dae92cd8"
 )
 FetchContent_MakeAvailable(lyra)
 
 FetchContent_Declare(
   fmt
   GIT_SHALLOW    TRUE
-  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-  GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281 # v10.2.1
+  GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
+  GIT_TAG        "e69e5f977d458f2650bb346dadf2ad30c5320281" # v10.2.1
 )
 FetchContent_MakeAvailable(fmt)
 
