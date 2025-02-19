@@ -2,13 +2,12 @@
 
 #include <cpptrace/basic.hpp>
 #include "symbols/symbols.hpp"
-#include "platform/dbghelp_syminit_manager.hpp"
+#include "platform/dbghelp_utils.hpp"
 #include "binary/object.hpp"
 #include "utils/common.hpp"
 #include "utils/error.hpp"
 #include "options.hpp"
 
-#include <mutex>
 #include <regex>
 #include <system_error>
 #include <vector>
@@ -325,8 +324,6 @@ namespace dbghelp {
         return true;
     }
 
-    std::recursive_mutex dbghelp_lock;
-
     // TODO: Handle backtrace_pcinfo calling the callback multiple times on inlined functions
     stacktrace_frame resolve_frame(HANDLE proc, frame_ptr addr) {
         // The get_frame_object_info() ends up being inexpensive, at on my machine
@@ -336,7 +333,8 @@ namespace dbghelp {
         // get_frame_object_info()                 0.001-0.002 ms  0.0003-0.0006 ms
         // At some point it might make sense to make an option to control this.
         auto object_frame = get_frame_object_info(addr);
-        const std::lock_guard<std::recursive_mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
+        // Dbghelp is is single-threaded, so acquire a lock.
+        auto lock = get_dbghelp_lock();
         alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
         SYMBOL_INFO* symbol = (SYMBOL_INFO*)buffer;
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -421,7 +419,8 @@ namespace dbghelp {
     }
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames) {
-        const std::lock_guard<std::recursive_mutex> lock(dbghelp_lock); // all dbghelp functions are not thread safe
+        // Dbghelp is is single-threaded, so acquire a lock.
+        auto lock = get_dbghelp_lock();
         std::vector<stacktrace_frame> trace;
         trace.reserve(frames.size());
 

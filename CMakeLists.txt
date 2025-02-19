@@ -138,7 +138,7 @@ target_sources(
     src/unwind/unwind_with_winapi.cpp
     src/utils/microfmt.cpp
     src/utils/utils.cpp
-    src/platform/dbghelp_syminit_manager.cpp
+    src/platform/dbghelp_utils.cpp
 )
 
 target_include_directories(

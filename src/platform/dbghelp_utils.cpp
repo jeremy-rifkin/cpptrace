@@ -2,7 +2,11 @@
 
 #if IS_WINDOWS
 
-#include "platform/dbghelp_syminit_manager.hpp"
+#include "platform/dbghelp_utils.hpp"
+
+#if defined(CPPTRACE_UNWIND_WITH_DBGHELP) \
+    || defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP) \
+    || defined(CPPTRACE_DEMANGLE_WITH_WINAPI)
 
 #include "utils/error.hpp"
 #include "utils/microfmt.hpp"
@@ -53,7 +57,15 @@ namespace detail {
         return syminit_manager;
     }
 
+    std::recursive_mutex dbghelp_lock;
+
+    std::unique_lock<std::recursive_mutex> get_dbghelp_lock() {
+        return std::unique_lock<std::recursive_mutex>{dbghelp_lock};
+    }
+
 }
 }
+
+#endif
 
 #endif

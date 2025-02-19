@@ -4,10 +4,9 @@
 #include "unwind/unwind.hpp"
 #include "utils/common.hpp"
 #include "utils/utils.hpp"
-#include "platform/dbghelp_syminit_manager.hpp"
+#include "platform/dbghelp_utils.hpp"
 
 #include <vector>
-#include <mutex>
 #include <cstddef>
 
 #include <windows.h>
@@ -96,8 +95,7 @@ namespace detail {
         std::vector<frame_ptr> trace;
 
         // Dbghelp is is single-threaded, so acquire a lock.
-        static std::mutex mutex;
-        std::lock_guard<std::mutex> lock(mutex);
+        auto lock = get_dbghelp_lock();
         // For some reason SymInitialize must be called before StackWalk64
         // Note that the code assumes that
         // SymInitialize( GetCurrentProcess(), NULL, TRUE ) has
