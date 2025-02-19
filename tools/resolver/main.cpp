@@ -37,7 +37,7 @@ struct options {
 };
 
 void resolve(const options& opts, cpptrace::frame_ptr address) {
-    cpptrace::object_frame obj_frame{0, address, opts.path};
+    cpptrace::object_frame obj_frame{0, address, opts.path.string()};
     auto start = std::chrono::high_resolution_clock::now();
     std::vector<cpptrace::stacktrace_frame> trace = cpptrace::detail::resolve_frames({obj_frame});
     auto end = std::chrono::high_resolution_clock::now();
@@ -102,6 +102,7 @@ int main(int argc, char** argv) CPPTRACE_TRY {
             std::this_thread::sleep_for(std::chrono::seconds(60));
         }
     }
+    return 0;
 } CPPTRACE_CATCH(const std::exception& e) {
     fmt::println(stderr, "Caught exception {}: {}", cpptrace::demangle(typeid(e).name()), e.what());
     cpptrace::from_current_exception().print();
