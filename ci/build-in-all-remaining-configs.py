@@ -66,60 +66,6 @@ def build(runner: MatrixRunner):
 
     return succeeded
 
-def build_full_or_auto(runner: MatrixRunner):
-    matrix = runner.current_config()
-
-    if os.path.exists("build"):
-        shutil.rmtree("build", ignore_errors=True)
-
-    os.makedirs("build", exist_ok=True)
-    os.chdir("build")
-
-    if platform.system() != "Windows":
-        args = [
-            "cmake",
-            "..",
-            "-GNinja",
-            f"-DCMAKE_BUILD_TYPE={matrix['target']}",
-            f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
-            f"-DCMAKE_CXX_STANDARD={matrix['std']}",
-            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
-            f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
-            f"-DCPPTRACE_WERROR_BUILD=On",
-            f"-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
-        ]
-        if matrix["config"] != "":
-            args.append(f"{matrix['config']}")
-        succeeded = runner.run_command(*args)
-        if succeeded:
-            succeeded = runner.run_command("ninja")
-    else:
-        args = [
-            "cmake",
-            "..",
-            f"-DCMAKE_BUILD_TYPE={matrix['target']}",
-            f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
-            f"-DCMAKE_CXX_STANDARD={matrix['std']}",
-            f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
-            f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
-            f"-DCPPTRACE_WERROR_BUILD=On",
-        ]
-        if matrix["config"] != "":
-            args.append(f"{matrix['config']}")
-        if matrix["compiler"] == "g++":
-            args.append("-GUnix Makefiles")
-        succeeded = runner.run_command(*args)
-        if succeeded:
-            if matrix["compiler"] == "g++":
-                succeeded = runner.run_command("make", "-j")
-            else:
-                succeeded = runner.run_command("msbuild", "cpptrace.sln")
-
-    os.chdir("..")
-    print()
-
-    return succeeded
-
 def run_linux_matrix(compilers: list):
     MatrixRunner(
         matrix = {
