@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.8.0](#v080)
 - [v0.7.5](#v075)
 - [v0.7.4](#v074)
 - [v0.7.3](#v073)
@@ -24,6 +25,40 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.8.0
+
+Added:
+- Added support for resolving symbols from elf and mach-o symbol tables, allowing function names to be resolved even in
+  a build that doesn't include debug information https://github.com/jeremy-rifkin/cpptrace/issues/201
+- Added a configurable stack trace formatter https://github.com/jeremy-rifkin/cpptrace/issues/164
+- Added configuration options for the libdwarf back-end that can be used to lower memory usage on memory-constrained
+  systems https://github.com/jeremy-rifkin/cpptrace/issues/193
+- Added `cpptrace::nullable<T>::null_value`
+- Made `cpptrace::nullable<T>` member functions conditionally `constexpr` where possible
+
+Fixed:
+- Fixed handling of `SymInitialize` when other code has already called `SymInitialize`. `SymInitialize` must only be
+  called once per handle and cpptrace now attempts to duplicate the current process handle to avoid conflicts.
+  https://github.com/jeremy-rifkin/cpptrace/issues/204
+- Fixed a couple of locking edge cases surrounding dbghelp functions
+- Fixed improper deallocation of `dwarf_errmsg` in the libdwarf back-end
+
+Breaking changes:
+- `cpptrace::get_snippet` previously included a newline at the end but it now does not. This also affects the behavior
+  of trace formatting with snippets enabled.
+
+Other:
+- Significantly improved memory usage and performance of the libdwarf back-end
+- Improved implementation and organization of internal utility types, such as `optional` and `Result`
+- Improved trace printing and formatting implementation
+- Added unit tests for library internal utilities
+- Added logic to the cxxabi demangler to ensure external names begin with `_Z` or `__Z` before attempting to demangle
+- Added various internal tools and abstractions to improve maintainability and clarity
+- Various internal improvements for robustness
+- Added a small handful of utility tool programs that are useful for continued development, maintenance, and debugging
+- Improved library CI setup
+- Marked the `CPPTRACE_BUILD_BENCHMARK` option as advanced
 
 # v0.7.5
 
