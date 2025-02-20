@@ -105,16 +105,16 @@ namespace detail {
         // SymInitialize being called twice.
         // DuplicateHandle requires the PROCESS_DUP_HANDLE access right. If for some reason DuplicateHandle we fall back
         // to calling SymInitialize on the process handle.
-        optional<DWORD> duplicate_handle_errored;
+        optional<DWORD> maybe_duplicate_handle_error_code;
         if(!DuplicateHandle(proc, proc, proc, &duplicated_handle.get(), 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-            duplicate_handle_errored = GetLastError();
+            maybe_duplicate_handle_error_code = GetLastError();
         }
-        if(!SymInitialize(duplicate_handle_errored ? proc : duplicated_handle.get(), NULL, TRUE)) {
-            if(duplicate_handle_errored) {
+        if(!SymInitialize(maybe_duplicate_handle_error_code ? proc : duplicated_handle.get(), NULL, TRUE)) {
+            if(maybe_duplicate_handle_error_code) {
                 throw internal_error(
                     "SymInitialize failed with error code {} after DuplicateHandle failed with error code {}",
                     GetLastError(),
-                    duplicate_handle_errored.unwrap()
+                    maybe_duplicate_handle_error_code.unwrap()
                 );
             } else {
                 throw internal_error("SymInitialize failed with error code {}", GetLastError());
@@ -122,8 +122,8 @@ namespace detail {
         }
 
         auto info = dbghelp_syminit_info::make_owned(
-            duplicate_handle_errored ? proc : exchange(duplicated_handle.get(), nullptr),
-            duplicate_handle_errored ? false : true // looks funny but I think it's a little more expressive
+            maybe_duplicate_handle_error_code ? proc : exchange(duplicated_handle.get(), nullptr),
+            !maybe_duplicate_handle_error_code
         );
         // either cache and return a view or return the owning wrapper
         if(get_cache_mode() == cache_mode::prioritize_speed) {
