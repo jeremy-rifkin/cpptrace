@@ -66,8 +66,12 @@ namespace libdwarf {
         }
 
         ~die_object() {
+            release();
+        }
+
+        void release() {
             if(die) {
-                dwarf_dealloc_die(die);
+                dwarf_dealloc_die(exchange(die, nullptr));
             }
         }
 
@@ -75,16 +79,15 @@ namespace libdwarf {
 
         die_object& operator=(const die_object&) = delete;
 
-        die_object(die_object&& other) noexcept : dbg(other.dbg), die(other.die) {
-            // done for finding mistakes, attempts to use the die_object after this should segfault
-            // a valid use otherwise would be moved_from.get_sibling() which would get the next CU
-            other.dbg = nullptr;
-            other.die = nullptr;
-        }
+        // dbg doesn't strictly have to be st to null but it helps ensure attempts to use the die_object after this to
+        // segfault. A valid use otherwise would be moved_from.get_sibling() which would get the next CU.
+        die_object(die_object&& other) noexcept
+            : dbg(exchange(other.dbg, nullptr)), die(exchange(other.die, nullptr)) {}
 
         die_object& operator=(die_object&& other) noexcept {
-            std::swap(dbg, other.dbg);
-            std::swap(die, other.die);
+            release();
+            dbg = exchange(other.dbg, nullptr);
+            die = exchange(other.die, nullptr);
             return *this;
         }
 

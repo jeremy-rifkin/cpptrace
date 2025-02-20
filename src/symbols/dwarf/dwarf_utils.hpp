@@ -24,12 +24,16 @@ namespace libdwarf {
             }
         }
         ~srcfiles() {
+            release();
+        }
+        void release() {
             if(dw_srcfiles) {
                 for(unsigned i = 0; i < dw_filecount; i++) {
                     dwarf_dealloc(dbg, dw_srcfiles[i], DW_DLA_STRING);
                     dw_srcfiles[i] = nullptr;
                 }
                 dwarf_dealloc(dbg, dw_srcfiles, DW_DLA_LIST);
+                dw_srcfiles = nullptr;
             }
         }
         srcfiles(const srcfiles&) = delete;
@@ -38,9 +42,10 @@ namespace libdwarf {
         }
         srcfiles& operator=(const srcfiles&) = delete;
         srcfiles& operator=(srcfiles&& other) {
-            std::swap(dbg, other.dbg);
-            std::swap(dw_srcfiles, other.dw_srcfiles);
-            std::swap(dw_filecount, other.dw_filecount);
+            release();
+            dbg = exchange(other.dbg, nullptr);
+            dw_srcfiles = exchange(other.dw_srcfiles, nullptr);
+            dw_filecount = exchange(other.dw_filecount, 0);
             return *this;
         }
         // note: dwarf uses 1-indexing
@@ -177,7 +182,11 @@ namespace libdwarf {
             std::vector<line_entry>&& line_entries
         ) : version(version), line_context(line_context), line_entries(std::move(line_entries)) {}
         ~line_table_info() {
+            release();
+        }
+        void release() {
             dwarf_srclines_dealloc_b(line_context);
+            line_context = nullptr;
         }
         line_table_info(const line_table_info&) = delete;
         line_table_info(line_table_info&& other) {
@@ -185,9 +194,10 @@ namespace libdwarf {
         }
         line_table_info& operator=(const line_table_info&) = delete;
         line_table_info& operator=(line_table_info&& other) {
-            std::swap(version, other.version);
-            std::swap(line_context, other.line_context);
-            std::swap(line_entries, other.line_entries);
+            release();
+            version = other.version;
+            line_context = exchange(other.line_context, nullptr);
+            line_entries = std::move(other.line_entries);
             return *this;
         }
     };
