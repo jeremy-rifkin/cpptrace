@@ -101,24 +101,13 @@ namespace detail {
         // SymInitialize( GetCurrentProcess(), NULL, TRUE ) has
         // already been called.
         //
-        HANDLE duplicated_handle = nullptr;
-        HANDLE proc = GetCurrentProcess();
+        auto syminit_info = ensure_syminit();
         HANDLE thread = GetCurrentThread();
-        if(get_cache_mode() == cache_mode::prioritize_speed) {
-            duplicated_handle = get_syminit_manager().init(proc);
-        } else {
-            if(!DuplicateHandle(proc, proc, proc, &duplicated_handle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-                throw internal_error("DuplicateHandle failed{}", GetLastError());
-            }
-            if(!SymInitialize(duplicated_handle, NULL, TRUE)) {
-                throw internal_error("SymInitialize failed{}", GetLastError());
-            }
-        }
         while(trace.size() < max_depth) {
             if(
                 !StackWalk64(
                     machine_type,
-                    duplicated_handle,
+                    syminit_info.get_process_handle(),
                     thread,
                     &frame,
                     machine_type == IMAGE_FILE_MACHINE_I386 ? NULL : &context,
@@ -144,14 +133,6 @@ namespace detail {
             } else {
                 // base
                 break;
-            }
-        }
-        if(get_cache_mode() != cache_mode::prioritize_speed) {
-            if(!SymCleanup(duplicated_handle)) {
-                throw internal_error("SymCleanup failed");
-            }
-            if(!CloseHandle(duplicated_handle)) {
-                throw internal_error("CloseHandle failed");
             }
         }
         return trace;
