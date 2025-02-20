@@ -46,11 +46,11 @@ namespace libdwarf {
                 // the path doesn't exist
                 std::unordered_map<std::string, uint64_t> symbols;
                 this->symbols = symbols;
-                auto obj = mach_o::open_mach_o(object_path);
-                if(!obj) {
+                auto mach_o_object = open_mach_o_cached(object_path);
+                if(!mach_o_object) {
                     return this->symbols.unwrap();
                 }
-                const auto& symbol_table = obj.unwrap_value().symbol_table();
+                const auto& symbol_table = mach_o_object.unwrap_value()->symbol_table();
                 if(!symbol_table) {
                     return this->symbols.unwrap();
                 }
@@ -110,11 +110,11 @@ namespace libdwarf {
         debug_map_resolver(const std::string& source_object_path) {
             // load mach-o
             // TODO: Cache somehow?
-            auto obj = mach_o::open_mach_o(source_object_path);
-            if(!obj) {
+            auto mach_o_object = open_mach_o_cached(source_object_path);
+            if(!mach_o_object) {
                 return;
             }
-            mach_o& source_mach = obj.unwrap_value();
+            mach_o& source_mach = *mach_o_object.unwrap_value();
             auto source_debug_map = source_mach.get_debug_map();
             if(!source_debug_map) {
                 return;

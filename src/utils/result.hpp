@@ -127,6 +127,24 @@ namespace detail {
             return has_value() ? static_cast<T>(std::move(value_)) : static_cast<T>(std::forward<U>(default_value));
         }
 
+        template<typename F>
+        NODISCARD auto transform(F&& f) & -> Result<decltype(f(std::declval<T&>())), E> {
+            if(has_value()) {
+                return f(unwrap_value());
+            } else {
+                return unwrap_error();
+            }
+        }
+
+        template<typename F>
+        NODISCARD auto transform(F&& f) && -> Result<decltype(f(std::declval<T&&>())), E> {
+            if(has_value()) {
+                return f(std::move(unwrap_value()));
+            } else {
+                return unwrap_error();
+            }
+        }
+
         void drop_error() const {
             if(is_error()) {
                 std::fprintf(stderr, "%s\n", unwrap_error().what());

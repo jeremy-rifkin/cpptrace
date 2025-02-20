@@ -73,6 +73,8 @@ namespace detail {
     public:
         static NODISCARD Result<elf, internal_error> open_elf(const std::string& object_path);
 
+        elf(elf&&) = default;
+
     public:
         Result<std::uintptr_t, internal_error> get_module_image_base();
     private:
@@ -117,6 +119,8 @@ namespace detail {
         template<std::size_t Bits>
         Result<optional<symtab_info>, internal_error> get_symtab_impl(bool dynamic);
     };
+
+    NODISCARD Result<maybe_owned<elf>, internal_error> open_elf_cached(const std::string& object_path);
 }
 }
 

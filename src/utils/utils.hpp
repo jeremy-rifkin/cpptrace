@@ -279,6 +279,11 @@ namespace detail {
 
     using file_wrapper = raii_wrapper<std::FILE*, void(*)(std::FILE*)>;
 
+    template<class T, class... Args>
+    auto make_unique(Args&&... args) -> typename std::enable_if<!std::is_array<T>::value, std::unique_ptr<T>>::type {
+        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+
     template<typename T>
     class maybe_owned {
         std::unique_ptr<T> owned;
@@ -288,6 +293,9 @@ namespace detail {
         maybe_owned(std::unique_ptr<T>&& owned) : owned(std::move(owned)), ptr(this->owned.get()) {}
         T* operator->() {
             return ptr;
+        }
+        T& operator*() {
+            return *ptr;
         }
     };
 }

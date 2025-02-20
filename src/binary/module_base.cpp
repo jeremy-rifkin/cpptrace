@@ -30,12 +30,12 @@ namespace detail {
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
-            auto obj = elf::open_elf(object_path);
+            auto elf_object = open_elf_cached(object_path);
             // TODO: Cache the error
-            if(!obj) {
-                return obj.unwrap_error();
+            if(!elf_object) {
+                return elf_object.unwrap_error();
             }
-            auto base = obj.unwrap_value().get_module_image_base();
+            auto base = elf_object.unwrap_value()->get_module_image_base();
             if(base.is_error()) {
                 return std::move(base).unwrap_error();
             }
@@ -57,12 +57,12 @@ namespace detail {
         if(it == cache.end()) {
             // arguably it'd be better to release the lock while computing this, but also arguably it's good to not
             // have two threads try to do the same computation
-            auto obj = mach_o::open_mach_o(object_path);
+            auto mach_o_object = open_mach_o_cached(object_path);
             // TODO: Cache the error
-            if(!obj) {
-                return obj.unwrap_error();
+            if(!mach_o_object) {
+                return mach_o_object.unwrap_error();
             }
-            auto base = obj.unwrap_value().get_text_vmaddr();
+            auto base = mach_o_object.unwrap_value()->get_text_vmaddr();
             if(!base) {
                 return std::move(base).unwrap_error();
             }

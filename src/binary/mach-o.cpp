@@ -669,6 +669,27 @@ namespace detail {
             return is_fat_magic(magic.unwrap_value());
         }
     }
+
+    Result<maybe_owned<mach_o>, internal_error> open_mach_o_cached(const std::string& object_path) {
+        if(get_cache_mode() == cache_mode::prioritize_memory) {
+            return mach_o::open_mach_o(object_path)
+                .transform([](mach_o&& obj) {
+                    return maybe_owned<mach_o>{detail::make_unique<mach_o>(std::move(obj))};
+                });
+        } else {
+            std::mutex m;
+            std::unique_lock<std::mutex> lock{m};
+            // TODO: Re-evaluate storing the error
+            static std::unordered_map<std::string, Result<mach_o, internal_error>> cache;
+            auto it = cache.find(object_path);
+            if(it == cache.end()) {
+                auto res = cache.insert({ object_path, mach_o::open_mach_o(object_path) });
+                VERIFY(res.second);
+                it = res.first;
+            }
+            return it->second.transform([](mach_o& obj) { return maybe_owned<mach_o>(&obj); });
+        }
+    }
 }
 }
 

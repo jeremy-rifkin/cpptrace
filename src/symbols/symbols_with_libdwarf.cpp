@@ -96,9 +96,9 @@ namespace libdwarf {
                 const auto& object_name = group.first;
                 // TODO PERF: Potentially a duplicate open and parse with module base stuff (and debug map resolver)
                 #if IS_LINUX
-                auto object = elf::open_elf(object_name);
+                auto object = open_elf_cached(object_name);
                 #elif IS_APPLE
-                auto object = mach_o::open_mach_o(object_name);
+                auto object = open_mach_o_cached(object_name);
                 #endif
                 auto resolver = get_resolver(object_name);
                 for(const auto& entry : group.second) {
@@ -116,7 +116,9 @@ namespace libdwarf {
                     }
                     #if IS_LINUX || IS_APPLE
                     if(frame.frame.symbol.empty() && object.has_value()) {
-                        frame.frame.symbol = object.unwrap_value().lookup_symbol(dlframe.object_address).value_or("");
+                        frame.frame.symbol = object
+                            .unwrap_value()
+                            ->lookup_symbol(dlframe.object_address).value_or("");
                     }
                     #endif
                 }

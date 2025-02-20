@@ -7,7 +7,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <mutex>
 #include <type_traits>
+#include <unordered_map>
 
 #include <elf.h>
 
@@ -409,6 +411,25 @@ namespace detail {
             }
         }
         return symbol_table;
+    }
+
+    Result<maybe_owned<elf>, internal_error> open_elf_cached(const std::string& object_path) {
+        if(get_cache_mode() == cache_mode::prioritize_memory) {
+            return elf::open_elf(object_path)
+                .transform([](elf&& obj) { return maybe_owned<elf>{detail::make_unique<elf>(std::move(obj))}; });
+        } else {
+            std::mutex m;
+            std::unique_lock<std::mutex> lock{m};
+            // TODO: Re-evaluate storing the error
+            static std::unordered_map<std::string, Result<elf, internal_error>> cache;
+            auto it = cache.find(object_path);
+            if(it == cache.end()) {
+                auto res = cache.insert({ object_path, elf::open_elf(object_path) });
+                VERIFY(res.second);
+                it = res.first;
+            }
+            return it->second.transform([](elf& obj) { return maybe_owned<elf>(&obj); });
+        }
     }
 }
 }

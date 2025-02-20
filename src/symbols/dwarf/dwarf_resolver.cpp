@@ -127,12 +127,12 @@ namespace libdwarf {
             if(result.is_error()) {
                 result.drop_error();
             } else if(result.unwrap_value()) {
-                auto obj = mach_o::open_mach_o(object_path);
-                if(!obj) {
+                auto mach_o_object = open_mach_o_cached(object_path);
+                if(!mach_o_object) {
                     ok = false;
                     return;
                 }
-                universal_number = obj.unwrap_value().get_fat_index();
+                universal_number = mach_o_object.unwrap_value()->get_fat_index();
             }
             #endif
 

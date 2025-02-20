@@ -137,6 +137,8 @@ namespace detail {
     };
 
     Result<bool, internal_error> macho_is_fat(const std::string& object_path);
+
+    NODISCARD Result<maybe_owned<mach_o>, internal_error> open_mach_o_cached(const std::string& object_path);
 }
 }
 
