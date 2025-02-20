@@ -103,15 +103,28 @@ namespace detail {
         // https://learn.microsoft.com/en-us/windows/win32/debug/initializing-the-symbol-handler
         // Apparently duplicating the process handle is the idiomatic thing to do and this avoids issues of
         // SymInitialize being called twice.
-        // TODO: Fallback on failure
+        // DuplicateHandle requires the PROCESS_DUP_HANDLE access right. If for some reason DuplicateHandle we fall back
+        // to calling SymInitialize on the process handle.
+        optional<DWORD> duplicate_handle_errored;
         if(!DuplicateHandle(proc, proc, proc, &duplicated_handle.get(), 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-            throw internal_error("DuplicateHandle failed{}", GetLastError());
+            duplicate_handle_errored = GetLastError();
         }
-        if(!SymInitialize(duplicated_handle.get(), NULL, TRUE)) {
-            throw internal_error("SymInitialize failed{}", GetLastError());
+        if(!SymInitialize(duplicate_handle_errored ? proc : duplicated_handle.get(), NULL, TRUE)) {
+            if(duplicate_handle_errored) {
+                throw internal_error(
+                    "SymInitialize failed with error code {} after DuplicateHandle failed with error code {}",
+                    GetLastError(),
+                    duplicate_handle_errored.unwrap()
+                );
+            } else {
+                throw internal_error("SymInitialize failed with error code {}", GetLastError());
+            }
         }
 
-        auto info = dbghelp_syminit_info::make_owned(exchange(duplicated_handle.get(), nullptr), true);
+        auto info = dbghelp_syminit_info::make_owned(
+            duplicate_handle_errored ? proc : exchange(duplicated_handle.get(), nullptr),
+            duplicate_handle_errored ? false : true // looks funny but I think it's a little more expressive
+        );
         // either cache and return a view or return the owning wrapper
         if(get_cache_mode() == cache_mode::prioritize_speed) {
             auto& syminit_cache = get_syminit_cache();
