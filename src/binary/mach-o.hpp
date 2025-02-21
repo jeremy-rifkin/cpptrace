@@ -63,7 +63,7 @@ namespace detail {
 
         struct symtab_info_data {
             symtab_command symtab;
-            std::vector<char> stringtab;
+            optional<std::vector<char>> stringtab;
             Result<const char*, internal_error> get_string(std::size_t index) const;
         };
 

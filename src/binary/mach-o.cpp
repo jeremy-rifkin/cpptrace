@@ -103,7 +103,7 @@ namespace detail {
 
     Result<const char*, internal_error> mach_o::symtab_info_data::get_string(std::size_t index) const {
         if(stringtab && index < symtab.strsize) {
-            return stringtab.get() + index;
+            return stringtab.unwrap().data() + index;
         } else {
             return internal_error("can't retrieve symbol from symtab");
         }
@@ -287,7 +287,7 @@ namespace detail {
                     }
                     print_symbol_table_entry(
                         entry.unwrap_value(),
-                        stringtab ? stringtab.unwrap_value().get() : nullptr,
+                        stringtab ? stringtab.unwrap_value().data() : nullptr,
                         symtab.strsize,
                         j
                     );
