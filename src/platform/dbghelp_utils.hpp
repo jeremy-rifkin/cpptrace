@@ -5,6 +5,8 @@
     || defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP) \
     || defined(CPPTRACE_DEMANGLE_WITH_WINAPI)
 
+#include "utils/common.hpp"
+
 #include <unordered_map>
 #include <mutex>
 
@@ -20,8 +22,8 @@ namespace detail {
         ~dbghelp_syminit_info();
         void release();
 
-        static dbghelp_syminit_info make_not_owned(void* handle);
-        static dbghelp_syminit_info make_owned(void* handle, bool should_close_handle);
+        NODISCARD static dbghelp_syminit_info make_not_owned(void* handle);
+        NODISCARD static dbghelp_syminit_info make_owned(void* handle, bool should_close_handle);
 
         dbghelp_syminit_info(const dbghelp_syminit_info&) = delete;
         dbghelp_syminit_info(dbghelp_syminit_info&&);
@@ -39,7 +41,7 @@ namespace detail {
     // - Calls SymInitialize and returns an owning dbghelp_syminit_info which will handle cleanup
     dbghelp_syminit_info ensure_syminit();
 
-    std::unique_lock<std::recursive_mutex> get_dbghelp_lock();
+    NODISCARD std::unique_lock<std::recursive_mutex> get_dbghelp_lock();
 }
 }
 

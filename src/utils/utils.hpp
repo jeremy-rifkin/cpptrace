@@ -278,31 +278,31 @@ namespace detail {
         }
     };
 
-    // template<typename F>
-    // class scope_guard {
-    //     F f;
-    //     bool active;
-    // public:
-    //     scope_guard(F&& f) : f(std::forward<F>(f)), active(true) {}
-    //     ~scope_guard() {
-    //         if(active) {
-    //             f();
-    //         }
-    //     }
-    //     scope_guard(const scope_guard&) = delete;
-    //     scope_guard(scope_guard&& other) : f(std::move(other.f)), active(exchange(other.active, false)) {}
-    //     scope_guard& operator=(const scope_guard&) = delete;
-    //     scope_guard& operator=(scope_guard&& other) {
-    //         f = std::move(other.f);
-    //         active = exchange(other.active, false);
-    //         return *this;
-    //     }
-    // };
+    template<typename F>
+    class scope_guard {
+        F f;
+        bool active;
+    public:
+        scope_guard(F&& f) : f(std::forward<F>(f)), active(true) {}
+        ~scope_guard() {
+            if(active) {
+                f();
+            }
+        }
+        scope_guard(const scope_guard&) = delete;
+        scope_guard(scope_guard&& other) : f(std::move(other.f)), active(exchange(other.active, false)) {}
+        scope_guard& operator=(const scope_guard&) = delete;
+        scope_guard& operator=(scope_guard&& other) {
+            f = std::move(other.f);
+            active = exchange(other.active, false);
+            return *this;
+        }
+    };
 
-    // template<typename F>
-    // auto scope_exit(F&& f) {
-    //     return scope_guard<F>(std::forward<F>(f));
-    // }
+    template<typename F>
+    NODISCARD auto scope_exit(F&& f) {
+        return scope_guard<F>(std::forward<F>(f));
+    }
 }
 }
 
