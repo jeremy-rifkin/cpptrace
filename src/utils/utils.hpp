@@ -283,7 +283,8 @@ namespace detail {
         F f;
         bool active;
     public:
-        scope_guard(F&& f) : f(std::forward<F>(f)), active(true) {}
+        template<typename G>
+        scope_guard(G&& f) : f(std::forward<F>(f)), active(true) {}
         ~scope_guard() {
             if(active) {
                 f();
