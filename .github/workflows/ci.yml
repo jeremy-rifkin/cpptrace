@@ -68,6 +68,31 @@ jobs:
     - name: build and test
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
+  test-windows-old:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc]
+        shared: [--shared, ""]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.13.0
+      with:
+        toolset: 14.29 # vc 2019
+    - name: dependencies
+      run: |
+           pip3 install colorama
+    - name: libdwarf
+      run: |
+           if("${{matrix.compiler}}" -eq "gcc") {
+            cd ..
+            cpptrace/ci/setup-prerequisites-mingw.ps1
+           }
+    - name: build and test
+      run: |
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
   test-linux-all-configurations:
     runs-on: ubuntu-22.04
     strategy:
