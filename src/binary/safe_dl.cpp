@@ -53,6 +53,10 @@ namespace detail {
         // may return the object that defines the function descriptor (and not the object that contains the code
         // implementing the function), or fail to find any object at all.
     }
+
+    bool has_get_safe_object_frame() {
+        return true;
+    }
 }
 }
 #else
@@ -62,6 +66,10 @@ namespace detail {
         out->raw_address = address;
         out->address_relative_to_object_start = 0;
         out->object_path[0] = 0;
+    }
+
+    bool has_get_safe_object_frame() {
+        return false;
     }
 }
 }

@@ -310,8 +310,12 @@ extern "C" {
         cpptrace::get_safe_object_frame(address, reinterpret_cast<cpptrace::safe_object_frame*>(out));
     }
 
-    ctrace_bool can_signal_safe_unwind() {
+    ctrace_bool ctrace_can_signal_safe_unwind() {
         return cpptrace::can_signal_safe_unwind();
+    }
+
+    ctrace_bool ctrace_can_get_safe_object_frame(void) {
+        return cpptrace::can_get_safe_object_frame();
     }
 
     // ctrace::io:

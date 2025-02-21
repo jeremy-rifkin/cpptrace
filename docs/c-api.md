@@ -168,5 +168,6 @@ struct ctrace_safe_object_frame {
 };
 size_t ctrace_safe_generate_raw_trace(ctrace_frame_ptr* buffer, size_t size, size_t skip, size_t max_depth);
 void ctrace_get_safe_object_frame(ctrace_frame_ptr address, ctrace_safe_object_frame* out);
-ctrace_bool can_signal_safe_unwind();
+ctrace_bool ctrace_can_signal_safe_unwind();
+ctrace_bool ctrace_can_get_safe_object_frame();
 ```

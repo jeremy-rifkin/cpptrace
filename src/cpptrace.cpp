@@ -333,4 +333,8 @@ namespace cpptrace {
     bool can_signal_safe_unwind() {
         return detail::has_safe_unwind();
     }
+
+    bool can_get_safe_object_frame() {
+        return detail::has_get_safe_object_frame();
+    }
 }

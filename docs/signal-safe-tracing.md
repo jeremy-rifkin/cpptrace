@@ -73,6 +73,7 @@ namespace cpptrace {
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out);
     // signal-safe
     bool can_signal_safe_unwind();
+    bool can_get_safe_object_frame();
 }
 ```
 
@@ -103,6 +104,9 @@ only ways to do this safely as far as I can tell.
 **Note:** Not all back-ends and platforms support these interfaces. If signal-safe unwinding isn't supported
 `safe_generate_raw_trace` will just produce an empty trace and if object information can't be resolved in a signal-safe
 way then `get_safe_object_frame` will not populate fields beyond the `raw_address`.
+
+`cpptrace::can_signal_safe_unwind` and `cpptrace::can_get_safe_object_frame` can be used to check for safe tracing
+support.
 
 Currently the only back-end that can unwind safely is libunwind. Currently, the only way I know to get `dladdr`'s
 information in a signal-safe manner is `_dl_find_object`, which doesn't exist on macos (or windows of course). If anyone

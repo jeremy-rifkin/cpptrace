@@ -131,7 +131,8 @@ CTRACE_BEGIN_DEFINITIONS
     /* ctrace::safe: */
     CPPTRACE_EXPORT size_t ctrace_safe_generate_raw_trace(ctrace_frame_ptr* buffer, size_t size, size_t skip, size_t max_depth);
     CPPTRACE_EXPORT void ctrace_get_safe_object_frame(ctrace_frame_ptr address, ctrace_safe_object_frame* out);
-    CPPTRACE_EXPORT ctrace_bool can_signal_safe_unwind(void);
+    CPPTRACE_EXPORT ctrace_bool ctrace_can_signal_safe_unwind(void);
+    CPPTRACE_EXPORT ctrace_bool ctrace_can_get_safe_object_frame(void);
 
     /* ctrace::io: */
     CPPTRACE_EXPORT ctrace_owning_string ctrace_stacktrace_to_string(const ctrace_stacktrace* trace, ctrace_bool use_color);

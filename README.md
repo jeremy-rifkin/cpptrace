@@ -774,6 +774,7 @@ namespace cpptrace {
     };
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out);
     bool can_signal_safe_unwind();
+    bool can_get_safe_object_frame();
 }
 ```
 
@@ -790,9 +791,9 @@ see the comprehensive overview and demo at [signal-safe-tracing.md](docs/signal-
 > [!IMPORTANT]
 > Currently signal-safe stack unwinding is only possible with `libunwind`, which must be
 > [manually enabled](#library-back-ends). If signal-safe unwinding isn't supported, `safe_generate_raw_trace` will just
-> produce an empty trace. `can_signal_safe_unwind` can be used to check for signal-safe unwinding support. If object
-> information can't be resolved in a signal-safe way then `get_safe_object_frame` will not populate fields beyond the
-> `raw_address`.
+> produce an empty trace. `can_signal_safe_unwind` can be used to check for signal-safe unwinding support and
+> `can_get_safe_object_frame` can be used to check `get_safe_object_frame` support. If object information can't be
+> resolved in a signal-safe way then `get_safe_object_frame` will not populate fields beyond the `raw_address`.
 
 > [!IMPORTANT]
 > `_dl_find_object` is required for signal-safe stack tracing. This is a relatively recent addition to glibc, added in
