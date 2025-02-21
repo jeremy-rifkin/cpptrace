@@ -300,7 +300,7 @@ namespace detail {
     };
 
     template<typename F>
-    NODISCARD auto scope_exit(F&& f) {
+    NODISCARD auto scope_exit(F&& f) -> scope_guard<F> {
         return scope_guard<F>(std::forward<F>(f));
     }
 }
