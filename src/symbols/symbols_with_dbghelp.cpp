@@ -6,6 +6,7 @@
 #include "binary/object.hpp"
 #include "utils/common.hpp"
 #include "utils/error.hpp"
+#include "utils/utils.hpp"
 #include "options.hpp"
 
 #include <regex>
@@ -239,6 +240,9 @@ namespace dbghelp {
                     std::size_t sz = sizeof(TI_FINDCHILDREN_PARAMS) +
                                     (n_children) * sizeof(TI_FINDCHILDREN_PARAMS::ChildId[0]);
                     TI_FINDCHILDREN_PARAMS* children = (TI_FINDCHILDREN_PARAMS*) new char[sz];
+                    auto guard = scope_exit([&] {
+                        delete[] (char*) children;
+                    });
                     children->Start = 0;
                     children->Count = n_children;
                     if(
@@ -264,7 +268,6 @@ namespace dbghelp {
                         extent += (i == 0 ? "" : ", ") + resolve_type(children->ChildId[i], proc, modbase);
                     }
                     extent += ")";
-                    delete[] (char*) children;
                     return {return_type.base, extent + return_type.extent};
                 }
             }

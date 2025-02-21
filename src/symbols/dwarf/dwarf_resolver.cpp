@@ -932,12 +932,7 @@ namespace libdwarf {
                     if(it == split_full_cu_resolvers.end()) {
                         it = split_full_cu_resolvers.emplace(
                             off,
-                            std::unique_ptr<dwarf_resolver>(
-                                new dwarf_resolver(
-                                    path,
-                                    skeleton_info{cu_die.clone(), dwversion, *this}
-                                )
-                            )
+                            detail::make_unique<dwarf_resolver>(path, skeleton_info{cu_die.clone(), dwversion, *this})
                         ).first;
                     }
                     res = it->second->resolve_frame(object_frame_info);
@@ -1015,7 +1010,7 @@ namespace libdwarf {
     };
 
     std::unique_ptr<symbol_resolver> make_dwarf_resolver(const std::string& object_path) {
-        return std::unique_ptr<dwarf_resolver>(new dwarf_resolver(object_path));
+        return detail::make_unique<dwarf_resolver>(object_path);
     }
 }
 }

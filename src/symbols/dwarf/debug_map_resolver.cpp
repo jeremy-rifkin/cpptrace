@@ -34,7 +34,7 @@ namespace libdwarf {
             if(!resolver) {
                 // this seems silly but it's an attempt to not repeatedly try to initialize new dwarf_resolvers if
                 // exceptions are thrown, e.g. if the path doesn't exist
-                resolver = std::unique_ptr<null_resolver>(new null_resolver);
+                resolver = detail::make_unique<null_resolver>();
                 resolver = make_dwarf_resolver(object_path);
             }
             return resolver;
@@ -198,7 +198,7 @@ namespace libdwarf {
     };
 
     std::unique_ptr<symbol_resolver> make_debug_map_resolver(const std::string& object_path) {
-        return std::unique_ptr<debug_map_resolver>(new debug_map_resolver(object_path));
+        return detail::make_unique<debug_map_resolver>(object_path);
     }
     #endif
 }
