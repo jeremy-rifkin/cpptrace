@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.8.1](#v081)
 - [v0.8.0](#v080)
 - [v0.7.5](#v075)
 - [v0.7.4](#v074)
@@ -25,6 +26,23 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.8.1
+
+Fixed:
+- Fixed compile error on msvc https://github.com/jeremy-rifkin/cpptrace/issues/215
+
+Added:
+- Added `cpptrace::can_get_safe_object_frame()`
+
+Breaking changes:
+- Renamed ctrace's `can_signal_safe_unwind` to `ctrace_can_signal_safe_unwind`. This was an oversight. Apologies for
+  including a breaking change in a patch release. Github code search suggests this API isn't used in public code, at
+  least.
+
+Other:
+- Added CI workflow to test on old msvc
+- Made some internal improvements on robustness and cleanliness
 
 # v0.8.0
 
