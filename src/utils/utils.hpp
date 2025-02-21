@@ -283,7 +283,10 @@ namespace detail {
         F f;
         bool active;
     public:
-        template<typename G>
+        template<
+            typename G,
+            typename std::enable_if<!std::is_same<typename std::decay<G>::type, scope_guard<F>>::value, int>::type = 0
+        >
         scope_guard(G&& f) : f(std::forward<F>(f)), active(true) {}
         ~scope_guard() {
             if(active) {
