@@ -16,9 +16,6 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
 
 - [30-Second Overview](#30-second-overview)
   - [CMake FetchContent Usage](#cmake-fetchcontent-usage)
-- [FAQ](#faq)
-  - [What about C++23 `<stacktrace>`?](#what-about-c23-stacktrace)
-  - [What does cpptrace have over other C++ stacktrace libraries?](#what-does-cpptrace-have-over-other-c-stacktrace-libraries)
 - [Prerequisites](#prerequisites)
 - [Basic Usage](#basic-usage)
 - [`namespace cpptrace`](#namespace-cpptrace)
@@ -57,6 +54,10 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Summary of Library Configurations](#summary-of-library-configurations)
 - [Testing Methodology](#testing-methodology)
 - [Notes About the Library](#notes-about-the-library)
+- [FAQ](#faq)
+  - [What about C++23 `<stacktrace>`?](#what-about-c23-stacktrace)
+  - [What does cpptrace have over other C++ stacktrace libraries?](#what-does-cpptrace-have-over-other-c-stacktrace-libraries)
+  - [I'm getting undefined standard library symbols like `std::__1::basic_string` on MacOS](#im-getting-undefined-standard-library-symbols-like-std__1basic_string-on-macos)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -162,33 +163,6 @@ On macOS it is recommended to generate a `.dSYM` file, see [Platform Logistics](
 
 For other ways to use the library, such as through package managers, a system-wide installation, or on a platform
 without internet access see [How to Include The Library](#how-to-include-the-library) below.
-
-# FAQ
-
-## What about C++23 `<stacktrace>`?
-
-Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
-The original motivation for cpptrace was to support projects using older C++ standards and as the library has grown its
-functionality has extended beyond the standard library's implementation.
-
-Cpptrace provides functionality beyond what the standard library provides and what implementations provide, such as:
-- Walking inlined function calls
-- Providing a lightweight interface for "raw traces"
-- Resolving function parameter types
-- Providing traced exception objects
-- Providing an API for signal-safe stacktrace generation
-- Providing a way to retrieve stack traces from arbitrary exceptions, not just special cpptrace traced exception
-  objects. This is a feature coming to C++26, but cpptrace provides a solution for C++11.
-
-## What does cpptrace have over other C++ stacktrace libraries?
-
-Other C++ stacktrace libraries, such as boost stacktrace and backward-cpp, fall short when it comes to portability and
-ease of use. In testing, I found neither to provide adaquate coverage of various environments. Even when they can be
-made to work in an environment they require manual configuration from the end-user, possibly requiring manual
-installation of third-party dependencies. This is a highly undesirable burden to impose on users, especially when it is
-for a software package which just provides diagnostics as opposed to core functionality. Additionally, cpptrace provides
-support for resolving inlined calls by default for DWARF symbols (boost does not do this, backward-cpp can do this but
-only for some back-ends), better support for resolving full function signatures, and nicer API, among other features.
 
 # Prerequisites
 
@@ -1319,6 +1293,51 @@ A couple things I'd like to improve in the future:
 - On Windows when collecting symbols with dbghelp (msvc/clang) parameter types are almost perfect but due to limitations
   in dbghelp the library cannot accurately show const and volatile qualifiers or rvalue references (these appear as
   pointers).
+
+# FAQ
+
+## What about C++23 `<stacktrace>`?
+
+Some day C++23's `<stacktrace>` will be ubiquitous. And maybe one day the msvc implementation will be acceptable.
+The original motivation for cpptrace was to support projects using older C++ standards and as the library has grown its
+functionality has extended beyond the standard library's implementation.
+
+Cpptrace provides functionality beyond what the standard library provides and what implementations provide, such as:
+- Walking inlined function calls
+- Providing a lightweight interface for "raw traces"
+- Resolving function parameter types
+- Providing traced exception objects
+- Providing an API for signal-safe stacktrace generation
+- Providing a way to retrieve stack traces from arbitrary exceptions, not just special cpptrace traced exception
+  objects. This is a feature coming to C++26, but cpptrace provides a solution for C++11.
+
+## What does cpptrace have over other C++ stacktrace libraries?
+
+Other C++ stacktrace libraries, such as boost stacktrace and backward-cpp, fall short when it comes to portability and
+ease of use. In testing, I found neither to provide adaquate coverage of various environments. Even when they can be
+made to work in an environment they require manual configuration from the end-user, possibly requiring manual
+installation of third-party dependencies. This is a highly undesirable burden to impose on users, especially when it is
+for a software package which just provides diagnostics as opposed to core functionality. Additionally, cpptrace provides
+support for resolving inlined calls by default for DWARF symbols (boost does not do this, backward-cpp can do this but
+only for some back-ends), better support for resolving full function signatures, and nicer API, among other features.
+
+## I'm getting undefined standard library symbols like `std::__1::basic_string` on MacOS
+
+If you see a linker error along the lines of the following on MacOS then it's highly likely you are mixing standard
+library ABIs.
+
+```
+Undefined symbols for architecture arm64:
+  "std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >::find(char, unsigned long) const", referenced from:
+      cpptrace::detail::demangle(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, bool) in libcpptrace.a(demangle_with_cxxabi.cpp.o)
+      cpptrace::detail::snippet_manager::build_line_table() in libcpptrace.a(snippet.cpp.o)
+```
+
+This can happen when using apple clang to compile cpptrace and gcc to compile your code, or vice versa. The reason is
+that apple clang defaults to libc++ and gcc defaults to libstdc++ and these two standard library implementations are not
+ABI-compatible. To resolve this, ensure you are compiling both cpptrace and your code with the same standard library by
+either using the same compiler for both or using `-stdlib=libc++`/`-stdlib=libstdc++` to control which standard library
+is used.
 
 # Contributing
 
