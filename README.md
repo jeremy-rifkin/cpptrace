@@ -465,6 +465,8 @@ thrown exception object, with minimal or no overhead in the non-throwing path:
 
 ```cpp
 #include <cpptrace/from_current.hpp>
+#include <iostream>
+
 void foo() {
     throw std::runtime_error("foo failed");
 }
