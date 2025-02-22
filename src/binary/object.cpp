@@ -78,7 +78,9 @@ namespace detail {
                                         - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
                                         + base.unwrap_value();
             } else {
-                base.drop_error();
+                if(!should_absorb_trace_exceptions()) {
+                    base.drop_error();
+                }
             }
         }
         return frame;
@@ -101,7 +103,9 @@ namespace detail {
                                         - reinterpret_cast<std::uintptr_t>(info.dli_fbase)
                                         + base.unwrap_value();
             } else {
-                base.drop_error();
+                if(!should_absorb_trace_exceptions()) {
+                    base.drop_error();
+                }
             }
         }
         return frame;
@@ -146,7 +150,9 @@ namespace detail {
                                         - reinterpret_cast<std::uintptr_t>(handle)
                                         + base.unwrap_value();
             } else {
-                base.drop_error();
+                if(!should_absorb_trace_exceptions()) {
+                    base.drop_error();
+                }
             }
         } else {
             std::fprintf(stderr, "%s\n", std::system_error(GetLastError(), std::system_category()).what());

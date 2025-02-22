@@ -83,6 +83,8 @@ namespace detail {
         }
     }
 
+    // TODO: Symbol resolution code should probably handle when object addresses are 0
+
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         #if defined(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF) && defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
          std::vector<stacktrace_frame> trace = libdwarf::resolve_frames(frames);
