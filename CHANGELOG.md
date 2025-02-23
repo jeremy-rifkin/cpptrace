@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.8.2](#v082)
 - [v0.8.1](#v081)
 - [v0.8.0](#v080)
 - [v0.7.5](#v075)
@@ -26,6 +27,14 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.8.2
+
+Fixed:
+- Fixed printing of internal error messages when an object file can't be loaded, mainly affecting MacOS https://github.com/jeremy-rifkin/cpptrace/issues/217
+
+Other:
+- Bumped zstd via FetchContent to 1.5.7
 
 # v0.8.1
 
