@@ -25,6 +25,26 @@ jobs:
     - name: build and test
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
+  test-linux-arm:
+    runs-on: ubuntu-22.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        shared: [--shared, ""]
+    steps:
+    - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+            sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev
+            pip3 install colorama
+    - name: libdwarf
+      run: |
+            cd ..
+            cpptrace/ci/setup-prerequisites.sh
+    - name: build and test
+      run: |
+            python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
   test-macos:
     runs-on: macos-14
     strategy:
@@ -562,6 +582,32 @@ jobs:
     - name: test opt
       run: |
            bazel test //... -c opt
+  unittest-linux-arm:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-10, clang++-18]
+        stdlib: [libstdc++, libc++]
+        dwarf_version: [4, 5]
+        split_dwarf: [OFF, ON]
+        exclude:
+          - compiler: g++-10
+            stdlib: libc++
+    steps:
+    - uses: actions/checkout@v4
+    - name: dependencies
+      run: |
+            sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev
+            cd ..
+            cpptrace/ci/setup-prerequisites-unittest.sh
+    - name: build and test
+      run: |
+            python3 ci/unittest.py \
+            --slice=compiler:${{matrix.compiler}} \
+            --slice=stdlib:${{matrix.stdlib}} \
+            --slice=dwarf_version:${{matrix.dwarf_version}} \
+            --slice=split_dwarf:${{matrix.split_dwarf}}
   unittest-macos:
     runs-on: macos-14
     steps:
