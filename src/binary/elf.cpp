@@ -424,7 +424,7 @@ namespace detail {
             static std::unordered_map<std::string, Result<elf, internal_error>> cache;
             auto it = cache.find(object_path);
             if(it == cache.end()) {
-                auto res = cache.insert({ object_path, elf::open_elf(object_path) });
+                auto res = cache.emplace(object_path, elf::open_elf(object_path));
                 VERIFY(res.second);
                 it = res.first;
             }

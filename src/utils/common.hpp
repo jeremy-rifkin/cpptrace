@@ -24,6 +24,13 @@
  #define NODISCARD
 #endif
 
+// workaround a bizarre gcc bug https://godbolt.org/z/s78vnf7jv
+// https://github.com/jeremy-rifkin/cpptrace/issues/220
+#if defined(__GNUC__) && (__GNUC__ < 7)
+ #undef NODISCARD
+ #define NODISCARD
+#endif
+
 #if IS_MSVC
  #define MSVC_CDECL __cdecl
 #else

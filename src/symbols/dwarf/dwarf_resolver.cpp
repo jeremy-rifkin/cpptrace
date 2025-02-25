@@ -324,7 +324,7 @@ namespace libdwarf {
                     char** dw_srcfiles;
                     Dwarf_Signed dw_filecount;
                     VERIFY(wrap(dwarf_srcfiles, cu_die.get(), &dw_srcfiles, &dw_filecount) == DW_DLV_OK);
-                    it = srcfiles_cache.insert(it, {off, srcfiles{cu_die.dbg, dw_srcfiles, dw_filecount}});
+                    it = srcfiles_cache.emplace_hint(it, off, srcfiles{cu_die.dbg, dw_srcfiles, dw_filecount});
                 }
                 if(file_i < it->second.count()) {
                     // dwarf is using 1-indexing

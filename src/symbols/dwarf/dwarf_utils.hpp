@@ -67,7 +67,14 @@ namespace libdwarf {
     // sorted range entries for dies
     template<
         typename T,
-        typename std::enable_if<std::is_trivially_copyable<T>::value && sizeof(T) <= 16, int>::type = 0
+        typename std::enable_if<
+            // old gcc doesn't support this trait https://godbolt.org/z/fKWT9jTK7
+            #if !(defined(__GNUC__) && (__GNUC__ < 5))
+             std::is_trivially_copyable<T>::value &&
+            #endif
+            sizeof(T) <= 16,
+            int
+        >::type = 0
     >
     class die_cache {
     public:

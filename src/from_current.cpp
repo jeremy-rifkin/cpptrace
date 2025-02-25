@@ -272,7 +272,8 @@ namespace cpptrace {
             memcpy(new_vtable_page, type_info_vtable_pointer, vtable_size * sizeof(void*));
             // ninja in the custom __do_catch interceptor
             auto new_vtable = static_cast<void**>(new_vtable_page);
-            new_vtable[6] = reinterpret_cast<void*>(do_catch_function);
+            // double cast is done here because older (and some newer gcc versions) warned about it under -Wpedantic
+            new_vtable[6] = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(do_catch_function));
             // make the page read-only
             mprotect_page(new_vtable_page, page_size, memory_readonly);
 
