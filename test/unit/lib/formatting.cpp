@@ -96,6 +96,21 @@ TEST(FormatterTest, ObjectAddresses) {
     );
 }
 
+TEST(FormatterTest, NoAddresses) {
+    auto formatter = cpptrace::formatter{}
+        .addresses(cpptrace::formatter::address_mode::none);
+    auto res = split(formatter.format(make_test_stacktrace()), "\n");
+    EXPECT_THAT(
+        res,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0  in foo() at foo.cpp:20:30",
+            "#1  in bar() at bar.cpp:30:40",
+            "#2  in main at foo.cpp:40:25"
+        )
+    );
+}
+
 TEST(FormatterTest, PathShortening) {
     cpptrace::stacktrace trace;
     trace.frames.push_back({0x1, 0x1001, {20}, {30}, "/home/foo/foo.cpp", "foo()", false});
