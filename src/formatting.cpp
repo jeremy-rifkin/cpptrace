@@ -208,18 +208,19 @@ namespace cpptrace {
             const auto yellow = color ? YELLOW : "";
             const auto blue   = color ? BLUE : "";
             if(frame.is_inline) {
-                microfmt::print(stream, "{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
+                microfmt::print(stream, "{<{}} ", 2 * sizeof(frame_ptr) + 2, "(inlined)");
             } else if(options.addresses != address_mode::none) {
                 auto address = options.addresses == address_mode::raw ? frame.raw_address : frame.object_address;
-                microfmt::print(stream, "{}0x{>{}:0h}{}", blue, 2 * sizeof(frame_ptr), address, reset);
+                microfmt::print(stream, "{}0x{>{}:0h}{} ", blue, 2 * sizeof(frame_ptr), address, reset);
             }
             if(!frame.symbol.empty()) {
-                microfmt::print(stream, " in {}{}{}", yellow, frame.symbol, reset);
+                microfmt::print(stream, "in {}{}{}", yellow, frame.symbol, reset);
             }
             if(!frame.filename.empty()) {
                 microfmt::print(
                     stream,
-                    " at {}{}{}",
+                    "{}at {}{}{}",
+                    frame.symbol.empty() ? "" : " ",
                     green,
                     options.paths == path_mode::full ? frame.filename : detail::basename(frame.filename, true),
                     reset

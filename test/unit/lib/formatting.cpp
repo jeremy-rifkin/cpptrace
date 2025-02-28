@@ -104,9 +104,9 @@ TEST(FormatterTest, NoAddresses) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0  in foo() at foo.cpp:20:30",
-            "#1  in bar() at bar.cpp:30:40",
-            "#2  in main at foo.cpp:40:25"
+            "#0 in foo() at foo.cpp:20:30",
+            "#1 in bar() at bar.cpp:30:40",
+            "#2 in main at foo.cpp:40:25"
         )
     );
 }
