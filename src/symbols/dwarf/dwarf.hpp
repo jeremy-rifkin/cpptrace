@@ -134,8 +134,8 @@ namespace libdwarf {
         std::string get_name() const {
             char empty[] = "";
             char* name = empty;
+            // Note: It's important to not free the string from this function.
             int ret = wrap(dwarf_diename, die, &name);
-            auto wrapper = raii_wrap(name, [this] (char* str) { dwarf_dealloc(dbg, str, DW_DLA_STRING); });
             std::string str;
             if(ret != DW_DLV_NO_ENTRY) {
                 str = name;
@@ -148,8 +148,9 @@ namespace libdwarf {
             if(wrap(dwarf_attr, die, attr_num, &attr) == DW_DLV_OK) {
                 auto attwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
                 char* raw_str;
+                // Note: It's important to not free the string from this function.
+                // https://github.com/davea42/libdwarf-code/issues/279
                 VERIFY(wrap(dwarf_formstring, attr, &raw_str) == DW_DLV_OK);
-                auto strwrapper = raii_wrap(raw_str, [this] (char* str) { dwarf_dealloc(dbg, str, DW_DLA_STRING); });
                 std::string str = raw_str;
                 return str;
             } else {
