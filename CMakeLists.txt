@@ -162,9 +162,15 @@ target_include_directories(
   src
 )
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND "${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
+  set(IS_CLANG_CL 1)
+else()
+  set(IS_CLANG_CL 0)
+endif()
+
 set(
   warning_options
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror=return-type -Wundef>
+  $<$<NOT:$<OR:$<CXX_COMPILER_ID:MSVC>,$<STREQUAL:${IS_CLANG_CL},1>>>:-Wall -Wextra -Werror=return-type -Wundef>
   $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast -Wmaybe-uninitialized>
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
 )
