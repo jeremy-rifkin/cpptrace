@@ -20,7 +20,7 @@
   #include <unistd.h>
   #if IS_APPLE
    #include <mach/mach.h>
-   #ifdef HAS_MACH_VM
+   #ifdef CPPTRACE_HAS_MACH_VM
     #include <mach/mach_vm.h>
    #endif
   #else
@@ -118,7 +118,7 @@ namespace cpptrace {
         #if IS_APPLE
         int get_page_protections(void* page) {
             // https://stackoverflow.com/a/12627784/15675011
-            #ifdef HAS_MACH_VM
+            #ifdef CPPTRACE_HAS_MACH_VM
             mach_vm_size_t vmsize;
             mach_vm_address_t address = (mach_vm_address_t)page;
             #else
@@ -130,7 +130,7 @@ namespace cpptrace {
                 sizeof(size_t) == 8 ? VM_REGION_BASIC_INFO_COUNT_64 : VM_REGION_BASIC_INFO_COUNT;
             memory_object_name_t object;
             kern_return_t status =
-            #ifdef HAS_MACH_VM
+            #ifdef CPPTRACE_HAS_MACH_VM
             mach_vm_region
             #else
             vm_region_64
