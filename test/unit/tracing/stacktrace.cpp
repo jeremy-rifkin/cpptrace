@@ -42,6 +42,25 @@ TEST(Stacktrace, Basic) {
 }
 
 
+CPPTRACE_FORCE_NO_INLINE void stacktrace_transform() {
+    static volatile int lto_guard; lto_guard = lto_guard + 1;
+    auto trace = cpptrace::generate_trace();
+    ASSERT_GE(trace.frames.size(), 1);
+    trace.transform([](cpptrace::stacktrace_frame& frame) {
+        static size_t count = 0;
+        frame.symbol = std::to_string(count++);
+    });
+
+    size_t count = 0;
+    for(const auto& frame : trace.frames) {
+        EXPECT_EQ(frame.symbol, std::to_string(count++));
+    }
+}
+
+TEST(Stacktrace, Transform) {
+    stacktrace_transform();
+}
+
 
 // NOTE: returning something and then return stacktrace_multi_3(line_numbers) * rand(); is done to prevent TCO even
 // under LTO https://github.com/jeremy-rifkin/cpptrace/issues/179#issuecomment-2467302052

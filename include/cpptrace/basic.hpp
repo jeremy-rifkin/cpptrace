@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <iosfwd>
+#include <functional>
 
 #ifdef _WIN32
 #define CPPTRACE_EXPORT_ATTR __declspec(dllexport)
@@ -173,6 +174,7 @@ namespace cpptrace {
         std::vector<stacktrace_frame> frames;
         static stacktrace current(std::size_t skip = 0);
         static stacktrace current(std::size_t skip, std::size_t max_depth);
+        void transform(std::function<void (stacktrace_frame&)> const&);
         void print() const;
         void print(std::ostream& stream) const;
         void print(std::ostream& stream, bool color) const;

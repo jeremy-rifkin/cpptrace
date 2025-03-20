@@ -168,6 +168,12 @@ namespace cpptrace {
         }
     }
 
+    void stacktrace::transform(std::function<void (stacktrace_frame&)> const& f) {
+        for(auto& frame : frames) {
+            f(frame);
+        }
+    }
+
     void stacktrace::print() const {
         get_default_formatter().print(*this);
     }
