@@ -24,6 +24,7 @@ namespace cpptrace {
             bool columns = true;
             bool show_filtered_frames = true;
             std::function<bool(const stacktrace_frame&)> filter;
+            std::function<stacktrace_frame(stacktrace_frame&&)> transform;
         } options;
 
     public:
@@ -54,9 +55,15 @@ namespace cpptrace {
         void filter(std::function<bool(const stacktrace_frame&)> filter) {
             options.filter = filter;
         }
+        void transform(std::function<stacktrace_frame(stacktrace_frame&&)> transform) {
+            options.transform = std::move(transform);
+        }
 
-        std::string format(const stacktrace_frame& frame, detail::optional<bool> color_override = detail::nullopt) const {
+        std::string format(stacktrace_frame frame, detail::optional<bool> color_override = detail::nullopt) const {
             std::ostringstream oss;
+            if(options.transform) {
+                frame = options.transform(std::move(frame));
+            }
             print_frame_inner(oss, frame, color_override.value_or(options.color == color_mode::always));
             return std::move(oss).str();
         }
@@ -148,7 +155,11 @@ namespace cpptrace {
                 return;
             }
             const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
-            for(const auto& frame : frames) {
+            for(size_t i = 0; i < frames.size(); ++i) {
+                auto frame = frames[i];
+                if(options.transform) {
+                    frame = options.transform(std::move(frame));
+                }
                 if(options.filter && !options.filter(frame)) {
                     if(!options.show_filtered_frames) {
                         counter++;
@@ -170,7 +181,7 @@ namespace cpptrace {
                         }
                     }
                 }
-                if(newline_at_end || &frame != &frames.back()) {
+                if(newline_at_end || i + 1 != frames.size()) {
                     stream << '\n';
                 }
                 counter++;
@@ -291,6 +302,10 @@ namespace cpptrace {
     }
     formatter& formatter::filter(std::function<bool(const stacktrace_frame&)> filter) {
         pimpl->filter(std::move(filter));
+        return *this;
+    }
+    formatter& formatter::transform(std::function<stacktrace_frame(stacktrace_frame&&)> transform) {
+        pimpl->transform(std::move(transform));
         return *this;
     }
 
