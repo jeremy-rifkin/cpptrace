@@ -8,6 +8,8 @@
 #include "platform/platform.hpp"
 #include "utils/microfmt.hpp"
 
+#include <cpptrace/utils.hpp>
+
 #if IS_MSVC
  #define CPPTRACE_PFUNC __FUNCSIG__
 #else
@@ -45,7 +47,7 @@ namespace detail {
         panic,
     };
 
-    [[noreturn]] void assert_fail(
+    CPPTRACE_EXPORT [[noreturn]] void assert_fail(
         assert_type type,
         const char* expression,
         const char* signature,
