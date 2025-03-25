@@ -107,7 +107,7 @@ namespace libdwarf {
         std::vector<target_object> target_objects;
         std::vector<debug_map_symbol_info> symbols;
     public:
-        debug_map_resolver(cstring_view source_object_path) {
+        debug_map_resolver(const std::string& source_object_path) {
             // load mach-o
             // TODO: Cache somehow?
             auto mach_o_object = open_mach_o_cached(source_object_path);
@@ -197,7 +197,7 @@ namespace libdwarf {
         };
     };
 
-    std::unique_ptr<symbol_resolver> make_debug_map_resolver(cstring_view object_path) {
+    std::unique_ptr<symbol_resolver> make_debug_map_resolver(const std::string& object_path) {
         return detail::make_unique<debug_map_resolver>(object_path);
     }
     #endif
