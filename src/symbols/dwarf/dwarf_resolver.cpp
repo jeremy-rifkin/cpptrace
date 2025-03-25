@@ -103,7 +103,7 @@ namespace libdwarf {
 
     public:
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        dwarf_resolver(const std::string& object_path_, optional<skeleton_info> split_ = nullopt)
+        dwarf_resolver(cstring_view object_path_, optional<skeleton_info> split_ = nullopt)
             : object_path(object_path_),
               skeleton(std::move(split_))
         {
@@ -1009,7 +1009,7 @@ namespace libdwarf {
         }
     };
 
-    std::unique_ptr<symbol_resolver> make_dwarf_resolver(const std::string& object_path) {
+    std::unique_ptr<symbol_resolver> make_dwarf_resolver(cstring_view object_path) {
         return detail::make_unique<dwarf_resolver>(object_path);
     }
 }

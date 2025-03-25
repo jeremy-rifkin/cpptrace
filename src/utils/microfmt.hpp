@@ -15,6 +15,8 @@
  #include <intrin.h>
 #endif
 
+#include "utils/string_view.hpp"
+
 // https://github.com/jeremy-rifkin/microfmt
 // Format: {[align][width][:[fill][base]]}  # width: number or {}
 
@@ -139,6 +141,8 @@ namespace microfmt {
             format_value(std::string_view sv)
                 : string_view_value{sv.data(), sv.size()}, value(value_type::string_view_value) {}
             #endif
+            format_value(cpptrace::detail::string_view sv)
+                : string_view_value{sv.data(), sv.size()}, value(value_type::string_view_value) {}
             format_value(const char* c_string) : c_string_value(c_string), value(value_type::c_string_value) {}
 
             int unwrap_int() const {

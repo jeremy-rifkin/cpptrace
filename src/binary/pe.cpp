@@ -27,7 +27,7 @@ namespace detail {
         }
     }
 
-    Result<std::uintptr_t, internal_error> pe_get_module_image_base(const std::string& object_path) {
+    Result<std::uintptr_t, internal_error> pe_get_module_image_base(cstring_view object_path) {
         // https://drive.google.com/file/d/0B3_wGJkuWLytbnIxY1J5WUs4MEk/view?pli=1&resourcekey=0-n5zZ2UW39xVTH8ZSu6C2aQ
         // https://0xrick.github.io/win-internals/pe3/
         // Endianness should always be little for dos and pe headers
@@ -71,7 +71,7 @@ namespace detail {
         WORD optional_header_magic = pe_byteswap_if_needed(optional_header_magic_raw.unwrap_value());
         VERIFY(
             optional_header_magic == IMAGE_NT_OPTIONAL_HDR_MAGIC,
-            ("PE file does not match expected bit-mode " + object_path).c_str()
+            ("PE file does not match expected bit-mode " + std::string(object_path)).c_str()
         );
         // finally get image base
         if(optional_header_magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {

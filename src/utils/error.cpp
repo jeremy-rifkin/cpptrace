@@ -36,7 +36,7 @@ namespace detail {
     void panic(
         const char* signature,
         source_location location,
-        const std::string& message
+        string_view message
     ) {
         if(message == "") {
             throw internal_error(
@@ -46,7 +46,7 @@ namespace detail {
         } else {
             throw internal_error(
                 "Cpptrace panic {}:{}: {}: {}\n",
-                location.file, location.line, signature, message.c_str()
+                location.file, location.line, signature, message
             );
         }
     }

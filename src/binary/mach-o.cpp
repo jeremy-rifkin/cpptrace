@@ -44,7 +44,7 @@ namespace detail {
         }
     }
 
-    bool file_is_mach_o(const std::string& object_path) noexcept {
+    bool file_is_mach_o(cstring_view object_path) noexcept {
         auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             return false;
@@ -122,7 +122,7 @@ namespace detail {
         }
     }
 
-    Result<mach_o, internal_error> mach_o::open_mach_o(const std::string& object_path) {
+    Result<mach_o, internal_error> mach_o::open_mach_o(cstring_view object_path) {
         auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             return internal_error("Unable to read object file {}", object_path);
@@ -658,7 +658,7 @@ namespace detail {
         return should_swap_bytes(magic);
     }
 
-    Result<bool, internal_error> macho_is_fat(const std::string& object_path) {
+    Result<bool, internal_error> macho_is_fat(cstring_view object_path) {
         auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             return internal_error("Unable to read object file {}", object_path);

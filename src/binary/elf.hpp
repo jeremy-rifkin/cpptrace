@@ -68,10 +68,10 @@ namespace detail {
         bool did_load_dynamic_symtab = false;
         optional<symtab_info> dynamic_symtab;
 
-        elf(file_wrapper file, const std::string& object_path, bool is_little_endian, bool is_64);
+        elf(file_wrapper file, cstring_view object_path, bool is_little_endian, bool is_64);
 
     public:
-        static NODISCARD Result<elf, internal_error> open_elf(const std::string& object_path);
+        static NODISCARD Result<elf, internal_error> open_elf(cstring_view object_path);
 
         elf(elf&&) = default;
 

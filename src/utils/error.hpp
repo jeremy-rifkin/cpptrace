@@ -7,6 +7,7 @@
 
 #include "platform/platform.hpp"
 #include "utils/microfmt.hpp"
+#include "utils/string_view.hpp"
 
 #include <cpptrace/utils.hpp>
 
@@ -58,7 +59,7 @@ namespace detail {
     [[noreturn]] void panic(
         const char* signature,
         source_location location,
-        const std::string& message = ""
+        string_view message = ""
     );
 
     template<typename T>

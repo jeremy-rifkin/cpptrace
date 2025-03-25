@@ -10,6 +10,7 @@
 #include "utils/utils.hpp"
 #include "binary/object.hpp"
 #include "binary/safe_dl.hpp"
+#include "utils/string_view.hpp"
 
 #define ESC     "\033["
 #define RESET   ESC "0m"
@@ -66,17 +67,12 @@ CTRACE_FORMAT_EPILOGUE
         return !str || std::char_traits<char>::length(str) == 0;
     }
 
-    static ctrace_owning_string generate_owning_string(const char* raw_string) noexcept {
+    static ctrace_owning_string generate_owning_string(cpptrace::detail::string_view raw_string) noexcept {
         // Returns length to the null terminator.
-        std::size_t count = std::char_traits<char>::length(raw_string);
-        char* new_string = new char[count + 1];
-        std::char_traits<char>::copy(new_string, raw_string, count);
-        new_string[count] = '\0';
+        char* new_string = new char[raw_string.size() + 1];
+        std::char_traits<char>::copy(new_string, raw_string.data(), raw_string.size());
+        new_string[raw_string.size()] = '\0';
         return { new_string };
-    }
-
-    static ctrace_owning_string generate_owning_string(const std::string& std_string) {
-        return generate_owning_string(std_string.c_str());
     }
 
     static void free_owning_string(const char* owned_string) noexcept {

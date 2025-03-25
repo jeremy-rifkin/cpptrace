@@ -19,7 +19,7 @@
 
 namespace cpptrace {
 namespace detail {
-    bool file_is_mach_o(const std::string& object_path) noexcept;
+    bool file_is_mach_o(cstring_view object_path) noexcept;
 
     struct load_command_entry {
         std::uint32_t file_offset;
@@ -75,7 +75,7 @@ namespace detail {
 
         mach_o(
             file_wrapper file,
-            const std::string& object_path,
+            cstring_view object_path,
             std::uint32_t magic
         ) :
             file(std::move(file)),
@@ -85,7 +85,7 @@ namespace detail {
         Result<monostate, internal_error> load();
 
     public:
-        static NODISCARD Result<mach_o, internal_error> open_mach_o(const std::string& object_path);
+        static NODISCARD Result<mach_o, internal_error> open_mach_o(cstring_view object_path);
 
         mach_o(mach_o&&) = default;
         ~mach_o() = default;
@@ -136,7 +136,7 @@ namespace detail {
         bool should_swap() const;
     };
 
-    Result<bool, internal_error> macho_is_fat(const std::string& object_path);
+    Result<bool, internal_error> macho_is_fat(cstring_view object_path);
 
     NODISCARD Result<maybe_owned<mach_o>, internal_error> open_mach_o_cached(const std::string& object_path);
 }

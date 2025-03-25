@@ -10,7 +10,7 @@
 
 namespace cpptrace {
 namespace detail {
-    Result<std::uintptr_t, internal_error> pe_get_module_image_base(const std::string& object_path);
+    Result<std::uintptr_t, internal_error> pe_get_module_image_base(cstring_view object_path);
 }
 }
 

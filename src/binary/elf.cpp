@@ -17,12 +17,12 @@ namespace cpptrace {
 namespace detail {
     elf::elf(
         file_wrapper file,
-        const std::string& object_path,
+        cstring_view object_path,
         bool is_little_endian,
         bool is_64
     ) : file(std::move(file)), object_path(object_path), is_little_endian(is_little_endian), is_64(is_64) {}
 
-    Result<elf, internal_error> elf::open_elf(const std::string& object_path) {
+    Result<elf, internal_error> elf::open_elf(cstring_view object_path) {
         auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
         if(file == nullptr) {
             return internal_error("Unable to read object file {}", object_path);
@@ -33,7 +33,7 @@ namespace detail {
             return std::move(magic).unwrap_error();
         }
         if(magic.unwrap_value() != (std::array<char, 4>{0x7F, 'E', 'L', 'F'})) {
-            return internal_error("File is not ELF " + object_path);
+            return internal_error("File is not ELF {}", object_path);
         }
         auto ei_class = load_bytes<std::uint8_t>(file, 4);
         if(ei_class.is_error()) {
@@ -50,7 +50,7 @@ namespace detail {
             return std::move(ei_version).unwrap_error();
         }
         if(ei_version.unwrap_value() != 1) {
-            return internal_error("Unexpected ELF version " + object_path);
+            return internal_error("Unexpected ELF version {}", object_path);
         }
         return elf(std::move(file), object_path, is_little_endian, is_64);
     }

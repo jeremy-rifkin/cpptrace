@@ -160,15 +160,15 @@ namespace detail {
     }
 
     // shamelessly stolen from stackoverflow
-    bool directory_exists(const std::string& path);
+    bool directory_exists(cstring_view path);
 
-    inline std::string basename(const std::string& path, bool maybe_windows = false) {
+    inline std::string basename(cstring_view path, bool maybe_windows = false) {
         // Assumes no trailing /'s
         auto pos = path.find_last_of(maybe_windows ? "/\\" : "/");
-        if(pos == std::string::npos) {
-            return path;
+        if(pos == cstring_view::npos) {
+            return std::string(path);
         } else {
-            return path.substr(pos + 1);
+            return std::string(path.substr(pos + 1));
         }
     }
 
