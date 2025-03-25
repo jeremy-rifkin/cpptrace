@@ -47,7 +47,7 @@ namespace detail {
         panic,
     };
 
-    CPPTRACE_EXPORT [[noreturn]] void assert_fail(
+    [[noreturn]] CPPTRACE_EXPORT void assert_fail(
         assert_type type,
         const char* expression,
         const char* signature,
