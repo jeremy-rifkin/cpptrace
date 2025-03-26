@@ -1,3 +1,4 @@
+#include "utils/microfmt.hpp"
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF
 
 #include "symbols/symbols.hpp"
@@ -8,6 +9,7 @@
 #include "utils/utils.hpp"
 #include "binary/elf.hpp"
 #include "binary/mach-o.hpp"
+#include "jit/jit_objects.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -15,7 +17,6 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
-
 
 namespace cpptrace {
 namespace detail {
@@ -86,6 +87,7 @@ namespace libdwarf {
 
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
+        load_jit_objects();
         std::vector<frame_with_inlines> trace(frames.size(), {null_frame, {}});
         // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
         // And also locking for interactions with get_resolver
@@ -94,6 +96,18 @@ namespace libdwarf {
         for(const auto& group : collate_frames(frames, trace)) {
             try {
                 const auto& object_name = group.first;
+                if(object_name.empty()) {
+                    for(const auto& entry : group.second) {
+                        const auto& dlframe = entry.first.get();
+                        auto& frame = entry.second.get();
+                        auto object_res = lookup_jit_object(dlframe.raw_address);
+                        if(object_res) {
+                            frame.frame.symbol = object_res.unwrap().object
+                                .lookup_symbol(dlframe.raw_address - object_res.unwrap().base).value_or("");
+                        }
+                    }
+                    continue;
+                }
                 // TODO PERF: Potentially a duplicate open and parse with module base stuff (and debug map resolver)
                 #if IS_LINUX
                 auto object = open_elf_cached(object_name);

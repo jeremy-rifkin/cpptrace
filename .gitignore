@@ -9,3 +9,5 @@ scratch
 tmp/
 bazel-*/
 cmake-build-*/
+
+test/jank/data

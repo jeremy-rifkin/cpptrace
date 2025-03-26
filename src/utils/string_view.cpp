@@ -33,7 +33,7 @@ namespace detail {
     }
 
     bool operator==(string_view a, string_view b) {
-        return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size());
+        return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size()) == 0;
     }
 
     cstring_view cstring_view::substr(std::size_t pos) const {

@@ -195,6 +195,9 @@ namespace detail {
         return old;
     }
 
+    template<typename...>
+    using void_t = void;
+
     struct monostate {};
 
     // TODO: Rework some stuff here. Not sure deleters should be optional or moved.
@@ -258,9 +261,14 @@ namespace detail {
 
     using file_wrapper = raii_wrapper<std::FILE*, void(*)(std::FILE*)>;
 
-    template<class T, class... Args>
+    template<typename T, typename... Args>
     auto make_unique(Args&&... args) -> typename std::enable_if<!std::is_array<T>::value, std::unique_ptr<T>>::type {
         return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+
+    template<typename T>
+    auto make_unique(T&& arg) -> typename std::enable_if<!std::is_array<T>::value, std::unique_ptr<T>>::type {
+        return std::unique_ptr<T>(new T(std::forward<T>(arg)));
     }
 
     template<typename T>

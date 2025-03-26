@@ -9,8 +9,10 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "cpptrace/basic.hpp"
+#include "jit/jit_objects.hpp"
 #include "symbols/symbols.hpp"
 #include "unwind/unwind.hpp"
 #include "demangle/demangle.hpp"
@@ -21,6 +23,7 @@
 #include "binary/safe_dl.hpp"
 #include "snippets/snippet.hpp"
 #include "options.hpp"
+// #include "jit/jit_objects.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
@@ -59,6 +62,7 @@ namespace cpptrace {
     }
 
     stacktrace raw_trace::resolve() const {
+        // load_jit_objects();
         try {
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
             for(auto& frame : trace) {
@@ -336,5 +340,9 @@ namespace cpptrace {
 
     bool can_get_safe_object_frame() {
         return detail::has_get_safe_object_frame();
+    }
+
+    void load_jit_objects() {
+        detail::load_jit_objects();
     }
 }
