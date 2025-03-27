@@ -16,23 +16,9 @@ namespace detail {
         memory_file_view(cbspan data) : data(data) {}
         ~memory_file_view() override = default;
 
-        string_view path() const override {
-            return object_path;
-        }
+        string_view path() const override;
 
-        virtual Result<monostate, internal_error> read_bytes(bspan buffer, off_t offset) override {
-            if(offset < 0) {
-                throw internal_error("Illegal read in memory file {}: offset {}", path(), offset);
-            }
-            if(offset + buffer.size() > data.size()) {
-                throw internal_error(
-                    "Illegal read in memory file {}: offset = {}, size = {}, file size = {}",
-                    path(), offset, buffer.size(), data.size()
-                );
-            }
-            std::memcpy(buffer.data(), data.data() + offset, buffer.size());
-            return monostate{};
-        }
+        virtual Result<monostate, internal_error> read_bytes(bspan buffer, off_t offset) const override;
     };
 }
 }
