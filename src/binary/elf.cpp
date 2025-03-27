@@ -57,8 +57,8 @@ namespace detail {
         return elf(std::move(file), is_little_endian, is_64);
     }
 
-    Result<elf, internal_error> elf::open_elf(cstring_view object_path) {
-        auto file_res = file::open(object_path); // raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
+    Result<elf, internal_error> elf::open(cstring_view object_path) {
+        auto file_res = file::open(object_path);
         if(!file_res) {
             return internal_error("Unable to read object file {}", object_path);
         }
@@ -66,7 +66,7 @@ namespace detail {
         return open(make_unique(std::move(file)));
     }
 
-    Result<elf, internal_error> elf::open_elf(cbspan object) {
+    Result<elf, internal_error> elf::open(cbspan object) {
         return open(make_unique<memory_file_view>(object));
     }
 
@@ -343,7 +343,10 @@ namespace detail {
         // if(std::fread(entry.data.data(), sizeof(char), section.sh_size, file) != section.sh_size) {
         //     return internal_error("fread error while loading elf string table");
         // }
-        file->read_bytes(span{entry.data.data(), section.sh_size}, section.sh_offset);
+        auto read_res = file->read_bytes(span<char>{entry.data.data(), section.sh_size}, section.sh_offset);
+        if(!read_res) {
+            return read_res.unwrap_error();
+        }
         entry.data[section.sh_size] = 0; // just out of an abundance of caution
         entry.did_load_strtab = true;
         return entry.data;
@@ -435,7 +438,10 @@ namespace detail {
                 // if(std::fread(buffer.data(), section.sh_entsize, buffer.size(), file) != buffer.size()) {
                 //     return internal_error("fread error while loading elf symbol table");
                 // }
-                file->read_span(make_span(buffer.begin(), buffer.end()), section.sh_offset);
+                auto res = file->read_span(make_span(buffer.begin(), buffer.end()), section.sh_offset);
+                if(!res) {
+                    return res.unwrap_error();
+                }
                 symbol_table = symtab_info{};
                 symbol_table.unwrap().entries.reserve(buffer.size());
                 for(const auto& entry : buffer) {
@@ -467,7 +473,7 @@ namespace detail {
             return internal_error{"empty object_path"};
         }
         if(get_cache_mode() == cache_mode::prioritize_memory) {
-            return elf::open_elf(object_path)
+            return elf::open(object_path)
                 .transform([](elf&& obj) { return maybe_owned<elf>{detail::make_unique<elf>(std::move(obj))}; });
         } else {
             std::mutex m;
@@ -476,7 +482,7 @@ namespace detail {
             static std::unordered_map<std::string, Result<elf, internal_error>> cache;
             auto it = cache.find(object_path);
             if(it == cache.end()) {
-                auto res = cache.emplace(object_path, elf::open_elf(object_path));
+                auto res = cache.emplace(object_path, elf::open(object_path));
                 VERIFY(res.second);
                 it = res.first;
             }

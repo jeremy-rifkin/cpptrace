@@ -2,17 +2,25 @@
 #define JIT_OBJECTS_HPP
 
 #include "binary/elf.hpp"
+#include "binary/mach-o.hpp"
 #include "cpptrace/forward.hpp"
 #include "utils/optional.hpp"
+#include "platform/platform.hpp"
 
 namespace cpptrace {
 namespace detail {
     void load_jit_objects();
-    struct elf_lookup_result {
-        elf& object;
+
+    #if IS_LINUX
+     using jit_object_type = elf;
+    #elif IS_APPLE
+     using jit_object_type = mach_o;
+    #endif
+    struct jit_object_lookup_result {
+        jit_object_type& object;
         frame_ptr base;
     };
-    optional<elf_lookup_result> lookup_jit_object(frame_ptr pc);
+    optional<jit_object_lookup_result> lookup_jit_object(frame_ptr pc);
 }
 }
 

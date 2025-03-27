@@ -73,13 +73,13 @@ namespace detail {
     struct is_span<T, void_t<typename T::i_am_span>> : std::true_type {};
 
     template<typename It>
-    auto make_span(It begin, It end) {
-        return span<typename std::remove_reference<decltype(*begin)>::type>(begin, end);
+    auto make_span(It begin, It end) -> span<typename std::remove_reference<decltype(*begin)>::type> {
+        return {begin, end};
     }
 
     template<typename T, typename std::enable_if<std::is_trivial<T>::value && !is_span<T>::value, int>::type = 0>
-    auto make_bspan(T& object) {
-        return span(reinterpret_cast<char*>(std::addressof(object)), sizeof(object));
+    span<char> make_bspan(T& object) {
+        return span<char>(reinterpret_cast<char*>(std::addressof(object)), sizeof(object));
     }
 }
 }

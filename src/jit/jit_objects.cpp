@@ -7,6 +7,7 @@
 #include "utils/optional.hpp"
 #include "utils/span.hpp"
 #include "binary/elf.hpp"
+#include "binary/mach-o.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -20,27 +21,27 @@ namespace detail {
         struct range_entry {
             frame_ptr low;
             frame_ptr high; // not inclusive
-            elf* object;
+            jit_object_type* object;
             bool operator<(const range_entry& other) const {
                 return low < other.low;
             }
         };
-        std::vector<std::unique_ptr<elf>> objects;
+        std::vector<std::unique_ptr<jit_object_type>> objects;
         // TODO: Maybe use a set...
         std::vector<range_entry> range_list;
 
     public:
         void add_jit_object(cbspan object) {
-            auto elf_res = elf::open_elf(object);
-            if(elf_res.is_error()) {
+            auto object_res = jit_object_type::open(object);
+            if(object_res.is_error()) {
                 // if(!should_absorb_trace_exceptions()) { // TODO
-                    elf_res.drop_error();
+                    object_res.drop_error();
                 // }
                 return;
             }
-            objects.push_back(make_unique<elf>(std::move(elf_res).unwrap_value()));
-            auto* elf_file = objects.back().get();
-            auto ranges_res = elf_file->get_pc_ranges();
+            objects.push_back(make_unique<jit_object_type>(std::move(object_res).unwrap_value()));
+            auto* object_file = objects.back().get();
+            auto ranges_res = object_file->get_pc_ranges();
             if(ranges_res.is_error()) {
                 // if(!should_absorb_trace_exceptions()) { // TODO
                     ranges_res.drop_error();
@@ -50,12 +51,12 @@ namespace detail {
             auto& ranges = ranges_res.unwrap_value();
             for(auto range : ranges) {
                 microfmt::print("> {:h} - {:h}\n", range.low, range.high);
-                range_entry entry{range.low, range.high, elf_file};
+                range_entry entry{range.low, range.high, object_file};
                 range_list.insert(std::upper_bound(range_list.begin(), range_list.end(), entry), entry);
             }
         }
 
-        optional<elf_lookup_result> lookup(frame_ptr pc) const {
+        optional<jit_object_lookup_result> lookup(frame_ptr pc) const {
             microfmt::print("lookup {:h}\n", pc);
             for(const auto& range : range_list) {
                 microfmt::print("  {:h} - {:h}\n", range.low, range.high);
@@ -75,7 +76,7 @@ namespace detail {
             ASSERT(pc >= it->low);
             if(pc < it->high) {
                 microfmt::print("  found\n");
-                return elf_lookup_result{*it->object, it->low};
+                return jit_object_lookup_result{*it->object, it->low};
             } else {
                 microfmt::print("  not in range\n");
                 return nullopt;
@@ -124,7 +125,7 @@ namespace detail {
         }
     }
 
-    optional<elf_lookup_result> lookup_jit_object(frame_ptr pc) {
+    optional<jit_object_lookup_result> lookup_jit_object(frame_ptr pc) {
         return get_jit_object_manager().lookup(pc);
     }
 }

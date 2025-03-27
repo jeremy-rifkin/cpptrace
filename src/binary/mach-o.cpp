@@ -2,6 +2,8 @@
 
 #include "utils/common.hpp"
 #include "utils/utils.hpp"
+#include "utils/io/file.hpp"
+#include "utils/io/memory_file_view.hpp"
 
 #if IS_APPLE
 
@@ -122,25 +124,34 @@ namespace detail {
         }
     }
 
-    Result<mach_o, internal_error> mach_o::open_mach_o(cstring_view object_path) {
-        auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
-        if(file == nullptr) {
-            return internal_error("Unable to read object file {}", object_path);
-        }
-        auto magic = load_bytes<std::uint32_t>(file, 0);
+    Result<mach_o, internal_error> mach_o::open(std::unique_ptr<base_file> file) {
+        auto magic = file->read<std::uint32_t>(0);
         if(!magic) {
             return magic.unwrap_error();
         }
         if(!is_mach_o(magic.unwrap_value())) {
-            return internal_error("File is not mach-o {}", object_path);
+            return internal_error("File is not mach-o {}", file->path());
         }
-        mach_o obj(std::move(file), object_path, magic.unwrap_value());
+        mach_o obj(std::move(file), magic.unwrap_value());
         auto result = obj.load();
         if(result.is_error()) {
             return result.unwrap_error();
         } else {
             return obj;
         }
+    }
+
+    Result<mach_o, internal_error> mach_o::open(cstring_view object_path) {
+        auto file_res = file::open(object_path);
+        if(!file_res) {
+            return internal_error("Unable to read object file {}", object_path);
+        }
+        auto& file = file_res.unwrap_value();
+        return open(make_unique(std::move(file)));
+    }
+
+    Result<mach_o, internal_error> mach_o::open(cbspan object) {
+        return open(make_unique<memory_file_view>(object));
     }
 
     Result<std::uintptr_t, internal_error> mach_o::get_text_vmaddr() {
@@ -465,7 +476,7 @@ namespace detail {
         bits = Bits;
         using Mach_Header = typename std::conditional<Bits == 32, mach_header, mach_header_64>::type;
         std::size_t header_size = sizeof(Mach_Header);
-        auto load_header = load_bytes<Mach_Header>(file, load_base);
+        auto load_header = file->read<Mach_Header>(load_base);
         if(!load_header) {
             return load_header.unwrap_error();
         }
@@ -486,7 +497,7 @@ namespace detail {
         // iterate load commands
         std::uint32_t actual_offset = load_commands_offset;
         for(std::uint32_t i = 0; i < ncmds; i++) {
-            auto load_cmd = load_bytes<load_command>(file, actual_offset);
+            auto load_cmd = file->read<load_command>(actual_offset);
             if(!load_cmd) {
                 return load_cmd.unwrap_error();
             }
@@ -503,7 +514,7 @@ namespace detail {
     Result<monostate, internal_error> mach_o::load_fat_mach() {
         std::size_t header_size = sizeof(fat_header);
         std::size_t arch_size = sizeof(fat_arch);
-        auto load_header = load_bytes<fat_header>(file, 0);
+        auto load_header = file->read<fat_header>(0);
         if(!load_header) {
             return load_header.unwrap_error();
         }
@@ -541,7 +552,7 @@ namespace detail {
         fat_arches.reserve(header.nfat_arch);
         off_t arch_offset = (off_t)header_size;
         for(std::size_t i = 0; i < header.nfat_arch; i++) {
-            auto load_arch = load_bytes<fat_arch>(file, arch_offset);
+            auto load_arch = file->read<fat_arch>(arch_offset);
             if(!load_arch) {
                 return load_arch.unwrap_error();
             }
@@ -561,7 +572,7 @@ namespace detail {
         );
         if(best) {
             off_t mach_header_offset = (off_t)best->offset;
-            auto magic = load_bytes<std::uint32_t>(file, mach_header_offset);
+            auto magic = file->read<std::uint32_t>(mach_header_offset);
             if(!magic) {
                 return magic.unwrap_error();
             }
@@ -581,7 +592,7 @@ namespace detail {
     template<std::size_t Bits>
     Result<segment_command_64, internal_error> mach_o::load_segment_command(std::uint32_t offset) const {
         using Segment_Command = typename std::conditional<Bits == 32, segment_command, segment_command_64>::type;
-        auto load_segment = load_bytes<Segment_Command>(file, offset);
+        auto load_segment = file->read<Segment_Command>(offset);
         if(!load_segment) {
             return load_segment.unwrap_error();
         }
@@ -608,7 +619,7 @@ namespace detail {
     }
 
     Result<symtab_command, internal_error> mach_o::load_symbol_table_command(std::uint32_t offset) const {
-        auto load_symtab = load_bytes<symtab_command>(file, offset);
+        auto load_symtab = file->read<symtab_command>(offset);
         if(!load_symtab) {
             return load_symtab.unwrap_error();
         }
@@ -624,7 +635,7 @@ namespace detail {
     Result<nlist_64, internal_error> mach_o::load_symtab_entry(std::uint32_t symbol_base, std::size_t index) const {
         using Nlist = typename std::conditional<Bits == 32, struct nlist, struct nlist_64>::type;
         uint32_t offset = load_base + symbol_base + index * sizeof(Nlist);
-        auto load_entry = load_bytes<Nlist>(file, offset);
+        auto load_entry = file->read<Nlist>(offset);
         if(!load_entry) {
             return load_entry.unwrap_error();
         }
@@ -644,11 +655,9 @@ namespace detail {
 
     Result<std::vector<char>, internal_error> mach_o::load_string_table(std::uint32_t offset, std::uint32_t byte_count) const {
         std::vector<char> buffer(byte_count + 1);
-        if(std::fseek(file, load_base + offset, SEEK_SET) != 0) {
-            return internal_error("fseek error while loading mach-o symbol table");
-        }
-        if(std::fread(buffer.data(), sizeof(char), byte_count, file) != byte_count) {
-            return internal_error("fread error while loading mach-o symbol table");
+        auto read_res = file->read_bytes(span<char>{buffer.data(), byte_count}, load_base + offset);
+        if(!read_res) {
+            return read_res.unwrap_error();
         }
         buffer[byte_count] = 0; // just out of an abundance of caution
         return buffer;
@@ -673,7 +682,7 @@ namespace detail {
 
     Result<maybe_owned<mach_o>, internal_error> open_mach_o_cached(const std::string& object_path) {
         if(get_cache_mode() == cache_mode::prioritize_memory) {
-            return mach_o::open_mach_o(object_path)
+            return mach_o::open(object_path)
                 .transform([](mach_o&& obj) {
                     return maybe_owned<mach_o>{detail::make_unique<mach_o>(std::move(obj))};
                 });
@@ -684,7 +693,7 @@ namespace detail {
             static std::unordered_map<std::string, Result<mach_o, internal_error>> cache;
             auto it = cache.find(object_path);
             if(it == cache.end()) {
-                auto res = cache.insert({ object_path, mach_o::open_mach_o(object_path) });
+                auto res = cache.insert({ object_path, mach_o::open(object_path) });
                 VERIFY(res.second);
                 it = res.first;
             }

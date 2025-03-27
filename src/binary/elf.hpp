@@ -78,8 +78,8 @@ namespace detail {
         static NODISCARD Result<elf, internal_error> open(std::unique_ptr<base_file> file);
 
     public:
-        static NODISCARD Result<elf, internal_error> open_elf(cstring_view object_path);
-        static NODISCARD Result<elf, internal_error> open_elf(cbspan object);
+        static NODISCARD Result<elf, internal_error> open(cstring_view object_path);
+        static NODISCARD Result<elf, internal_error> open(cbspan object);
 
         elf(elf&&) = default;
 
