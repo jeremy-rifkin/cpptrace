@@ -9,7 +9,9 @@
 
 namespace cpptrace {
 namespace detail {
-    void load_jit_objects();
+    void register_jit_object(const char*, std::size_t);
+    void unregister_jit_object(const char*);
+    void clear_all_jit_objects();
 
     #if IS_LINUX
      using jit_object_type = elf;

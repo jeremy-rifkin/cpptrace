@@ -342,7 +342,15 @@ namespace cpptrace {
         return detail::has_get_safe_object_frame();
     }
 
-    void load_jit_objects() {
-        detail::load_jit_objects();
+    void register_jit_object(const char* ptr, std::size_t size) {
+        detail::register_jit_object(ptr, size);
+    }
+
+    void unregister_jit_object(const char* ptr) {
+        detail::unregister_jit_object(ptr);
+    }
+
+    void clear_all_jit_objects() {
+        detail::clear_all_jit_objects();
     }
 }

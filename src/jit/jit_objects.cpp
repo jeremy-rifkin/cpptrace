@@ -1,7 +1,6 @@
 #include "jit/jit_objects.hpp"
 
 #include "cpptrace/forward.hpp"
-#include "jit/jit_interface.hpp"
 #include "utils/error.hpp"
 #include "utils/microfmt.hpp"
 #include "utils/optional.hpp"
@@ -18,15 +17,21 @@
 namespace cpptrace {
 namespace detail {
     class jit_object_manager {
+        struct object_entry {
+            const char* object_start;
+            std::unique_ptr<jit_object_type> object;
+        };
+        std::vector<object_entry> objects;
+
         struct range_entry {
             frame_ptr low;
             frame_ptr high; // not inclusive
+            const char* object_start;
             jit_object_type* object;
             bool operator<(const range_entry& other) const {
                 return low < other.low;
             }
         };
-        std::vector<std::unique_ptr<jit_object_type>> objects;
         // TODO: Maybe use a set...
         std::vector<range_entry> range_list;
 
@@ -34,26 +39,45 @@ namespace detail {
         void add_jit_object(cbspan object) {
             auto object_res = jit_object_type::open(object);
             if(object_res.is_error()) {
-                // if(!should_absorb_trace_exceptions()) { // TODO
+                if(!should_absorb_trace_exceptions()) {
                     object_res.drop_error();
-                // }
+                }
                 return;
             }
-            objects.push_back(make_unique<jit_object_type>(std::move(object_res).unwrap_value()));
-            auto* object_file = objects.back().get();
+            objects.push_back({object.data(), make_unique<jit_object_type>(std::move(object_res).unwrap_value())});
+            auto* object_file = objects.back().object.get();
             auto ranges_res = object_file->get_pc_ranges();
             if(ranges_res.is_error()) {
-                // if(!should_absorb_trace_exceptions()) { // TODO
+                if(!should_absorb_trace_exceptions()) {
                     ranges_res.drop_error();
-                // }
+                }
                 return;
             }
             auto& ranges = ranges_res.unwrap_value();
             for(auto range : ranges) {
                 microfmt::print("> {:h} - {:h}\n", range.low, range.high);
-                range_entry entry{range.low, range.high, object_file};
+                range_entry entry{range.low, range.high, object.data(), object_file};
                 range_list.insert(std::upper_bound(range_list.begin(), range_list.end(), entry), entry);
             }
+        }
+
+        void remove_jit_object(const char* ptr) {
+            objects.erase(
+                std::remove_if(
+                    objects.begin(),
+                    objects.end(),
+                    [&](const object_entry& entry) { return entry.object_start == ptr; }
+                ),
+                objects.end()
+            );
+            range_list.erase(
+                std::remove_if(
+                    range_list.begin(),
+                    range_list.end(),
+                    [&](const range_entry& entry) { return entry.object_start == ptr; }
+                ),
+                range_list.end()
+            );
         }
 
         optional<jit_object_lookup_result> lookup(frame_ptr pc) const {
@@ -83,7 +107,7 @@ namespace detail {
             }
         }
 
-        void clear_jit_objects() {
+        void clear_all_jit_objects() {
             objects.clear();
         }
     };
@@ -93,36 +117,19 @@ namespace detail {
         return manager;
     }
 
-    void load_jit_objects() {
-        {
-            std::cout<<"scanning jit debug objects "<<__jit_debug_descriptor.version<<std::endl;
-            jit_code_entry* entry = __jit_debug_descriptor.first_entry;
-            int i = 0;
-            while(entry) {
-                std::cout<<"  "<<reinterpret_cast<const void*>(entry->symfile_addr)<<" "<<std::hex<<entry->symfile_size<<std::endl;
-                std::ofstream f(microfmt::format("obj_{}.o", i++), std::ios::out | std::ios::binary);
-                f.write(entry->symfile_addr, entry->symfile_size);
-                entry = entry->next_entry;
-            }
-        }
-        // std::cout<<"---"<<std::endl;
-        // for(const auto& frame : frames) {
-        //     std::cout<<"  0x"<<std::hex<<frame<<std::endl;
-        //     jit_code_entry* entry = __jit_debug_descriptor.first_entry;
-        //     while(entry) {
-        //         if(frame >= reinterpret_cast<std::uintptr_t>(entry->symfile_addr) && frame < reinterpret_cast<std::uintptr_t>(entry->symfile_addr) + entry->symfile_size) {
-        //             std::cout<<"   match"<<std::endl;
-        //         }
-        //         entry = entry->next_entry;
-        //     }
-        // }
+    void register_jit_object(const char* ptr, std::size_t size) {
         auto& manager = get_jit_object_manager();
-        manager.clear_jit_objects();
-        jit_code_entry* entry = __jit_debug_descriptor.first_entry;
-        while(entry) {
-            manager.add_jit_object(make_span(entry->symfile_addr, entry->symfile_addr + entry->symfile_size));
-            entry = entry->next_entry;
-        }
+        manager.add_jit_object(make_span(ptr, size));
+    }
+
+    void unregister_jit_object(const char* ptr) {
+        auto& manager = get_jit_object_manager();
+        manager.remove_jit_object(ptr);
+    }
+
+    void clear_all_jit_objects() {
+        auto& manager = get_jit_object_manager();
+        manager.clear_all_jit_objects();
     }
 
     optional<jit_object_lookup_result> lookup_jit_object(frame_ptr pc) {

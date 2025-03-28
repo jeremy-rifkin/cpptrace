@@ -237,7 +237,10 @@ namespace cpptrace {
     CPPTRACE_EXPORT bool can_signal_safe_unwind();
     CPPTRACE_EXPORT bool can_get_safe_object_frame();
 
-    CPPTRACE_EXPORT void load_jit_objects();
+    // JIT API
+    CPPTRACE_EXPORT void register_jit_object(const char*, std::size_t);
+    CPPTRACE_EXPORT void unregister_jit_object(const char*);
+    CPPTRACE_EXPORT void clear_all_jit_objects();
 }
 
 #ifdef _MSC_VER

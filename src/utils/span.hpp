@@ -77,6 +77,11 @@ namespace detail {
         return {begin, end};
     }
 
+    template<typename It>
+    auto make_span(It begin, std::size_t count) -> span<typename std::remove_reference<decltype(*begin)>::type> {
+        return {begin, count};
+    }
+
     template<typename T, typename std::enable_if<std::is_trivial<T>::value && !is_span<T>::value, int>::type = 0>
     span<char> make_bspan(T& object) {
         return span<char>(reinterpret_cast<char*>(std::addressof(object)), sizeof(object));
