@@ -85,6 +85,7 @@ namespace libdwarf {
         return final_trace;
     }
 
+    #if IS_LINUX || IS_APPLE
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     void try_resolve_jit_frame(const cpptrace::object_frame& dlframe, frame_with_inlines& frame) {
         auto object_res = lookup_jit_object(dlframe.raw_address);
@@ -93,6 +94,7 @@ namespace libdwarf {
                 .lookup_symbol(dlframe.raw_address - object_res.unwrap().base).value_or("");
         }
     }
+    #endif
 
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     void try_resolve_frame(
@@ -121,6 +123,7 @@ namespace libdwarf {
         const std::lock_guard<std::mutex> lock(mutex);
         for(const auto& group : collate_frames(frames, trace)) {
             try {
+                #if IS_LINUX || IS_APPLE
                 const auto& object_name = group.first;
                 if(object_name.empty()) { // Try handling as JIT objects
                     for(const auto& entry : group.second) {
@@ -128,6 +131,7 @@ namespace libdwarf {
                     }
                     continue;
                 }
+                #endif
                 // TODO PERF: Potentially a duplicate open and parse with module base stuff (and debug map resolver)
                 #if IS_LINUX
                 auto object = open_elf_cached(object_name);
