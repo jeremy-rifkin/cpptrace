@@ -168,9 +168,6 @@ namespace detail {
         }
         const auto& sections = sections_res.unwrap_value();
         for(const auto& section : sections) {
-            // if(section.sh_type == SHT_PROGBITS) {
-            //     vec.push_back(pc_range{section.sh_addr, section.sh_addr + section.sh_size});
-            // }
             microfmt::print("-- \"{}\"\n", string_view(strtab.data() + section.sh_name));
             if(string_view(strtab.data() + section.sh_name) == ".text") {
                 microfmt::print("  match\n");
@@ -337,12 +334,6 @@ namespace detail {
             return internal_error("requested strtab section not a strtab (requested {} of {})", index, file->path());
         }
         entry.data.resize(section.sh_size + 1);
-        // if(std::fseek(file, section.sh_offset, SEEK_SET) != 0) {
-        //     return internal_error("fseek error while loading elf string table");
-        // }
-        // if(std::fread(entry.data.data(), sizeof(char), section.sh_size, file) != section.sh_size) {
-        //     return internal_error("fread error while loading elf string table");
-        // }
         auto read_res = file->read_bytes(span<char>{entry.data.data(), section.sh_size}, section.sh_offset);
         if(!read_res) {
             return read_res.unwrap_error();
@@ -432,12 +423,6 @@ namespace detail {
                     return internal_error("elf seems corrupted, sym entry vs section size mismatch {}", file->path());
                 }
                 std::vector<SymEntry> buffer(section.sh_size / section.sh_entsize);
-                // if(std::fseek(file, section.sh_offset, SEEK_SET) != 0) {
-                //     return internal_error("fseek error while loading elf symbol table");
-                // }
-                // if(std::fread(buffer.data(), section.sh_entsize, buffer.size(), file) != buffer.size()) {
-                //     return internal_error("fread error while loading elf symbol table");
-                // }
                 auto res = file->read_span(make_span(buffer.begin(), buffer.end()), section.sh_offset);
                 if(!res) {
                     return res.unwrap_error();
