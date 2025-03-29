@@ -15,6 +15,7 @@
 
 namespace cpptrace {
 namespace detail {
+    #if IS_LINUX || IS_APPLE
     class jit_object_manager {
         struct object_entry {
             const char* object_start;
@@ -100,8 +101,17 @@ namespace detail {
 
         void clear_all_jit_objects() {
             objects.clear();
+            range_list.clear();
         }
     };
+    #else
+    class jit_object_manager {
+    public:
+        void add_jit_object(cbspan) {}
+        void remove_jit_object(const char*) {}
+        void clear_all_jit_objects() {}
+    };
+    #endif
 
     jit_object_manager& get_jit_object_manager() {
         static jit_object_manager manager;
@@ -123,8 +133,10 @@ namespace detail {
         manager.clear_all_jit_objects();
     }
 
+    #if IS_LINUX || IS_APPLE
     optional<jit_object_lookup_result> lookup_jit_object(frame_ptr pc) {
         return get_jit_object_manager().lookup(pc);
     }
+    #endif
 }
 }

@@ -13,6 +13,7 @@ namespace detail {
     void unregister_jit_object(const char*);
     void clear_all_jit_objects();
 
+    #if IS_LINUX || IS_APPLE
     #if IS_LINUX
      using jit_object_type = elf;
     #elif IS_APPLE
@@ -23,6 +24,7 @@ namespace detail {
         frame_ptr base;
     };
     optional<jit_object_lookup_result> lookup_jit_object(frame_ptr pc);
+    #endif
 }
 }
 
