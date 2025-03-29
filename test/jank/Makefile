@@ -17,15 +17,18 @@ build: data/.built  ## build the container
 
 .PHONY: run
 run: data/.built data/.cloned  ## run the container
+	rm -rfv data/jank/compiler+runtime/third-party/cpptrace/include
+	rm -rfv data/jank/compiler+runtime/third-party/cpptrace/src
+	cp -avp ../../include data/jank/compiler+runtime/third-party/cpptrace/include
+	cp -avp ../../src data/jank/compiler+runtime/third-party/cpptrace/src
+	cp -v ../../CMakeLists.txt data/jank/compiler+runtime/third-party/cpptrace/
 	$(PODMAN) run \
 		--user=cpptrace \
 		--cap-drop=all \
-		-v $(realpath ../../src):/opt/work/jank/compiler+runtime/third-party/cpptrace/src \
-		-v $(realpath ../../CMakeLists.txt):/opt/work/jank/compiler+runtime/third-party/cpptrace/CMakeLists.txt \
+		-v $(realpath data/jank):/opt/work/jank:rw \
+		--tmpfs /opt/work/jank/compiler+runtime/build:rw \
 		-it \
 		cpptrace-container
-		# -v $(realpath data/jank):/opt/work/jank:rw \
-	# $(PODMAN) run --user=cpptrace --cap-drop=all --network none -v data/jank:/opt/work/jank:Z -it cpptrace-container
 
 .PHONY: clone
 clone: data/.cloned  ## clone code

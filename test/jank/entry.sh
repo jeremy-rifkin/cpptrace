@@ -2,6 +2,8 @@
 
 echo "------------------------------------ BUILDING ------------------------------------"
 
+cd jank/compiler+runtime
+
 CC=clang CXX=clang++ ./bin/configure -GNinja -DCMAKE_BUILD_TYPE=Debug && ./bin/compile
 
 cat > test.jank << EOF

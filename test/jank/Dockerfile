@@ -13,9 +13,9 @@ USER cpptrace
 WORKDIR /opt/
 WORKDIR /opt/work
 
-RUN git clone --recurse-submodules https://github.com/jank-lang/jank.git
-WORKDIR /opt/work/jank/compiler+runtime
-RUN git checkout 5668b16
+# RUN git clone --recurse-submodules https://github.com/jank-lang/jank.git
+# WORKDIR /opt/work/jank/compiler+runtime
+# RUN git checkout 5668b16
 # RUN CC=clang CXX=clang++ ./bin/configure -GNinja -DCMAKE_BUILD_TYPE=Debug
 # RUN ./bin/compile
 
