@@ -700,6 +700,9 @@ namespace detail {
     }
 
     Result<maybe_owned<mach_o>, internal_error> open_mach_o_cached(const std::string& object_path) {
+        if(object_path.empty()) {
+            return internal_error{"empty object_path"};
+        }
         if(get_cache_mode() == cache_mode::prioritize_memory) {
             return mach_o::open(object_path)
                 .transform([](mach_o&& obj) {

@@ -8,10 +8,10 @@ namespace detail {
 
     Result<monostate, internal_error> memory_file_view::read_bytes(bspan buffer, off_t offset) const {
         if(offset < 0) {
-            throw internal_error("Illegal read in memory file {}: offset {}", path(), offset);
+            return internal_error("Illegal read in memory file {}: offset {}", path(), offset);
         }
         if(offset + buffer.size() > data.size()) {
-            throw internal_error(
+            return internal_error(
                 "Illegal read in memory file {}: offset = {}, size = {}, file size = {}",
                 path(), offset, buffer.size(), data.size()
             );

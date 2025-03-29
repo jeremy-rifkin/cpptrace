@@ -56,11 +56,13 @@ namespace detail {
             auto& ranges = ranges_res.unwrap_value();
             for(auto range : ranges) {
                 range_entry entry{range.low, range.high, object.data(), object_file};
+                // TODO: Perf
                 range_list.insert(std::upper_bound(range_list.begin(), range_list.end(), entry), entry);
             }
         }
 
         void remove_jit_object(const char* ptr) {
+            // TODO: Perf
             objects.erase(
                 std::remove_if(
                     objects.begin(),

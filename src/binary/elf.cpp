@@ -3,7 +3,6 @@
 #include "utils/error.hpp"
 #include "utils/io/base_file.hpp"
 #include "utils/io/memory_file_view.hpp"
-#include "utils/microfmt.hpp"
 #include "utils/optional.hpp"
 #include "utils/io/file.hpp"
 #include "utils/string_view.hpp"
@@ -168,9 +167,7 @@ namespace detail {
         }
         const auto& sections = sections_res.unwrap_value();
         for(const auto& section : sections) {
-            microfmt::print("-- \"{}\"\n", string_view(strtab.data() + section.sh_name));
             if(string_view(strtab.data() + section.sh_name) == ".text") {
-                microfmt::print("  match\n");
                 vec.push_back(pc_range{section.sh_addr, section.sh_addr + section.sh_size});
             }
         }

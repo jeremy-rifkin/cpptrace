@@ -89,6 +89,7 @@ namespace libdwarf {
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     void try_resolve_jit_frame(const cpptrace::object_frame& dlframe, frame_with_inlines& frame) {
         auto object_res = lookup_jit_object(dlframe.raw_address);
+        // TODO: At some point, dwarf resolution
         if(object_res) {
             frame.frame.symbol = object_res.unwrap().object
                 .lookup_symbol(dlframe.raw_address - object_res.unwrap().base).value_or("");
@@ -124,7 +125,7 @@ namespace libdwarf {
         for(const auto& group : collate_frames(frames, trace)) {
             try {
                 const auto& object_name = group.first;
-                if(object_name.empty()) { // Try handling as JIT objects
+                if(object_name.empty()) {
                     #if IS_LINUX || IS_APPLE
                     for(const auto& entry : group.second) {
                         try_resolve_jit_frame(entry.first.get(), entry.second.get());

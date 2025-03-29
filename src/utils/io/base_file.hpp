@@ -14,7 +14,7 @@ namespace detail {
         virtual string_view path() const = 0;
         virtual Result<monostate, internal_error> read_bytes(bspan buffer, off_t offset) const = 0;
 
-        template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
+        template<typename T, typename std::enable_if<std::is_trivial<T>::value && !is_span<T>::value, int>::type = 0>
         Result<T, internal_error> read(off_t offset) {
             T object{};
             auto res = read_bytes(make_bspan(object), offset);
