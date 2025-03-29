@@ -123,15 +123,15 @@ namespace libdwarf {
         const std::lock_guard<std::mutex> lock(mutex);
         for(const auto& group : collate_frames(frames, trace)) {
             try {
-                #if IS_LINUX || IS_APPLE
                 const auto& object_name = group.first;
                 if(object_name.empty()) { // Try handling as JIT objects
+                    #if IS_LINUX || IS_APPLE
                     for(const auto& entry : group.second) {
                         try_resolve_jit_frame(entry.first.get(), entry.second.get());
                     }
+                    #endif
                     continue;
                 }
-                #endif
                 // TODO PERF: Potentially a duplicate open and parse with module base stuff (and debug map resolver)
                 #if IS_LINUX
                 auto object = open_elf_cached(object_name);
