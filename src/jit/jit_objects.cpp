@@ -2,7 +2,6 @@
 
 #include "cpptrace/forward.hpp"
 #include "utils/error.hpp"
-#include "utils/microfmt.hpp"
 #include "utils/optional.hpp"
 #include "utils/span.hpp"
 #include "binary/elf.hpp"
@@ -55,7 +54,6 @@ namespace detail {
             }
             auto& ranges = ranges_res.unwrap_value();
             for(auto range : ranges) {
-                microfmt::print("> {:h} - {:h}\n", range.low, range.high);
                 range_entry entry{range.low, range.high, object.data(), object_file};
                 range_list.insert(std::upper_bound(range_list.begin(), range_list.end(), entry), entry);
             }
@@ -81,10 +79,6 @@ namespace detail {
         }
 
         optional<jit_object_lookup_result> lookup(frame_ptr pc) const {
-            microfmt::print("lookup {:h}\n", pc);
-            for(const auto& range : range_list) {
-                microfmt::print("  {:h} - {:h}\n", range.low, range.high);
-            }
             auto it = first_less_than_or_equal(
                 range_list.begin(),
                 range_list.end(),
@@ -94,15 +88,12 @@ namespace detail {
                 }
             );
             if(it == range_list.end()) {
-                microfmt::print("  not found\n");
                 return nullopt;
             }
             ASSERT(pc >= it->low);
             if(pc < it->high) {
-                microfmt::print("  found\n");
                 return jit_object_lookup_result{*it->object, it->low};
             } else {
-                microfmt::print("  not in range\n");
                 return nullopt;
             }
         }

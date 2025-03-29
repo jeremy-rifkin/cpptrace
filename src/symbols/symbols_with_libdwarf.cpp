@@ -86,6 +86,33 @@ namespace libdwarf {
     }
 
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+    void try_resolve_jit_frame(const cpptrace::object_frame& dlframe, frame_with_inlines& frame) {
+        auto object_res = lookup_jit_object(dlframe.raw_address);
+        if(object_res) {
+            frame.frame.symbol = object_res.unwrap().object
+                .lookup_symbol(dlframe.raw_address - object_res.unwrap().base).value_or("");
+        }
+    }
+
+    CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+    void try_resolve_frame(
+        symbol_resolver* resolver,
+        const cpptrace::object_frame& dlframe,
+        frame_with_inlines& frame
+    ) {
+        try {
+            frame = resolver->resolve_frame(dlframe);
+        } catch(...) {
+            frame.frame.raw_address = dlframe.raw_address;
+            frame.frame.object_address = dlframe.object_address;
+            frame.frame.filename = dlframe.object_path;
+            if(!should_absorb_trace_exceptions()) {
+                throw;
+            }
+        }
+    }
+
+    CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         std::vector<frame_with_inlines> trace(frames.size(), {null_frame, {}});
         // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
@@ -95,15 +122,9 @@ namespace libdwarf {
         for(const auto& group : collate_frames(frames, trace)) {
             try {
                 const auto& object_name = group.first;
-                if(object_name.empty()) {
+                if(object_name.empty()) { // Try handling as JIT objects
                     for(const auto& entry : group.second) {
-                        const auto& dlframe = entry.first.get();
-                        auto& frame = entry.second.get();
-                        auto object_res = lookup_jit_object(dlframe.raw_address);
-                        if(object_res) {
-                            frame.frame.symbol = object_res.unwrap().object
-                                .lookup_symbol(dlframe.raw_address - object_res.unwrap().base).value_or("");
-                        }
+                        try_resolve_jit_frame(entry.first.get(), entry.second.get());
                     }
                     continue;
                 }
@@ -117,17 +138,9 @@ namespace libdwarf {
                 for(const auto& entry : group.second) {
                     const auto& dlframe = entry.first.get();
                     auto& frame = entry.second.get();
-                    try {
-                        frame = resolver->resolve_frame(dlframe);
-                    } catch(...) {
-                        frame.frame.raw_address = dlframe.raw_address;
-                        frame.frame.object_address = dlframe.object_address;
-                        frame.frame.filename = dlframe.object_path;
-                        if(!should_absorb_trace_exceptions()) {
-                            throw;
-                        }
-                    }
+                    try_resolve_frame(resolver.get(), dlframe, frame);
                     #if IS_LINUX || IS_APPLE
+                    // fallback to symbol tables
                     if(frame.frame.symbol.empty() && object.has_value()) {
                         frame.frame.symbol = object
                             .unwrap_value()

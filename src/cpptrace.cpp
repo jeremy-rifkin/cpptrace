@@ -23,7 +23,6 @@
 #include "binary/safe_dl.hpp"
 #include "snippets/snippet.hpp"
 #include "options.hpp"
-// #include "jit/jit_objects.hpp"
 
 namespace cpptrace {
     CPPTRACE_FORCE_NO_INLINE
@@ -62,7 +61,6 @@ namespace cpptrace {
     }
 
     stacktrace raw_trace::resolve() const {
-        // load_jit_objects();
         try {
             std::vector<stacktrace_frame> trace = detail::resolve_frames(frames);
             for(auto& frame : trace) {

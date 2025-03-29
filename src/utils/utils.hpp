@@ -284,6 +284,9 @@ namespace detail {
         T& operator*() {
             return *ptr;
         }
+        T* get() {
+            return ptr;
+        }
     };
 
     template<typename F>

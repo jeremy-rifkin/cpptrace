@@ -204,6 +204,25 @@ namespace detail {
         }
     }
 
+    Result<std::vector<mach_o::pc_range>, internal_error> mach_o::get_pc_ranges() {
+        std::vector<pc_range> ranges;
+        for(const auto& command : load_commands) {
+            if(command.cmd == LC_SEGMENT_64 || command.cmd == LC_SEGMENT) {
+                auto segment_res = command.cmd == LC_SEGMENT_64
+                                    ? load_segment_command<64>(command.file_offset)
+                                    : load_segment_command<32>(command.file_offset);
+                if(segment_res.is_error()) {
+                    return std::move(segment_res).unwrap_error();
+                }
+                auto& segment = segment_res.unwrap_value();
+                if(std::strcmp(segment.segname, "__TEXT") == 0) {
+                    ranges.push_back({segment.vmaddr, segment.vmaddr + segment.vmsize});
+                }
+            }
+        }
+        return ranges;
+    }
+
     Result<std::reference_wrapper<optional<mach_o::symtab_info_data>>, internal_error> mach_o::get_symtab_info() {
         if(!symtab_info.has_value() && !tried_to_load_symtab) {
             // don't try to load the symtab again if for some reason loading here fails
