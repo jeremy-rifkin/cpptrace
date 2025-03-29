@@ -9,8 +9,10 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "cpptrace/basic.hpp"
+#include "jit/jit_objects.hpp"
 #include "symbols/symbols.hpp"
 #include "unwind/unwind.hpp"
 #include "demangle/demangle.hpp"
@@ -336,5 +338,17 @@ namespace cpptrace {
 
     bool can_get_safe_object_frame() {
         return detail::has_get_safe_object_frame();
+    }
+
+    void register_jit_object(const char* ptr, std::size_t size) {
+        detail::register_jit_object(ptr, size);
+    }
+
+    void unregister_jit_object(const char* ptr) {
+        detail::unregister_jit_object(ptr);
+    }
+
+    void clear_all_jit_objects() {
+        detail::clear_all_jit_objects();
     }
 }

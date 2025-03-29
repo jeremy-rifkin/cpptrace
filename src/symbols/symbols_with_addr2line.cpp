@@ -283,6 +283,9 @@ namespace addr2line {
             for(const auto& entry : entries) {
                 try {
                     const auto& object_name = entry.first;
+                    if(object_name.empty()) {
+                        continue;
+                    }
                     const auto& entries_vec = entry.second;
                     // You may ask why it'd ever happen that there could be an empty entries_vec array, if there're
                     // no addresses why would get_addr2line_targets do anything? The reason is because if things in

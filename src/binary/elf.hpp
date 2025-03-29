@@ -1,7 +1,10 @@
 #ifndef ELF_HPP
 #define ELF_HPP
 
+#include "cpptrace/forward.hpp"
 #include "utils/common.hpp"
+#include "utils/io/base_file.hpp"
+#include "utils/span.hpp"
 #include "utils/utils.hpp"
 
 #if IS_LINUX
@@ -12,9 +15,9 @@
 
 namespace cpptrace {
 namespace detail {
+    // TODO: make methods const and a bunch of members mutable
     class elf {
-        file_wrapper file;
-        std::string object_path;
+        std::unique_ptr<base_file> file;
         bool is_little_endian;
         bool is_64;
 
@@ -25,11 +28,13 @@ namespace detail {
             uint64_t e_shoff;
             uint32_t e_shnum;
             uint32_t e_shentsize;
+            uint16_t e_shstrndx;
         };
         bool tried_to_load_header = false;
         optional<header_info> header;
 
         struct section_info {
+            uint32_t sh_name;
             uint32_t sh_type;
             uint64_t sh_addr;
             uint64_t sh_offset;
@@ -68,10 +73,13 @@ namespace detail {
         bool did_load_dynamic_symtab = false;
         optional<symtab_info> dynamic_symtab;
 
-        elf(file_wrapper file, cstring_view object_path, bool is_little_endian, bool is_64);
+        elf(std::unique_ptr<base_file> file, bool is_little_endian, bool is_64);
+
+        static NODISCARD Result<elf, internal_error> open(std::unique_ptr<base_file> file);
 
     public:
-        static NODISCARD Result<elf, internal_error> open_elf(cstring_view object_path);
+        static NODISCARD Result<elf, internal_error> open(cstring_view object_path);
+        static NODISCARD Result<elf, internal_error> open(cbspan object);
 
         elf(elf&&) = default;
 
@@ -87,6 +95,13 @@ namespace detail {
         optional<std::string> lookup_symbol(frame_ptr pc, const optional<symtab_info>& maybe_symtab);
 
     public:
+        struct pc_range {
+            frame_ptr low;
+            frame_ptr high; // not inclusive
+        };
+        // for in-memory JIT elves
+        Result<std::vector<pc_range>, internal_error> get_pc_ranges();
+
         struct symbol_entry {
             std::string st_name;
             uint16_t st_shndx;

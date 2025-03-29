@@ -32,7 +32,7 @@ void dump_symtab_result(const Result<optional<std::vector<elf::symbol_entry>>, i
 }
 
 void dump_symbols(const std::filesystem::path& path) {
-    auto elf_ = elf::open_elf(path.native());
+    auto elf_ = elf::open(path.native());
     if(!elf_) {
         fmt::println(stderr, "Error reading file: {}", elf_.unwrap_error().what());
     }

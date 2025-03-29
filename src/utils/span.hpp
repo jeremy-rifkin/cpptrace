@@ -1,6 +1,8 @@
 #ifndef SPAN_HPP
 #define SPAN_HPP
 
+#include "utils/utils.hpp"
+
 #include <cstddef>
 #include <iterator>
 #include <memory>
@@ -30,6 +32,7 @@ namespace detail {
         using const_iterator = const T*;
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<reverse_iterator>;
+        using i_am_span = void;
 
         span() : ptr(nullptr), count(0) {}
         span(T* ptr, std::size_t count) : ptr(ptr), count(count) {}
@@ -63,14 +66,25 @@ namespace detail {
     using bspan = span<char>;
     using cbspan = span<const char>;
 
+    template<typename T, typename = int>
+    struct is_span : std::false_type {};
+
+    template<typename T>
+    struct is_span<T, void_t<typename T::i_am_span>> : std::true_type {};
+
     template<typename It>
-    auto make_span(It begin, It end) {
-        return span<typename std::remove_reference<decltype(*begin)>::type>(begin, end);
+    auto make_span(It begin, It end) -> span<typename std::remove_reference<decltype(*begin)>::type> {
+        return {begin, end};
     }
 
-    template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
-    auto make_bspan(T object) {
-        return span(reinterpret_cast<T*>(std::addressof(object)), sizeof(T));
+    template<typename It>
+    auto make_span(It begin, std::size_t count) -> span<typename std::remove_reference<decltype(*begin)>::type> {
+        return {begin, count};
+    }
+
+    template<typename T, typename std::enable_if<std::is_trivial<T>::value && !is_span<T>::value, int>::type = 0>
+    span<char> make_bspan(T& object) {
+        return span<char>(reinterpret_cast<char*>(std::addressof(object)), sizeof(object));
     }
 }
 }

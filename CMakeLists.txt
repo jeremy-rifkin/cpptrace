@@ -127,6 +127,7 @@ target_sources(
     src/demangle/demangle_with_cxxabi.cpp
     src/demangle/demangle_with_nothing.cpp
     src/demangle/demangle_with_winapi.cpp
+    src/jit/jit_objects.cpp
     src/snippets/snippet.cpp
     src/symbols/dwarf/debug_map_resolver.cpp
     src/symbols/dwarf/dwarf_options.cpp
@@ -144,6 +145,8 @@ target_sources(
     src/unwind/unwind_with_nothing.cpp
     src/unwind/unwind_with_unwind.cpp
     src/unwind/unwind_with_winapi.cpp
+    src/utils/io/file.cpp
+    src/utils/io/memory_file_view.cpp
     src/utils/error.cpp
     src/utils/microfmt.cpp
     src/utils/string_view.cpp

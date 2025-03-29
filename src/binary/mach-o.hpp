@@ -3,6 +3,8 @@
 
 #include "utils/common.hpp"
 #include "utils/utils.hpp"
+#include "utils/span.hpp"
+#include "utils/io/base_file.hpp"
 
 #if IS_APPLE
 
@@ -44,9 +46,7 @@ namespace detail {
         using debug_map = std::unordered_map<std::string, std::vector<debug_map_entry>>;
 
     private:
-
-        file_wrapper file;
-        std::string object_path;
+        std::unique_ptr<base_file> file;
         std::uint32_t magic;
         cpu_type_t cputype;
         cpu_subtype_t cpusubtype;
@@ -73,19 +73,15 @@ namespace detail {
         bool tried_to_load_symbols = false;
         optional<std::vector<symbol_entry>> symbols;
 
-        mach_o(
-            file_wrapper file,
-            cstring_view object_path,
-            std::uint32_t magic
-        ) :
-            file(std::move(file)),
-            object_path(object_path),
-            magic(magic) {}
+        mach_o(std::unique_ptr<base_file> file, std::uint32_t magic) : file(std::move(file)), magic(magic) {}
 
         Result<monostate, internal_error> load();
 
+        static NODISCARD Result<mach_o, internal_error> open(std::unique_ptr<base_file> file);
+
     public:
-        static NODISCARD Result<mach_o, internal_error> open_mach_o(cstring_view object_path);
+        static NODISCARD Result<mach_o, internal_error> open(cstring_view object_path);
+        static NODISCARD Result<mach_o, internal_error> open(cbspan object);
 
         mach_o(mach_o&&) = default;
         ~mach_o() = default;
@@ -95,6 +91,13 @@ namespace detail {
         std::size_t get_fat_index() const;
 
         void print_segments() const;
+
+        struct pc_range {
+            frame_ptr low;
+            frame_ptr high; // not inclusive
+        };
+        // for in-memory JIT mach-o's
+        Result<std::vector<pc_range>, internal_error> get_pc_ranges();
 
         Result<std::reference_wrapper<optional<symtab_info_data>>, internal_error> get_symtab_info();
 

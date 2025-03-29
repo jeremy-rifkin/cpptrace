@@ -1,5 +1,11 @@
 #include "binary/elf.hpp"
+
+#include "utils/error.hpp"
+#include "utils/io/base_file.hpp"
+#include "utils/io/memory_file_view.hpp"
 #include "utils/optional.hpp"
+#include "utils/io/file.hpp"
+#include "utils/string_view.hpp"
 
 #if IS_LINUX
 
@@ -16,43 +22,51 @@
 namespace cpptrace {
 namespace detail {
     elf::elf(
-        file_wrapper file,
-        cstring_view object_path,
+        std::unique_ptr<base_file> file,
         bool is_little_endian,
         bool is_64
-    ) : file(std::move(file)), object_path(object_path), is_little_endian(is_little_endian), is_64(is_64) {}
+    ) : file(std::move(file)), is_little_endian(is_little_endian), is_64(is_64) {}
 
-    Result<elf, internal_error> elf::open_elf(cstring_view object_path) {
-        auto file = raii_wrap(std::fopen(object_path.c_str(), "rb"), file_deleter);
-        if(file == nullptr) {
-            return internal_error("Unable to read object file {}", object_path);
-        }
+    Result<elf, internal_error> elf::open(std::unique_ptr<base_file> file) {
         // Initial checks/metadata
-        auto magic = load_bytes<std::array<char, 4>>(file, 0);
+        auto magic = file->read<std::array<char, 4>>(0);
         if(magic.is_error()) {
             return std::move(magic).unwrap_error();
         }
         if(magic.unwrap_value() != (std::array<char, 4>{0x7F, 'E', 'L', 'F'})) {
-            return internal_error("File is not ELF {}", object_path);
+            return internal_error("File is not ELF {}", file->path());
         }
-        auto ei_class = load_bytes<std::uint8_t>(file, 4);
+        auto ei_class = file->read<std::uint8_t>(4);
         if(ei_class.is_error()) {
             return std::move(ei_class).unwrap_error();
         }
         bool is_64 = ei_class.unwrap_value() == 2;
-        auto ei_data = load_bytes<std::uint8_t>(file, 5);
+        auto ei_data = file->read<std::uint8_t>(5);
         if(ei_data.is_error()) {
             return std::move(ei_data).unwrap_error();
         }
         bool is_little_endian = ei_data.unwrap_value() == 1;
-        auto ei_version = load_bytes<std::uint8_t>(file, 6);
+        auto ei_version = file->read<std::uint8_t>(6);
         if(ei_version.is_error()) {
             return std::move(ei_version).unwrap_error();
         }
         if(ei_version.unwrap_value() != 1) {
-            return internal_error("Unexpected ELF version {}", object_path);
+            return internal_error("Unexpected ELF version {}", file->path());
         }
-        return elf(std::move(file), object_path, is_little_endian, is_64);
+        return elf(std::move(file), is_little_endian, is_64);
+    }
+
+    Result<elf, internal_error> elf::open(cstring_view object_path) {
+        auto file_res = file::open(object_path);
+        if(!file_res) {
+            return internal_error("Unable to read object file {}", object_path);
+        }
+        auto& file = file_res.unwrap_value();
+        return open(make_unique(std::move(file)));
+    }
+
+    Result<elf, internal_error> elf::open(cbspan object) {
+        return open(make_unique<memory_file_view>(object));
     }
 
     Result<std::uintptr_t, internal_error> elf::get_module_image_base() {
@@ -77,7 +91,7 @@ namespace detail {
         // Should be somewhat reliable https://stackoverflow.com/q/61568612/15675011
         // It should occur at the beginning but may as well loop just in case
         for(unsigned i = 0; i < header_info.e_phnum; i++) {
-            auto loaded_ph = load_bytes<PHeader>(file, header_info.e_phoff + header_info.e_phentsize * i);
+            auto loaded_ph = file->read<PHeader>(header_info.e_phoff + header_info.e_phentsize * i);
             if(loaded_ph.is_error()) {
                 return std::move(loaded_ph).unwrap_error();
             }
@@ -135,6 +149,31 @@ namespace detail {
         return nullopt;
     }
 
+    Result<std::vector<elf::pc_range>, internal_error> elf::get_pc_ranges() {
+        std::vector<pc_range> vec;
+        auto header_info_ = get_header_info();
+        if(header_info_.is_error()) {
+            return header_info_.unwrap_error();
+        }
+        auto& header_info = header_info_.unwrap_value();
+        auto strtab_ = get_strtab(header_info.e_shstrndx);
+        if(strtab_.is_error()) {
+            return strtab_.unwrap_error();
+        }
+        auto& strtab = strtab_.unwrap_value();
+        auto sections_res = get_sections();
+        if(!sections_res) {
+            return sections_res.unwrap_error();
+        }
+        const auto& sections = sections_res.unwrap_value();
+        for(const auto& section : sections) {
+            if(string_view(strtab.data() + section.sh_name) == ".text") {
+                vec.push_back(pc_range{section.sh_addr, section.sh_addr + section.sh_size});
+            }
+        }
+        return vec;
+    }
+
     Result<optional<std::vector<elf::symbol_entry>>, internal_error> elf::get_symtab_entries() {
         return resolve_symtab_entries(get_symtab());
     }
@@ -187,7 +226,7 @@ namespace detail {
             return std::ref(header.unwrap());
         }
         if(tried_to_load_header) {
-            return internal_error("previous header load failed " + object_path);
+            return internal_error("previous header load failed {}", file->path());
         }
         tried_to_load_header = true;
         if(is_64) {
@@ -201,13 +240,13 @@ namespace detail {
     Result<const elf::header_info&, internal_error> elf::get_header_info_impl() {
         static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
         using Header = typename std::conditional<Bits == 32, Elf32_Ehdr, Elf64_Ehdr>::type;
-        auto loaded_header = load_bytes<Header>(file, 0);
+        auto loaded_header = file->read<Header>(0);
         if(loaded_header.is_error()) {
             return std::move(loaded_header).unwrap_error();
         }
         const Header& file_header = loaded_header.unwrap_value();
         if(file_header.e_ehsize != sizeof(Header)) {
-            return internal_error("ELF file header size mismatch" + object_path);
+            return internal_error("ELF file header size mismatch {}", file->path());
         }
         header_info info;
         info.e_phoff = byteswap_if_needed(file_header.e_phoff);
@@ -216,6 +255,7 @@ namespace detail {
         info.e_shoff = byteswap_if_needed(file_header.e_shoff);
         info.e_shnum = byteswap_if_needed(file_header.e_shnum);
         info.e_shentsize = byteswap_if_needed(file_header.e_shentsize);
+        info.e_shstrndx = byteswap_if_needed(file_header.e_shstrndx);
         header = info;
         return header.unwrap();
     }
@@ -225,7 +265,7 @@ namespace detail {
             return sections;
         }
         if(tried_to_load_sections) {
-            return internal_error("previous sections load failed " + object_path);
+            return internal_error("previous sections load failed {}", file->path());
         }
         tried_to_load_sections = true;
         if(is_64) {
@@ -245,12 +285,13 @@ namespace detail {
         }
         const auto& header_info = header.unwrap_value();
         for(unsigned i = 0; i < header_info.e_shnum; i++) {
-            auto loaded_sh = load_bytes<SHeader>(file, header_info.e_shoff + header_info.e_shentsize * i);
+            auto loaded_sh = file->read<SHeader>(header_info.e_shoff + header_info.e_shentsize * i);
             if(loaded_sh.is_error()) {
                 return std::move(loaded_sh).unwrap_error();
             }
             const SHeader& section_header = loaded_sh.unwrap_value();
             section_info info;
+            info.sh_name = byteswap_if_needed(section_header.sh_name);
             info.sh_type = byteswap_if_needed(section_header.sh_type);
             info.sh_addr = byteswap_if_needed(section_header.sh_addr);
             info.sh_offset = byteswap_if_needed(section_header.sh_offset);
@@ -273,7 +314,7 @@ namespace detail {
                 return entry.data;
             }
             if(entry.tried_to_load_strtab) {
-                return internal_error("previous strtab load failed {}", object_path);
+                return internal_error("previous strtab load failed {}", file->path());
             }
         }
         entry.tried_to_load_strtab = true;
@@ -287,14 +328,12 @@ namespace detail {
         }
         const auto& section = sections[index];
         if(section.sh_type != SHT_STRTAB) {
-            return internal_error("requested strtab section not a strtab (requested {} of {})", index, object_path);
+            return internal_error("requested strtab section not a strtab (requested {} of {})", index, file->path());
         }
         entry.data.resize(section.sh_size + 1);
-        if(std::fseek(file, section.sh_offset, SEEK_SET) != 0) {
-            return internal_error("fseek error while loading elf string table");
-        }
-        if(std::fread(entry.data.data(), sizeof(char), section.sh_size, file) != section.sh_size) {
-            return internal_error("fread error while loading elf string table");
+        auto read_res = file->read_bytes(span<char>{entry.data.data(), section.sh_size}, section.sh_offset);
+        if(!read_res) {
+            return read_res.unwrap_error();
         }
         entry.data[section.sh_size] = 0; // just out of an abundance of caution
         entry.did_load_strtab = true;
@@ -306,7 +345,7 @@ namespace detail {
             return symtab;
         }
         if(tried_to_load_symtab) {
-            return internal_error("previous symtab load failed {}", object_path);
+            return internal_error("previous symtab load failed {}", file->path());
         }
         tried_to_load_symtab = true;
         if(is_64) {
@@ -335,7 +374,7 @@ namespace detail {
             return dynamic_symtab;
         }
         if(tried_to_load_dynamic_symtab) {
-            return internal_error("previous dynamic symtab load failed {}", object_path);
+            return internal_error("previous dynamic symtab load failed {}", file->path());
         }
         tried_to_load_dynamic_symtab = true;
         if(is_64) {
@@ -375,17 +414,15 @@ namespace detail {
         for(const auto& section : sections) {
             if(section.sh_type == (dynamic ? SHT_DYNSYM : SHT_SYMTAB)) {
                 if(section.sh_entsize != sizeof(SymEntry)) {
-                    return internal_error("elf seems corrupted, sym entry mismatch {}", object_path);
+                    return internal_error("elf seems corrupted, sym entry mismatch {}", file->path());
                 }
                 if(section.sh_size % section.sh_entsize != 0) {
-                    return internal_error("elf seems corrupted, sym entry vs section size mismatch {}", object_path);
+                    return internal_error("elf seems corrupted, sym entry vs section size mismatch {}", file->path());
                 }
                 std::vector<SymEntry> buffer(section.sh_size / section.sh_entsize);
-                if(std::fseek(file, section.sh_offset, SEEK_SET) != 0) {
-                    return internal_error("fseek error while loading elf symbol table");
-                }
-                if(std::fread(buffer.data(), section.sh_entsize, buffer.size(), file) != buffer.size()) {
-                    return internal_error("fread error while loading elf symbol table");
+                auto res = file->read_span(make_span(buffer.begin(), buffer.end()), section.sh_offset);
+                if(!res) {
+                    return res.unwrap_error();
                 }
                 symbol_table = symtab_info{};
                 symbol_table.unwrap().entries.reserve(buffer.size());
@@ -414,8 +451,11 @@ namespace detail {
     }
 
     Result<maybe_owned<elf>, internal_error> open_elf_cached(const std::string& object_path) {
+        if(object_path.empty()) {
+            return internal_error{"empty object_path"};
+        }
         if(get_cache_mode() == cache_mode::prioritize_memory) {
-            return elf::open_elf(object_path)
+            return elf::open(object_path)
                 .transform([](elf&& obj) { return maybe_owned<elf>{detail::make_unique<elf>(std::move(obj))}; });
         } else {
             std::mutex m;
@@ -424,7 +464,7 @@ namespace detail {
             static std::unordered_map<std::string, Result<elf, internal_error>> cache;
             auto it = cache.find(object_path);
             if(it == cache.end()) {
-                auto res = cache.emplace(object_path, elf::open_elf(object_path));
+                auto res = cache.emplace(object_path, elf::open(object_path));
                 VERIFY(res.second);
                 it = res.first;
             }

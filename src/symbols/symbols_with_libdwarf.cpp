@@ -3,11 +3,13 @@
 #include "symbols/symbols.hpp"
 
 #include <cpptrace/basic.hpp>
+
 #include "dwarf/resolver.hpp"
 #include "utils/common.hpp"
 #include "utils/utils.hpp"
 #include "binary/elf.hpp"
 #include "binary/mach-o.hpp"
+#include "jit/jit_objects.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -15,7 +17,6 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
-
 
 namespace cpptrace {
 namespace detail {
@@ -84,6 +85,36 @@ namespace libdwarf {
         return final_trace;
     }
 
+    #if IS_LINUX || IS_APPLE
+    CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+    void try_resolve_jit_frame(const cpptrace::object_frame& dlframe, frame_with_inlines& frame) {
+        auto object_res = lookup_jit_object(dlframe.raw_address);
+        // TODO: At some point, dwarf resolution
+        if(object_res) {
+            frame.frame.symbol = object_res.unwrap().object
+                .lookup_symbol(dlframe.raw_address - object_res.unwrap().base).value_or("");
+        }
+    }
+    #endif
+
+    CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
+    void try_resolve_frame(
+        symbol_resolver* resolver,
+        const cpptrace::object_frame& dlframe,
+        frame_with_inlines& frame
+    ) {
+        try {
+            frame = resolver->resolve_frame(dlframe);
+        } catch(...) {
+            frame.frame.raw_address = dlframe.raw_address;
+            frame.frame.object_address = dlframe.object_address;
+            frame.frame.filename = dlframe.object_path;
+            if(!should_absorb_trace_exceptions()) {
+                throw;
+            }
+        }
+    }
+
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         std::vector<frame_with_inlines> trace(frames.size(), {null_frame, {}});
@@ -94,6 +125,14 @@ namespace libdwarf {
         for(const auto& group : collate_frames(frames, trace)) {
             try {
                 const auto& object_name = group.first;
+                if(object_name.empty()) {
+                    #if IS_LINUX || IS_APPLE
+                    for(const auto& entry : group.second) {
+                        try_resolve_jit_frame(entry.first.get(), entry.second.get());
+                    }
+                    #endif
+                    continue;
+                }
                 // TODO PERF: Potentially a duplicate open and parse with module base stuff (and debug map resolver)
                 #if IS_LINUX
                 auto object = open_elf_cached(object_name);
@@ -104,17 +143,9 @@ namespace libdwarf {
                 for(const auto& entry : group.second) {
                     const auto& dlframe = entry.first.get();
                     auto& frame = entry.second.get();
-                    try {
-                        frame = resolver->resolve_frame(dlframe);
-                    } catch(...) {
-                        frame.frame.raw_address = dlframe.raw_address;
-                        frame.frame.object_address = dlframe.object_address;
-                        frame.frame.filename = dlframe.object_path;
-                        if(!should_absorb_trace_exceptions()) {
-                            throw;
-                        }
-                    }
+                    try_resolve_frame(resolver.get(), dlframe, frame);
                     #if IS_LINUX || IS_APPLE
+                    // fallback to symbol tables
                     if(frame.frame.symbol.empty() && object.has_value()) {
                         frame.frame.symbol = object
                             .unwrap_value()
