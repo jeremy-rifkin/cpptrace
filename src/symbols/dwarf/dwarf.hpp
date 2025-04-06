@@ -149,12 +149,9 @@ namespace libdwarf {
                 auto attwrapper = raii_wrap(attr, [] (Dwarf_Attribute attr) { dwarf_dealloc_attribute(attr); });
                 char* raw_str;
                 VERIFY(wrap(dwarf_formstring, attr, &raw_str) == DW_DLV_OK);
-                auto strwrapper = raii_wrap(raw_str, [this] (char* str) { dwarf_dealloc(dbg, str, DW_DLA_STRING); });
-                std::string str = raw_str;
-                return str;
-            } else {
-                return nullopt;
+                return std::string(raw_str);
             }
+            return nullopt;
         }
 
         optional<Dwarf_Unsigned> get_unsigned_attribute(Dwarf_Half attr_num) const {
@@ -166,9 +163,8 @@ namespace libdwarf {
                 Dwarf_Unsigned val;
                 VERIFY(wrap(dwarf_formudata, attr, &val) == DW_DLV_OK);
                 return val;
-            } else {
-                return nullopt;
             }
+            return nullopt;
         }
 
         bool has_attr(Dwarf_Half attr_num) const {
