@@ -72,7 +72,7 @@ namespace libdwarf {
             #if !(defined(__GNUC__) && (__GNUC__ < 5))
              std::is_trivially_copyable<T>::value &&
             #endif
-            sizeof(T) <= 16,
+             sizeof(T) <= 16,
             int
         >::type = 0
     >
