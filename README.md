@@ -24,6 +24,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Raw Traces](#raw-traces)
   - [Utilities](#utilities)
   - [Formatting](#formatting)
+    - [Transforms](#transforms)
   - [Configuration](#configuration)
   - [Traces From All Exceptions](#traces-from-all-exceptions)
     - [Removing the `CPPTRACE_` prefix](#removing-the-cpptrace_-prefix)
@@ -37,6 +38,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Utility Types](#utility-types)
   - [Headers](#headers)
   - [Libdwarf Tuning](#libdwarf-tuning)
+  - [JIT Support](#jit-support)
 - [Supported Debug Formats](#supported-debug-formats)
 - [How to Include The Library](#how-to-include-the-library)
   - [CMake FetchContent](#cmake-fetchcontent)
@@ -402,7 +404,7 @@ namespace cpptrace {
 }
 ```
 
-### Transforming
+### Transforms
 
 A transform function can be specified for the formatter. This function is called before the configured `filter` is
 checked. For example:
@@ -414,7 +416,6 @@ auto formatter = cpptrace::formatter{}
         return frame;
     });
 ```
-
 
 ## Configuration
 
@@ -867,6 +868,7 @@ Cpptrace provides a handful of headers to make inclusion more minimal.
 | `cpptrace/formatting.hpp`   | Configurable formatter API                                                                                                                                                                            |
 | `cpptrace/utils.hpp`        | Utility functions, configuration functions, and terminate utilities ([Utilities](#utilities), [Configuration](#configuration), and [Terminate Handling](#terminate-handling))                         |
 | `cpptrace/version.hpp`      | Library version macros                                                                                                                                                                                |
+| `cpptrace/gdb_jit.hpp`      | Provides a special utility related to [JIT support](#jit-support)                                                                                                                                     |
 
 The main cpptrace header is `cpptrace/cpptrace.hpp` which includes everything other than `from_current.hpp` and
 `version.hpp`.
