@@ -257,7 +257,34 @@ TEST(FormatterTest, DontShowFilteredFrames) {
 
 TEST(FormatterTest, Transforming) {
     auto formatter = cpptrace::formatter{}
-        .transform([](cpptrace::stacktrace_frame &&frame) {
+        .transform([](cpptrace::stacktrace_frame frame) {
+            static size_t count = 0;
+            frame.symbol = cpptrace::microfmt::format("sym{}", count++);
+            return frame;
+        });
+    auto res = split(formatter.format(make_test_stacktrace()), "\n");
+    EXPECT_THAT(
+        res,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x0000000000000001 in sym0 at foo.cpp:20:30",
+            "#1 0x0000000000000002 in sym1 at bar.cpp:30:40",
+            "#2 0x0000000000000003 in sym2 at foo.cpp:40:25"
+        )
+    );
+
+    auto frame_res = split(formatter.format(make_test_stacktrace().frames[1]), "\n");
+    EXPECT_THAT(
+        frame_res,
+        ElementsAre(
+            "0x0000000000000002 in sym3 at bar.cpp:30:40"
+        )
+    );
+}
+
+TEST(FormatterTest, TransformingRvalueRef) {
+    auto formatter = cpptrace::formatter{}
+        .transform([](cpptrace::stacktrace_frame&& frame) {
             static size_t count = 0;
             frame.symbol = cpptrace::microfmt::format("sym{}", count++);
             return std::move(frame);

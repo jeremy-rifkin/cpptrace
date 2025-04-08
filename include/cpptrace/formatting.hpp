@@ -46,7 +46,7 @@ namespace cpptrace {
         formatter& columns(bool);
         formatter& filtered_frame_placeholders(bool);
         formatter& filter(std::function<bool(const stacktrace_frame&)>);
-        formatter& transform(std::function<stacktrace_frame(stacktrace_frame&&)>);
+        formatter& transform(std::function<stacktrace_frame(stacktrace_frame)>);
 
         std::string format(const stacktrace_frame&) const;
         std::string format(const stacktrace_frame&, bool color) const;

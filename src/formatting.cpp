@@ -24,7 +24,7 @@ namespace cpptrace {
             bool columns = true;
             bool show_filtered_frames = true;
             std::function<bool(const stacktrace_frame&)> filter;
-            std::function<stacktrace_frame(stacktrace_frame&&)> transform;
+            std::function<stacktrace_frame(stacktrace_frame)> transform;
         } options;
 
     public:
@@ -55,15 +55,20 @@ namespace cpptrace {
         void filter(std::function<bool(const stacktrace_frame&)> filter) {
             options.filter = filter;
         }
-        void transform(std::function<stacktrace_frame(stacktrace_frame&&)> transform) {
+        void transform(std::function<stacktrace_frame(stacktrace_frame)> transform) {
             options.transform = std::move(transform);
         }
 
-        std::string format(stacktrace_frame frame, detail::optional<bool> color_override = detail::nullopt) const {
+        std::string format(
+            const stacktrace_frame& input_frame,
+            detail::optional<bool> color_override = detail::nullopt
+        ) const {
             std::ostringstream oss;
+            detail::optional<stacktrace_frame> transformed_frame;
             if(options.transform) {
-                frame = options.transform(std::move(frame));
+                transformed_frame = options.transform(input_frame);
             }
+            const stacktrace_frame& frame = options.transform ? transformed_frame.unwrap() : input_frame;
             print_frame_inner(oss, frame, color_override.value_or(options.color == color_mode::always));
             return std::move(oss).str();
         }
@@ -156,10 +161,11 @@ namespace cpptrace {
             }
             const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
             for(size_t i = 0; i < frames.size(); ++i) {
-                auto frame = frames[i];
+                detail::optional<stacktrace_frame> transformed_frame;
                 if(options.transform) {
-                    frame = options.transform(std::move(frame));
+                    transformed_frame = options.transform(frames[i]);
                 }
+                const stacktrace_frame& frame = options.transform ? transformed_frame.unwrap() : frames[i];
                 if(options.filter && !options.filter(frame)) {
                     if(!options.show_filtered_frames) {
                         counter++;
@@ -304,7 +310,7 @@ namespace cpptrace {
         pimpl->filter(std::move(filter));
         return *this;
     }
-    formatter& formatter::transform(std::function<stacktrace_frame(stacktrace_frame&&)> transform) {
+    formatter& formatter::transform(std::function<stacktrace_frame(stacktrace_frame)> transform) {
         pimpl->transform(std::move(transform));
         return *this;
     }
