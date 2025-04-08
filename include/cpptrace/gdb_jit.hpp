@@ -38,12 +38,14 @@ namespace cpptrace {
         }
     }
 
-    inline void register_jit_objects_from_gdb_jit_interface() {
-        clear_all_jit_objects();
-        detail::jit_code_entry* entry = detail::__jit_debug_descriptor.first_entry;
-        while(entry) {
-            register_jit_object(entry->symfile_addr, entry->symfile_size);
-            entry = entry->next_entry;
+    namespace experimental {
+        inline void register_jit_objects_from_gdb_jit_interface() {
+            clear_all_jit_objects();
+            detail::jit_code_entry* entry = detail::__jit_debug_descriptor.first_entry;
+            while(entry) {
+                register_jit_object(entry->symfile_addr, entry->symfile_size);
+                entry = entry->next_entry;
+            }
         }
     }
 }
