@@ -3,6 +3,8 @@
 #include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
 
+#include <array>
+
 #include "utils/span.hpp"
 
 using cpptrace::detail::span;
@@ -13,7 +15,8 @@ namespace {
 
 TEST(SpanTest, Basic) {
     std::array<int, 5> arr{1, 2, 3, 4, 5};
-    auto span = make_span(arr.begin(), arr.end());
+    // thanks microsoft for using horrible non-standard iterators, otherwise this would test with begin()/end()
+    auto span = make_span(arr.data(), arr.data() + arr.size());
     EXPECT_EQ(span.data(), arr.data());
     EXPECT_EQ(span.size(), 5);
     EXPECT_EQ(span.data()[0], 1);
@@ -25,7 +28,7 @@ TEST(SpanTest, Basic) {
 
 TEST(SpanTest, PtrSize) {
     std::array<int, 5> arr{1, 2, 3, 4, 5};
-    auto span = make_span(arr.begin(), arr.size());
+    auto span = make_span(arr.data(), arr.size());
     EXPECT_EQ(span.data(), arr.data());
     EXPECT_EQ(span.size(), 5);
     EXPECT_EQ(span.data()[0], 1);
