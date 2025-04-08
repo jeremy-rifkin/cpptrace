@@ -88,6 +88,8 @@ if(NOT CPPTRACE_SKIP_UNIT)
     unit/internals/result.cpp
     unit/internals/string_utils.cpp
     unit/internals/general.cpp
+    unit/internals/span.cpp
+    unit/internals/string_view.cpp
     unit/lib/formatting.cpp
     unit/lib/nullable.cpp
   )
