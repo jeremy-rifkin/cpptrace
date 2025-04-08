@@ -348,6 +348,7 @@ namespace cpptrace {
         formatter& columns(bool);
         formatter& filtered_frame_placeholders(bool);
         formatter& filter(std::function<bool(const stacktrace_frame&)>);
+        formatter& transform(std::function<stacktrace_frame(stacktrace_frame)>);
 
         std::string format(const stacktrace_frame&) const;
         std::string format(const stacktrace_frame&, bool color) const;
@@ -384,6 +385,7 @@ Options:
 | `columns`                     | Whether to include column numbers if present                   | `true`                                                                   |
 | `filtered_frame_placeholders` | Whether to still print filtered frames as just `#n (filtered)` | `true`                                                                   |
 | `filter`                      | A predicate to filter frames with                              | None                                                                     |
+| `transform`                   | A transformer which takes a stacktrace frame and modifies it   | None                                                                     |
 
 The `automatic` color mode attempts to detect if a stream that may be attached to a terminal. As such, it will not use
 colors for the `formatter::format` method and it may not be able to detect if some ostreams correspond to terminals or
@@ -399,6 +401,20 @@ namespace cpptrace {
     const formatter& get_default_formatter();
 }
 ```
+
+### Transforming
+
+A transform function can be specified for the formatter. This function is called before the configured `filter` is
+checked. For example:
+
+```cpp
+auto formatter = cpptrace::formatter{}
+    .transform([](cpptrace::stacktrace_frame frame) {
+        frame.symbol = replace_all(frame, "std::__cxx11::", "std::");
+        return frame;
+    });
+```
+
 
 ## Configuration
 
