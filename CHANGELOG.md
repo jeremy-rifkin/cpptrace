@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v0.8.3](#v083)
 - [v0.8.2](#v082)
 - [v0.8.1](#v081)
 - [v0.8.0](#v080)
@@ -27,6 +28,25 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v0.8.3
+
+Added:
+- Added basic JIT support https://github.com/jeremy-rifkin/cpptrace/issues/226
+- Added `cpptrace::formatter::transform` https://github.com/jeremy-rifkin/cpptrace/issues/227
+- Added support for gcc 4.8.5 https://github.com/jeremy-rifkin/cpptrace/issues/220
+
+Fixed:
+- Fixed bug related to calling `dwarf_dealloc` on strings from `dwarf_formstring` and `dwarf_diename` https://github.com/davea42/libdwarf-code/issues/279
+- Fixed incorrect cmake version variable https://github.com/jeremy-rifkin/cpptrace/issues/231
+- Fixed `address_mode::none` not working https://github.com/jeremy-rifkin/cpptrace/issues/221
+- Fixed use of `-Wall` for clang-cl
+
+Other:
+- Added ARM CI
+- Miscellaneous work on supporting old compilers
+- Updated cpptrace cmake target configuration to not add public compile definitions
+- Internal refactoring, cleanup, and code improvements
 
 # v0.8.2
 
