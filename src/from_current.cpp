@@ -1,3 +1,4 @@
+#include <atomic>
 #include <cpptrace/cpptrace.hpp>
 #define CPPTRACE_DONT_PREPARE_UNWIND_INTERCEPTOR_ON
 #include <cpptrace/from_current.hpp>
@@ -294,8 +295,8 @@ namespace cpptrace {
         }
 
         void do_prepare_unwind_interceptor(char(*intercept_unwind_handler)(std::size_t)) {
-            static bool did_prepare = false;
-            if(!did_prepare) {
+            static std::atomic_bool did_prepare = false;
+            if(!did_prepare.exchange(true)) {
                 cpptrace::detail::intercept_unwind_handler = intercept_unwind_handler;
                 try {
                     perform_typeinfo_surgery(typeid(cpptrace::detail::unwind_interceptor), intercept_unwind);
@@ -312,7 +313,6 @@ namespace cpptrace {
                 } catch(...) {
                     std::fprintf(stderr, "Cpptrace: Unknown exception occurred while preparing from_current support\n");
                 }
-                did_prepare = true;
             }
         }
         #endif
