@@ -136,10 +136,9 @@ namespace detail {
         }
     }
 
-    std::recursive_mutex dbghelp_lock;
-
     std::unique_lock<std::recursive_mutex> get_dbghelp_lock() {
-        return std::unique_lock<std::recursive_mutex>{dbghelp_lock};
+        static std::recursive_mutex mutex;
+        return std::unique_lock<std::recursive_mutex>{mutex};
     }
 }
 }
