@@ -709,7 +709,7 @@ namespace detail {
                     return maybe_owned<mach_o>{detail::make_unique<mach_o>(std::move(obj))};
                 });
         } else {
-            std::mutex m;
+            static std::mutex m;
             std::unique_lock<std::mutex> lock{m};
             // TODO: Re-evaluate storing the error
             static std::unordered_map<std::string, Result<mach_o, internal_error>> cache;

@@ -458,7 +458,7 @@ namespace detail {
             return elf::open(object_path)
                 .transform([](elf&& obj) { return maybe_owned<elf>{detail::make_unique<elf>(std::move(obj))}; });
         } else {
-            std::mutex m;
+            static std::mutex m;
             std::unique_lock<std::mutex> lock{m};
             // TODO: Re-evaluate storing the error
             static std::unordered_map<std::string, Result<elf, internal_error>> cache;
