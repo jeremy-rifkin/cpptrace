@@ -295,7 +295,7 @@ namespace cpptrace {
         }
 
         void do_prepare_unwind_interceptor(char(*intercept_unwind_handler)(std::size_t)) {
-            static std::atomic_bool did_prepare = false;
+            static std::atomic_bool did_prepare{false};
             if(!did_prepare.exchange(true)) {
                 cpptrace::detail::intercept_unwind_handler = intercept_unwind_handler;
                 try {
