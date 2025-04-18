@@ -35,7 +35,7 @@ int stacktrace_from_current_rethrow_2(std::vector<int>& line_numbers, std::vecto
         static volatile int lto_guard; lto_guard = lto_guard + 1;
         line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
         return stacktrace_from_current_rethrow_3(line_numbers) * rand();
-    } CPPTRACE_CATCH(const std::exception& e) {
+    } CPPTRACE_CATCH(const std::exception&) {
         rethrow_line_numbers.insert(rethrow_line_numbers.begin(), __LINE__ + 1);
         cpptrace::rethrow();
     }
