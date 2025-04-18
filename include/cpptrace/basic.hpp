@@ -9,11 +9,11 @@
 #include <iosfwd>
 
 #ifdef _WIN32
-#define CPPTRACE_EXPORT_ATTR __declspec(dllexport)
-#define CPPTRACE_IMPORT_ATTR __declspec(dllimport)
+ #define CPPTRACE_EXPORT_ATTR __declspec(dllexport)
+ #define CPPTRACE_IMPORT_ATTR __declspec(dllimport)
 #else
-#define CPPTRACE_EXPORT_ATTR __attribute__((visibility("default")))
-#define CPPTRACE_IMPORT_ATTR __attribute__((visibility("default")))
+ #define CPPTRACE_EXPORT_ATTR __attribute__((visibility("default")))
+ #define CPPTRACE_IMPORT_ATTR __attribute__((visibility("default")))
 #endif
 
 #ifdef CPPTRACE_STATIC_DEFINE
