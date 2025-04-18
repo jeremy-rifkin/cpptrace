@@ -1,6 +1,8 @@
 #ifndef CPPTRACE_FROM_CURRENT_HPP
 #define CPPTRACE_FROM_CURRENT_HPP
 
+#include <exception>
+
 #include <cpptrace/basic.hpp>
 
 // https://godbolt.org/z/4MsT6KqP1
@@ -10,9 +12,25 @@
  #define CPPTRACE_UNREACHABLE() __builtin_unreachable()
 #endif
 
+// https://godbolt.org/z/7neGPEche
+// gcc added support in 4.8 but I'm too lazy to check the minor version
+#if defined(__GNUC__) && (__GNUC__ < 5)
+ #define CPPTRACE_NORETURN __attribute__((noreturn))
+#else
+ #define CPPTRACE_NORETURN [[noreturn]]
+#endif
+
 namespace cpptrace {
     CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception();
     CPPTRACE_EXPORT const stacktrace& from_current_exception();
+
+    CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception_last_throw_point();
+    CPPTRACE_EXPORT const stacktrace& from_current_exception_last_throw_point();
+
+    CPPTRACE_EXPORT void clear_saved_exception_trace_from_rethrow();
+
+    CPPTRACE_EXPORT CPPTRACE_NORETURN CPPTRACE_FORCE_NO_INLINE
+    void rethrow(std::exception_ptr exception = std::current_exception());
 
     namespace detail {
         // Trace switch is to prevent multiple tracing of stacks on call stacks with multiple catches that don't

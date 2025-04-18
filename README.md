@@ -30,6 +30,8 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
     - [Removing the `CPPTRACE_` prefix](#removing-the-cpptrace_-prefix)
     - [How it works](#how-it-works)
     - [Performance](#performance)
+  - [Rethrowing Exceptions](#rethrowing-exceptions)
+    - [Implementation Note](#implementation-note)
   - [Traced Exception Objects](#traced-exception-objects)
     - [Wrapping std::exceptions](#wrapping-stdexceptions)
     - [Exception handling with cpptrace exception objects](#exception-handling-with-cpptrace-exception-objects)
@@ -601,6 +603,83 @@ handler in a 100-deep call stack the total time would stil be on the order of on
 
 Nonetheless, I chose a default bookkeeping behavior for `CPPTRACE_TRY`/`CPPTRACE_CATCH` since it is safer with better
 performance guarantees for the most general possible set of users.
+
+## Rethrowing Exceptions
+
+By default `cpptrace::from_current_exception` will correspond to a trace for the last `throw` intercepted by a
+`CPPTRACE_CATCH`. In order to rethrow an exception while preserving the original trace, `cpptrace::rethrow()` can be
+used.
+
+```cpp
+namespace cpptrace {
+    void rethrow(std::exception_ptr exception = std::current_exception());
+}
+```
+
+Example:
+
+```cpp
+void bar() {
+    throw std::runtime_error("critical error in bar");
+}
+void foo() {
+    CPPTRACE_TRY {
+        bar();
+    } CPPTRACE_CATCH(const std::exception& e) {
+        std::cerr<<"Exception in foo: "<<e.what()<<std::endl;
+        cpptrace::rethrow();
+    }
+}
+int main() {
+    CPPTRACE_TRY {
+        foo();
+    } CPPTRACE_CATCH(const std::exception& e) {
+        std::cerr<<"Exception encountered while running foo: "<<e.what()<<std::endl;
+        cpptrace::from_current_exception().print(); // prints trace containing main -> foo -> bar
+    }
+}
+```
+
+Sometimes it may be desirable to see both the trace for the exception's origin as well as the trace for where it was
+rethrown. Cpptrace provides an interface for getting the last rethrow location:
+
+```cpp
+namespace cpptrace {
+    const raw_trace& raw_trace_from_current_exception_last_throw_point();
+    const stacktrace& from_current_exception_last_throw_point();
+}
+```
+
+Example usage, utilizing `foo` and `bar` from the above example:
+
+```cpp
+int main() {
+    CPPTRACE_TRY {
+        foo();
+    } CPPTRACE_CATCH(const std::exception& e) {
+        std::cerr<<"Exception encountered while running foo: "<<e.what()<<std::endl;
+        std::cerr<<"Thrown from:"<<std::endl;
+        cpptrace::from_current_exception().print(); // trace containing main -> foo -> bar
+        std::cerr<<"Rethrown from:"<<std::endl;
+        cpptrace::from_current_exception_last_throw_point().print(); // trace containing main -> foo
+    }
+}
+```
+
+### Implementation Note
+
+In order to preserve the original trace, `cpptrace::rethrow` must store the original trace using the current
+`exception_ptr` as a tag. This means both the trace and exception object will remain in memory until a later throw. This
+is not something to think twice about in 99% of use cases, however, in applications which are extremely sensitive to
+resource constraints or throw very large exception objects this may be worth considering. But, in practice, large
+exception objects are incredibly rare. None the less, cpptrace provides a utility to clear the saved `exception_ptr` tag
+and saved stack trace in the event it is useful:
+
+```cpp
+namespace cpptrace {
+    void clear_saved_exception_trace_from_rethrow();
+}
+```
 
 ## Traced Exception Objects
 
