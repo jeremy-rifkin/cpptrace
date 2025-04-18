@@ -3,6 +3,13 @@
 
 #include <cpptrace/basic.hpp>
 
+// https://godbolt.org/z/4MsT6KqP1
+#ifdef _MSC_VER
+ #define CPPTRACE_UNREACHABLE() __assume(false)
+#else
+ #define CPPTRACE_UNREACHABLE() __builtin_unreachable()
+#endif
+
 namespace cpptrace {
     CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception();
     CPPTRACE_EXPORT const stacktrace& from_current_exception();
@@ -108,13 +115,13 @@ namespace cpptrace {
          _Pragma("GCC diagnostic pop") \
          try {
  #define CPPTRACE_CATCH(param) \
-         } catch(::cpptrace::detail::unwind_interceptor&) {} \
+         } catch(::cpptrace::detail::unwind_interceptor&) { CPPTRACE_UNREACHABLE(); } \
      } catch(param)
  #define CPPTRACE_TRYZ \
      try { \
          try {
  #define CPPTRACE_CATCHZ(param) \
-         } catch(::cpptrace::detail::unconditional_unwind_interceptor&) {} \
+         } catch(::cpptrace::detail::unconditional_unwind_interceptor&) { CPPTRACE_UNREACHABLE(); } \
      } catch(param)
 #endif
 
