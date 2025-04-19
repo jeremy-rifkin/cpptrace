@@ -39,6 +39,7 @@ int stacktrace_from_current_rethrow_2(std::vector<int>& line_numbers, std::vecto
         rethrow_line_numbers.insert(rethrow_line_numbers.begin(), __LINE__ + 1);
         cpptrace::rethrow();
     }
+    CPPTRACE_UNREACHABLE(); // unfortunately needed under MSVC
 }
 
 CPPTRACE_FORCE_NO_INLINE
