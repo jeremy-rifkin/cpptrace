@@ -666,6 +666,10 @@ int main() {
 }
 ```
 
+> [!NOTE]
+> Unfortunately, this is only able to preserve traces under libstdc++ and libc++, not Microsoft's standard library. This
+> Is due to Microsoft's implementation of exceptions and `std::current_exception`.
+
 ### Implementation Note
 
 In order to preserve the original trace, `cpptrace::rethrow` must store the original trace using the current

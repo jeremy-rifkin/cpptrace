@@ -15,6 +15,9 @@
 
 using namespace std::literals;
 
+// only enable for libstdc++ and libc++, not Microsoft's STL
+
+#if defined(__GLIBCXX__) || defined(_LIBCPP_VERSION)
 
 static volatile int truthy = 2;
 
@@ -225,3 +228,5 @@ TEST(Rethrow, RethrowDoesntInterfereWithSubsequentTraces) {
         );
     }
 }
+
+#endif
