@@ -617,6 +617,10 @@ namespace cpptrace {
 }
 ```
 
+> [!NOTE]
+> Unfortunately, this is only able to preserve traces under libstdc++ and libc++, not Microsoft's standard library. This
+> Is due to Microsoft's implementation of exceptions and `std::current_exception`.
+
 Example:
 
 ```cpp
@@ -666,10 +670,6 @@ int main() {
     }
 }
 ```
-
-> [!NOTE]
-> Unfortunately, this is only able to preserve traces under libstdc++ and libc++, not Microsoft's standard library. This
-> Is due to Microsoft's implementation of exceptions and `std::current_exception`.
 
 ### Implementation Note
 
