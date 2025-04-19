@@ -612,6 +612,7 @@ used.
 
 ```cpp
 namespace cpptrace {
+    void rethrow();
     void rethrow(std::exception_ptr exception = std::current_exception());
 }
 ```

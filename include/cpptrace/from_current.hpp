@@ -30,7 +30,10 @@ namespace cpptrace {
     CPPTRACE_EXPORT void clear_saved_exception_trace_from_rethrow();
 
     CPPTRACE_EXPORT CPPTRACE_NORETURN CPPTRACE_FORCE_NO_INLINE
-    void rethrow(std::exception_ptr exception = std::current_exception());
+    void rethrow();
+
+    CPPTRACE_EXPORT CPPTRACE_NORETURN CPPTRACE_FORCE_NO_INLINE
+    void rethrow(std::exception_ptr exception);
 
     namespace detail {
         // Trace switch is to prevent multiple tracing of stacks on call stacks with multiple catches that don't

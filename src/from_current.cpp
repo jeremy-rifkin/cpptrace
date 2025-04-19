@@ -360,6 +360,13 @@ namespace cpptrace {
         detail::saved_rethrow_trace.rethrown_exception_trace = detail::lazy_trace_holder{};
     }
 
+    CPPTRACE_FORCE_NO_INLINE void rethrow() {
+        // The non-argument overload is to serve as room for possible future optimization under Microsoft's STL
+        auto ptr = std::current_exception();
+        detail::save_current_trace_exception_as_rethrow_trace(ptr);
+        std::rethrow_exception(ptr);
+    }
+
     CPPTRACE_FORCE_NO_INLINE void rethrow(std::exception_ptr exception) {
         detail::save_current_trace_exception_as_rethrow_trace(exception);
         std::rethrow_exception(exception);
