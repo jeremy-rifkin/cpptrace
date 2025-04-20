@@ -617,6 +617,10 @@ namespace cpptrace {
 }
 ```
 
+> [!NOTE]
+> It's important to use `cpptrace::rethrow()` from within a `CPPTRACE_CATCH`. If it is not, then no trace for the
+> exception origin will have been collected.
+
 Example:
 
 ```cpp
