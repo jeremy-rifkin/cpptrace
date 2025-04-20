@@ -31,7 +31,6 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
     - [How it works](#how-it-works)
     - [Performance](#performance)
   - [Rethrowing Exceptions](#rethrowing-exceptions)
-    - [Implementation Note](#implementation-note)
   - [Traced Exception Objects](#traced-exception-objects)
     - [Wrapping std::exceptions](#wrapping-stdexceptions)
     - [Exception handling with cpptrace exception objects](#exception-handling-with-cpptrace-exception-objects)
