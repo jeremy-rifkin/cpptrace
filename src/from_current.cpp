@@ -323,6 +323,7 @@ CPPTRACE_BEGIN_NAMESPACE
             }
         }
 
+        #ifndef _MSC_VER
         unwind_interceptor::~unwind_interceptor() = default;
         unconditional_unwind_interceptor::~unconditional_unwind_interceptor() = default;
 
@@ -346,6 +347,7 @@ CPPTRACE_BEGIN_NAMESPACE
                 }
             }
         }
+        #endif
     }
 
     const raw_trace& raw_trace_from_current_exception() {
