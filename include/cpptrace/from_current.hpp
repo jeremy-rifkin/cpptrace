@@ -24,10 +24,10 @@ namespace cpptrace {
     CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception();
     CPPTRACE_EXPORT const stacktrace& from_current_exception();
 
-    CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception_last_throw_point();
-    CPPTRACE_EXPORT const stacktrace& from_current_exception_last_throw_point();
+    CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception_rethrow();
+    CPPTRACE_EXPORT const stacktrace& from_current_exception_rethrow();
 
-    CPPTRACE_EXPORT void clear_saved_exception_trace_from_rethrow();
+    CPPTRACE_EXPORT bool current_exception_was_rethrown();
 
     CPPTRACE_EXPORT CPPTRACE_NORETURN CPPTRACE_FORCE_NO_INLINE
     void rethrow();

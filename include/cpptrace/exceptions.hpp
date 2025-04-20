@@ -39,6 +39,7 @@ namespace cpptrace {
             const raw_trace& get_raw_trace() const;
             stacktrace& get_resolved_trace();
             const stacktrace& get_resolved_trace() const;
+            bool is_resolved() const;
         private:
             void clear();
         };

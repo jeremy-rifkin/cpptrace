@@ -48,6 +48,7 @@ TEST(FromCurrentZ, Basic) {
         static volatile int tco_guard = stacktrace_from_current_z_1(line_numbers);
         (void)tco_guard;
     } CPPTRACE_CATCHZ(const std::runtime_error& e) {
+        EXPECT_FALSE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& trace = cpptrace::from_current_exception();
         ASSERT_GE(trace.frames.size(), 4);

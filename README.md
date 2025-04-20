@@ -617,10 +617,6 @@ namespace cpptrace {
 }
 ```
 
-> [!NOTE]
-> Unfortunately, this is only able to preserve traces under libstdc++ and libc++, not Microsoft's standard library. This
-> is due to details of Microsoft's implementation of exceptions and `std::current_exception`.
-
 Example:
 
 ```cpp
@@ -650,10 +646,15 @@ rethrown. Cpptrace provides an interface for getting the last rethrow location:
 
 ```cpp
 namespace cpptrace {
-    const raw_trace& raw_trace_from_current_exception_last_throw_point();
-    const stacktrace& from_current_exception_last_throw_point();
+    const raw_trace& raw_trace_from_current_exception_rethrow();
+    const stacktrace& from_current_exception_rethrow();
+    bool current_exception_was_rethrown();
 }
 ```
+
+If the current exception was not rethrown, these functions return references to empty traces.
+`current_exception_was_rethrown` can be used to check if the current exception was rethrown and a non-empty rethrow
+trace exists.
 
 Example usage, utilizing `foo` and `bar` from the above example:
 
@@ -666,23 +667,8 @@ int main() {
         std::cerr<<"Thrown from:"<<std::endl;
         cpptrace::from_current_exception().print(); // trace containing main -> foo -> bar
         std::cerr<<"Rethrown from:"<<std::endl;
-        cpptrace::from_current_exception_last_throw_point().print(); // trace containing main -> foo
+        cpptrace::from_current_exception_rethrow().print(); // trace containing main -> foo
     }
-}
-```
-
-### Implementation Note
-
-In order to preserve the original trace, `cpptrace::rethrow` must store the original trace using the current
-`exception_ptr` as a tag. This means both the trace and exception object will remain in memory until a later throw. This
-is not something to think twice about in 99% of use cases, however, in applications which are extremely sensitive to
-resource constraints or throw very large exception objects this may be worth considering. But, in practice, large
-exception objects are incredibly rare. None the less, cpptrace provides a utility to clear the saved `exception_ptr` tag
-and saved stack trace in the event it is useful:
-
-```cpp
-namespace cpptrace {
-    void clear_saved_exception_trace_from_rethrow();
 }
 ```
 

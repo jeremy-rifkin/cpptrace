@@ -9,6 +9,7 @@
 
 #include "platform/platform.hpp"
 #include "utils/microfmt.hpp"
+#include "utils/utils.hpp"
 
 #ifndef _MSC_VER
  #include <string.h>
@@ -35,28 +36,20 @@
 namespace cpptrace {
     namespace detail {
         thread_local lazy_trace_holder current_exception_trace;
+        thread_local lazy_trace_holder saved_rethrow_trace;
 
-        struct saved_rethrow_trace_data {
-            std::exception_ptr ptr{};
-            lazy_trace_holder rethrown_exception_trace;
-        };
-        thread_local saved_rethrow_trace_data saved_rethrow_trace;
+        bool& get_rethrow_switch() {
+            static thread_local bool rethrow_switch = false;
+            return rethrow_switch;
+        }
 
         CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
-            current_exception_trace = lazy_trace_holder(cpptrace::generate_raw_trace(skip + 1));
-        }
-
-        void save_current_trace_exception_as_rethrow_trace(std::exception_ptr exception) {
-            // TODO: Maybe move current_exception_trace instead of copy?
-            saved_rethrow_trace.ptr = std::move(exception);
-            saved_rethrow_trace.rethrown_exception_trace = current_exception_trace;
-        }
-
-        lazy_trace_holder& get_current_trace() {
-            if(saved_rethrow_trace.ptr == std::current_exception()) {
-                return saved_rethrow_trace.rethrown_exception_trace;
+            auto trace = cpptrace::generate_raw_trace(skip + 1);
+            if(get_rethrow_switch()) {
+                saved_rethrow_trace = lazy_trace_holder(std::move(trace));
             } else {
-                return current_exception_trace;
+                current_exception_trace = lazy_trace_holder(std::move(trace));
+                saved_rethrow_trace = lazy_trace_holder();
             }
         }
 
@@ -340,35 +333,49 @@ namespace cpptrace {
     }
 
     const raw_trace& raw_trace_from_current_exception() {
-        return detail::get_current_trace().get_raw_trace();
-    }
-
-    const stacktrace& from_current_exception() {
-        return detail::get_current_trace().get_resolved_trace();
-    }
-
-    const raw_trace& raw_trace_from_current_exception_last_throw_point() {
         return detail::current_exception_trace.get_raw_trace();
     }
 
-    const stacktrace& from_current_exception_last_throw_point() {
+    const stacktrace& from_current_exception() {
         return detail::current_exception_trace.get_resolved_trace();
     }
 
-    void clear_saved_exception_trace_from_rethrow() {
-        detail::saved_rethrow_trace.ptr = nullptr;
-        detail::saved_rethrow_trace.rethrown_exception_trace = detail::lazy_trace_holder{};
+    const raw_trace& raw_trace_from_current_exception_rethrow() {
+        return detail::saved_rethrow_trace.get_raw_trace();
     }
 
+    const stacktrace& from_current_exception_rethrow() {
+        return detail::saved_rethrow_trace.get_resolved_trace();
+    }
+
+    bool current_exception_was_rethrown() {
+        if(detail::saved_rethrow_trace.is_resolved()) {
+            return !detail::saved_rethrow_trace.get_resolved_trace().empty();
+        } else {
+            return !detail::saved_rethrow_trace.get_raw_trace().empty();
+        }
+    }
+
+    // called when unwinding starts after rethrowing, after search phase
+    void rethrow_scope_cleanup() {
+        detail::get_rethrow_switch() = false;
+    }
+
+    detail::scope_guard<void(&)()> setup_rethrow() {
+        detail::saved_rethrow_trace = detail::current_exception_trace;
+        detail::get_rethrow_switch() = true;
+        // will flip the switch back to true as soon as the search phase completes and the unwinding begins
+        return detail::scope_exit<void(&)()>(rethrow_scope_cleanup);
+    }
+
+    // The non-argument overload is to serve as room for possible future optimization under Microsoft's STL
     CPPTRACE_FORCE_NO_INLINE void rethrow() {
-        // The non-argument overload is to serve as room for possible future optimization under Microsoft's STL
-        auto ptr = std::current_exception();
-        detail::save_current_trace_exception_as_rethrow_trace(ptr);
-        std::rethrow_exception(ptr);
+        auto guard = setup_rethrow();
+        std::rethrow_exception(std::current_exception());
     }
 
     CPPTRACE_FORCE_NO_INLINE void rethrow(std::exception_ptr exception) {
-        detail::save_current_trace_exception_as_rethrow_trace(exception);
+        auto guard = setup_rethrow();
         std::rethrow_exception(exception);
     }
 }

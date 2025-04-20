@@ -15,10 +15,6 @@
 
 using namespace std::literals;
 
-// only enable for libstdc++ and libc++, not Microsoft's STL
-
-#if defined(__GLIBCXX__) || defined(_LIBCPP_VERSION)
-
 static volatile int truthy = 2;
 
 // NOTE: returning something and then return stacktrace_multi_3(line_numbers) * rand(); is done to prevent TCO even
@@ -61,6 +57,7 @@ TEST(Rethrow, RethrowPreservesTrace) {
         static volatile int tco_guard = stacktrace_from_current_rethrow_1(line_numbers, rethrow_line_numbers);
         (void)tco_guard;
     } CPPTRACE_CATCH(const std::runtime_error& e) {
+        EXPECT_TRUE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& trace = cpptrace::from_current_exception();
         ASSERT_GE(trace.frames.size(), 4);
@@ -112,8 +109,9 @@ TEST(Rethrow, RethrowTraceCorrect) {
         static volatile int tco_guard = stacktrace_from_current_rethrow_1(line_numbers, rethrow_line_numbers);
         (void)tco_guard;
     } CPPTRACE_CATCH(const std::runtime_error& e) {
+        EXPECT_TRUE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
-        const auto& rethrow_trace = cpptrace::from_current_exception_last_throw_point();
+        const auto& rethrow_trace = cpptrace::from_current_exception_rethrow();
         ASSERT_GE(rethrow_trace.frames.size(), 4);
         auto it = std::find_if(
             rethrow_trace.frames.begin(),
@@ -184,6 +182,7 @@ TEST(Rethrow, RethrowDoesntInterfereWithSubsequentTraces) {
         line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
         stacktrace_from_current_basic_1(line_numbers);
     } CPPTRACE_CATCH(const std::runtime_error& e) {
+        EXPECT_FALSE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& trace = cpptrace::from_current_exception();
         ASSERT_GE(trace.frames.size(), 4);
@@ -228,5 +227,3 @@ TEST(Rethrow, RethrowDoesntInterfereWithSubsequentTraces) {
         );
     }
 }
-
-#endif

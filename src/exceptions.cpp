@@ -89,6 +89,9 @@ namespace cpptrace {
             }
             return resolved_trace;
         }
+        bool lazy_trace_holder::is_resolved() const {
+            return resolved;
+        }
         void lazy_trace_holder::clear() {
             if(resolved) {
                 resolved_trace.~stacktrace();
