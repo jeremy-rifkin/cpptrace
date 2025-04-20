@@ -29,10 +29,10 @@ namespace cpptrace {
 
     CPPTRACE_EXPORT bool current_exception_was_rethrown();
 
-    CPPTRACE_EXPORT CPPTRACE_NORETURN CPPTRACE_FORCE_NO_INLINE
+    CPPTRACE_NORETURN CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE
     void rethrow();
 
-    CPPTRACE_EXPORT CPPTRACE_NORETURN CPPTRACE_FORCE_NO_INLINE
+    CPPTRACE_NORETURN CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE
     void rethrow(std::exception_ptr exception);
 
     namespace detail {
