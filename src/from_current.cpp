@@ -362,7 +362,6 @@ namespace cpptrace {
     }
 
     detail::scope_guard<void(&)()> setup_rethrow() {
-        detail::saved_rethrow_trace = detail::current_exception_trace;
         detail::get_rethrow_switch() = true;
         // will flip the switch back to true as soon as the search phase completes and the unwinding begins
         return detail::scope_exit<void(&)()>(rethrow_scope_cleanup);
