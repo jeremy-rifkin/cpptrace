@@ -147,7 +147,13 @@ namespace detail {
     }
 
     // TODO: Re-evaluate use of off_t
-    template<typename T, typename std::enable_if<std::is_trivial<T>::value, int>::type = 0>
+    template<
+        typename T,
+        typename std::enable_if<
+            std::is_standard_layout<T>::value && std::is_trivially_copyable<T>::value,
+            int
+        >::type = 0
+    >
     Result<T, internal_error> load_bytes(std::FILE* object_file, off_t offset) {
         T object;
         if(std::fseek(object_file, offset, SEEK_SET) != 0) {
@@ -210,7 +216,7 @@ namespace detail {
         //  <= 19.23 msvc also appears to fail (but for a different reason https://godbolt.org/z/6Y5EvdWPK)
         //  <= 19.39 msvc also has trouble with it for different reasons https://godbolt.org/z/aPPPT7z3z
         typename std::enable_if<
-            std::is_standard_layout<T>::value && std::is_trivial<T>::value,
+            std::is_standard_layout<T>::value && std::is_trivially_copyable<T>::value,
             int
         >::type = 0,
         typename std::enable_if<
