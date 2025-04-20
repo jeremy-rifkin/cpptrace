@@ -10,7 +10,7 @@
 #include "symbols/dwarf/dwarf.hpp"
 
 using namespace std::literals;
-using namespace cpptrace::detail::libdwarf;
+using namespace cpptrace::internal::libdwarf;
 
 template<> struct fmt::formatter<lyra::cli> : ostream_formatter {};
 

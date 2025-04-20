@@ -8,7 +8,7 @@
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 
-using cpptrace::detail::split;
+using cpptrace::internal::split;
 using testing::ElementsAre;
 
 namespace {

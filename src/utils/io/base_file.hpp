@@ -7,7 +7,7 @@
 #include <type_traits>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     class base_file {
     public:
         virtual ~base_file() = default;

@@ -7,7 +7,7 @@
 #include "utils/utils.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     class memory_file_view : public base_file {
         cbspan data;
         std::string object_path = "<memory file>";

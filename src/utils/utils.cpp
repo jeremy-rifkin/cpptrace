@@ -13,7 +13,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 
     bool isatty(int fd) {
         #if IS_WINDOWS

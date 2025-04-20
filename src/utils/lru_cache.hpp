@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     template<typename K, typename V>
     class lru_cache {
         struct kvp {

@@ -19,7 +19,7 @@
 #include "demangle/demangle.hpp"
 
 using namespace std::literals;
-using namespace cpptrace::detail;
+using namespace cpptrace::internal;
 
 template<> struct fmt::formatter<lyra::cli> : ostream_formatter {};
 
@@ -39,7 +39,7 @@ struct options {
 void resolve(const options& opts, cpptrace::frame_ptr address) {
     cpptrace::object_frame obj_frame{0, address, opts.path.string()};
     auto start = std::chrono::high_resolution_clock::now();
-    std::vector<cpptrace::stacktrace_frame> trace = cpptrace::detail::resolve_frames({obj_frame});
+    std::vector<cpptrace::stacktrace_frame> trace = cpptrace::internal::resolve_frames({obj_frame});
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     if(trace.size() != 1) {

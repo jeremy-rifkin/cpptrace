@@ -5,7 +5,7 @@
 #include <atomic>
 
 namespace cpptrace {
-    namespace detail {
+    namespace internal {
         std::atomic<nullable<std::size_t>> dwarf_resolver_line_table_cache_size{nullable<std::size_t>::null()};
         std::atomic<bool> dwarf_resolver_disable_aranges{false};
 
@@ -21,11 +21,11 @@ namespace cpptrace {
 
     namespace experimental {
         void set_dwarf_resolver_line_table_cache_size(nullable<std::size_t> max_entries) {
-            detail::dwarf_resolver_line_table_cache_size.store(max_entries);
+            internal::dwarf_resolver_line_table_cache_size.store(max_entries);
         }
 
         void set_dwarf_resolver_disable_aranges(bool disable) {
-            detail::dwarf_resolver_disable_aranges.store(disable);
+            internal::dwarf_resolver_disable_aranges.store(disable);
         }
     }
 }

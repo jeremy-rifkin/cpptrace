@@ -7,7 +7,7 @@
 #include <cstring>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     char string_view::operator[](size_t i) const {
         ASSERT(i < size());
         return ptr[i];

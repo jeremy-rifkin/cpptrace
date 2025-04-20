@@ -8,7 +8,7 @@
 #include "platform/platform.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     void register_jit_object(const char*, std::size_t);
     void unregister_jit_object(const char*);
     void clear_all_jit_objects();

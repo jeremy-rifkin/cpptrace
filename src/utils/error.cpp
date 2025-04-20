@@ -1,7 +1,7 @@
 #include "utils/error.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     internal_error::internal_error(std::string message) : msg("Cpptrace internal error: " + std::move(message)) {}
 
     constexpr const char* assert_actions[] = {"assertion", "verification", "panic"};

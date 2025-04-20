@@ -24,10 +24,10 @@
 #pragma warning(disable: 4251; disable: 4275)
 #endif
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);
     std::ostream& operator<<(std::ostream& stream, const stacktrace& trace);
-}
+CPPTRACE_END_NAMESPACE
 
 #if defined(CPPTRACE_STD_FORMAT) && defined(__cpp_lib_format)
  template <>

@@ -45,7 +45,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     static const stacktrace_frame null_frame {
         0,
         0,

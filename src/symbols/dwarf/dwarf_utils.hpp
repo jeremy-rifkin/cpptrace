@@ -8,7 +8,7 @@
 #include "utils/utils.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace libdwarf {
     class srcfiles {
         Dwarf_Debug dbg = nullptr;

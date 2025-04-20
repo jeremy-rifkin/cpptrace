@@ -5,7 +5,7 @@
 #include <string>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     std::string demangle(const std::string& name, bool) {
         return name;
     }

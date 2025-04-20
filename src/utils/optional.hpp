@@ -10,7 +10,7 @@
 #include "utils/error.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     struct nullopt_t {};
 
     static constexpr nullopt_t nullopt;

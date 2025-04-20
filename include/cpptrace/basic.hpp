@@ -51,7 +51,7 @@
 #pragma warning(disable: 4251; disable: 4275)
 #endif
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     struct CPPTRACE_EXPORT raw_trace {
         std::vector<frame_ptr> frames;
         static raw_trace current(std::size_t skip = 0);
@@ -241,7 +241,7 @@ namespace cpptrace {
     CPPTRACE_EXPORT void register_jit_object(const char*, std::size_t);
     CPPTRACE_EXPORT void unregister_jit_object(const char*);
     CPPTRACE_EXPORT void clear_all_jit_objects();
-}
+CPPTRACE_END_NAMESPACE
 
 #ifdef _MSC_VER
 #pragma warning(pop)

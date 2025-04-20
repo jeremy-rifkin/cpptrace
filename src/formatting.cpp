@@ -12,7 +12,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     class formatter::impl {
         struct {
             std::string header = "Stack trace (most recent call first):";
@@ -61,10 +61,10 @@ namespace cpptrace {
 
         std::string format(
             const stacktrace_frame& input_frame,
-            detail::optional<bool> color_override = detail::nullopt
+            internal::optional<bool> color_override = internal::nullopt
         ) const {
             std::ostringstream oss;
-            detail::optional<stacktrace_frame> transformed_frame;
+            internal::optional<stacktrace_frame> transformed_frame;
             if(options.transform) {
                 transformed_frame = options.transform(input_frame);
             }
@@ -73,45 +73,45 @@ namespace cpptrace {
             return std::move(oss).str();
         }
 
-        std::string format(const stacktrace& trace, detail::optional<bool> color_override = detail::nullopt) const {
+        std::string format(const stacktrace& trace, internal::optional<bool> color_override = internal::nullopt) const {
             std::ostringstream oss;
             print_internal(oss, trace, false, color_override);
             return std::move(oss).str();
         }
 
-        void print(const stacktrace_frame& frame, detail::optional<bool> color_override = detail::nullopt) const {
+        void print(const stacktrace_frame& frame, internal::optional<bool> color_override = internal::nullopt) const {
             print(std::cout, frame, color_override);
         }
         void print(
             std::ostream& stream,
             const stacktrace_frame& frame,
-            detail::optional<bool> color_override = detail::nullopt
+            internal::optional<bool> color_override = internal::nullopt
         ) const {
             print_frame_internal(stream, frame, color_override);
         }
         void print(
             std::FILE* file,
             const stacktrace_frame& frame,
-            detail::optional<bool> color_override = detail::nullopt
+            internal::optional<bool> color_override = internal::nullopt
         ) const {
             auto str = format(frame, color_override);
             std::fwrite(str.data(), 1, str.size(), file);
         }
 
-        void print(const stacktrace& trace, detail::optional<bool> color_override = detail::nullopt) const {
+        void print(const stacktrace& trace, internal::optional<bool> color_override = internal::nullopt) const {
             print(std::cout, trace, color_override);
         }
         void print(
             std::ostream& stream,
             const stacktrace& trace,
-            detail::optional<bool> color_override = detail::nullopt
+            internal::optional<bool> color_override = internal::nullopt
         ) const {
             print_internal(stream, trace, true, color_override);
         }
         void print(
             std::FILE* file,
             const stacktrace& trace,
-            detail::optional<bool> color_override = detail::nullopt
+            internal::optional<bool> color_override = internal::nullopt
         ) const {
             auto str = format(trace, color_override);
             std::fwrite(str.data(), 1, str.size(), file);
@@ -126,24 +126,24 @@ namespace cpptrace {
 
         void maybe_ensure_virtual_terminal_processing(std::ostream& stream, bool color) const {
             if(color && stream_is_tty(stream)) {
-                detail::enable_virtual_terminal_processing_if_needed();
+                internal::enable_virtual_terminal_processing_if_needed();
             }
         }
 
-        bool should_do_color(std::ostream& stream, detail::optional<bool> color_override) const {
+        bool should_do_color(std::ostream& stream, internal::optional<bool> color_override) const {
             bool do_color = options.color == color_mode::always || color_override.value_or(false);
             if(
                 (options.color == color_mode::automatic || options.color == color_mode::always) &&
                 (!color_override || color_override.unwrap() != false) &&
                 stream_is_tty(stream)
             ) {
-                detail::enable_virtual_terminal_processing_if_needed();
+                internal::enable_virtual_terminal_processing_if_needed();
                 do_color = true;
             }
             return do_color;
         }
 
-        void print_internal(std::ostream& stream, const stacktrace& trace, bool newline_at_end, detail::optional<bool> color_override) const {
+        void print_internal(std::ostream& stream, const stacktrace& trace, bool newline_at_end, internal::optional<bool> color_override) const {
             bool do_color = should_do_color(stream, color_override);
             maybe_ensure_virtual_terminal_processing(stream, do_color);
             print_internal(stream, trace, newline_at_end, do_color);
@@ -159,9 +159,9 @@ namespace cpptrace {
                 stream << "<empty trace>\n";
                 return;
             }
-            const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
+            const auto frame_number_width = internal::n_digits(static_cast<int>(frames.size()) - 1);
             for(size_t i = 0; i < frames.size(); ++i) {
-                detail::optional<stacktrace_frame> transformed_frame;
+                internal::optional<stacktrace_frame> transformed_frame;
                 if(options.transform) {
                     transformed_frame = options.transform(frames[i]);
                 }
@@ -175,7 +175,7 @@ namespace cpptrace {
                 } else {
                     print_frame_internal(stream, frame, color, frame_number_width, counter);
                     if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
-                        auto snippet = detail::get_snippet(
+                        auto snippet = internal::get_snippet(
                             frame.filename,
                             frame.line.value(),
                             options.context_lines,
@@ -212,7 +212,7 @@ namespace cpptrace {
         void print_frame_internal(
             std::ostream& stream,
             const stacktrace_frame& frame,
-            detail::optional<bool> color_override
+            internal::optional<bool> color_override
         ) const {
             bool do_color = should_do_color(stream, color_override);
             maybe_ensure_virtual_terminal_processing(stream, do_color);
@@ -239,7 +239,7 @@ namespace cpptrace {
                     "{}at {}{}{}",
                     frame.symbol.empty() ? "" : " ",
                     green,
-                    options.paths == path_mode::full ? frame.filename : detail::basename(frame.filename, true),
+                    options.paths == path_mode::full ? frame.filename : internal::basename(frame.filename, true),
                     reset
                 );
                 if(frame.line.has_value()) {
@@ -257,13 +257,13 @@ namespace cpptrace {
         delete pimpl;
     }
 
-    formatter::formatter(formatter&& other) : pimpl(detail::exchange(other.pimpl, nullptr)) {}
+    formatter::formatter(formatter&& other) : pimpl(internal::exchange(other.pimpl, nullptr)) {}
     formatter::formatter(const formatter& other) : pimpl(new impl(*other.pimpl)) {}
     formatter& formatter::operator=(formatter&& other) {
         if(pimpl) {
             delete pimpl;
         }
-        pimpl = detail::exchange(other.pimpl, nullptr);
+        pimpl = internal::exchange(other.pimpl, nullptr);
         return *this;
     }
     formatter& formatter::operator=(const formatter& other) {
@@ -371,4 +371,4 @@ namespace cpptrace {
         static formatter formatter;
         return formatter;
     }
-}
+CPPTRACE_END_NAMESPACE

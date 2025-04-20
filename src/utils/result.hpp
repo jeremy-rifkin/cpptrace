@@ -12,7 +12,7 @@
 #include "logging.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     template<typename T, typename E, typename std::enable_if<!std::is_same<T, E>::value, int>::type = 0>
     class Result {
         using value_type = well_behaved<T>;

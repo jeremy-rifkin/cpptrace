@@ -6,7 +6,7 @@
 #include <string>
 #include <functional>
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     class CPPTRACE_EXPORT formatter {
         class impl;
         // can't be a std::unique_ptr due to msvc awfulness with dllimport/dllexport and https://stackoverflow.com/q/4145605/15675011
@@ -70,6 +70,6 @@ namespace cpptrace {
     };
 
     CPPTRACE_EXPORT const formatter& get_default_formatter();
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

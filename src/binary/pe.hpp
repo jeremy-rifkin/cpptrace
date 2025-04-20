@@ -9,7 +9,7 @@
 #include <string>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     Result<std::uintptr_t, internal_error> pe_get_module_image_base(cstring_view object_path);
 }
 }

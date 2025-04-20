@@ -14,7 +14,7 @@
 #pragma warning(disable: 4251; disable: 4275)
 #endif
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     // tracing exceptions:
     namespace detail {
         // This is a helper utility, if the library weren't C++11 an std::variant would be used
@@ -193,7 +193,7 @@ namespace cpptrace {
 
     // [[noreturn]] must come first due to old clang
     [[noreturn]] CPPTRACE_EXPORT void rethrow_and_wrap_if_needed(std::size_t skip = 0);
-}
+CPPTRACE_END_NAMESPACE
 
 // Exception wrapper utilities
 #define CPPTRACE_WRAP_BLOCK(statements) do { \

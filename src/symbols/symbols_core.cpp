@@ -9,7 +9,7 @@
 #include "binary/object.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     template<typename CollatedVec, typename Entry>
     std::unordered_map<std::string, CollatedVec> collate_frames(
         const std::vector<object_frame>& frames,

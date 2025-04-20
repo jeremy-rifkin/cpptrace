@@ -6,7 +6,7 @@
 #include "utils/microfmt.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace log {
     void error(const char*);
     template<typename... Args>

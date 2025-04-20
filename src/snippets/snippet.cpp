@@ -13,7 +13,7 @@
 #include "utils/utils.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     constexpr std::int64_t max_size = 1024 * 1024 * 10; // 10 MiB
 
     struct line_range {

@@ -13,7 +13,7 @@
 #include "options.hpp"
 #include "logging.hpp"
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     namespace detail {
         lazy_trace_holder::lazy_trace_holder(const lazy_trace_holder& other) : resolved(other.resolved) {
             if(other.resolved) {
@@ -70,9 +70,9 @@ namespace cpptrace {
                         resolved_trace = old_trace.resolve();
                     }
                 } catch(const std::exception& e) {
-                    if(!detail::should_absorb_trace_exceptions()) {
+                    if(!internal::should_absorb_trace_exceptions()) {
                         // TODO: Append to message somehow?
-                        log::error(
+                        internal::log::error(
                             "Exception occurred while resolving trace in cpptrace::detail::lazy_trace_holder: {}",
                             e.what()
                         );
@@ -105,9 +105,9 @@ namespace cpptrace {
             try {
                 return generate_raw_trace(skip + 1, max_depth);
             } catch(const std::exception& e) {
-                if(!detail::should_absorb_trace_exceptions()) {
+                if(!internal::should_absorb_trace_exceptions()) {
                     // TODO: Append to message somehow
-                    log::error(
+                    internal::log::error(
                         "Exception occurred while resolving trace in cpptrace::exception object: {}",
                         e.what()
                     );
@@ -121,7 +121,7 @@ namespace cpptrace {
             try { // try/catch can never be hit but it's needed to prevent TCO
                 return get_raw_trace_and_absorb(skip + 1, SIZE_MAX);
             } catch(...) {
-                if(!detail::should_absorb_trace_exceptions()) {
+                if(!internal::should_absorb_trace_exceptions()) {
                     throw;
                 }
                 return raw_trace{};
@@ -166,7 +166,7 @@ namespace cpptrace {
             } catch(std::exception& e) {
                 message_value = std::string("Nested exception: ") + e.what();
             } catch(...) {
-                message_value = "Nested exception holding instance of " + detail::exception_type_name();
+                message_value = "Nested exception holding instance of " + internal::exception_type_name();
             }
         }
         return message_value.c_str();
@@ -186,4 +186,4 @@ namespace cpptrace {
             throw nested_exception(std::current_exception(), detail::get_raw_trace_and_absorb(skip + 1));
         }
     }
-}
+CPPTRACE_END_NAMESPACE

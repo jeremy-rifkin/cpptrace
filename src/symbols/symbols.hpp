@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     using collated_vec = std::vector<
         std::pair<std::reference_wrapper<const object_frame>, std::reference_wrapper<stacktrace_frame>>
     >;

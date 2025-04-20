@@ -18,7 +18,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
         out->raw_address = address;
         dl_find_object result;
@@ -59,7 +59,7 @@ namespace detail {
 }
 #else
 namespace cpptrace {
-namespace detail {
+namespace internal {
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
         out->raw_address = address;
         out->address_relative_to_object_start = 0;

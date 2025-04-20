@@ -21,7 +21,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace libbacktrace {
     int full_callback(void* data, std::uintptr_t address, const char* file, int line, const char* symbol) {
         stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
