@@ -35,10 +35,12 @@ endmacro()
 add_executable(integration integration.cpp)
 add_executable(demo demo.cpp)
 add_executable(c_demo ctrace_demo.c)
+add_executable(link_test link_test.cpp)
 
 add_test_dependencies(integration)
 add_test_dependencies(demo)
 add_test_dependencies(c_demo)
+add_test_dependencies(link_test)
 
 if(UNIX)
   add_executable(signal_demo signal_demo.cpp)
