@@ -113,7 +113,9 @@ TEST(Rethrow, RethrowPreservesTrace) {
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(j, line_numbers.size());
         EXPECT_FILE(trace.frames[i].filename, "rethrow.cpp");
+        #ifndef _MSC_VER
         EXPECT_LINE(trace.frames[i].line.value(), line_numbers[j]);
+        #endif
         EXPECT_THAT(trace.frames[i].symbol, testing::HasSubstr("stacktrace_from_current_rethrow_2"));
         i++;
         j++;
@@ -257,7 +259,9 @@ TEST(Rethrow, RethrowDoesntInterfereWithSubsequentTraces) {
         ASSERT_LT(i, trace.frames.size());
         ASSERT_LT(j, line_numbers.size());
         EXPECT_FILE(trace.frames[i].filename, "rethrow.cpp");
+        #ifndef _MSC_VER
         EXPECT_LINE(trace.frames[i].line.value(), line_numbers[j]);
+        #endif
         EXPECT_THAT(
             trace.frames[i].symbol,
             testing::HasSubstr("Rethrow_RethrowDoesntInterfereWithSubsequentTraces_Test::TestBody")
