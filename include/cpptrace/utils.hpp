@@ -34,9 +34,9 @@ namespace cpptrace {
     CPPTRACE_EXPORT void enable_inlined_call_resolution(bool enable);
 
     enum class log_level { debug, info, warning, error };
-    void set_log_level(log_level level);
-    void set_log_callback(std::function<void(log_level, const char*)>);
-    void use_default_stderr_logger();
+    CPPTRACE_EXPORT void set_log_level(log_level level);
+    CPPTRACE_EXPORT void set_log_callback(std::function<void(log_level, const char*)>);
+    CPPTRACE_EXPORT void use_default_stderr_logger();
 
     enum class cache_mode {
         // Only minimal lookup tables
