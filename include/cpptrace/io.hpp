@@ -25,8 +25,8 @@
 #endif
 
 CPPTRACE_BEGIN_NAMESPACE
-    std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);
-    std::ostream& operator<<(std::ostream& stream, const stacktrace& trace);
+    CPPTRACE_EXPORT std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);
+    CPPTRACE_EXPORT std::ostream& operator<<(std::ostream& stream, const stacktrace& trace);
 CPPTRACE_END_NAMESPACE
 
 #if defined(CPPTRACE_STD_FORMAT) && defined(__cpp_lib_format)
