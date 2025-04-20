@@ -41,6 +41,10 @@ int stacktrace_from_current_rethrow_2(std::vector<int>& line_numbers, std::vecto
     CPPTRACE_UNREACHABLE(); // unfortunately needed under MSVC
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4702) // unreachable code
+#endif
 CPPTRACE_FORCE_NO_INLINE
 int stacktrace_from_current_rethrow_1(std::vector<int>& line_numbers, std::vector<int>& rethrow_line_numbers) {
     static volatile int lto_guard; lto_guard = lto_guard + 1;
@@ -48,6 +52,9 @@ int stacktrace_from_current_rethrow_1(std::vector<int>& line_numbers, std::vecto
     line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
     return stacktrace_from_current_rethrow_2(line_numbers, rethrow_line_numbers) * rand();
 }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 void clean_trace(cpptrace::stacktrace& trace, std::vector<cpptrace::stacktrace_frame>::iterator it) {
     // because stacktrace_from_current_rethrow_2 has a try/catch which uses lambdas under msvc, we need to filter
