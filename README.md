@@ -26,6 +26,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Formatting](#formatting)
     - [Transforms](#transforms)
   - [Configuration](#configuration)
+    - [Logging](#logging)
   - [Traces From All Exceptions](#traces-from-all-exceptions)
     - [Removing the `CPPTRACE_` prefix](#removing-the-cpptrace_-prefix)
     - [How it works](#how-it-works)
@@ -449,6 +450,28 @@ namespace cpptrace {
     }
 }
 ```
+
+### Logging
+
+Cpptrace attempts to gracefully recover from any internal errors. By default, cpptrace doesn't log anything to the
+console in order to avoid interfering with user programs. However, there are a couple configurations that can be used
+to set a custom logging behavior or enable logging to stderr.
+
+```cpp
+namespace cpptrace {
+    enum class log_level { debug, info, warning, error };
+    void set_log_level(log_level level);
+    void set_log_callback(std::function<void(log_level, const char*)>);
+    void use_default_stderr_logger();
+}
+```
+
+`cpptrace::set_log_level`: Set cpptrace's internal log level. Default: `error`. Cpptrace currently only uses this log
+level internally.
+
+`cpptrace::set_log_callback`: Set the callback cpptrace uses for logging messages, useful for custom loggers.
+
+`cpptrace::use_default_stderr_logger`: Set's the logging callback to print to stderr.
 
 ## Traces From All Exceptions
 

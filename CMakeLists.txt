@@ -122,6 +122,7 @@ target_sources(
     src/exceptions.cpp
     src/from_current.cpp
     src/formatting.cpp
+    src/logging.cpp
     src/options.cpp
     src/utils.cpp
     src/demangle/demangle_with_cxxabi.cpp

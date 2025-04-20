@@ -42,7 +42,6 @@ namespace detail {
                 // TODO: Special handling for /proc/pid/exe unlink edge case
             }
         } else {
-            // std::cout<<"error"<<std::endl;
             out->address_relative_to_object_start = 0;
             out->object_path[0] = 0;
         }

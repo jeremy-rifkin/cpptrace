@@ -3,6 +3,8 @@
 
 #include <cpptrace/basic.hpp>
 
+#include <functional>
+
 #ifdef _MSC_VER
 #pragma warning(push)
 // warning C4251: using non-dll-exported type in dll-exported type, firing on std::vector<frame_ptr> and others for some
@@ -30,6 +32,11 @@ namespace cpptrace {
     // options:
     CPPTRACE_EXPORT void absorb_trace_exceptions(bool absorb);
     CPPTRACE_EXPORT void enable_inlined_call_resolution(bool enable);
+
+    enum class log_level { debug, info, warning, error };
+    void set_log_level(log_level level);
+    void set_log_callback(std::function<void(log_level, const char*)>);
+    void use_default_stderr_logger();
 
     enum class cache_mode {
         // Only minimal lookup tables

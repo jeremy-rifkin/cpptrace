@@ -35,6 +35,7 @@ void function_one(int) {
 
 int main() {
     cpptrace::absorb_trace_exceptions(false);
+    cpptrace::use_default_stderr_logger();
     cpptrace::register_terminate_handler();
     function_one(0);
 }

@@ -10,6 +10,7 @@
 #include "platform/platform.hpp"
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
+#include "logging.hpp"
 
 #ifndef _MSC_VER
  #include <string.h>
@@ -208,7 +209,6 @@ namespace cpptrace {
                     if(x == 'x') {
                         perms |= PROT_EXEC;
                     }
-                    // std::cerr<<"--parsed: "<<std::hex<<start<<" "<<stop<<" "<<r<<w<<x<<std::endl;
                     return perms;
                 }
                 stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -319,13 +319,9 @@ namespace cpptrace {
                         unconditional_exception_unwind_interceptor
                     );
                 } catch(std::exception& e) {
-                    std::fprintf(
-                        stderr,
-                        "Cpptrace: Exception occurred while preparing from_current support: %s\n",
-                        e.what()
-                    );
+                    log::error("Exception occurred while preparing from_current support: {}", e.what());
                 } catch(...) {
-                    std::fprintf(stderr, "Cpptrace: Unknown exception occurred while preparing from_current support\n");
+                    log::error("Unknown exception occurred while preparing from_current support");
                 }
             }
         }

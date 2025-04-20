@@ -8,6 +8,7 @@
 #include "utils/error.hpp"
 #include "utils/utils.hpp"
 #include "options.hpp"
+#include "logging.hpp"
 
 #include <regex>
 #include <system_error>
@@ -354,7 +355,7 @@ namespace dbghelp {
                 // function fails but GetLastError returns ERROR_SUCCESS."
                 // This is the stupidest fucking api I've ever worked with.
                 if(SymSetContext(proc, &frame, nullptr) == FALSE && GetLastError() != ERROR_SUCCESS) {
-                    std::fprintf(stderr, "Stack trace: Internal error while calling SymSetContext\n");
+                    log::error("Stack trace: Internal error while calling SymSetContext");
                     return {
                         addr,
                         object_frame.object_address,

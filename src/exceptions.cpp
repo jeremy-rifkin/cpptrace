@@ -11,6 +11,7 @@
 #include "platform/exception_type.hpp"
 #include "utils/common.hpp"
 #include "options.hpp"
+#include "logging.hpp"
 
 namespace cpptrace {
     namespace detail {
@@ -71,9 +72,8 @@ namespace cpptrace {
                 } catch(const std::exception& e) {
                     if(!detail::should_absorb_trace_exceptions()) {
                         // TODO: Append to message somehow?
-                        std::fprintf(
-                            stderr,
-                            "Exception occurred while resolving trace in cpptrace::detail::lazy_trace_holder:\n%s\n",
+                        log::error(
+                            "Exception occurred while resolving trace in cpptrace::detail::lazy_trace_holder: {}",
                             e.what()
                         );
                     }
@@ -107,9 +107,8 @@ namespace cpptrace {
             } catch(const std::exception& e) {
                 if(!detail::should_absorb_trace_exceptions()) {
                     // TODO: Append to message somehow
-                    std::fprintf(
-                        stderr,
-                        "Cpptrace: Exception occurred while resolving trace in cpptrace::exception object:\n%s\n",
+                    log::error(
+                        "Exception occurred while resolving trace in cpptrace::exception object: {}",
                         e.what()
                     );
                 }
