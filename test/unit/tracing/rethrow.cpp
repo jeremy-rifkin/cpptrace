@@ -49,6 +49,30 @@ int stacktrace_from_current_rethrow_1(std::vector<int>& line_numbers, std::vecto
     return stacktrace_from_current_rethrow_2(line_numbers, rethrow_line_numbers) * rand();
 }
 
+void clean_trace(cpptrace::stacktrace& trace, std::vector<cpptrace::stacktrace_frame>::iterator it) {
+    // because stacktrace_from_current_rethrow_2 has a try/catch which uses lambdas under msvc, we need to filter
+    // all but the first frame mentioning stacktrace_from_current_rethrow_2.
+    auto frame_2_it = std::find_if(
+        it,
+        trace.frames.end(),
+        [](const cpptrace::stacktrace_frame& frame) {
+            return frame.symbol.find("stacktrace_from_current_rethrow_2") != std::string::npos;
+        }
+    );
+    ASSERT_NE(frame_2_it, trace.frames.end());
+    frame_2_it++;
+    auto remove_it = std::remove_if(
+        frame_2_it,
+        trace.frames.end(),
+        [](const cpptrace::stacktrace_frame& frame) {
+            return frame.symbol.find("stacktrace_from_current_rethrow_2") != std::string::npos;
+        }
+    );
+    if(remove_it != trace.frames.end()) {
+        trace.frames.erase(remove_it);
+    }
+}
+
 TEST(Rethrow, RethrowPreservesTrace) {
     std::vector<int> line_numbers;
     std::vector<int> rethrow_line_numbers;
@@ -59,7 +83,7 @@ TEST(Rethrow, RethrowPreservesTrace) {
     } CPPTRACE_CATCH(const std::runtime_error& e) {
         EXPECT_TRUE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
-        const auto& trace = cpptrace::from_current_exception();
+        auto trace = cpptrace::from_current_exception();
         ASSERT_GE(trace.frames.size(), 4);
         auto it = std::find_if(
             trace.frames.begin(),
@@ -69,6 +93,7 @@ TEST(Rethrow, RethrowPreservesTrace) {
             }
         );
         ASSERT_NE(it, trace.frames.end());
+        clean_trace(trace, it);
         size_t i = static_cast<size_t>(it - trace.frames.begin());
         int j = 0;
         ASSERT_LT(i, trace.frames.size());
@@ -111,22 +136,27 @@ TEST(Rethrow, RethrowTraceCorrect) {
     } CPPTRACE_CATCH(const std::runtime_error& e) {
         EXPECT_TRUE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
-        const auto& rethrow_trace = cpptrace::from_current_exception_rethrow();
+        auto rethrow_trace = cpptrace::from_current_exception_rethrow();
         ASSERT_GE(rethrow_trace.frames.size(), 4);
         auto it = std::find_if(
             rethrow_trace.frames.begin(),
             rethrow_trace.frames.end(),
             [](const cpptrace::stacktrace_frame& frame) {
-                return frame.symbol.find("stacktrace_from_current_rethrow_2") != std::string::npos;
+                // catch check is to ignore "`stacktrace_from_current_rethrow_2'::`1'::catch$4()" on msvc
+                return frame.symbol.find("stacktrace_from_current_rethrow_2") != std::string::npos
+                    && frame.symbol.find("::catch") == std::string::npos;
             }
         );
         ASSERT_NE(it, rethrow_trace.frames.end());
+        clean_trace(rethrow_trace, it);
         size_t i = static_cast<size_t>(it - rethrow_trace.frames.begin());
         int j = 0;
         ASSERT_LT(i, rethrow_trace.frames.size());
         ASSERT_LT(j, rethrow_line_numbers.size());
         EXPECT_FILE(rethrow_trace.frames[i].filename, "rethrow.cpp");
+        #ifndef _MSC_VER
         EXPECT_LINE(rethrow_trace.frames[i].line.value(), rethrow_line_numbers[j]);
+        #endif
         EXPECT_THAT(rethrow_trace.frames[i].symbol, testing::HasSubstr("stacktrace_from_current_rethrow_2"));
         i++;
         j++;
@@ -184,7 +214,7 @@ TEST(Rethrow, RethrowDoesntInterfereWithSubsequentTraces) {
     } CPPTRACE_CATCH(const std::runtime_error& e) {
         EXPECT_FALSE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
-        const auto& trace = cpptrace::from_current_exception();
+        auto trace = cpptrace::from_current_exception();
         ASSERT_GE(trace.frames.size(), 4);
         auto it = std::find_if(
             trace.frames.begin(),
