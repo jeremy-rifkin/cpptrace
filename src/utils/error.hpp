@@ -18,7 +18,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     class internal_error : public std::exception {
         std::string msg;
     public:
@@ -40,7 +40,7 @@ namespace detail {
         ) : file(_file), line(_line) {}
     };
 
-    #define CPPTRACE_CURRENT_LOCATION ::cpptrace::detail::source_location(__FILE__, __LINE__)
+    #define CPPTRACE_CURRENT_LOCATION ::cpptrace::internal::source_location(__FILE__, __LINE__)
 
     enum class assert_type {
         assert,
@@ -80,7 +80,7 @@ namespace detail {
     }
 
     // Check condition in both debug and release. std::runtime_error on failure.
-    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION, ::cpptrace::detail::as_string(__VA_ARGS__)))
+    #define PANIC(...) ((::cpptrace::internal::panic)(CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION, ::cpptrace::internal::as_string(__VA_ARGS__)))
 
     inline void assert_impl(
         bool condition,
@@ -114,13 +114,13 @@ namespace detail {
 
     // Check condition in both debug and release. std::runtime_error on failure.
     #define VERIFY(...) ( \
-        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::verify, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
+        assert_impl(__VA_ARGS__, ::cpptrace::internal::assert_type::verify, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
     )
 
     #ifndef NDEBUG
      // Check condition in both debug. std::runtime_error on failure.
      #define ASSERT(...) ( \
-        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::assert, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
+        assert_impl(__VA_ARGS__, ::cpptrace::internal::assert_type::assert, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
      )
     #else
      // Check condition in both debug. std::runtime_error on failure.

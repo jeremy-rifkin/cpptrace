@@ -20,7 +20,7 @@
  #define CPPTRACE_NORETURN [[noreturn]]
 #endif
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception();
     CPPTRACE_EXPORT const stacktrace& from_current_exception();
 
@@ -101,7 +101,7 @@ namespace cpptrace {
          #endif
         #endif
     }
-}
+CPPTRACE_END_NAMESPACE
 
 #ifdef _MSC_VER
  // this awful double-IILE is due to C2713 "You can't use structured exception handling (__try/__except) and C++

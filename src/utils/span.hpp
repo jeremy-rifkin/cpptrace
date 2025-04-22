@@ -10,7 +10,7 @@
 #include <utility>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     // basic span implementation
     // I haven't implemented most members because I don't need them, more will be added as needed
 

@@ -13,7 +13,7 @@
 #pragma warning(disable: 4251; disable: 4275)
 #endif
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     CPPTRACE_EXPORT std::string demangle(const std::string& name);
     CPPTRACE_EXPORT std::string get_snippet(
         const std::string& path,
@@ -56,6 +56,6 @@ namespace cpptrace {
         CPPTRACE_EXPORT void set_dwarf_resolver_line_table_cache_size(nullable<std::size_t> max_entries);
         CPPTRACE_EXPORT void set_dwarf_resolver_disable_aranges(bool disable);
     }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

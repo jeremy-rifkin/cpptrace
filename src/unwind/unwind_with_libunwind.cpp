@@ -13,7 +13,7 @@
 #include <libunwind.h>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     CPPTRACE_FORCE_NO_INLINE
     std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth) {
         skip++;

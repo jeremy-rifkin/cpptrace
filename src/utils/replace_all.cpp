@@ -1,7 +1,7 @@
 #include "utils/replace_all.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     void replace_all(std::string& str, string_view substr, string_view replacement) {
         std::string::size_type pos = 0;
         while((pos = str.find(substr.data(), pos, substr.size())) != std::string::npos) {

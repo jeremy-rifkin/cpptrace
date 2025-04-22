@@ -11,7 +11,7 @@
 #include <dlfcn.h>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace libdl {
     stacktrace_frame resolve_frame(const frame_ptr addr) {
         Dl_info info;

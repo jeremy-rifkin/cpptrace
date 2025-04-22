@@ -16,7 +16,7 @@
 #include <windows.h>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
     T pe_byteswap_if_needed(T value) {
         // PE header values are little endian, I think dos e_lfanew should be too

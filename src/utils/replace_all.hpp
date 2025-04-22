@@ -7,7 +7,7 @@
 #include "utils/string_view.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     // replace all instances of substr with the replacement
     void replace_all(std::string& str, string_view substr, string_view replacement);
 

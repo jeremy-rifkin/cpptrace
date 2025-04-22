@@ -18,7 +18,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace libdwarf {
     static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");

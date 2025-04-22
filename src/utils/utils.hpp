@@ -18,7 +18,7 @@
 #include "utils/result.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     bool isatty(int fd);
     int fileno(std::FILE* stream);
 

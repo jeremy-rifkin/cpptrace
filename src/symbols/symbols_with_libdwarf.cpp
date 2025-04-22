@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace libdwarf {
     std::unique_ptr<symbol_resolver> get_resolver_for_object(const std::string& object_path) {
         #if IS_APPLE

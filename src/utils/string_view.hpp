@@ -9,7 +9,7 @@
 #include <cpptrace/utils.hpp>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     // Simple string view implementations
     // I haven't implemented all members because I don't need most of them currently, more may be added as needed
     // members exported for tests

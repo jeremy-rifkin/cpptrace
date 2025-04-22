@@ -21,7 +21,7 @@
 #include <dbghelp.h>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace dbghelp {
     // SymFromAddr only returns the function's name. In order to get information about parameters,
     // important for C++ stack traces where functions may be overloaded, we have to manually use
@@ -436,7 +436,7 @@ namespace dbghelp {
             try {
                 trace.push_back(resolve_frame(syminit_info.get_process_handle() , frame));
             } catch(...) { // NOSONAR
-                if(!detail::should_absorb_trace_exceptions()) {
+                if(!internal::should_absorb_trace_exceptions()) {
                     throw;
                 }
                 auto entry = null_frame;

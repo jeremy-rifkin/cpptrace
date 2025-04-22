@@ -25,7 +25,7 @@
 #include "options.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace addr2line {
     #if IS_LINUX || IS_APPLE
     bool has_addr2line() {

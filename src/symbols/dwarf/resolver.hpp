@@ -15,7 +15,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace libdwarf {
     class symbol_resolver {
     public:

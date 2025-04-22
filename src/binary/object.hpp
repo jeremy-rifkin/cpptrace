@@ -8,7 +8,7 @@
 
 namespace cpptrace {
 
-namespace detail {
+namespace internal {
     object_frame get_frame_object_info(frame_ptr address);
 
     std::vector<object_frame> get_frames_object_info(const std::vector<frame_ptr>& addresses);

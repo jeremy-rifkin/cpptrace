@@ -14,7 +14,7 @@
 #include <unordered_map>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     // TODO: make methods const and a bunch of members mutable
     class elf {
         std::unique_ptr<base_file> file;

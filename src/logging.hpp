@@ -6,7 +6,7 @@
 #include "utils/microfmt.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace log {
     // exported for test purposes
     CPPTRACE_EXPORT void error(const char*);

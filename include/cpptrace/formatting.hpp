@@ -6,7 +6,7 @@
 #include <string>
 #include <functional>
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     CPPTRACE_EXPORT std::string basename(const std::string& path);
     CPPTRACE_EXPORT std::string prettify_symbol(std::string symbol);
 
@@ -74,6 +74,6 @@ namespace cpptrace {
     };
 
     CPPTRACE_EXPORT const formatter& get_default_formatter();
-}
+CPPTRACE_END_NAMESPACE
 
 #endif
