@@ -2,34 +2,34 @@
 
 namespace cpptrace {
 namespace detail {
-    void replace_all(std::string& str, std::string_view substr, std::string_view replacement) {
+    void replace_all(std::string& str, string_view substr, string_view replacement) {
         std::string::size_type pos = 0;
-        while((pos = str.find(substr.data(), pos, substr.length())) != std::string::npos) {
-            str.replace(pos, substr.length(), replacement.data(), replacement.length());
-            pos += replacement.length();
+        while((pos = str.find(substr.data(), pos, substr.size())) != std::string::npos) {
+            str.replace(pos, substr.size(), replacement.data(), replacement.size());
+            pos += replacement.size();
         }
     }
 
-    void replace_all(std::string& str, const std::regex& re, std::string_view replacement) {
+    void replace_all(std::string& str, const std::regex& re, string_view replacement) {
         std::smatch match;
         std::size_t i = 0;
         while(std::regex_search(str.cbegin() + i, str.cend(), match, re)) {
-            str.replace(i + match.position(), match.length(), replacement);
-            i += match.position() + replacement.length();
+            str.replace(i + match.position(), match.length(), replacement.data(), replacement.size());
+            i += match.position() + replacement.size();
         }
     }
 
-    void replace_all_dynamic(std::string& str, std::string_view substr, std::string_view replacement) {
+    void replace_all_dynamic(std::string& str, string_view substr, string_view replacement) {
         std::string::size_type pos = 0;
-        while((pos = str.find(substr.data(), pos, substr.length())) != std::string::npos) {
-            str.replace(pos, substr.length(), replacement.data(), replacement.length());
+        while((pos = str.find(substr.data(), pos, substr.size())) != std::string::npos) {
+            str.replace(pos, substr.size(), replacement.data(), replacement.size());
             // advancing by one rather than replacement.length() in case replacement leads to
             // another replacement opportunity, e.g. folding > > > to >> > then >>>
             pos++;
         }
     }
 
-    void replace_all_template(std::string& str, const std::pair<std::regex, std::string_view>& rule) {
+    void replace_all_template(std::string& str, const std::pair<std::regex, string_view>& rule) {
         const auto& [re, replacement] = rule;
         std::smatch match;
         std::size_t cursor = 0;
@@ -45,8 +45,8 @@ namespace detail {
                 }
             }
             // make the replacement
-            str.replace(match_begin, end - match_begin, replacement);
-            cursor = match_begin + replacement.length();
+            str.replace(match_begin, end - match_begin, replacement.data(), replacement.size());
+            cursor = match_begin + replacement.size();
         }
     }
 }

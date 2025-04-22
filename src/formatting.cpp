@@ -33,21 +33,21 @@ namespace cpptrace {
         // this brings it in-line with other compilers and prevents any tokenization/highlighting issues
         static const std::regex msvc_anonymous_namespace("`anonymous namespace'");
         detail::replace_all(symbol, msvc_anonymous_namespace, "(anonymous namespace)");
-        // rules to replace std::basic_string -> std::string and std::basic_string_view -> std::string_view
+        // rules to replace std::basic_string -> std::string and std::basic_string_view -> std::string
         // rule to replace ", std::allocator<whatever>"
-        static const std::pair<std::regex, std::string_view> basic_string = {
+        static const std::pair<std::regex, std::string> basic_string = {
             std::regex(R"(std(::[a-zA-Z0-9_]+)?::basic_string<char)"), "std::string"
         };
         detail::replace_all_template(symbol, basic_string);
-        static const std::pair<std::regex, std::string_view> basic_string_view = {
+        static const std::pair<std::regex, std::string> basic_string_view = {
             std::regex(R"(std(::[a-zA-Z0-9_]+)?::basic_string_view<char)"), "std::string_view"
         };
         detail::replace_all_template(symbol, basic_string_view);
-        static const std::pair<std::regex, std::string_view> allocator = {
+        static const std::pair<std::regex, std::string> allocator = {
             std::regex(R"(,\s*std(::[a-zA-Z0-9_]+)?::allocator<)"), ""
         };
         detail::replace_all_template(symbol, allocator);
-        static const std::pair<std::regex, std::string_view> default_delete = {
+        static const std::pair<std::regex, std::string> default_delete = {
             std::regex(R"(,\s*std(::[a-zA-Z0-9_]+)?::default_delete<)"), ""
         };
         detail::replace_all_template(symbol, default_delete);
