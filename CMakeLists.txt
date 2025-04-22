@@ -150,6 +150,7 @@ target_sources(
     src/utils/io/memory_file_view.cpp
     src/utils/error.cpp
     src/utils/microfmt.cpp
+    src/utils/replace_all.cpp
     src/utils/string_view.cpp
     src/utils/utils.cpp
     src/platform/dbghelp_utils.cpp
