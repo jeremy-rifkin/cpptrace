@@ -29,6 +29,35 @@
 - [v0.1.1](#v011)
 - [v0.1](#v01)
 
+# vX
+
+Added
+- Added `cpptrace::rethrow` utility for rethrowing exceptions from `CPPTRACE_CATCH` while preserving the stacktrace https://github.com/jeremy-rifkin/cpptrace/issues/214
+- Added utilities for getting the current trace from the last rethrow point
+  (`cpptrace::raw_trace_from_current_exception_rethrow`, `cpptrace::from_current_exception_rethrow`,
+  `cpptrace::current_exception_was_rethrown`)
+- Added formatter option to clean up some long symbol names (`cpptrace::formatter::prettify_symbols`)
+- Added some utilities to allow and control how cpptrace logs (`cpptrace::set_log_level`, `cpptrace::set_log_callback`,
+  and `cpptrace::use_default_stderr_logger`)
+- Added `cpptrace::basename` and `cpptrace::prettify_type` utilities
+- Added `cpptrace::detail::lazy_trace_holder::is_resolved`
+
+Potentially-breaking changes:
+- This version of cpptrace reworks the public interface to use an inline ABI versioning namespace. All symbols in the
+  public interface are now secretly in the `cpptrace::v1` namespace. This is an ABI break, but any abi mismatch will
+  result in linker errors instead of silent bugs. This change is an effort to allow future evolution of cpptrace in a
+  way that respects ABI.
+
+Fixed
+- Fixed cases where cpptrace could print to stderr on internal errors without the user desiring so https://github.com/jeremy-rifkin/cpptrace/issues/234
+- Fixed a couple internal locking mistakes
+- Prevented a couple code paths that could be susceptible to static init order issues
+
+Other
+- Marked some paths in `CPPTRACE_CATCH` and `CPPTRACE_CATCHZ` as unreachable to improve usability in cases where the
+  compiler may warn about missing returns.
+- Removed internal use of `std::is_trivial` which is deprecated in C++26 https://github.com/jeremy-rifkin/cpptrace/issues/236
+
 # v0.8.3
 
 Added:
