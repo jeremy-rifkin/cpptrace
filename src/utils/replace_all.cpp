@@ -30,7 +30,8 @@ namespace detail {
     }
 
     void replace_all_template(std::string& str, const std::pair<std::regex, string_view>& rule) {
-        const auto& [re, replacement] = rule;
+        const auto& re = rule.first;
+        const auto& replacement = rule.second;
         std::smatch match;
         std::size_t cursor = 0;
         while(std::regex_search(str.cbegin() + cursor, str.cend(), match, re)) {
