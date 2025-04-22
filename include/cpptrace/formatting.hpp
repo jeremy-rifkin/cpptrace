@@ -7,6 +7,9 @@
 #include <functional>
 
 CPPTRACE_BEGIN_NAMESPACE
+    CPPTRACE_EXPORT std::string basename(const std::string& path);
+    CPPTRACE_EXPORT std::string prettify_symbol(std::string symbol);
+
     class CPPTRACE_EXPORT formatter {
         class impl;
         // can't be a std::unique_ptr due to msvc awfulness with dllimport/dllexport and https://stackoverflow.com/q/4145605/15675011
@@ -44,6 +47,7 @@ CPPTRACE_BEGIN_NAMESPACE
         formatter& snippets(bool);
         formatter& snippet_context(int);
         formatter& columns(bool);
+        formatter& prettify_symbols(bool);
         formatter& filtered_frame_placeholders(bool);
         formatter& filter(std::function<bool(const stacktrace_frame&)>);
         formatter& transform(std::function<stacktrace_frame(stacktrace_frame)>);

@@ -1,6 +1,7 @@
-#include "cpptrace/basic.hpp"
-#include "cpptrace/utils.hpp"
-#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/basic.hpp>
+#include <cpptrace/utils.hpp>
+#include <cpptrace/formatting.hpp>
+#include <cpptrace/exceptions.hpp>
 
 #include <iostream>
 
@@ -79,4 +80,7 @@ int main() {
 
     cpptrace::experimental::set_dwarf_resolver_line_table_cache_size(100);
     cpptrace::experimental::set_dwarf_resolver_disable_aranges(true);
+
+    cpptrace::basename("");
+    cpptrace::prettify_symbol("");
 }

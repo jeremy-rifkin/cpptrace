@@ -25,6 +25,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Utilities](#utilities)
   - [Formatting](#formatting)
     - [Transforms](#transforms)
+    - [Formatting Utilities](#formatting-utilities)
   - [Configuration](#configuration)
     - [Logging](#logging)
   - [Traces From All Exceptions](#traces-from-all-exceptions)
@@ -350,6 +351,7 @@ namespace cpptrace {
         formatter& snippets(bool);
         formatter& snippet_context(int);
         formatter& columns(bool);
+        formatter& prettify_symbols(bool);
         formatter& filtered_frame_placeholders(bool);
         formatter& filter(std::function<bool(const stacktrace_frame&)>);
         formatter& transform(std::function<stacktrace_frame(stacktrace_frame)>);
@@ -387,6 +389,7 @@ Options:
 | `snippets`                    | Whether to include source code snippets                        | `false`                                                                  |
 | `snippet_context`             | How many lines of source context to show in a snippet          | `2`                                                                      |
 | `columns`                     | Whether to include column numbers if present                   | `true`                                                                   |
+| `prettify_symbols`            | Whether to attempt to clean up long symbol names               | `false`                                                                  |
 | `filtered_frame_placeholders` | Whether to still print filtered frames as just `#n (filtered)` | `true`                                                                   |
 | `filter`                      | A predicate to filter frames with                              | None                                                                     |
 | `transform`                   | A transformer which takes a stacktrace frame and modifies it   | None                                                                     |
@@ -395,6 +398,10 @@ The `automatic` color mode attempts to detect if a stream that may be attached t
 colors for the `formatter::format` method and it may not be able to detect if some ostreams correspond to terminals or
 not. For this reason, `formatter::format` and `formatter::print` methods have overloads taking a color parameter. This
 color parameter will override configured color mode.
+
+The `prettify_symbols` option applies a number of simple rewrite rules to symbols in an attempt to clean them up, e.g.
+it rewrites `foo(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >)`
+as `foo(std::vector<std::string>)`.
 
 Recommended practice with formatters: It's generally preferable to create formatters objects that are long-lived rather
 than to create them on the fly every time a trace needs to be formatted.
@@ -417,6 +424,18 @@ auto formatter = cpptrace::formatter{}
         frame.symbol = replace_all(frame, "std::__cxx11::", "std::");
         return frame;
     });
+```
+
+### Formatting Utilities
+
+Cpptrace exports a couple formatting utilities used internally which might be useful for custom formatters that don't
+use `cpptrace::formatter`:
+
+```cpp
+namespace cpptrace {
+    std::string basename(const std::string& path);
+    std::string prettify_symbol(std::string symbol);
+}
 ```
 
 ## Configuration

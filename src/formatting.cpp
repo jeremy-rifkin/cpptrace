@@ -3,16 +3,60 @@
 
 #include "utils/optional.hpp"
 #include "utils/utils.hpp"
+#include "utils/replace_all.hpp"
 #include "snippets/snippet.hpp"
 
-#include <memory>
 #include <cstdio>
 #include <string>
 #include <functional>
 #include <iostream>
 #include <sstream>
+#include <regex>
 
 CPPTRACE_BEGIN_NAMESPACE
+    std::string basename(const std::string& path) {
+        return internal::basename(path, true);
+    }
+
+    std::string prettify_symbol(std::string symbol) {
+        // > > -> >> replacement
+        // could put in analysis:: but the replacement is basic and this is more convenient for
+        // using in the stringifier too
+        internal::replace_all_dynamic(symbol, "> >", ">>");
+        // "," -> ", " and " ," -> ", "
+        static const std::regex comma_re(R"(\s*,\s*)");
+        internal::replace_all(symbol, comma_re, ", ");
+        // class C -> C for msvc
+        static const std::regex class_re(R"(\b(class|struct)\s+)");
+        internal::replace_all(symbol, class_re, "");
+        // `anonymous namespace' -> (anonymous namespace) for msvc
+        // this brings it in-line with other compilers and prevents any tokenization/highlighting issues
+        static const std::regex msvc_anonymous_namespace("`anonymous namespace'");
+        internal::replace_all(symbol, msvc_anonymous_namespace, "(anonymous namespace)");
+        // rules to replace std::basic_string -> std::string and std::basic_string_view -> std::string
+        // rule to replace ", std::allocator<whatever>"
+        static const std::pair<std::regex, std::string> basic_string = {
+            std::regex(R"(std(::[a-zA-Z0-9_]+)?::basic_string<char)"), "std::string"
+        };
+        internal::replace_all_template(symbol, basic_string);
+        static const std::pair<std::regex, std::string> basic_string_view = {
+            std::regex(R"(std(::[a-zA-Z0-9_]+)?::basic_string_view<char)"), "std::string_view"
+        };
+        internal::replace_all_template(symbol, basic_string_view);
+        static const std::pair<std::regex, std::string> allocator = {
+            std::regex(R"(,\s*std(::[a-zA-Z0-9_]+)?::allocator<)"), ""
+        };
+        internal::replace_all_template(symbol, allocator);
+        static const std::pair<std::regex, std::string> default_delete = {
+            std::regex(R"(,\s*std(::[a-zA-Z0-9_]+)?::default_delete<)"), ""
+        };
+        internal::replace_all_template(symbol, default_delete);
+        // replace std::__cxx11 -> std:: for gcc dual abi
+        // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
+        internal::replace_all_dynamic(symbol, "std::__cxx11::", "std::");
+        return symbol;
+    }
+
     class formatter::impl {
         struct {
             std::string header = "Stack trace (most recent call first):";
@@ -22,6 +66,7 @@ CPPTRACE_BEGIN_NAMESPACE
             bool snippets = false;
             int context_lines = 2;
             bool columns = true;
+            bool prettify_symbols = false;
             bool show_filtered_frames = true;
             std::function<bool(const stacktrace_frame&)> filter;
             std::function<stacktrace_frame(stacktrace_frame)> transform;
@@ -48,6 +93,9 @@ CPPTRACE_BEGIN_NAMESPACE
         }
         void columns(bool columns) {
             options.columns = columns;
+        }
+        void prettify_symbols(bool prettify) {
+            options.prettify_symbols = prettify;
         }
         void filtered_frame_placeholders(bool show) {
             options.show_filtered_frames = show;
@@ -231,7 +279,10 @@ CPPTRACE_BEGIN_NAMESPACE
                 microfmt::print(stream, "{}0x{>{}:0h}{} ", blue, 2 * sizeof(frame_ptr), address, reset);
             }
             if(!frame.symbol.empty()) {
-                microfmt::print(stream, "in {}{}{}", yellow, frame.symbol, reset);
+                microfmt::print(
+                    stream, "in {}{}{}",
+                    yellow, options.prettify_symbols ? prettify_symbol(frame.symbol) : frame.symbol, reset
+                );
             }
             if(!frame.filename.empty()) {
                 microfmt::print(
@@ -300,6 +351,10 @@ CPPTRACE_BEGIN_NAMESPACE
     }
     formatter& formatter::columns(bool columns) {
         pimpl->columns(columns);
+        return *this;
+    }
+    formatter& formatter::prettify_symbols(bool prettify) {
+        pimpl->prettify_symbols(prettify);
         return *this;
     }
     formatter& formatter::filtered_frame_placeholders(bool show) {
