@@ -963,6 +963,7 @@ namespace cpptrace {
             const raw_trace& get_raw_trace() const;
             stacktrace& get_resolved_trace();
             const stacktrace& get_resolved_trace() const; // throws if not already resolved
+            bool is_resolved() const;
         private:
             void clear();
         };
@@ -1053,6 +1054,12 @@ registered with cpptrace.
 
 
 [jitci]: https://sourceware.org/gdb/current/onlinedocs/gdb.html/JIT-Interface.html
+
+# ABI Versioning
+
+Since cpptrace vX, the library uses an inline ABI versioning namespace and all symbols part of the public interface are
+secretly under the namespace `cpptrace::v1`. This is done to allow for potential future library evolution in an
+ABI-friendly manner.
 
 # Supported Debug Formats
 
