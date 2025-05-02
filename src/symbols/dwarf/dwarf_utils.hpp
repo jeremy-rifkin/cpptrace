@@ -85,7 +85,7 @@ namespace libdwarf {
             VERIFY(items.size() < std::numeric_limits<std::uint32_t>::max());
             return handle{static_cast<std::uint32_t>(items.size() - 1)};
         }
-        auto insert(handle handle, K low, K high) {
+        void insert(handle handle, K low, K high) {
             range_entries.push_back({handle, low, high});
         }
         void finalize() {
