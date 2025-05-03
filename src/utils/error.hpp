@@ -62,12 +62,13 @@ namespace detail {
         string_view message = ""
     );
 
-    template<typename T>
-    void nullfn() {
-        // this method doesn't do anything and is never called.
+
+    template<typename... Ts>
+    void nullfn(Ts&&...) {
+        // Do nothing, but ensure all parameters are "used".
     }
 
-    #define PHONY_USE(...) (nullfn<decltype(__VA_ARGS__)>())
+    #define PHONY_USE(...) nullfn(__VA_ARGS__)
 
     // Work around a compiler warning
     template<typename T>
