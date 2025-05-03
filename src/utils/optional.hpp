@@ -34,7 +34,7 @@ namespace detail {
         using value_type = well_behaved<T>;
 
         union {
-            char x;
+            char x{};
             value_type uvalue;
         };
 
