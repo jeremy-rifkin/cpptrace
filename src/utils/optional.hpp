@@ -73,10 +73,12 @@ namespace detail {
         optional& operator=(optional&& other)
             noexcept(std::is_nothrow_move_assignable<value_type>::value && std::is_nothrow_move_constructible<value_type>::value)
         {
-            reset();
-            if(other.holds_value) {
-                new (static_cast<void*>(std::addressof(uvalue))) value_type(std::move(other.uvalue));
-                holds_value = true;
+            if (this != &other) {
+                reset();
+                if (other.holds_value) {
+                    new (static_cast<void*>(std::addressof(uvalue))) value_type(std::move(other.uvalue));
+                    holds_value = true;
+                }
             }
             return *this;
         }
