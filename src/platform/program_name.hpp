@@ -68,7 +68,6 @@ namespace internal {
 
 #elif IS_LINUX
 
-#include <linux/limits.h>
 #include <sys/types.h>
 #include <unistd.h>
 
