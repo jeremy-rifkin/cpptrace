@@ -63,12 +63,10 @@ namespace detail {
     );
 
 
-    template<typename... Ts>
-    void nullfn(Ts&&...) {
-        // Do nothing, but ensure all parameters are "used".
-    }
+    template<typename... Args>
+    void nullfn(Args&&...);
 
-    #define PHONY_USE(...) nullfn(__VA_ARGS__)
+    #define PHONY_USE(...) (static_cast<decltype(nullfn(__VA_ARGS__))>(0))
 
     // Work around a compiler warning
     template<typename T>
