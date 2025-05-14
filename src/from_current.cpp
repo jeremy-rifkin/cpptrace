@@ -79,6 +79,22 @@ namespace internal {
         }
     }
 
+    bool can_catch(
+        const std::type_info* type,
+        const std::type_info* throw_type,
+        void** throw_obj,
+        unsigned outer
+    ) {
+        // get the vtable for the type_info and call the function pointer in the 6th slot
+        // see below: perform_typeinfo_surgery
+        void* type_info_pointer = const_cast<void*>(static_cast<const void*>(type));
+        void** type_info_vtable_pointer = *static_cast<void***>(type_info_pointer);
+        // the type info vtable pointer points to two pointers inside the vtable, adjust it back
+        type_info_vtable_pointer -= 2;
+        auto* can_catch_fn = reinterpret_cast<decltype(can_catch)*>(type_info_vtable_pointer[6]);
+        return can_catch_fn(type, throw_type, throw_obj, outer);
+    }
+
     CPPTRACE_FORCE_NO_INLINE
     bool intercept_unwind(
         const std::type_info* self,
@@ -90,7 +106,7 @@ namespace internal {
         //     intercept_unwind_handler(1);
         // }
         auto it = get_type_info_map().find(self);
-        if(it != get_type_info_map().end() && it->second->__do_catch(throw_type, throw_obj, outer)) {
+        if(it != get_type_info_map().end() && can_catch(it->second, throw_type, throw_obj, outer)) {
             exception_unwind_interceptor(1);
         }
         return false;
@@ -267,9 +283,9 @@ namespace internal {
             return;
         }
         void* type_info_pointer = const_cast<void*>(static_cast<const void*>(&info));
-        void* type_info_vtable_pointer = *static_cast<void**>(type_info_pointer);
+        void** type_info_vtable_pointer = *static_cast<void***>(type_info_pointer);
         // the type info vtable pointer points to two pointers inside the vtable, adjust it back
-        type_info_vtable_pointer = static_cast<void*>(static_cast<void**>(type_info_vtable_pointer) - 2);
+        type_info_vtable_pointer -= 2;
 
         // for libstdc++ the class type info vtable looks like
         // 0x7ffff7f89d18 <_ZTVN10__cxxabiv117__class_type_infoE>:    0x0000000000000000  0x00007ffff7f89d00

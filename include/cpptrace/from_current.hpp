@@ -63,8 +63,8 @@ CPPTRACE_BEGIN_NAMESPACE
              // against it here too as a fast path, not that this should matter for performance
              static bool did_prepare = false;
              if(!did_prepare) {
-                 return do_prepare_unwind_interceptor(typeid(unwind_interceptor<T>), typeid(T));
                  did_prepare = true;
+                 return do_prepare_unwind_interceptor(typeid(unwind_interceptor<T>), typeid(T));
              }
              return 0;
          }
