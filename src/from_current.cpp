@@ -1,4 +1,5 @@
 #include "cpptrace/forward.hpp"
+#include <unordered_map>
 #define CPPTRACE_DONT_PREPARE_UNWIND_INTERCEPTOR_ON
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
@@ -47,22 +48,59 @@ namespace internal {
     }
 
     #ifndef _MSC_VER
-    // set only once by do_prepare_unwind_interceptor
-    char (*intercept_unwind_handler)(std::size_t) = nullptr;
+    CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip);
+
+    auto& get_type_info_map() {
+        static std::unordered_map<const std::type_info*, const std::type_info*> map;
+        return map;
+    }
+
+    // this function can be void, however, a char return is used to prevent TCO of the collect_current_trace
+    CPPTRACE_FORCE_NO_INLINE inline char exception_unwind_interceptor(std::size_t skip) {
+        // if(get_trace_switch()) {
+        //     // Done during a search phase. Flip the switch off, no more traces until an unwind happens
+        //     get_trace_switch() = false;
+            collect_current_trace(skip + 1);
+        // }
+        return 42;
+    }
+
+    // // set only once by do_prepare_unwind_interceptor
+    // char (*intercept_unwind_handler)(std::size_t) = exception_unwind_interceptor;
+
+    CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
+        microfmt::print("collect_current_trace\n");
+        auto trace = cpptrace::generate_raw_trace(skip + 1);
+        if(internal::get_rethrow_switch()) {
+            internal::saved_rethrow_trace = detail::lazy_trace_holder(std::move(trace));
+        } else {
+            internal::current_exception_trace = detail::lazy_trace_holder(std::move(trace));
+            internal::saved_rethrow_trace = detail::lazy_trace_holder();
+        }
+    }
 
     CPPTRACE_FORCE_NO_INLINE
-    bool intercept_unwind(const std::type_info*, const std::type_info*, void**, unsigned) {
-        if(intercept_unwind_handler) {
-            intercept_unwind_handler(1);
+    bool intercept_unwind(
+        const std::type_info* self,
+        const std::type_info* throw_type,
+        void** throw_obj,
+        unsigned outer
+    ) {
+        // if(intercept_unwind_handler) {
+        //     intercept_unwind_handler(1);
+        // }
+        auto it = get_type_info_map().find(self);
+        if(it != get_type_info_map().end() && it->second->__do_catch(throw_type, throw_obj, outer)) {
+            exception_unwind_interceptor(1);
         }
         return false;
     }
 
-    CPPTRACE_FORCE_NO_INLINE
-    bool unconditional_exception_unwind_interceptor(const std::type_info*, const std::type_info*, void**, unsigned) {
-        detail::collect_current_trace(1);
-        return false;
-    }
+    // CPPTRACE_FORCE_NO_INLINE
+    // bool unconditional_exception_unwind_interceptor(const std::type_info*, const std::type_info*, void**, unsigned) {
+    //     collect_current_trace(1);
+    //     return false;
+    // }
 
     using do_catch_fn = decltype(intercept_unwind);
 
@@ -313,39 +351,31 @@ namespace internal {
 
 CPPTRACE_BEGIN_NAMESPACE
     namespace detail {
-        CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
-            auto trace = cpptrace::generate_raw_trace(skip + 1);
-            if(internal::get_rethrow_switch()) {
-                internal::saved_rethrow_trace = lazy_trace_holder(std::move(trace));
-            } else {
-                internal::current_exception_trace = lazy_trace_holder(std::move(trace));
-                internal::saved_rethrow_trace = lazy_trace_holder();
-            }
-        }
-
         #ifndef _MSC_VER
-        unwind_interceptor::~unwind_interceptor() = default;
-        unconditional_unwind_interceptor::~unconditional_unwind_interceptor() = default;
+        // unwind_interceptor::~unwind_interceptor() = default;
+        // unconditional_unwind_interceptor::~unconditional_unwind_interceptor() = default;
 
-        void do_prepare_unwind_interceptor(char(*intercept_unwind_handler)(std::size_t)) {
-            static std::atomic_bool did_prepare{false};
-            if(!did_prepare.exchange(true)) {
-                internal::intercept_unwind_handler = intercept_unwind_handler;
+        int do_prepare_unwind_interceptor(const std::type_info& type_info, const std::type_info& target_type_info) {
+            // static std::atomic_bool did_prepare{false};
+            if(/*!did_prepare.exchange(true)*/true) {
+                // internal::intercept_unwind_handler = intercept_unwind_handler;
                 try {
                     internal::perform_typeinfo_surgery(
-                        typeid(cpptrace::detail::unwind_interceptor),
+                        type_info,
                         internal::intercept_unwind
                     );
-                    internal::perform_typeinfo_surgery(
-                        typeid(cpptrace::detail::unconditional_unwind_interceptor),
-                        internal::unconditional_exception_unwind_interceptor
-                    );
+                    internal::get_type_info_map().insert({&type_info, &target_type_info});
+                    // internal::perform_typeinfo_surgery(
+                    //     typeid(cpptrace::detail::unconditional_unwind_interceptor),
+                    //     internal::unconditional_exception_unwind_interceptor
+                    // );
                 } catch(std::exception& e) {
                     internal::log::error("Exception occurred while preparing from_current support: {}", e.what());
                 } catch(...) {
                     internal::log::error("Unknown exception occurred while preparing from_current support");
                 }
             }
+            return 42;
         }
         #endif
     }

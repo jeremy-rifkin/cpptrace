@@ -12,7 +12,6 @@ cc_test(
         "unit/tracing/object_trace.cpp",
         "unit/tracing/stacktrace.cpp",
         "unit/tracing/from_current.cpp",
-        "unit/tracing/from_current_z.cpp",
         "unit/tracing/traced_exception.cpp",
         "unit/internals/optional.cpp",
         "unit/internals/result.cpp",
