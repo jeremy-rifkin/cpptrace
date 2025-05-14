@@ -50,7 +50,7 @@ namespace internal {
     #ifndef _MSC_VER
     CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip);
 
-    auto& get_type_info_map() {
+    std::unordered_map<const std::type_info*, const std::type_info*>& get_type_info_map() {
         static std::unordered_map<const std::type_info*, const std::type_info*> map;
         return map;
     }
