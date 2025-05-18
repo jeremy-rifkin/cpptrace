@@ -4,6 +4,10 @@
 #include <exception>
 #include <typeinfo>
 
+#ifdef _MSC_VER
+ #include <windows.h>
+#endif
+
 #include <cpptrace/basic.hpp>
 
 // https://godbolt.org/z/4MsT6KqP1
@@ -36,52 +40,60 @@ CPPTRACE_BEGIN_NAMESPACE
     CPPTRACE_NORETURN CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE
     void rethrow(std::exception_ptr exception);
 
+    CPPTRACE_EXPORT void clear_current_exception_traces();
+
     namespace detail {
+        template<typename>
+        struct argument;
+        template<typename R, typename Arg>
+        struct argument<R(Arg)> {
+            using type = Arg;
+        };
+        template<typename R>
+        struct argument<R(...)> {
+            using type = void;
+        };
+
+        CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip);
+
         #ifdef _MSC_VER
-         CPPTRACE_FORCE_NO_INLINE inline int exception_filter() {
-             exception_unwind_interceptor(1);
-             return 0; // EXCEPTION_CONTINUE_SEARCH
-         }
-         CPPTRACE_FORCE_NO_INLINE inline int unconditional_exception_filter() {
-             collect_current_trace(1);
-             return 0; // EXCEPTION_CONTINUE_SEARCH
+         CPPTRACE_EXPORT bool matches_exception(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info);
+         template<typename E>
+         CPPTRACE_FORCE_NO_INLINE inline int exception_filter(EXCEPTION_POINTERS* exception_ptrs) {
+             if(matches_exception(exception_ptrs, typeid(E))) {
+                 collect_current_trace(1);
+             }
+             return EXCEPTION_CONTINUE_SEARCH;
          }
         #else
-         bool do_catch(const std::type_info&, const std::type_info&);
+         bool check_can_catch(const std::type_info*, const std::type_info*, void**, unsigned);
          template<typename T>
          class unwind_interceptor {
          public:
              static int init;
+             CPPTRACE_FORCE_NO_INLINE static bool can_catch(
+                 const std::type_info* /* this */,
+                 const std::type_info* throw_type,
+                 void** throw_obj,
+                 unsigned outer
+             ) {
+                 if(check_can_catch(&typeid(T), throw_type, throw_obj, outer)) {
+                     collect_current_trace(1);
+                 }
+                 return false;
+             }
          };
-         CPPTRACE_EXPORT int do_prepare_unwind_interceptor(const std::type_info&, const std::type_info&);
+         CPPTRACE_EXPORT void do_prepare_unwind_interceptor(
+             const std::type_info&,
+             bool(*)(const std::type_info*, const std::type_info*, void**, unsigned)
+         );
          template<typename T>
          inline int prepare_unwind_interceptor() {
-             // __attribute__((constructor)) inline functions can be called for every source file they're #included in
-             // there is still only one copy of the inline function in the final executable, though
-             // LTO can make the redundant constructs fire only once
-             // do_prepare_unwind_interceptor prevents against multiple preparations however it makes sense to guard
-             // against it here too as a fast path, not that this should matter for performance
-             static bool did_prepare = false;
-             if(!did_prepare) {
-                 did_prepare = true;
-                 return do_prepare_unwind_interceptor(typeid(unwind_interceptor<T>), typeid(T));
-             }
-             return 0;
+             do_prepare_unwind_interceptor(typeid(unwind_interceptor<T>), unwind_interceptor<T>::can_catch);
+             return 1;
          }
-         #ifndef CPPTRACE_DONT_PREPARE_UNWIND_INTERCEPTOR_ON
          template<typename T>
          int unwind_interceptor<T>::init = prepare_unwind_interceptor<T>();
-         #endif
-         template<typename>
-         struct argument;
-         template<typename R, typename Arg>
-         struct argument<R(Arg)> {
-             using type = Arg;
-         };
-         template<typename R>
-         struct argument<R(...)> {
-             using type = void;
-         };
          template<typename F>
          using unwind_interceptor_for = unwind_interceptor<typename argument<F>::type>;
         #endif
@@ -91,17 +103,18 @@ CPPTRACE_BEGIN_NAMESPACE
 CPPTRACE_END_NAMESPACE
 
 #ifdef _MSC_VER
+ #define CPPTRACE_TYPE_FOR(param) \
+     ::cpptrace::detail::argument<void(param)>::type
  // this awful double-IILE is due to C2713 "You can't use structured exception handling (__try/__except) and C++
  // exception handling (try/catch) in the same function."
  #define CPPTRACE_TRY \
      try { \
-         ::cpptrace::detail::try_canary cpptrace_try_canary; \
          [&]() { \
              __try { \
                  [&]() {
  #define CPPTRACE_CATCH(param) \
                  }(); \
-             } __except(::cpptrace::detail::exception_filter()) {} \
+             } __except(::cpptrace::detail::exception_filter<CPPTRACE_TYPE_FOR(param)>(GetExceptionInformation())) {} \
          }(); \
      } catch(param)
 #else
@@ -119,6 +132,7 @@ CPPTRACE_END_NAMESPACE
      } catch(param)
 #endif
 
+// TODO: ELIMINATE
 #define CPPTRACE_CATCH_ALT(param) catch(param)
 
 #ifdef CPPTRACE_UNPREFIXED_TRY_CATCH

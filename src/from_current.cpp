@@ -1,6 +1,3 @@
-#include "cpptrace/forward.hpp"
-#include <unordered_map>
-#define CPPTRACE_DONT_PREPARE_UNWIND_INTERCEPTOR_ON
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 
@@ -14,7 +11,9 @@
 #include "utils/utils.hpp"
 #include "logging.hpp"
 
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+ #include <ehdata.h>
+#else
  #include <string.h>
  #if IS_WINDOWS
   #ifndef WIN32_LEAN_AND_MEAN
@@ -36,7 +35,6 @@
  #endif
 #endif
 
-
 namespace cpptrace {
 namespace internal {
     thread_local detail::lazy_trace_holder current_exception_trace;
@@ -46,27 +44,6 @@ namespace internal {
         static thread_local bool rethrow_switch = false;
         return rethrow_switch;
     }
-
-    #ifndef _MSC_VER
-    CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip);
-
-    std::unordered_map<const std::type_info*, const std::type_info*>& get_type_info_map() {
-        static std::unordered_map<const std::type_info*, const std::type_info*> map;
-        return map;
-    }
-
-    // this function can be void, however, a char return is used to prevent TCO of the collect_current_trace
-    CPPTRACE_FORCE_NO_INLINE inline char exception_unwind_interceptor(std::size_t skip) {
-        // if(get_trace_switch()) {
-        //     // Done during a search phase. Flip the switch off, no more traces until an unwind happens
-        //     get_trace_switch() = false;
-            collect_current_trace(skip + 1);
-        // }
-        return 42;
-    }
-
-    // // set only once by do_prepare_unwind_interceptor
-    // char (*intercept_unwind_handler)(std::size_t) = exception_unwind_interceptor;
 
     CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
         microfmt::print("collect_current_trace\n");
@@ -79,47 +56,105 @@ namespace internal {
         }
     }
 
-    bool can_catch(
-        const std::type_info* type,
-        const std::type_info* throw_type,
-        void** throw_obj,
-        unsigned outer
-    ) {
-        // get the vtable for the type_info and call the function pointer in the 6th slot
-        // see below: perform_typeinfo_surgery
-        void* type_info_pointer = const_cast<void*>(static_cast<const void*>(type));
-        void** type_info_vtable_pointer = *static_cast<void***>(type_info_pointer);
-        // the type info vtable pointer points to two pointers inside the vtable, adjust it back
-        type_info_vtable_pointer -= 2;
-        auto* can_catch_fn = reinterpret_cast<decltype(can_catch)*>(type_info_vtable_pointer[6]);
-        return can_catch_fn(type, throw_type, throw_obj, outer);
+    #ifdef _MSC_VER
+    // https://www.youtube.com/watch?v=COEv2kq_Ht8
+    // https://github.com/tpn/pdfs/blob/master/2018%20CppCon%20Unwinding%20the%20Stack%20-%20Exploring%20how%20C%2B%2B%20Exceptions%20work%20on%20Windows%20-%20James%20McNellis.pdf
+    // https://github.com/ecatmur/stacktrace-from-exception/blob/main/stacktrace-from-exception.cpp
+    // https://github.com/wine-mirror/wine/blob/7f833db11ffea4f3f4fa07be31d30559aff9c5fb/dlls/msvcrt/except.c#L371
+    using catchable_type_array_t = decltype(ThrowInfo::pCatchableTypeArray);
+
+    class catchable_type_info {
+        HMODULE module_pointer = nullptr;
+        const _CatchableTypeArray* catchable_types = nullptr;
+    public:
+        catchable_type_info(const HMODULE module_pointer, catchable_type_array_t catchable_type_array)
+            : module_pointer(module_pointer) {
+            catchable_types = rtti_rva<const _CatchableTypeArray*>(catchable_type_array);
+        }
+
+        class iterator {
+            const catchable_type_info& info;
+            std::size_t i;
+        public:
+            iterator(const catchable_type_info& info, std::size_t i) : info(info), i(i) {}
+            const std::type_info& operator*() const {
+                return info.get_type_info(i);
+            }
+            bool operator!=(const iterator& other) const {
+                return i != other.i;
+            }
+            iterator& operator++() {
+                i++;
+                return *this;
+            }
+        };
+        using const_iterator = iterator;
+
+        const_iterator begin() const {
+            return {*this, 0};
+        }
+        const_iterator end() const {
+            return {*this, catchable_types ? catchable_types->nCatchableTypes : 0};
+        }
+
+    private:
+        template<typename T, typename A>
+        T rtti_rva(A address) const {
+            #ifdef _WIN64
+             return reinterpret_cast<T>((uintptr_t)module_pointer + (uintptr_t)address);
+            #else
+             return reinterpret_cast<T>(address);
+            #endif
+        }
+
+        const std::type_info& get_type_info(std::size_t i) const {
+            return *rtti_rva<const std::type_info*>(get_catchable_type(i)->pType);
+        }
+
+        const CatchableType* get_catchable_type(std::size_t i) const {
+            return rtti_rva<const CatchableType*>(
+                reinterpret_cast<const std::int32_t*>(catchable_types->arrayOfCatchableTypes)[i]
+            );
+        }
+    };
+
+    catchable_type_info get_catchable_types(const EXCEPTION_RECORD* exception_record) {
+        static_assert(EXCEPTION_MAXIMUM_PARAMETERS >= 4);
+        // ExceptionInformation will contain
+        // [0] EH_MAGIC_NUMBER1
+        // [1] ExceptionObject
+        // [2] ThrowInfo
+        HMODULE module_pointer = nullptr;
+        catchable_type_array_t catchable_type_array{}; // will be either an int or pointer
+        if(
+            exception_record->ExceptionInformation[0] == EH_MAGIC_NUMBER1
+            && exception_record->NumberParameters >= 3
+        ) {
+            if(exception_record->NumberParameters >= 4) {
+                module_pointer = reinterpret_cast<HMODULE>(exception_record->ExceptionInformation[3]);
+            }
+            auto throw_info = reinterpret_cast<const ThrowInfo*>(exception_record->ExceptionInformation[2]);
+            if (throw_info) {
+                catchable_type_array = throw_info->pCatchableTypeArray;
+            }
+        }
+        return {module_pointer, catchable_type_array};
     }
 
-    CPPTRACE_FORCE_NO_INLINE
-    bool intercept_unwind(
-        const std::type_info* self,
-        const std::type_info* throw_type,
-        void** throw_obj,
-        unsigned outer
-    ) {
-        // if(intercept_unwind_handler) {
-        //     intercept_unwind_handler(1);
-        // }
-        auto it = get_type_info_map().find(self);
-        if(it != get_type_info_map().end() && can_catch(it->second, throw_type, throw_obj, outer)) {
-            exception_unwind_interceptor(1);
+    bool matches_exception(EXCEPTION_RECORD* exception_record, const std::type_info& type_info) {
+        if (type_info == typeid(void)) {
+            return true;
+        }
+        for (const auto& catchable_type : get_catchable_types(exception_record)) {
+            if (catchable_type == type_info) {
+                return true;
+            }
         }
         return false;
     }
+    #endif
 
-    // CPPTRACE_FORCE_NO_INLINE
-    // bool unconditional_exception_unwind_interceptor(const std::type_info*, const std::type_info*, void**, unsigned) {
-    //     collect_current_trace(1);
-    //     return false;
-    // }
-
-    using do_catch_fn = decltype(intercept_unwind);
-
+    #ifndef _MSC_VER
     #if IS_LIBSTDCXX
         constexpr size_t vtable_size = 11;
     #elif IS_LIBCXX
@@ -278,7 +313,7 @@ namespace internal {
     }
     #endif
 
-    void perform_typeinfo_surgery(const std::type_info& info, do_catch_fn* do_catch_function) {
+    void perform_typeinfo_surgery(const std::type_info& info, bool(*do_catch_function)(const std::type_info*, const std::type_info*, void**, unsigned)) {
         if(vtable_size == 0) { // set to zero if we don't know what standard library we're working with
             return;
         }
@@ -350,6 +385,25 @@ namespace internal {
         *static_cast<void**>(type_info_pointer) = static_cast<void*>(new_vtable + 2);
         mprotect_page(reinterpret_cast<void*>(page_addr), page_size, old_protections);
     }
+
+    bool can_catch(
+        const std::type_info* type,
+        const std::type_info* throw_type,
+        void** throw_obj,
+        unsigned outer
+    ) {
+        if (*type == typeid(void)) {
+            return true;
+        }
+        // get the vtable for the type_info and call the function pointer in the 6th slot
+        // see below: perform_typeinfo_surgery
+        void* type_info_pointer = const_cast<void*>(static_cast<const void*>(type));
+        void** type_info_vtable_pointer = *static_cast<void***>(type_info_pointer);
+        // the type info vtable pointer points to two pointers inside the vtable, adjust it back
+        type_info_vtable_pointer -= 2;
+        auto* can_catch_fn = reinterpret_cast<decltype(can_catch)*>(type_info_vtable_pointer[6]);
+        return can_catch_fn(type, throw_type, throw_obj, outer);
+    }
     #endif
 
     // called when unwinding starts after rethrowing, after search phase
@@ -367,31 +421,44 @@ namespace internal {
 
 CPPTRACE_BEGIN_NAMESPACE
     namespace detail {
-        #ifndef _MSC_VER
-        // unwind_interceptor::~unwind_interceptor() = default;
-        // unconditional_unwind_interceptor::~unconditional_unwind_interceptor() = default;
+        CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
+            internal::collect_current_trace(skip + 1);
+        }
 
-        int do_prepare_unwind_interceptor(const std::type_info& type_info, const std::type_info& target_type_info) {
-            // static std::atomic_bool did_prepare{false};
-            if(/*!did_prepare.exchange(true)*/true) {
-                // internal::intercept_unwind_handler = intercept_unwind_handler;
-                try {
-                    internal::perform_typeinfo_surgery(
-                        type_info,
-                        internal::intercept_unwind
-                    );
-                    internal::get_type_info_map().insert({&type_info, &target_type_info});
-                    // internal::perform_typeinfo_surgery(
-                    //     typeid(cpptrace::detail::unconditional_unwind_interceptor),
-                    //     internal::unconditional_exception_unwind_interceptor
-                    // );
-                } catch(std::exception& e) {
-                    internal::log::error("Exception occurred while preparing from_current support: {}", e.what());
-                } catch(...) {
-                    internal::log::error("Unknown exception occurred while preparing from_current support");
+        #ifdef _MSC_VER
+        bool matches_exception(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info) {
+            __try {
+                auto* exception_record = exception_ptrs->ExceptionRecord;
+                // Check if the SEH exception is a C++ exception
+                if(exception_record->ExceptionCode == EH_EXCEPTION_NUMBER) {
+                    return internal::matches_exception(exception_record, type_info);
                 }
+            } __except(EXCEPTION_EXECUTE_HANDLER) {
+                // pass
             }
-            return 42;
+            return false;
+        }
+        #else
+        bool check_can_catch(
+            const std::type_info* type,
+            const std::type_info* throw_type,
+            void** throw_obj,
+            unsigned outer
+        ) {
+            return internal::can_catch(type, throw_type, throw_obj, outer);
+        }
+
+        void do_prepare_unwind_interceptor(const std::type_info& type_info, bool(*can_catch)(const std::type_info*, const std::type_info*, void**, unsigned)) {
+            try {
+                internal::perform_typeinfo_surgery(
+                    type_info,
+                    can_catch
+                );
+            } catch(std::exception& e) {
+                internal::log::error("Exception occurred while preparing from_current support: {}", e.what());
+            } catch(...) {
+                internal::log::error("Unknown exception occurred while preparing from_current support");
+            }
         }
         #endif
     }
@@ -429,5 +496,10 @@ CPPTRACE_BEGIN_NAMESPACE
     CPPTRACE_FORCE_NO_INLINE void rethrow(std::exception_ptr exception) {
         auto guard = internal::setup_rethrow();
         std::rethrow_exception(exception);
+    }
+
+    void clear_current_exception_traces() {
+        internal::current_exception_trace = detail::lazy_trace_holder{raw_trace{}};
+        internal::saved_rethrow_trace = detail::lazy_trace_holder{raw_trace{}};
     }
 CPPTRACE_END_NAMESPACE
