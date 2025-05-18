@@ -61,6 +61,7 @@ namespace internal {
     // https://github.com/tpn/pdfs/blob/master/2018%20CppCon%20Unwinding%20the%20Stack%20-%20Exploring%20how%20C%2B%2B%20Exceptions%20work%20on%20Windows%20-%20James%20McNellis.pdf
     // https://github.com/ecatmur/stacktrace-from-exception/blob/main/stacktrace-from-exception.cpp
     // https://github.com/wine-mirror/wine/blob/7f833db11ffea4f3f4fa07be31d30559aff9c5fb/dlls/msvcrt/except.c#L371
+    // https://github.com/facebook/folly/blob/d17bf897cb5bbf8f07b122a614e8cffdc38edcde/folly/lang/Exception.cpp
     using catchable_type_array_t = decltype(ThrowInfo::pCatchableTypeArray);
 
     class catchable_type_info {

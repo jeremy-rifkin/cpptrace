@@ -66,7 +66,7 @@ CPPTRACE_BEGIN_NAMESPACE
              return EXCEPTION_CONTINUE_SEARCH;
          }
         #else
-         bool check_can_catch(const std::type_info*, const std::type_info*, void**, unsigned);
+         CPPTRACE_EXPORT bool check_can_catch(const std::type_info*, const std::type_info*, void**, unsigned);
          template<typename T>
          class unwind_interceptor {
          public:
