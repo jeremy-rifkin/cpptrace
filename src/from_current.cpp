@@ -94,7 +94,7 @@ namespace internal {
             return {*this, 0};
         }
         const_iterator end() const {
-            return {*this, catchable_types ? catchable_types->nCatchableTypes : 0};
+            return {*this, catchable_types ? catchable_types->nCatchableTypes : std::size_t{}};
         }
 
     private:
