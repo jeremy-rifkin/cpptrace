@@ -25,6 +25,9 @@ namespace {
     }
 
     void check_trace(const cpptrace::stacktrace& trace, std::string_view file, int line) {
+        (void)trace;
+        (void)file;
+        (void)line;
         #ifndef CPPTRACE_BUILD_NO_SYMBOLS
         for(const auto& frame : trace) {
             if(frame.filename.find(file) != std::string::npos && frame.line == line) {
