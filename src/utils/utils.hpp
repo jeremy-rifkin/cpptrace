@@ -49,7 +49,7 @@ namespace internal {
         return str;
     }
 
-    // first value in a sorted range such that *it <= value
+    // closest value in a sorted range such that *it <= value
     template<typename ForwardIt, typename T>
     ForwardIt first_less_than_or_equal(ForwardIt begin, ForwardIt end, const T& value) {
         auto it = std::upper_bound(begin, end, value);
@@ -60,7 +60,7 @@ namespace internal {
         return end;
     }
 
-    // first value in a sorted range such that *it <= value
+    // closest value in a sorted range such that *it <= value
     template<typename ForwardIt, typename T, typename Compare>
     ForwardIt first_less_than_or_equal(ForwardIt begin, ForwardIt end, const T& value, Compare compare) {
         auto it = std::upper_bound(begin, end, value, compare);
