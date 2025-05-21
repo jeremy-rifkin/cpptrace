@@ -31,32 +31,52 @@ void dump_symtab_result(const Result<optional<std::vector<elf::symbol_entry>>, i
     }
 }
 
-void dump_symbols(const std::filesystem::path& path) {
+auto get_elf(const std::filesystem::path& path) {
     auto elf_ = elf::open(path.native());
     if(!elf_) {
         fmt::println(stderr, "Error reading file: {}", elf_.unwrap_error().what());
     }
-    auto& elf = elf_.unwrap_value();
+    return std::move(elf_).unwrap_value();
+}
+
+void dump_symbols(const std::filesystem::path& path) {
+    auto elf = get_elf(path);
     fmt::println("Symtab:");
     dump_symtab_result(elf.get_symtab_entries());
     fmt::println("Dynamic symtab:");
     dump_symtab_result(elf.get_dynamic_symtab_entries());
 }
+void lookup_symbol(const std::filesystem::path& path, cpptrace::frame_ptr address) {
+    auto elf = get_elf(path);
+    if(auto symbol = elf.lookup_symbol(address)) {
+        fmt::println("Symbol: {}", symbol.unwrap());
+    } else {
+        fmt::println("Could not find symbol");
+    }
+}
 #elif IS_APPLE
-void dump_symbols(const std::filesystem::path& path) {
+void dump_symbols(const std::filesystem::path&) {
+    fmt::println("Not implemented yet (TODO)");
+}
+void lookup_symbol(const std::filesystem::path&, cpptrace::frame_ptr) {
     fmt::println("Not implemented yet (TODO)");
 }
 #else
 void dump_symbols(const std::filesystem::path&) {
-    fmt::println("Unable to dump symbol table on this platform");
+    fmt::println("Not implemented yet (TODO)");
+}
+void lookup_symbol(const std::filesystem::path&, cpptrace::frame_ptr) {
+    fmt::println("Not implemented yet (TODO)");
 }
 #endif
 
 int main(int argc, char** argv) CPPTRACE_TRY {
     bool show_help = false;
     std::filesystem::path path;
+    std::optional<std::string> lookup;
     auto cli = lyra::cli()
         | lyra::help(show_help)
+        | lyra::opt(lookup, "address")["--lookup"]("address in hex to lookup")
         | lyra::arg(path, "binary path")("binary to dump symbol tables for").required();
     if(auto result = cli.parse({ argc, argv }); !result) {
         fmt::println(stderr, "Error in command line: {}", result.message());
@@ -74,6 +94,12 @@ int main(int argc, char** argv) CPPTRACE_TRY {
     if(!std::filesystem::is_regular_file(path)) {
         fmt::println(stderr, "Error: Path isn't a regular file {}", path);
         return 1;
+    }
+    if(lookup) {
+        auto address = std::stoull(*lookup, nullptr, 16);
+        fmt::println(stderr, "Looking up address {:016x}", address);
+        lookup_symbol(path, address);
+        return 0;
     }
     dump_symbols(path);
     return 0;
