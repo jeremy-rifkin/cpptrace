@@ -23,13 +23,14 @@ namespace {
         throw E(std::forward<Args>(args)...);
     }
 
-    bool trace_contains(const cpptrace::stacktrace& trace, std::string_view file, int line) {
+    void check_trace(const cpptrace::stacktrace& trace, std::string_view file, int line) {
         for(const auto& frame : trace) {
             if(frame.filename.find(file) != std::string::npos && frame.line == line) {
-                return true;
+                SUCCEED();
+                return;
             }
         }
-        return false;
+        FAIL() << "Trace does not contain "<<file<<":"<<line<<"\n"<<trace.to_string();
     }
 }
 
@@ -44,7 +45,7 @@ TEST(TryCatch, Basic) {
         [&] (const std::runtime_error& e) {
             did_catch = true;
             EXPECT_EQ(e.what(), "foobar"sv);
-            EXPECT_TRUE(trace_contains(cpptrace::from_current_exception(), "try_catch.cpp", line));
+            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
         }
     );
     EXPECT_TRUE(did_catch);
@@ -74,7 +75,7 @@ TEST(TryCatch, Upcast) {
         [&] (const std::exception& e) {
             did_catch = true;
             EXPECT_EQ(e.what(), "foobar"sv);
-            EXPECT_TRUE(trace_contains(cpptrace::from_current_exception(), "try_catch.cpp", line));
+            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
         }
     );
     EXPECT_TRUE(did_catch);
@@ -134,7 +135,7 @@ TEST(TryCatch, CorrectHandler) {
         [&] (const std::runtime_error& e) {
             did_catch = true;
             EXPECT_EQ(e.what(), "foobar"sv);
-            EXPECT_TRUE(trace_contains(cpptrace::from_current_exception(), "try_catch.cpp", line));
+            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
         },
         [&] (const std::exception&) {
             FAIL();
@@ -162,7 +163,7 @@ TEST(TryCatch, BlanketHandler) {
         },
         [&] () {
             did_catch = true;
-            EXPECT_TRUE(trace_contains(cpptrace::from_current_exception(), "try_catch.cpp", line));
+            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
         }
     );
     EXPECT_TRUE(did_catch);
@@ -184,7 +185,7 @@ TEST(TryCatch, CatchOrdering) {
         },
         [&] () {
             did_catch = true;
-            EXPECT_TRUE(trace_contains(cpptrace::from_current_exception(), "try_catch.cpp", line));
+            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
         },
         [&] (const std::runtime_error&) {
             FAIL();
