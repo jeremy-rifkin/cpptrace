@@ -4,7 +4,7 @@
 
 namespace cpptrace {
 namespace microfmt {
-namespace internal {
+namespace detail {
 
     std::ostream& get_cout() {
         return std::cout;
