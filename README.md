@@ -28,11 +28,12 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
     - [Formatting Utilities](#formatting-utilities)
   - [Configuration](#configuration)
     - [Logging](#logging)
-  - [Traces From All Exceptions](#traces-from-all-exceptions)
+  - [Traces From All Exceptions (`CPPTRACE_TRY` and `CPPTRACE_CATCH`)](#traces-from-all-exceptions-cpptrace_try-and-cpptrace_catch)
     - [Removing the `CPPTRACE_` prefix](#removing-the-cpptrace_-prefix)
     - [How it works](#how-it-works)
     - [Performance](#performance)
   - [Rethrowing Exceptions](#rethrowing-exceptions)
+  - [`cpptrace::try_catch`](#cpptracetry_catch)
   - [Traced Exception Objects](#traced-exception-objects)
     - [Wrapping std::exceptions](#wrapping-stdexceptions)
     - [Exception handling with cpptrace exception objects](#exception-handling-with-cpptrace-exception-objects)
@@ -42,6 +43,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Headers](#headers)
   - [Libdwarf Tuning](#libdwarf-tuning)
   - [JIT Support](#jit-support)
+- [ABI Versioning](#abi-versioning)
 - [Supported Debug Formats](#supported-debug-formats)
 - [How to Include The Library](#how-to-include-the-library)
   - [CMake FetchContent](#cmake-fetchcontent)
@@ -492,10 +494,10 @@ level internally.
 
 `cpptrace::use_default_stderr_logger`: Set's the logging callback to print to stderr.
 
-## Traces From All Exceptions
+## Traces From All Exceptions (`CPPTRACE_TRY` and `CPPTRACE_CATCH`)
 
 Cpptrace provides `CPPTRACE_TRY` and `CPPTRACE_CATCH` macros that allow a stack trace to be collected from the current
-thrown exception object, with minimal or no overhead in the non-throwing path:
+thrown exception object, with no overhead in the non-throwing (happy) path:
 
 ```cpp
 #include <cpptrace/from_current.hpp>
@@ -517,7 +519,7 @@ int main() {
 This functionality is entirely opt-in, to access this use `#include <cpptrace/from_current.hpp>`.
 
 Any declarator `catch` accepts works with `CPPTRACE_CATCH`, including `...`. This works with any thrown object, not just
-`std::exceptions`, it even works with `throw 0;`
+`std::exceptions`. It even works with `throw 0;`!
 
 ![from_current](res/from_current.png)
 
@@ -529,30 +531,29 @@ API functions:
 - `cpptrace::from_current_exception`: Returns a resolved `const stacktrace&` from the current exception. Invalidates
   references to traces returned by `cpptrace::raw_trace_from_current_exception`.
 
-There is a performance tradeoff with this functionality: Either the try-block can be zero overhead in the
-non-throwing path with potential expense in the throwing path, or the try-block can have very minimal overhead
-in the non-throwing path due to bookkeeping with guarantees about the expense of the throwing path. More details on
-this tradeoff [below](#performance). Cpptrace provides macros for both sides of this tradeoff:
-- `CPPTRACE_TRY`/`CPPTRACE_CATCH`: Minimal overhead in the non-throwing path (one `mov` on x86, and this may be
-  optimized out if the compiler is able)
-- `CPPTRACE_TRYZ`/`CPPTRACE_CATCHZ`: Zero overhead in the non-throwing path, potential extra cost in the throwing path
+In order to provide stack traces, cpptrace has to do some magic to be able to intercept C++ exception handling internals
+before the stack is unwound. For a simple `try`/`catch`, `CPPTRACE_TRY`/`CPPTRACE_CATCH` macros can be used. For a
+`try`/`catch` that has multiple handlers, `cpptrace::try_catch` can be used. I wish I could make a macro work, however,
+for multiple handlers this is the best way for cpptrace to inject the appropriate magic. E.g.:
 
-Note: It's important to not mix the `Z` variants with the non-`Z` variants.
-
-Unfortunately the try/catch macros are needed to insert some magic to perform a trace during the unwinding search phase.
-In order to have multiple catch alternatives, either `CPPTRACE_CATCH_ALT` or a normal `catch` must be used:
 ```cpp
-CPPTRACE_TRY {
-    foo();
-} CPPTRACE_CATCH(const std::exception&) { // <- First catch must be CPPTRACE_CATCH
-    // ...
-} CPPTRACE_CATCH_ALT(const std::exception&) { // <- Ok
-    // ...
-} catch(const std::exception&) { // <- Also Ok
-    // ...
-} CPPTRACE_CATCH(const std::exception&) { // <- Not Ok
-    // ...
-}
+cpptrace::try_catch(
+    [&] { // try block
+        foo();
+    },
+    [&] (const std::runtime_error& e) {
+        std::cerr<<"Runtime error: "<<e.what()<<std::endl;
+        cpptrace::from_current_exception().print();
+    },
+    [&] (const std::exception& e) {
+        std::cerr<<"Exception: "<<e.what()<<std::endl;
+        cpptrace::from_current_exception().print();
+    },
+    [&] () { // serves the same role as `catch(...)`, an any exception handler
+        std::cerr<<"Unknown exception occurred: "<<std::endl;
+        cpptrace::from_current_exception().print();
+    }
+);
 ```
 
 Note: The current exception is the exception most recently seen by a cpptrace try-catch macro block.
@@ -591,59 +592,129 @@ are common macro names, you can easily modify the following snippet to provide y
 ```cpp
 #define TRY CPPTRACE_TRY
 #define CATCH(param) CPPTRACE_CATCH(param)
-#define TRYZ CPPTRACE_TRYZ
-#define CATCHZ(param) CPPTRACE_CATCHZ(param)
-#define CATCH_ALT(param) CPPTRACE_CATCH_ALT(param)
 ```
 
 ### How it works
 
 C++ does not provide any language support for collecting stack traces when exceptions are thrown, however, exception
-handling under both the Itanium ABI and by SEH (used to implement C++ exceptions on windows) involves unwinding the
+handling under both the Itanium ABI and by SEH (used to implement C++ exceptions on Windows) involves unwinding the
 stack twice. The first unwind searches for an appropriate `catch` handler, the second actually unwinds the stack and
 calls destructors. Since the stack remains intact during the search phase it's possible to collect a stack trace with
 little to no overhead when the `catch` is considered for matching the exception. The try/catch macros for cpptrace set
 up a special try/catch system that can collect a stack trace when considered during a search phase.
 
+On Windows, cpptrace's try/catch macros expand along the lines of:
+<table>
+<thead>
+<tr>
+<td>
+Source
+</td>
+<td>
+Expansion
+</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+
+```cpp
+CPPTRACE_TRY {
+    foo();
+} CPPTRACE_CATCH(const std::exception& e) {
+    ...
+}
+```
+
+</td>
+<td>
+
+```cpp
+try {
+    [&]() {
+        __try {
+            [&]() {
+                foo();
+            }();
+        } __except(exception_filter<const std::exception&>(
+            GetExceptionInformation()
+        )) {}
+    }();
+} catch(const std::exception& e) {
+    ...
+}
+```
+
+</td>
+</tr>
+</tbody>
+</table>
+
+SEH's design actually makes it fairly easy to run code during the search phase. The exception filter will collect a
+trace if it detects the catch will match. Unfortunately, MSVC does not allow mixing C++ `try`/`catch` and SEH
+`__try`/`__except` in the same function so a double-IILE is needed. This has implications for returning from try blocks.
+
+On systems which use the Itanium ABI (linux, mac, etc), cpptrace's try/catch macros expand along the lines of:
+<table>
+<thead>
+<tr>
+<td>
+Source
+</td>
+<td>
+Expansion
+</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+
+```cpp
+CPPTRACE_TRY {
+    foo();
+} CPPTRACE_CATCH(const std::exception& e) {
+    ...
+}
+```
+
+</td>
+<td>
+
+```cpp
+try {
+    try {
+        foo();
+    } catch(const unwind_interceptor_for<const std::exception&>&) {...}
+} catch(const std::exception& e) {
+    ...
+}
+```
+
+</td>
+</tr>
+</tbody>
+</table>
+
+Cpptrace does some magic to hook vtables of `unwind_interceptor_for<T>` type_info objects during static-init time.
+
 N.b.: This mechanism is also discussed in [P2490R3][P2490R3].
 
 ### Performance
 
-The fundamental mechanism for this functionality is generating a trace when a catch block is considered during an
-exception handler search phase. Internally a lightweight raw trace is generated upon consideration, which is quite
-fast. This raw trace is only resolved when `cpptrace::from_current_exception` is called, or when the user manually
-resolves a trace from `cpptrace::raw_trace_from_current_exception`.
+The performance impact in the non-throwing happy path is zero (or as close to zero as practical) on modern
+architectures.
 
-It's tricky, however, from the library's standpoint to check if the catch will end up matching. The library could simply
-generate a trace every time a `CPPTRACE_CATCH` is considered, however, in a deep nesting of catch's, e.g. as a result of
-recusion, where a matching handler is not found quickly this could introduce a non-trivial cost in the throwing pat due
-to tracing the stack multiple times. Thus, there is a performance tradeoff between a little book keeping to prevent
-duplicate tracing or biting the bullet, so to speak, in the throwing path and unwinding multiple times.
+In the unhappy throwing path, a little more work may be done during the search phase to consider handlers cpptrace
+inserts but this is low-impact. Generating the trace itself is fast: Cpptrace collects a raw trace during exception
+handling and it is resolved only when requested. In my benchmarking I have found generation of raw traces to take on the
+order of `100ns` per frame.
 
-> [!TIP]
-> The choice between the `Z` and non-`Z` (zero-overhead and non-zero-overhead) variants of the exception handlers should
-> not matter 99% of the time, however, both are provided in the rare case that it does.
->
-> `CPPTRACE_TRY`/`CPPTRACE_CATCH` could only hurt performance if used in a hot loop where the compiler can't optimize
-> away the internal bookkeeping, otherwise the bookkeeping should be completely negligible.
->
-> `CPPTRACE_TRYZ`/`CPPTRACE_CATCHZ` could only hurt performance when there is an exceptionally deep nesting of exception
-> handlers in a call stack before a matching handler.
-
-More information on performance considerations with the zero-overhead variant:
-
-Tracing the stack multiple times in throwing paths should not matter for the vast majority applications given that:
-1. Performance very rarely is critical in throwing paths and exceptions should be exceptionally rare
-2. Exception handling is not usually used in such a way that you could have a deep nesting of handlers before finding a
-   matching handler
-3. Most call stacks are fairly shallow
-
-To put the scale of this performance consideration into perspective: In my benchmarking I have found generation of raw
-traces to take on the order of `100ns` per frame. Thus, even if there were 100 non-matching handlers before a matching
-handler in a 100-deep call stack the total time would stil be on the order of one millisecond.
-
-Nonetheless, I chose a default bookkeeping behavior for `CPPTRACE_TRY`/`CPPTRACE_CATCH` since it is safer with better
-performance guarantees for the most general possible set of users.
+On some older architectures/ABIs (e.g., 32-bit windows), `try`/`catch` itself has some overhead due to how it is
+implemented with SEH. Cpptrace's `try`/`catch` macro adds one extra layer of handler which may be relevant on such
+systems but should not be a problem outside of hot loops, where using any `try`/`catch` is presumably already a problem
+on such architectures.
 
 ## Rethrowing Exceptions
 
@@ -716,6 +787,45 @@ int main() {
     }
 }
 ```
+
+## `cpptrace::try_catch`
+
+As mentioned above, in order to facilitate `try`/`catch` blocks with multiple handlers while still being able to perform
+the magic necessary to collect stack traces on exceptions, cpptrace provides a `cpptrace::try_catch` utility that can
+take multiple handlers:
+
+```cpp
+cpptrace::try_catch(
+    [&] { // try block
+        foo();
+    },
+    [&] (const std::runtime_error& e) {
+        std::cerr<<"Runtime error: "<<e.what()<<std::endl;
+        cpptrace::from_current_exception().print();
+    },
+    [&] (const std::exception& e) {
+        std::cerr<<"Exception: "<<e.what()<<std::endl;
+        cpptrace::from_current_exception().print();
+    },
+    [&] () { // serves the same role as `catch(...)`, an any exception handler
+        std::cerr<<"Unknown exception occurred: "<<std::endl;
+        cpptrace::from_current_exception().print();
+    }
+);
+```
+
+The synopsis for this utility is:
+
+```cpp
+namespace cpptrace {
+    template<typename F, typename... Catches>
+    void try_catch(F&& f, Catches&&... catches);
+}
+```
+
+Similar to a language `try`/`catch`, `catch` handlers will be considered in the order they are listed. Handlers should
+take exactly one argument, equivalent to what would be written for a catch handler, except for `catch(...)` which can be
+achieved by a handler taking no arguments.
 
 ## Traced Exception Objects
 
