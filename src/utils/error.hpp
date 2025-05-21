@@ -62,12 +62,11 @@ namespace internal {
         string_view message = ""
     );
 
-    template<typename T>
-    void nullfn() {
-        // this method doesn't do anything and is never called.
-    }
 
-    #define PHONY_USE(...) (nullfn<decltype(__VA_ARGS__)>())
+    template<typename... Args>
+    void nullfn(Args&&...);
+
+    #define PHONY_USE(...) (static_cast<decltype(nullfn(__VA_ARGS__))>(0))
 
     // Work around a compiler warning
     template<typename T>
