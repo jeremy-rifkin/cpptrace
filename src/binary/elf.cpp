@@ -434,7 +434,14 @@ namespace internal {
                     normalized.st_shndx = byteswap_if_needed(entry.st_shndx);
                     normalized.st_value = byteswap_if_needed(entry.st_value);
                     normalized.st_size = byteswap_if_needed(entry.st_size);
-                    symbol_table.unwrap().entries.push_back(normalized);
+                    // on arm I've observed zero-size symbols that overlap with symbols we care about
+                    // this interferes with some symbol lookup - that could be fixed by enhancing the logic there but
+                    // also it's easy to just exclude zero-size symbols here
+                    //  1413: 00000000000349e0     0 NOTYPE  LOCAL  DEFAULT   13 $x
+                    // 32341: 00000000000349e0   220 FUNC    GLOBAL DEFAULT   13 _Z33stacktrace_from_current_rethrow_3RSt6vectorIiSaIiEE
+                    if(normalized.st_size != 0) {
+                        symbol_table.unwrap().entries.push_back(normalized);
+                    }
                 }
                 std::sort(
                     symbol_table.unwrap().entries.begin(),
