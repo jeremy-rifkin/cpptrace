@@ -19,11 +19,13 @@ using namespace std::literals;
 
 namespace {
     template<typename E, typename... Args>
+    CPPTRACE_FORCE_NO_INLINE
     void do_throw(Args&&... args) {
         throw E(std::forward<Args>(args)...);
     }
 
     void check_trace(const cpptrace::stacktrace& trace, std::string_view file, int line) {
+        #ifndef CPPTRACE_BUILD_NO_SYMBOLS
         for(const auto& frame : trace) {
             if(frame.filename.find(file) != std::string::npos && frame.line == line) {
                 SUCCEED();
@@ -31,10 +33,35 @@ namespace {
             }
         }
         FAIL() << "Trace does not contain "<<file<<":"<<line<<"\n"<<trace.to_string();
+        #endif
+    }
+
+    void check_trace(const cpptrace::stacktrace& trace, std::string_view try_name) {
+        EXPECT_NE(
+            std::find_if(
+                trace.begin(),
+                trace.end(),
+                [&] (const cpptrace::stacktrace_frame& frame) {
+                    return frame.symbol.find(try_name) != std::string::npos;
+                }
+            ),
+            trace.end()
+        ) << trace;
+        EXPECT_NE(
+            std::find_if(
+                trace.begin(),
+                trace.end(),
+                [&] (const cpptrace::stacktrace_frame& frame) {
+                    return frame.symbol.find("do_throw") != std::string::npos;
+                }
+            ),
+            trace.end()
+        ) << trace;
     }
 }
 
 TEST(TryCatch, Basic) {
+    constexpr std::string_view test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -46,6 +73,7 @@ TEST(TryCatch, Basic) {
             did_catch = true;
             EXPECT_EQ(e.what(), "foobar"sv);
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            check_trace(cpptrace::from_current_exception(), test_name);
         }
     );
     EXPECT_TRUE(did_catch);
@@ -65,6 +93,7 @@ TEST(TryCatch, NoException) {
 }
 
 TEST(TryCatch, Upcast) {
+    constexpr std::string_view test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -76,6 +105,7 @@ TEST(TryCatch, Upcast) {
             did_catch = true;
             EXPECT_EQ(e.what(), "foobar"sv);
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            check_trace(cpptrace::from_current_exception(), test_name);
         }
     );
     EXPECT_TRUE(did_catch);
@@ -119,6 +149,7 @@ TEST(TryCatch, NoMatchingHandler) {
 }
 
 TEST(TryCatch, CorrectHandler) {
+    constexpr std::string_view test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -136,6 +167,7 @@ TEST(TryCatch, CorrectHandler) {
             did_catch = true;
             EXPECT_EQ(e.what(), "foobar"sv);
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            check_trace(cpptrace::from_current_exception(), test_name);
         },
         [&] (const std::exception&) {
             FAIL();
@@ -145,6 +177,7 @@ TEST(TryCatch, CorrectHandler) {
 }
 
 TEST(TryCatch, BlanketHandler) {
+    constexpr std::string_view test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -164,12 +197,14 @@ TEST(TryCatch, BlanketHandler) {
         [&] () {
             did_catch = true;
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            check_trace(cpptrace::from_current_exception(), test_name);
         }
     );
     EXPECT_TRUE(did_catch);
 }
 
 TEST(TryCatch, CatchOrdering) {
+    constexpr std::string_view test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -186,6 +221,7 @@ TEST(TryCatch, CatchOrdering) {
         [&] () {
             did_catch = true;
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            check_trace(cpptrace::from_current_exception(), test_name);
         },
         [&] (const std::runtime_error&) {
             FAIL();
