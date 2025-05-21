@@ -99,7 +99,7 @@ TEST(Rethrow, RethrowPreservesTrace) {
                 return frame.symbol.find("stacktrace_from_current_rethrow_3") != std::string::npos;
             }
         );
-        ASSERT_NE(it, trace.frames.end());
+        ASSERT_NE(it, trace.frames.end()) << trace;
         clean_trace(trace, it);
         size_t i = static_cast<size_t>(it - trace.frames.begin());
         int j = 0;
@@ -156,7 +156,7 @@ TEST(Rethrow, RethrowTraceCorrect) {
                     && frame.symbol.find("::catch") == std::string::npos;
             }
         );
-        ASSERT_NE(it, rethrow_trace.frames.end());
+        ASSERT_NE(it, rethrow_trace.frames.end()) << rethrow_trace;
         clean_trace(rethrow_trace, it);
         size_t i = static_cast<size_t>(it - rethrow_trace.frames.begin());
         int j = 0;
@@ -232,7 +232,7 @@ TEST(Rethrow, RethrowDoesntInterfereWithSubsequentTraces) {
                 return frame.symbol.find("stacktrace_from_current_basic_3") != std::string::npos;
             }
         );
-        ASSERT_NE(it, trace.frames.end());
+        ASSERT_NE(it, trace.frames.end()) << trace;
         size_t i = static_cast<size_t>(it - trace.frames.begin());
         int j = 0;
         ASSERT_LT(i, trace.frames.size());
