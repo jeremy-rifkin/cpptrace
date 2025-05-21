@@ -154,24 +154,24 @@ CPPTRACE_BEGIN_NAMESPACE
         template<typename E, typename F, typename Catch, typename std::enable_if<!std::is_same<E, void>::value, int>::type = 0>
         void do_try_catch(F&& f, Catch&& catcher) {
             CPPTRACE_TRY {
-                f();
+                std::forward<F>(f)();
             } CPPTRACE_CATCH(E e) {
-                catcher(std::forward<E>(e));
+                std::forward<Catch>(catcher)(std::forward<E>(e));
             }
         }
 
         template<typename E, typename F, typename Catch, typename std::enable_if<std::is_same<E, void>::value, int>::type = 0>
         void do_try_catch(F&& f, Catch&& catcher) {
             CPPTRACE_TRY {
-                f();
+                std::forward<F>(f)();
             } CPPTRACE_CATCH(...) {
-                catcher();
+                std::forward<Catch>(catcher)();
             }
         }
 
         template<typename F>
         void try_catch_impl(F&& f) {
-            f();
+            std::forward<F>(f)();
         }
 
         // TODO: This could be made more efficient to reduce the number of interceptor levels that do typeid checks

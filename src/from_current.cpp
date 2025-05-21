@@ -1,7 +1,6 @@
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 
-#include <atomic>
 #include <exception>
 #include <system_error>
 #include <typeinfo>
@@ -46,7 +45,6 @@ namespace internal {
     }
 
     CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
-        microfmt::print("collect_current_trace\n");
         auto trace = cpptrace::generate_raw_trace(skip + 1);
         if(internal::get_rethrow_switch()) {
             internal::saved_rethrow_trace = detail::lazy_trace_holder(std::move(trace));
