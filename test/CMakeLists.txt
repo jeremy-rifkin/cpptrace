@@ -83,6 +83,8 @@ if(NOT CPPTRACE_SKIP_UNIT)
     unit/tracing/object_trace.cpp
     unit/tracing/stacktrace.cpp
     unit/tracing/from_current.cpp
+    unit/tracing/from_current_try_catch.cpp
+    unit/tracing/try_catch.cpp
     unit/tracing/traced_exception.cpp
     unit/tracing/rethrow.cpp
     unit/internals/optional.cpp

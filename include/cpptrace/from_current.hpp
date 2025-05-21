@@ -3,6 +3,7 @@
 
 #include <exception>
 #include <typeinfo>
+#include <utility>
 
 #ifdef _MSC_VER
  #include <windows.h>
@@ -96,9 +97,8 @@ CPPTRACE_BEGIN_NAMESPACE
          int unwind_interceptor<T>::init = prepare_unwind_interceptor<T>();
          template<typename F>
          using unwind_interceptor_for = unwind_interceptor<typename argument<F>::type>;
+         inline void nop(int) {}
         #endif
-
-        inline void nop(int) {}
     }
 CPPTRACE_END_NAMESPACE
 
@@ -132,13 +132,71 @@ CPPTRACE_END_NAMESPACE
      } catch(param)
 #endif
 
-// TODO: ELIMINATE
-#define CPPTRACE_CATCH_ALT(param) catch(param)
+CPPTRACE_BEGIN_NAMESPACE
+    namespace detail {
+        template<typename R, typename Arg>
+        Arg get_callable_argument_helper(R(*) (Arg));
+        template<typename R, typename F, typename Arg>
+        Arg get_callable_argument_helper(R(F::*) (Arg));
+        template<typename R, typename F, typename Arg>
+        Arg get_callable_argument_helper(R(F::*) (Arg) const);
+        template<typename R>
+        void get_callable_argument_helper(R(*) ());
+        template<typename R, typename F>
+        void get_callable_argument_helper(R(F::*) ());
+        template<typename R, typename F>
+        void get_callable_argument_helper(R(F::*) () const);
+        template<typename F>
+        decltype(get_callable_argument_helper(&F::operator())) get_callable_argument_wrapper(F);
+        template<typename T>
+        using get_callable_argument = decltype(get_callable_argument_wrapper(std::declval<T>()));
+
+        template<typename E, typename F, typename Catch, typename std::enable_if<!std::is_same<E, void>::value, int>::type = 0>
+        void do_try_catch(F&& f, Catch&& catcher) {
+            CPPTRACE_TRY {
+                f();
+            } CPPTRACE_CATCH(E e) {
+                catcher(std::forward<E>(e));
+            }
+        }
+
+        template<typename E, typename F, typename Catch, typename std::enable_if<std::is_same<E, void>::value, int>::type = 0>
+        void do_try_catch(F&& f, Catch&& catcher) {
+            CPPTRACE_TRY {
+                f();
+            } CPPTRACE_CATCH(...) {
+                catcher();
+            }
+        }
+
+        template<typename F>
+        void try_catch_impl(F&& f) {
+            f();
+        }
+
+        // TODO: This could be made more efficient to reduce the number of interceptor levels that do typeid checks
+        // and possible traces
+        template<typename F, typename Catch, typename... Catches>
+        void try_catch_impl(F&& f, Catch&& catcher, Catches&&... catches) {
+            // match the first catch at the inner-most level... no real way to reverse a pack or extract from the end so
+            // we have to wrap with a lambda
+            auto wrapped = [&] () {
+                using E = get_callable_argument<Catch>;
+                do_try_catch<E>(std::forward<F>(f), std::forward<Catch>(catcher));
+            };
+            try_catch_impl(std::move(wrapped), std::forward<Catches>(catches)...);
+        }
+    }
+
+    template<typename F, typename... Catches>
+    void try_catch(F&& f, Catches&&... catches) {
+        return detail::try_catch_impl(std::forward<F>(f), std::forward<Catches>(catches)...);
+    }
+CPPTRACE_END_NAMESPACE
 
 #ifdef CPPTRACE_UNPREFIXED_TRY_CATCH
  #define TRY CPPTRACE_TRY
  #define CATCH(param) CPPTRACE_CATCH(param)
- #define CATCH_ALT(param) CPPTRACE_CATCH_ALT(param)
 #endif
 
 #endif
