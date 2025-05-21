@@ -59,7 +59,7 @@ TEST(FromCurrentZ, Basic) {
                 return frame.symbol.find("stacktrace_from_current_z_3") != std::string::npos;
             }
         );
-        ASSERT_NE(it, trace.frames.end());
+        ASSERT_NE(it, trace.frames.end()) << trace;
         size_t i = static_cast<size_t>(it - trace.frames.begin());
         int j = 0;
         ASSERT_LT(i, trace.frames.size());
