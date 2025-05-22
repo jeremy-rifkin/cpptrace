@@ -572,6 +572,36 @@ CPPTRACE_TRY {
 }
 ```
 
+> [!CAUTION]
+> There is a footgun with `return` statements in these try/catch macros: The implementation on Windows requires wrapping
+> the try body in an immediately-invoked lambda and and as such `return` statements return from the lambda not the
+> enclosing function. If you're writing code that will be compiled on windows, it's important to not write `return`
+> statements within CPPTRACE_TRY. E.g., this does not work as expected on windows:
+> ```cpp
+> CPPTRACE_TRY {
+>     if(condition) return 40; // does not return from the enclosing function on windows
+> } CPPTRACE_CATCH(const std::exception& e) {
+>     ...
+> }
+> return 20;
+> ```
+
+> [!WARNING]
+> There is one other footgun which is mainly relevant for code that was written on an older version of cpptrace: It's
+> possible to write the following without getting errors
+> ```cpp
+> CPPTRACE_TRY {
+>     ...
+> } CPPTRACE_CATCH(const std::runtime_error& e) {
+>     ...
+> } catch(const std::exception& e) {
+>     ...
+> }
+> ```
+> This code will compile and in some sense work as expected as the second catch handler will work, however, cpptrace
+> won't know about the handler and as such it would be able to correctly collect a trace on a non-`std::runtime_error`
+> that is thrown. No run-time errors will occur, however, `from_current_exception` may report a misleading trace.
+
 ### Removing the `CPPTRACE_` prefix
 
 `CPPTRACE_TRY` is a little cumbersome to type. To remove the `CPPTRACE_` prefix you can use the
