@@ -293,6 +293,7 @@ namespace detail {
             section_info info;
             info.sh_name = byteswap_if_needed(section_header.sh_name);
             info.sh_type = byteswap_if_needed(section_header.sh_type);
+            info.sh_flags = byteswap_if_needed(section_header.sh_flags);
             info.sh_addr = byteswap_if_needed(section_header.sh_addr);
             info.sh_offset = byteswap_if_needed(section_header.sh_offset);
             info.sh_size = byteswap_if_needed(section_header.sh_size);
@@ -329,6 +330,9 @@ namespace detail {
         const auto& section = sections[index];
         if(section.sh_type != SHT_STRTAB) {
             return internal_error("requested strtab section not a strtab (requested {} of {})", index, file->path());
+        }
+        if(section.sh_flags & SHF_COMPRESSED) {
+          return internal_error("requested strtab section is compressed (requested {} of {})", index, file->path());
         }
         entry.data.resize(section.sh_size + 1);
         auto read_res = file->read_bytes(span<char>{entry.data.data(), section.sh_size}, section.sh_offset);
@@ -413,6 +417,9 @@ namespace detail {
         optional<symtab_info> symbol_table;
         for(const auto& section : sections) {
             if(section.sh_type == (dynamic ? SHT_DYNSYM : SHT_SYMTAB)) {
+                if(section.sh_flags & SHF_COMPRESSED) {
+                    return internal_error("elf {} is compressed {}", dynamic ? "dynsym" : "symtab", file->path());
+                }
                 if(section.sh_entsize != sizeof(SymEntry)) {
                     return internal_error("elf seems corrupted, sym entry mismatch {}", file->path());
                 }
