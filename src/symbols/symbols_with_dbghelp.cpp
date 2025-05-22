@@ -18,6 +18,7 @@
 #endif
 #include <windows.h>
 #include <dbghelp.h>
+#include <psapi.h>
 
 namespace cpptrace {
 namespace detail {
@@ -449,4 +450,74 @@ namespace dbghelp {
 }
 }
 
+namespace cpptrace {
+namespace experimental {
+/*
+When a module was loaded at runtime with LoadLibrary after SymInitialize was already called,
+it is necessary to manually load the symbols from that module with SymLoadModuleEx.
+
+See "Symbol Handler Initialization" in Microsoft documentation at
+https://learn.microsoft.com/en-us/windows/win32/debug/symbol-handler-initialization
+*/
+void load_symbols_for_file(const std::string& name) {
+    HMODULE module = GetModuleHandleA(name.c_str());
+    if (module == NULL) {
+        std::fprintf(
+            stderr, 
+            "Error: Unable to load symbols for file %s: %s\n", 
+            name.c_str(), 
+            std::system_error(GetLastError(), std::system_category()).what()
+        );
+        return;
+    }
+
+    MODULEINFO moduleInfo;
+    if (0 == GetModuleInformation(
+        GetCurrentProcess(),
+        module,
+        &moduleInfo,
+        sizeof(moduleInfo)
+    )) {
+        std::fprintf(
+            stderr, 
+            "Error: Unable to get module information for %s: %s\n", 
+            name.c_str(), 
+            std::system_error(GetLastError(), std::system_category()).what()
+        );
+        return;
+    }
+
+    auto lock = cpptrace::detail::get_dbghelp_lock();
+    HANDLE syminit_handle = cpptrace::detail::ensure_syminit().get_process_handle();
+    if (0 == SymLoadModuleEx(
+        syminit_handle,
+        NULL,
+        name.c_str(),
+        NULL,
+        (DWORD64)moduleInfo.lpBaseOfDll,
+        moduleInfo.SizeOfImage,
+        NULL,
+        0
+    )) {
+        std::fprintf(
+            stderr, 
+            "Error: Unable to load symbols for file %s: %s\n", 
+            name.c_str(), 
+            std::system_error(GetLastError(), std::system_category()).what()
+        );
+    }
+}
+}
+}
+#else
+
+namespace cpptrace {
+namespace experimental {
+
+void load_symbols_for_file(const std::string& name) {
+    (void)name;
+}
+}
+
+}
 #endif
