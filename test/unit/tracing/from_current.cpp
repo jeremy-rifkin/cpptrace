@@ -11,6 +11,7 @@
 #include <cpptrace/from_current.hpp>
 
 #include "common.hpp"
+#include "utils/utils.hpp"
 
 using namespace std::literals;
 
@@ -42,11 +43,16 @@ CPPTRACE_FORCE_NO_INLINE int stacktrace_from_current_1(std::vector<int>& line_nu
 
 TEST(FromCurrent, Basic) {
     std::vector<int> line_numbers;
+    bool does_enter_catch = false;
+    auto guard = cpptrace::internal::scope_exit([&] {
+        EXPECT_TRUE(does_enter_catch);
+    });
     CPPTRACE_TRY {
         line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
         static volatile int tco_guard = stacktrace_from_current_1(line_numbers);
         (void)tco_guard;
     } CPPTRACE_CATCH(const std::runtime_error& e) {
+        does_enter_catch = true;
         EXPECT_FALSE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
         const auto& trace = cpptrace::from_current_exception();
@@ -148,4 +154,19 @@ TEST(FromCurrent, RawTrace) {
         );
         EXPECT_NE(it, trace.frames.end());
     }
+}
+
+TEST(FromCurrent, NonThrowingPath) {
+    bool does_enter_catch = false;
+    bool does_reach_end = false;
+    auto guard = cpptrace::internal::scope_exit([&] {
+        EXPECT_FALSE(does_enter_catch);
+        EXPECT_TRUE(does_reach_end);
+    });
+    CPPTRACE_TRY {
+        // pass
+    } CPPTRACE_CATCH(const std::runtime_error& e) {
+        does_enter_catch = true;
+    }
+    does_reach_end = true;
 }
