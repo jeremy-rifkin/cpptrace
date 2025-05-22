@@ -512,6 +512,8 @@ void load_symbols_for_file(const std::string& name) {
 }
 #else
 
+#include <cpptrace/utils.hpp>
+
 namespace cpptrace {
 namespace experimental {
 
