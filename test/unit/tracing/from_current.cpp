@@ -165,7 +165,7 @@ TEST(FromCurrent, NonThrowingPath) {
     });
     CPPTRACE_TRY {
         // pass
-    } CPPTRACE_CATCH(const std::runtime_error& e) {
+    } CPPTRACE_CATCH(const std::runtime_error&) {
         does_enter_catch = true;
     }
     does_reach_end = true;
