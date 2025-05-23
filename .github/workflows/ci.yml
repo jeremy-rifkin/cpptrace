@@ -272,6 +272,7 @@ jobs:
            mkdir -p ../test/speedtest/build
            cd ../test/speedtest/build
            cmake .. \
+            -GNinja
             -DCMAKE_BUILD_TYPE=Debug \
             ${{matrix.config}}
            ninja
@@ -321,7 +322,7 @@ jobs:
            cp -rv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
            cd findpackage-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug
            ninja
            ./main
   test-linux-add_subdirectory:
@@ -385,7 +386,7 @@ jobs:
            cp -rv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
            cd findpackage-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug
            ninja
            ./main
   test-macos-add_subdirectory:
@@ -449,7 +450,7 @@ jobs:
            mv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
            cd findpackage-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo
            ninja
            ./main
   test-mingw-add_subdirectory:
@@ -490,7 +491,7 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            msbuild demo_project.sln
            .\Debug\main.exe
   test-windows-findpackage:
