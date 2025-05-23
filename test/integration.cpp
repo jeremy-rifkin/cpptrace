@@ -1,11 +1,15 @@
-#include <cpptrace/cpptrace.hpp>
-
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#ifdef TEST_MODULE
+import cpptrace;
+#else
+#include <cpptrace/cpptrace.hpp>
+#endif
 
 std::string normalize_filename(std::string name) {
     if(name.find('/') == 0 || (name.find(':') == 1 && std::isupper(name[0]))) {
