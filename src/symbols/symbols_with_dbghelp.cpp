@@ -473,7 +473,7 @@ void load_symbols_for_file(const std::string& name) {
     }
 
     MODULEINFO moduleInfo;
-    if (0 == GetModuleInformation(
+    if (!GetModuleInformation(
         GetCurrentProcess(),
         module,
         &moduleInfo,
@@ -490,7 +490,7 @@ void load_symbols_for_file(const std::string& name) {
 
     auto lock = cpptrace::detail::get_dbghelp_lock();
     HANDLE syminit_handle = cpptrace::detail::ensure_syminit().get_process_handle();
-    if (0 == SymLoadModuleEx(
+    if (!SymLoadModuleEx(
         syminit_handle,
         NULL,
         name.c_str(),
