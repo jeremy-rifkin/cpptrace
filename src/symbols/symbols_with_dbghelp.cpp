@@ -463,13 +463,11 @@ https://learn.microsoft.com/en-us/windows/win32/debug/symbol-handler-initializat
 void load_symbols_for_file(const std::string& name) {
     HMODULE module = GetModuleHandleA(name.c_str());
     if (module == NULL) {
-        std::fprintf(
-            stderr, 
-            "Error: Unable to load symbols for file %s: %s\n", 
-            name.c_str(), 
+        throw cpptrace::detail::internal_error(
+            "Unable to get module handle for file '{}' : {}",
+            name,
             std::system_error(GetLastError(), std::system_category()).what()
         );
-        return;
     }
 
     MODULEINFO moduleInfo;
@@ -479,13 +477,11 @@ void load_symbols_for_file(const std::string& name) {
         &moduleInfo,
         sizeof(moduleInfo)
     )) {
-        std::fprintf(
-            stderr, 
-            "Error: Unable to get module information for %s: %s\n", 
-            name.c_str(), 
+        throw cpptrace::detail::internal_error(
+            "Unable to get module information for file '{}' : {}",
+            name,
             std::system_error(GetLastError(), std::system_category()).what()
         );
-        return;
     }
 
     auto lock = cpptrace::detail::get_dbghelp_lock();
@@ -500,10 +496,9 @@ void load_symbols_for_file(const std::string& name) {
         NULL,
         0
     )) {
-        std::fprintf(
-            stderr, 
-            "Error: Unable to load symbols for file %s: %s\n", 
-            name.c_str(), 
+        throw cpptrace::detail::internal_error(
+            "Unable to load symbols for file '{}' : {}",
+            name,
             std::system_error(GetLastError(), std::system_category()).what()
         );
     }
