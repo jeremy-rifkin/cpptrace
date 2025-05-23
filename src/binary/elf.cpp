@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "utils/decompress/decompress_zlib.h"
+#include "utils/decompress/decompress_zstd.h"
 #include "utils/error.hpp"
 #include "utils/io/base_file.hpp"
 #include "utils/io/memory_file_view.hpp"
@@ -332,15 +333,23 @@ namespace detail {
         }
         const CHeader& comp_header = loaded_sh.unwrap_value();
         auto decompression_type = byteswap_if_needed(comp_header.ch_type);
-        if(decompression_type != ELFCOMPRESS_ZLIB) {
-            return internal_error("unsupported compression type {} in {}", decompression_type, file->path());
+        decltype(&decompress_zlib) decompress_function = nullptr;
+        switch(decompression_type) {
+            case ELFCOMPRESS_ZLIB:
+                decompress_function = decompress_zlib;
+                break;
+            case ELFCOMPRESS_ZSTD:
+                decompress_function = decompress_zstd;
+                break;
+            default:
+                return internal_error("unsupported compression type {} in {}", decompression_type, file->path());
         }
         auto decompressed_size = byteswap_if_needed(comp_header.ch_size);
         if(decompressed_size % sizeof(T) != 0) {
             return internal_error("decompressed size not a multiple of entry size");
         }
         std::vector<T> buffer(decompressed_size / sizeof(T));
-        auto decompress_res = decompress_zlib(
+        auto decompress_res = decompress_function(
             cpptrace::detail::bspan(reinterpret_cast<char*>(buffer.data()), decompressed_size),
             *file,
             static_cast<off_t>(section.sh_offset + sizeof(CHeader)),
