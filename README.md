@@ -39,6 +39,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Headers](#headers)
   - [Libdwarf Tuning](#libdwarf-tuning)
   - [JIT Support](#jit-support)
+  - [Loading Libraries at Runtime](#loading-libraries-at-runtime)
 - [Supported Debug Formats](#supported-debug-formats)
 - [How to Include The Library](#how-to-include-the-library)
   - [CMake FetchContent](#cmake-fetchcontent)
@@ -938,6 +939,12 @@ registered with cpptrace.
 
 
 [jitci]: https://sourceware.org/gdb/current/onlinedocs/gdb.html/JIT-Interface.html
+
+## Loading Libraries at Runtime
+
+When loading libraries at runtime, e.g. with `dlopen` or `LoadLibrary`, 
+`cpptrace::experimental::load_symbols_from_file` should be called with the path to the library. 
+Otherwise, `cpptrace` will not be able to resolve symbols in the library.
 
 # Supported Debug Formats
 

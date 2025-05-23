@@ -1,6 +1,7 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
 
 #include <cpptrace/basic.hpp>
+#include <cpptrace/utils.hpp>
 #include "symbols/symbols.hpp"
 #include "platform/dbghelp_utils.hpp"
 #include "binary/object.hpp"
@@ -18,6 +19,7 @@
 #endif
 #include <windows.h>
 #include <dbghelp.h>
+#include <psapi.h>
 
 namespace cpptrace {
 namespace detail {
@@ -449,4 +451,71 @@ namespace dbghelp {
 }
 }
 
+namespace cpptrace {
+namespace experimental {
+/*
+When a module was loaded at runtime with LoadLibrary after SymInitialize was already called,
+it is necessary to manually load the symbols from that module with SymLoadModuleEx.
+
+See "Symbol Handler Initialization" in Microsoft documentation at
+https://learn.microsoft.com/en-us/windows/win32/debug/symbol-handler-initialization
+*/
+void load_symbols_for_file(const std::string& name) {
+    HMODULE module = GetModuleHandleA(name.c_str());
+    if (module == NULL) {
+        throw cpptrace::detail::internal_error(
+            "Unable to get module handle for file '{}' : {}",
+            name,
+            std::system_error(GetLastError(), std::system_category()).what()
+        );
+    }
+
+    MODULEINFO moduleInfo;
+    if (!GetModuleInformation(
+        GetCurrentProcess(),
+        module,
+        &moduleInfo,
+        sizeof(moduleInfo)
+    )) {
+        throw cpptrace::detail::internal_error(
+            "Unable to get module information for file '{}' : {}",
+            name,
+            std::system_error(GetLastError(), std::system_category()).what()
+        );
+    }
+
+    auto lock = cpptrace::detail::get_dbghelp_lock();
+    HANDLE syminit_handle = cpptrace::detail::ensure_syminit().get_process_handle();
+    if (!SymLoadModuleEx(
+        syminit_handle,
+        NULL,
+        name.c_str(),
+        NULL,
+        (DWORD64)moduleInfo.lpBaseOfDll,
+        moduleInfo.SizeOfImage,
+        NULL,
+        0
+    )) {
+        throw cpptrace::detail::internal_error(
+            "Unable to load symbols for file '{}' : {}",
+            name,
+            std::system_error(GetLastError(), std::system_category()).what()
+        );
+    }
+}
+}
+}
+#else
+
+#include <cpptrace/utils.hpp>
+
+namespace cpptrace {
+namespace experimental {
+
+void load_symbols_for_file(const std::string& name) {
+    (void)name;
+}
+}
+
+}
 #endif
