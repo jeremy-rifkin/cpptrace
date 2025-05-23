@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev
+           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
            pip3 install colorama
     - name: libdwarf
       run: |
@@ -36,7 +36,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-            sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev
+            sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
             pip3 install colorama
     - name: libdwarf
       run: |
@@ -125,7 +125,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev
+           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
            pip3 install colorama
     - name: libdwarf
       run: |
@@ -261,20 +261,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
-      run: sudo apt install gcc-11 g++-11 libgcc-11-dev
+      run: sudo apt install gcc-11 g++-11 libgcc-11-dev ninja-build
     - name: build
       run: |
            mkdir -p build
            cd build
-           cmake .. -DCMAKE_CXX_COMPILER=${{matrix.compiler}} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=foo
-           make -j
-           make install
+           cmake .. -GNinja -DCMAKE_CXX_COMPILER=${{matrix.compiler}} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=foo
+           ninja
+           ninja install
            mkdir -p ../test/speedtest/build
            cd ../test/speedtest/build
            cmake .. \
             -DCMAKE_BUILD_TYPE=Debug \
             ${{matrix.config}}
-           make -j
+           ninja -j
     - name: speedtest
       working-directory: test/speedtest/build
       run: |
@@ -298,8 +298,8 @@ jobs:
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           make
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           ninja
            ./main
   test-linux-findpackage:
     runs-on: ubuntu-22.04
@@ -315,14 +315,14 @@ jobs:
            tag=$(git rev-parse --abbrev-ref HEAD)
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           sudo make -j install
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           sudo ninja -j install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
            cd findpackage-integration/build
            cmake .. -DCMAKE_BUILD_TYPE=Debug
-           make
+           ninja
            ./main
   test-linux-add_subdirectory:
     runs-on: ubuntu-22.04
@@ -340,8 +340,8 @@ jobs:
            cp -rv cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           make
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           ninja
            ./main
 
   test-macos-fetchcontent:
@@ -361,8 +361,8 @@ jobs:
            cp -rv cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           make
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           ninja
            ./main
   test-macos-findpackage:
     runs-on: macos-14
@@ -379,14 +379,14 @@ jobs:
            echo $tag
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           sudo make -j install
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           sudo ninja -j install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
            cd findpackage-integration/build
            cmake .. -DCMAKE_BUILD_TYPE=Debug
-           make
+           ninja
            ./main
   test-macos-add_subdirectory:
     runs-on: macos-14
@@ -404,8 +404,8 @@ jobs:
            cp -rv cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           make
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           ninja
            ./main
 
   test-mingw-fetchcontent:
@@ -425,8 +425,8 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           make
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           ninja
            .\main.exe
   test-mingw-findpackage:
     runs-on: windows-2022
@@ -443,14 +443,14 @@ jobs:
            echo $tag
            mkdir build
            cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} "-GUnix Makefiles" -DCMAKE_INSTALL_PREFIX=C:/foo -DCPPTRACE_WERROR_BUILD=On
-           make -j install
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCMAKE_INSTALL_PREFIX=C:/foo -DCPPTRACE_WERROR_BUILD=On
+           ninja -j install
            cd ../..
            mv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
            cd findpackage-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo "-GUnix Makefiles"
-           make
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo
+           ninja
            ./main
   test-mingw-add_subdirectory:
     runs-on: windows-2022
@@ -468,8 +468,8 @@ jobs:
            cp -Recurse cpptrace add_subdirectory-integration
            mkdir add_subdirectory-integration/build
            cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug "-GUnix Makefiles" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           make
+           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           ninja
            .\main.exe
   test-windows-fetchcontent:
     runs-on: windows-2022
@@ -559,7 +559,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev
+           sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev ninja-build
            cd ..
            cpptrace/ci/setup-prerequisites-unittest.sh
     - name: build and test
@@ -598,7 +598,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-            sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev
+            sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev ninja-build
             cd ..
             cpptrace/ci/setup-prerequisites-unittest.sh
     - name: build and test

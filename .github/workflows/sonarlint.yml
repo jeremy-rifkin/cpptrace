@@ -20,8 +20,8 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_BUILD_TESTING=On -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCMAKE_CXX_STANDARD=11
-        make -j
+        cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_BUILD_TESTING=On -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCMAKE_CXX_STANDARD=11
+        ninja
         cd ..
     - name: Run sonar-scanner
       env:
