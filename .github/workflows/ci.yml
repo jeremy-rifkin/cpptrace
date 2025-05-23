@@ -274,7 +274,7 @@ jobs:
            cmake .. \
             -DCMAKE_BUILD_TYPE=Debug \
             ${{matrix.config}}
-           ninja -j
+           ninja
     - name: speedtest
       working-directory: test/speedtest/build
       run: |
@@ -316,7 +316,7 @@ jobs:
            mkdir build
            cd build
            cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           sudo ninja -j install
+           sudo ninja install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
@@ -380,7 +380,7 @@ jobs:
            mkdir build
            cd build
            cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           sudo ninja -j install
+           sudo ninja install
            cd ../..
            cp -rv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
@@ -444,7 +444,7 @@ jobs:
            mkdir build
            cd build
            cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCMAKE_INSTALL_PREFIX=C:/foo -DCPPTRACE_WERROR_BUILD=On
-           ninja -j install
+           ninja install
            cd ../..
            mv cpptrace/test/findpackage-integration .
            mkdir findpackage-integration/build
