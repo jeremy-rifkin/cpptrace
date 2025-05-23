@@ -222,8 +222,7 @@ namespace internal {
 
     Result<const elf::header_info&, internal_error> elf::get_header_info() {
         if(header) {
-            Result<const elf::header_info&, internal_error> r = header.unwrap();
-            return std::ref(header.unwrap());
+            return header.unwrap();
         }
         if(tried_to_load_header) {
             return internal_error("previous header load failed {}", file->path());
