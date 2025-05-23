@@ -128,6 +128,11 @@ namespace detail {
         template<std::size_t Bits>
         Result<const std::vector<section_info>&, internal_error> get_sections_impl();
 
+        template<typename T>
+        Result<std::vector<T>, internal_error> read_compressed_section(const section_info& section);
+        template<typename T, std::size_t Bits>
+        Result<std::vector<T>, internal_error> read_compressed_section_impl(const section_info& section);
+
         Result<const std::vector<char>&, internal_error> get_strtab(std::size_t index);
 
         Result<const optional<symtab_info>&, internal_error> get_symtab();
