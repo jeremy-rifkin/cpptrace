@@ -272,7 +272,7 @@ jobs:
            mkdir -p ../test/speedtest/build
            cd ../test/speedtest/build
            cmake .. \
-            -GNinja
+            -GNinja \
             -DCMAKE_BUILD_TYPE=Debug \
             ${{matrix.config}}
            ninja
@@ -491,7 +491,7 @@ jobs:
            cp -Recurse cpptrace/test/fetchcontent-integration .
            mkdir fetchcontent-integration/build
            cd fetchcontent-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
+           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
            msbuild demo_project.sln
            .\Debug\main.exe
   test-windows-findpackage:
