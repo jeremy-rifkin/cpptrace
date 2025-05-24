@@ -1,9 +1,13 @@
+#include <iostream>
+
+#ifdef TEST_MODULE
+import cpptrace;
+#else
 #include <cpptrace/basic.hpp>
 #include <cpptrace/utils.hpp>
 #include <cpptrace/formatting.hpp>
 #include <cpptrace/exceptions.hpp>
-
-#include <iostream>
+#endif
 
 // These are just here to make sure all symbols are found
 

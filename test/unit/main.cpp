@@ -1,5 +1,10 @@
 #include <gtest/gtest.h>
+
+#ifdef TEST_MODULE
+import cpptrace;
+#else
 #include <cpptrace/cpptrace.hpp>
+#endif
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);

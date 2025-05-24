@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.15...4.0)
 
 include(cmake/PreventInSourceBuilds.cmake)
 
@@ -155,6 +155,14 @@ target_sources(
     src/utils/utils.cpp
     src/platform/dbghelp_utils.cpp
 )
+
+if(HAS_CXX20_MODULES)
+  target_sources(
+    ${target_name} PUBLIC
+    FILE_SET CXX_MODULES
+    FILES "src/cpptrace_module.cpp"
+  )
+endif()
 
 target_include_directories(
   ${target_name}

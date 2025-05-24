@@ -1,9 +1,13 @@
-#include <cpptrace/basic.hpp>
-
 #include <gtest/gtest.h>
 #include <gtest/gtest-matchers.h>
 #include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
+
+#ifdef TEST_MODULE
+import cpptrace;
+#else
+#include <cpptrace/basic.hpp>
+#endif
 
 using cpptrace::nullable;
 

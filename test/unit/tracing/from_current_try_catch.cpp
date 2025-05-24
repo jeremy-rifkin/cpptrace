@@ -7,10 +7,14 @@
 #include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
 
+#include "common.hpp"
+
+#ifdef TEST_MODULE
+import cpptrace;
+#else
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
-
-#include "common.hpp"
+#endif
 
 using namespace std::literals;
 

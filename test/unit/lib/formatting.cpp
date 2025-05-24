@@ -1,5 +1,3 @@
-#include <cpptrace/formatting.hpp>
-
 #include <gtest/gtest.h>
 #include <gtest/gtest-matchers.h>
 #include <gmock/gmock.h>
@@ -7,6 +5,12 @@
 
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
+
+#ifdef TEST_MODULE
+import cpptrace;
+#else
+#include <cpptrace/formatting.hpp>
+#endif
 
 using cpptrace::internal::split;
 using testing::ElementsAre;

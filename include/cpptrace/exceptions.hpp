@@ -2,6 +2,7 @@
 #define CPPTRACE_EXCEPTIONS_HPP
 
 #include <cpptrace/basic.hpp>
+#include <cpptrace/exceptions_macros.hpp>
 
 #include <exception>
 #include <system_error>
@@ -194,23 +195,6 @@ CPPTRACE_BEGIN_NAMESPACE
     // [[noreturn]] must come first due to old clang
     [[noreturn]] CPPTRACE_EXPORT void rethrow_and_wrap_if_needed(std::size_t skip = 0);
 CPPTRACE_END_NAMESPACE
-
-// Exception wrapper utilities
-#define CPPTRACE_WRAP_BLOCK(statements) do { \
-        try { \
-            statements \
-        } catch(...) { \
-            ::cpptrace::rethrow_and_wrap_if_needed(); \
-        } \
-    } while(0)
-
-#define CPPTRACE_WRAP(expression) [&] () -> decltype((expression)) { \
-        try { \
-            return expression; \
-        } catch(...) { \
-            ::cpptrace::rethrow_and_wrap_if_needed(1); \
-        } \
-    } ()
 
 #ifdef _MSC_VER
 #pragma warning(pop)

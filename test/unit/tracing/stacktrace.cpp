@@ -5,9 +5,13 @@
 #include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
 
-#include <cpptrace/cpptrace.hpp>
-
 #include "common.hpp"
+
+#ifdef TEST_MODULE
+import cpptrace;
+#else
+#include <cpptrace/cpptrace.hpp>
+#endif
 
 using namespace std::literals;
 
