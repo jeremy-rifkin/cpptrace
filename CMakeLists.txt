@@ -161,6 +161,7 @@ if(HAS_CXX20_MODULES)
     ${target_name} PUBLIC
     FILE_SET CXX_MODULES
     FILES "src/cpptrace_module.cpp"
+    BASE_DIRS "src"
   )
 endif()
 
