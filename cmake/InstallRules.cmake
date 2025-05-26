@@ -25,8 +25,8 @@ install(
   ARCHIVE #
   COMPONENT ${package_name}_development
   INCLUDES #
-  FILE_SET CXX_MODULES
   DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+  FILE_SET CXX_MODULES
 )
 
 # create config file that points to targets file
