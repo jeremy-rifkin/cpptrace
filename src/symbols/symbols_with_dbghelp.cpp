@@ -460,62 +460,71 @@ it is necessary to manually load the symbols from that module with SymLoadModule
 See "Symbol Handler Initialization" in Microsoft documentation at
 https://learn.microsoft.com/en-us/windows/win32/debug/symbol-handler-initialization
 */
-void load_symbols_for_file(const std::string& name) {
-    HMODULE module = GetModuleHandleA(name.c_str());
-    if (module == NULL) {
+void load_symbols_for_module(HMODULE hModule) {
+
+    /*
+    Get filename for module, required by SymLoadModuleEx. Also, it makes for nicer error messages 
+    to include a filename rather than the module handle.
+    */
+    std::string filename;
+    filename.resize(MAX_PATH);
+    DWORD bufferSize = filename.size();
+    DWORD filenameLength = GetModuleFileNameA(hModule, &filename[0], bufferSize);
+    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+        filename.resize(filenameLength);
+        bufferSize = filenameLength;
+        filenameLength = GetModuleFileNameA(hModule, &filename[0], bufferSize);
+    }
+    if (GetLastError() != ERROR_SUCCESS) {
         throw cpptrace::detail::internal_error(
-            "Unable to get module handle for file '{}' : {}",
-            name,
+            "Unable to get module file name for module handle {} : {}",
+            hModule,
             std::system_error(GetLastError(), std::system_category()).what()
         );
     }
+    else {
+        filename.resize(filenameLength);
+    }
 
+    /*
+    SymLoadModuleEx needs the module's base address and size, so get these with GetModuleInformation.
+    */
     MODULEINFO moduleInfo;
     if (!GetModuleInformation(
         GetCurrentProcess(),
-        module,
+        hModule,
         &moduleInfo,
         sizeof(moduleInfo)
     )) {
         throw cpptrace::detail::internal_error(
             "Unable to get module information for file '{}' : {}",
-            name,
+            filename,
             std::system_error(GetLastError(), std::system_category()).what()
         );
     }
 
+    /*
+    Finally, load the actual symbols
+    */
     auto lock = cpptrace::detail::get_dbghelp_lock();
     HANDLE syminit_handle = cpptrace::detail::ensure_syminit().get_process_handle();
     if (!SymLoadModuleEx(
         syminit_handle,
         NULL,
-        name.c_str(),
+        filename.c_str(),
         NULL,
         (DWORD64)moduleInfo.lpBaseOfDll,
-        moduleInfo.SizeOfImage,
+        moduleInfo.SizeOfImage, // The documentation says this is optional, but if omitted (0), symbol loading fails
         NULL,
         0
     )) {
         throw cpptrace::detail::internal_error(
             "Unable to load symbols for file '{}' : {}",
-            name,
+            filename,
             std::system_error(GetLastError(), std::system_category()).what()
         );
     }
 }
 }
-}
-#else
-
-#include <cpptrace/utils.hpp>
-
-namespace cpptrace {
-namespace experimental {
-
-void load_symbols_for_file(const std::string& name) {
-    (void)name;
-}
-}
-
 }
 #endif

@@ -152,3 +152,22 @@ namespace detail {
     }
 }
 }
+
+
+/*
+Fallback definition for cpptrace::experimental::load_symbols_for_module. If 
+CPPTRACE_GET_SYMBOLS_WITH_DBGHELP is defined, this function is defined in symbols_with_dbghelp.cpp.
+*/
+#if IS_WINDOWS && !defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+
+#include <cpptrace/utils.hpp>
+
+namespace cpptrace {
+namespace experimental {
+
+void load_symbols_for_module(HMODULE hModule) {
+    (void)hModule;
+}
+}
+}
+#endif

@@ -942,9 +942,22 @@ registered with cpptrace.
 
 ## Loading Libraries at Runtime
 
-When loading libraries at runtime, e.g. with `dlopen` or `LoadLibrary`, 
-`cpptrace::experimental::load_symbols_from_file` should be called with the path to the library. 
-Otherwise, `cpptrace` will not be able to resolve symbols in the library.
+This section only applies to the dbghelp backend (`CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`) on Windows.
+
+When loading a DLL at runtime with `LoadLibrary` after a stacktrace has already been generated,
+symbols from that library may not be resolved correctly for subsequent stacktraces. To fix this,
+call `cpptrace::experimental::load_symbols_for_module` with the module handle, i.e. the return 
+value of `LoadLibrary`.
+
+```cpp
+HMODULE hModule = LoadLibrary("mydll.dll");
+if (hModule) {
+    cpptrace::experimental::load_symbols_for_module(hModule);
+}
+```
+
+For backends other than dbghelp, `load_symbols_for_module` does nothing. For platforms other than
+Windows, it is not declared.
 
 # Supported Debug Formats
 
