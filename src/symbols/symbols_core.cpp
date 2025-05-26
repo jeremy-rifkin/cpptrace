@@ -155,7 +155,7 @@ namespace detail {
 
 
 /*
-Fallback definition for cpptrace::experimental::load_symbols_for_module. If 
+Fallback definition for cpptrace::experimental::load_symbols_for_file. If 
 CPPTRACE_GET_SYMBOLS_WITH_DBGHELP is defined, this function is defined in symbols_with_dbghelp.cpp.
 */
 #if IS_WINDOWS && !defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
@@ -165,8 +165,8 @@ CPPTRACE_GET_SYMBOLS_WITH_DBGHELP is defined, this function is defined in symbol
 namespace cpptrace {
 namespace experimental {
 
-void load_symbols_for_module(HMODULE hModule) {
-    (void)hModule;
+void load_symbols_for_file(const std::string& filename) {
+    (void)filename;
 }
 }
 }

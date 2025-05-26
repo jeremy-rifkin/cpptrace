@@ -453,6 +453,7 @@ namespace dbghelp {
 
 namespace cpptrace {
 namespace experimental {
+
 /*
 When a module was loaded at runtime with LoadLibrary after SymInitialize was already called,
 it is necessary to manually load the symbols from that module with SymLoadModuleEx.
@@ -460,30 +461,18 @@ it is necessary to manually load the symbols from that module with SymLoadModule
 See "Symbol Handler Initialization" in Microsoft documentation at
 https://learn.microsoft.com/en-us/windows/win32/debug/symbol-handler-initialization
 */
-void load_symbols_for_module(HMODULE hModule) {
+void load_symbols_for_file(const std::string& filename) {
 
     /*
-    Get filename for module, required by SymLoadModuleEx. Also, it makes for nicer error messages 
-    to include a filename rather than the module handle.
+    Get module handle for filename so we can call GetModuleInformation below.
     */
-    std::string filename;
-    filename.resize(MAX_PATH);
-    DWORD bufferSize = static_cast<DWORD>(filename.size());
-    DWORD filenameLength = GetModuleFileNameA(hModule, &filename[0], bufferSize);
-    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-        filename.resize(filenameLength);
-        bufferSize = filenameLength;
-        filenameLength = GetModuleFileNameA(hModule, &filename[0], bufferSize);
-    }
-    if (GetLastError() != ERROR_SUCCESS) {
+    HMODULE hModule = GetModuleHandleA(filename.c_str());
+    if (hModule == NULL) {
         throw cpptrace::detail::internal_error(
-            "Unable to get module file name for module handle {:h} : {}",
-            reinterpret_cast<uintptr_t>(hModule),
+            "Unable to get module handle for file '{}' : {}",
+            filename,
             std::system_error(GetLastError(), std::system_category()).what()
         );
-    }
-    else {
-        filename.resize(filenameLength);
     }
 
     /*
@@ -525,6 +514,7 @@ void load_symbols_for_module(HMODULE hModule) {
         );
     }
 }
+
 }
 }
 #endif
