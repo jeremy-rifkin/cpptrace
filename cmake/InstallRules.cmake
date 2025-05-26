@@ -27,6 +27,7 @@ install(
   INCLUDES #
   DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
   FILE_SET CXX_MODULES
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 
 # create config file that points to targets file
