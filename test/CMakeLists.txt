@@ -1,5 +1,5 @@
 include(CTest)
-
+include(GoogleTest)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(
@@ -42,6 +42,14 @@ add_test_dependencies(demo)
 add_test_dependencies(c_demo)
 add_test_dependencies(link_test)
 
+if(HAS_CXX20_MODULES)
+  add_executable(integration_modules integration.cpp)
+  add_test_dependencies(integration_modules)
+
+  add_executable(link_test_modules link_test.cpp)
+  add_test_dependencies(link_test_modules)
+endif()
+
 if(UNIX)
   add_executable(signal_demo signal_demo.cpp)
   target_compile_features(signal_demo PRIVATE cxx_std_11)
@@ -60,24 +68,17 @@ if(UNIX)
   target_compile_options(signal_tracer PRIVATE ${debug})
 endif()
 
-# primarily a workaround for github actions issue https://github.com/actions/runner-images/issues/8659
-if(NOT CPPTRACE_SKIP_UNIT)
-  if(CPPTRACE_USE_EXTERNAL_GTEST)
-    find_package(GTest)
-  else()
-    include(FetchContent)
-    FetchContent_Declare(
-      googletest
-      GIT_REPOSITORY "https://github.com/google/googletest.git"
-      GIT_TAG        f8d7d77c06936315286eb55f8de22cd23c188571 # v1.14.0
-    )
-    # For Windows: Prevent overriding the parent project's compiler/linker settings
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
-  endif()
+function(test_cpptrace)
+  cmake_parse_arguments(
+      CPPTRACE
+      ""          # No-arg options
+      "TEST_NAME" # Single-arg options
+      "DEFINE"    # Multi-arg options
+      ${ARGN}     # Parameters to parse
+  )
 
   add_executable(
-    unittest
+    "${CPPTRACE_TEST_NAME}"
     unit/main.cpp
     unit/tracing/raw_trace.cpp
     unit/tracing/object_trace.cpp
@@ -97,22 +98,51 @@ if(NOT CPPTRACE_SKIP_UNIT)
     unit/lib/formatting.cpp
     unit/lib/nullable.cpp
   )
-  target_compile_features(unittest PRIVATE cxx_std_20)
-  target_link_libraries(unittest PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
-  target_compile_options(unittest PRIVATE ${warning_options} $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-pedantic -Wno-attributes>)
-  target_compile_options(unittest PRIVATE ${debug})
+
+  target_compile_features("${CPPTRACE_TEST_NAME}" PRIVATE cxx_std_20)
+  target_link_libraries("${CPPTRACE_TEST_NAME}" PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
+  target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE ${CPPTRACE_DEFINE})
+
+  target_compile_options("${CPPTRACE_TEST_NAME}" PRIVATE ${warning_options} $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-pedantic -Wno-attributes>)
+  target_compile_options("${CPPTRACE_TEST_NAME}" PRIVATE ${debug})
   if(NOT CPPTRACE_BUILD_NO_SYMBOLS AND CPPTRACE_BUILD_TESTING_SPLIT_DWARF)
-    target_compile_options(unittest PRIVATE -gsplit-dwarf)
+    target_compile_options("${CPPTRACE_TEST_NAME}" PRIVATE -gsplit-dwarf)
   endif()
   if(NOT CPPTRACE_BUILD_NO_SYMBOLS AND NOT (CPPTRACE_BUILD_TESTING_DWARF_VERSION STREQUAL "0"))
-    target_compile_options(unittest PRIVATE -gdwarf-${CPPTRACE_BUILD_TESTING_DWARF_VERSION})
+    target_compile_options("${CPPTRACE_TEST_NAME}" PRIVATE -gdwarf-${CPPTRACE_BUILD_TESTING_DWARF_VERSION})
   endif()
   if(CPPTRACE_SANITIZER_BUILD)
-    target_compile_definitions(unittest PRIVATE CPPTRACE_SANITIZER_BUILD)
+    target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE CPPTRACE_SANITIZER_BUILD)
   endif()
   if(CPPTRACE_BUILD_NO_SYMBOLS)
-    target_compile_definitions(unittest PRIVATE CPPTRACE_BUILD_NO_SYMBOLS)
+    target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE CPPTRACE_BUILD_NO_SYMBOLS)
   endif()
-  target_include_directories(unittest PRIVATE ../src)
-  add_test(NAME unittest COMMAND unittest)
+  target_include_directories("${CPPTRACE_TEST_NAME}" PRIVATE ../src)
+  gtest_discover_tests(${CPPTRACE_TEST_NAME})
+endfunction()
+
+# primarily a workaround for github actions issue https://github.com/actions/runner-images/issues/8659
+if(NOT CPPTRACE_SKIP_UNIT)
+  if(CPPTRACE_USE_EXTERNAL_GTEST)
+    find_package(GTest)
+  else()
+    include(FetchContent)
+    FetchContent_Declare(
+      googletest
+      GIT_REPOSITORY "https://github.com/google/googletest.git"
+      GIT_TAG        f8d7d77c06936315286eb55f8de22cd23c188571 # v1.14.0
+    )
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+  endif()
+
+  test_cpptrace(TEST_NAME unittest)
+
+  if(HAS_CXX20_MODULES)
+    test_cpptrace(
+      TEST_NAME unittest_module
+      DEFINE TEST_MODULE
+    )
+  endif()
 endif()

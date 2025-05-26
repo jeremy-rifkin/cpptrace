@@ -26,6 +26,8 @@ install(
   COMPONENT ${package_name}_development
   INCLUDES #
   DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+  FILE_SET CXX_MODULES
+  DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/cpptrace"
 )
 
 # create config file that points to targets file
