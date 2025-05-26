@@ -160,7 +160,7 @@ if(HAS_CXX20_MODULES)
   target_sources(
     ${target_name} PUBLIC
     FILE_SET CXX_MODULES
-    FILES "src/cpptrace_module.cpp"
+    FILES "src/cpptrace.cppm"
     BASE_DIRS "src"
   )
 endif()
