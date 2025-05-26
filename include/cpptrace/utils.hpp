@@ -53,7 +53,7 @@ namespace cpptrace {
 
 
 #if defined(_WIN32)
-    #include <windef.h>
+    #include <Windows.h>
     namespace cpptrace {
         namespace experimental {
             CPPTRACE_EXPORT void load_symbols_for_module(HMODULE hModule);
