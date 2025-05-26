@@ -5,7 +5,7 @@ cc_library(
             "src/**/*.hpp",
             "src/**/*.cpp",
         ],
-        exclude=["src/cpptrace_modules.cpp"] # Disabled until https://github.com/bazelbuild/bazel/pull/19940
+        exclude=["src/cpptrace_module.cpp"] # Disabled until https://github.com/bazelbuild/bazel/pull/19940
     ),
     local_defines = [
         "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
