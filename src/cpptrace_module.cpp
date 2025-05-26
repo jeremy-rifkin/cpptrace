@@ -5,7 +5,6 @@ module;
 #include <cpptrace/formatting.hpp>
 #include <cpptrace/forward.hpp>
 #include <cpptrace/from_current.hpp>
-#include <cpptrace/gdb_jit.hpp>
 
 export module cpptrace;
 
