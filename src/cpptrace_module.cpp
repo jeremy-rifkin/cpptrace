@@ -75,11 +75,6 @@ namespace cpptrace::inline v1 {
 #endif
   }
 
-  // cpptrace/gdb_jit
-  namespace experimental {
-    export using cpptrace::experimental::register_jit_objects_from_gdb_jit_interface;
-  }
-
   // cpptrace/io
   export using cpptrace::operator<<; // FIXME: make hidden friend
 
