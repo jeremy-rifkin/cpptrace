@@ -468,7 +468,7 @@ void load_symbols_for_module(HMODULE hModule) {
     */
     std::string filename;
     filename.resize(MAX_PATH);
-    DWORD bufferSize = filename.size();
+    DWORD bufferSize = static_cast<DWORD>(filename.size());
     DWORD filenameLength = GetModuleFileNameA(hModule, &filename[0], bufferSize);
     if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
         filename.resize(filenameLength);
@@ -477,8 +477,8 @@ void load_symbols_for_module(HMODULE hModule) {
     }
     if (GetLastError() != ERROR_SUCCESS) {
         throw cpptrace::detail::internal_error(
-            "Unable to get module file name for module handle {} : {}",
-            hModule,
+            "Unable to get module file name for module handle {:h} : {}",
+            reinterpret_cast<uintptr_t>(hModule),
             std::system_error(GetLastError(), std::system_category()).what()
         );
     }
