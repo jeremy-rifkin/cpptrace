@@ -27,16 +27,34 @@ else()
 endif()
 
 if(CMAKE_CXX_STANDARD GREATER_EQUAL 20)
-  # check_cxx_source_compiles doesn't support modules (yet?) so we need to drop
-  # to a raw try_compile.
-  try_compile(
-    HAS_CXX20_MODULES
-    SOURCES_TYPE CXX_MODULE
-    SOURCES "${CMAKE_CURRENT_LIST_DIR}/has_modules.cpp"
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED Yes
-    CXX_EXTENSIONS Yes
-  )
+  # # check_cxx_source_compiles doesn't support modules (yet?) so we need to drop
+  # # to a raw try_compile.
+  # try_compile(
+  #   HAS_CXX20_MODULES
+  #   SOURCES_TYPE CXX_MODULE
+  #   SOURCES "${CMAKE_CURRENT_LIST_DIR}/has_modules.cpp"
+  #   CXX_STANDARD 20
+  #   CXX_STANDARD_REQUIRED Yes
+  #   CXX_EXTENSIONS Yes
+  # )
+  # https://cmake.org/cmake/help/latest/manual/cmake-cxxmodules.7.html#compiler-support
+  # msvc 14.34+/19.34+
+  # clang 16+
+  # gcc 15 and newer
+  set(HAS_CXX20_MODULES FALSE)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.34)
+      set(HAS_CXX20_MODULES TRUE)
+    endif()
+  elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16.0)
+      set(HAS_CXX20_MODULES TRUE)
+    endif()
+  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0)
+      set(HAS_CXX20_MODULES TRUE)
+    endif()
+  endif()
 endif()
 
 if(NOT WIN32 OR MINGW)
