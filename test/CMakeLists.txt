@@ -1,5 +1,4 @@
 include(CTest)
-include(GoogleTest)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(
@@ -118,7 +117,7 @@ function(test_cpptrace)
     target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE CPPTRACE_BUILD_NO_SYMBOLS)
   endif()
   target_include_directories("${CPPTRACE_TEST_NAME}" PRIVATE ../src)
-  gtest_discover_tests(${CPPTRACE_TEST_NAME})
+  add_test(NAME ${CPPTRACE_TEST_NAME} COMMAND ${CPPTRACE_TEST_NAME})
 endfunction()
 
 # primarily a workaround for github actions issue https://github.com/actions/runner-images/issues/8659
