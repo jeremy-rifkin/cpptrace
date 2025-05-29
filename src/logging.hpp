@@ -14,6 +14,24 @@ namespace log {
     void error(const char* format, Args&&... args) {
         error(microfmt::format(format, args...).c_str());
     }
+
+    void warn(const char*);
+    template<typename... Args>
+    void warn(const char* format, Args&&... args) {
+        warn(microfmt::format(format, args...).c_str());
+    }
+
+    void info(const char*);
+    template<typename... Args>
+    void info(const char* format, Args&&... args) {
+        info(microfmt::format(format, args...).c_str());
+    }
+
+    void debug(const char*);
+    template<typename... Args>
+    void debug(const char* format, Args&&... args) {
+        debug(microfmt::format(format, args...).c_str());
+    }
 }
 }
 }

@@ -1,6 +1,7 @@
 #include "logging.hpp"
 
 #include <cpptrace/forward.hpp>
+#include <cpptrace/utils.hpp>
 
 #include <atomic>
 
@@ -10,8 +11,8 @@ namespace internal {
 
     void default_null_logger(log_level, const char*) {}
 
-    void default_stderr_logger(log_level, const char* message) {
-        std::cerr<<"cpptrace: "<<message<<std::endl;
+    void default_stderr_logger(log_level level, const char* message) {
+        microfmt::print(std::cerr, "cpptrace {}: {}\n", to_string(level), message);
     }
 
     std::function<void(log_level, const char*)>& log_callback() {
@@ -30,6 +31,18 @@ namespace internal {
         void error(const char* message) {
             do_log(log_level::error, message);
         }
+
+        void warn(const char* message) {
+            do_log(log_level::error, message);
+        }
+
+        void info(const char* message) {
+            do_log(log_level::error, message);
+        }
+
+        void debug(const char* message) {
+            do_log(log_level::error, message);
+        }
     }
 }
 }
@@ -45,5 +58,15 @@ CPPTRACE_BEGIN_NAMESPACE
 
     void use_default_stderr_logger() {
         internal::log_callback() = internal::default_stderr_logger;
+    }
+
+    const char* to_string(log_level level) {
+        switch(level) {
+            case log_level::debug: return "debug";
+            case log_level::info: return "info";
+            case log_level::warning: return "warning";
+            case log_level::error: return "error";
+            default: return "unknown log level";
+        }
     }
 CPPTRACE_END_NAMESPACE

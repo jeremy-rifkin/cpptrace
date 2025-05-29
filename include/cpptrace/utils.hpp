@@ -37,6 +37,7 @@ CPPTRACE_BEGIN_NAMESPACE
     CPPTRACE_EXPORT void set_log_level(log_level level);
     CPPTRACE_EXPORT void set_log_callback(std::function<void(log_level, const char*)>);
     CPPTRACE_EXPORT void use_default_stderr_logger();
+    CPPTRACE_EXPORT const char* to_string(log_level level);
 
     enum class cache_mode {
         // Only minimal lookup tables

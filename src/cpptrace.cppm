@@ -92,6 +92,7 @@ CPPTRACE_BEGIN_NAMESPACE
     export using cpptrace::set_log_level;
     export using cpptrace::set_log_callback;
     export using cpptrace::use_default_stderr_logger;
+    export using cpptrace::to_string;
     export using cpptrace::cache_mode;
 
     namespace experimental {
