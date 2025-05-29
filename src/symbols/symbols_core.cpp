@@ -1,5 +1,7 @@
 #include <cpptrace/basic.hpp>
+#include <cpptrace/utils.hpp>
 
+#include "cpptrace/forward.hpp"
 #include "symbols/symbols.hpp"
 
 #include <vector>
@@ -155,19 +157,15 @@ namespace internal {
 
 
 /*
-Fallback definition for cpptrace::experimental::load_symbols_for_file. If 
+Fallback definition for cpptrace::experimental::load_symbols_for_file. If
 CPPTRACE_GET_SYMBOLS_WITH_DBGHELP is defined, this function is defined in symbols_with_dbghelp.cpp.
 */
-#if IS_WINDOWS && !defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
-
-#include <cpptrace/utils.hpp>
-
-namespace cpptrace {
+#ifndef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
+CPPTRACE_BEGIN_NAMESPACE
 namespace experimental {
-
-void load_symbols_for_file(const std::string& filename) {
-    (void)filename;
+    void load_symbols_for_file(const std::string& filename) {
+        (void)filename;
+    }
 }
-}
-}
+CPPTRACE_END_NAMESPACE
 #endif

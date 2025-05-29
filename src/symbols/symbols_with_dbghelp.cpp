@@ -452,70 +452,65 @@ namespace dbghelp {
 }
 }
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
 namespace experimental {
-
-/*
-When a module was loaded at runtime with LoadLibrary after SymInitialize was already called,
-it is necessary to manually load the symbols from that module with SymLoadModuleEx.
-
-See "Symbol Handler Initialization" in Microsoft documentation at
-https://learn.microsoft.com/en-us/windows/win32/debug/symbol-handler-initialization
-*/
-void load_symbols_for_file(const std::string& filename) {
-
     /*
-    Get module handle for filename so we can call GetModuleInformation below.
-    */
-    HMODULE hModule = GetModuleHandleA(filename.c_str());
-    if (hModule == NULL) {
-        throw cpptrace::detail::internal_error(
-            "Unable to get module handle for file '{}' : {}",
-            filename,
-            std::system_error(GetLastError(), std::system_category()).what()
-        );
-    }
+    When a module was loaded at runtime with LoadLibrary after SymInitialize was already called,
+    it is necessary to manually load the symbols from that module with SymLoadModuleEx.
 
-    /*
-    SymLoadModuleEx needs the module's base address and size, so get these with GetModuleInformation.
+    See "Symbol Handler Initialization" in Microsoft documentation at
+    https://learn.microsoft.com/en-us/windows/win32/debug/symbol-handler-initialization
     */
-    MODULEINFO moduleInfo;
-    if (!GetModuleInformation(
-        GetCurrentProcess(),
-        hModule,
-        &moduleInfo,
-        sizeof(moduleInfo)
-    )) {
-        throw cpptrace::detail::internal_error(
-            "Unable to get module information for file '{}' : {}",
-            filename,
-            std::system_error(GetLastError(), std::system_category()).what()
-        );
-    }
+    void load_symbols_for_file(const std::string& filename) {
+        HMODULE hModule = GetModuleHandleA(filename.c_str());
+        if (hModule == NULL) {
+            throw internal::internal_error(
+                "Unable to get module handle for file '{}' : {}",
+                filename,
+                std::system_error(GetLastError(), std::system_category()).what()
+            );
+        }
 
-    /*
-    Finally, load the actual symbols
-    */
-    auto lock = cpptrace::detail::get_dbghelp_lock();
-    HANDLE syminit_handle = cpptrace::detail::ensure_syminit().get_process_handle();
-    if (!SymLoadModuleEx(
-        syminit_handle,
-        NULL,
-        filename.c_str(),
-        NULL,
-        (DWORD64)moduleInfo.lpBaseOfDll,
-        moduleInfo.SizeOfImage, // The documentation says this is optional, but if omitted (0), symbol loading fails
-        NULL,
-        0
-    )) {
-        throw cpptrace::detail::internal_error(
-            "Unable to load symbols for file '{}' : {}",
-            filename,
-            std::system_error(GetLastError(), std::system_category()).what()
-        );
+        // SymLoadModuleEx needs the module's base address and size, so get these with GetModuleInformation.
+        MODULEINFO module_info;
+        if (
+            !GetModuleInformation(
+                GetCurrentProcess(),
+                hModule,
+                &module_info,
+                sizeof(module_info)
+            )
+        ) {
+            throw internal::internal_error(
+                "Unable to get module information for file '{}' : {}",
+                filename,
+                std::system_error(GetLastError(), std::system_category()).what()
+            );
+        }
+
+        auto lock = internal::get_dbghelp_lock();
+        HANDLE syminit_handle = internal::ensure_syminit().get_process_handle();
+        if (
+            !SymLoadModuleEx(
+                syminit_handle,
+                NULL,
+                filename.c_str(),
+                NULL,
+                (DWORD64)module_info.lpBaseOfDll,
+                // The documentation says this is optional, but if omitted (0), symbol loading fails
+                module_info.SizeOfImage,
+                NULL,
+                0
+            )
+        ) {
+            throw internal::internal_error(
+                "Unable to load symbols for file '{}' : {}",
+                filename,
+                std::system_error(GetLastError(), std::system_category()).what()
+            );
+        }
     }
 }
+CPPTRACE_END_NAMESPACE
 
-}
-}
 #endif
