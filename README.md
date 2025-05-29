@@ -43,6 +43,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Headers](#headers)
   - [Libdwarf Tuning](#libdwarf-tuning)
   - [JIT Support](#jit-support)
+  - [Loading Libraries at Runtime](#loading-libraries-at-runtime)
 - [ABI Versioning](#abi-versioning)
 - [Supported Debug Formats](#supported-debug-formats)
 - [How to Include The Library](#how-to-include-the-library)
@@ -1194,6 +1195,25 @@ registered with cpptrace.
 
 
 [jitci]: https://sourceware.org/gdb/current/onlinedocs/gdb.html/JIT-Interface.html
+
+## Loading Libraries at Runtime
+
+This section only applies to the dbghelp backend (`CPPTRACE_GET_SYMBOLS_WITH_DBGHELP`) on Windows.
+
+When loading a DLL at runtime with `LoadLibrary` after a stacktrace has already been generated,
+symbols from that library may not be resolved correctly for subsequent stacktraces. To fix this,
+call `cpptrace::experimental::load_symbols_for_file` with the same filename that was passed to 
+`LoadLibrary`.
+
+```cpp
+HMODULE hModule = LoadLibrary("mydll.dll");
+if (hModule) {
+    cpptrace::experimental::load_symbols_for_file("mydll.dll");
+}
+```
+
+For backends other than dbghelp, `load_symbols_for_file` does nothing. For platforms other than
+Windows, it is not declared.
 
 # ABI Versioning
 

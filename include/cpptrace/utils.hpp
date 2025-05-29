@@ -57,6 +57,11 @@ CPPTRACE_BEGIN_NAMESPACE
         CPPTRACE_EXPORT void set_dwarf_resolver_line_table_cache_size(nullable<std::size_t> max_entries);
         CPPTRACE_EXPORT void set_dwarf_resolver_disable_aranges(bool disable);
     }
+
+    // dbghelp
+    namespace experimental {
+        CPPTRACE_EXPORT void load_symbols_for_file(const std::string& filename);
+    }
 CPPTRACE_END_NAMESPACE
 
 #endif

@@ -1,6 +1,7 @@
 #ifdef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
 
 #include <cpptrace/basic.hpp>
+#include <cpptrace/utils.hpp>
 #include "symbols/symbols.hpp"
 #include "platform/dbghelp_utils.hpp"
 #include "binary/object.hpp"
@@ -19,6 +20,7 @@
 #endif
 #include <windows.h>
 #include <dbghelp.h>
+#include <psapi.h>
 
 namespace cpptrace {
 namespace internal {
@@ -449,5 +451,66 @@ namespace dbghelp {
 }
 }
 }
+
+CPPTRACE_BEGIN_NAMESPACE
+namespace experimental {
+    /*
+    When a module was loaded at runtime with LoadLibrary after SymInitialize was already called,
+    it is necessary to manually load the symbols from that module with SymLoadModuleEx.
+
+    See "Symbol Handler Initialization" in Microsoft documentation at
+    https://learn.microsoft.com/en-us/windows/win32/debug/symbol-handler-initialization
+    */
+    void load_symbols_for_file(const std::string& filename) {
+        HMODULE hModule = GetModuleHandleA(filename.c_str());
+        if (hModule == NULL) {
+            throw internal::internal_error(
+                "Unable to get module handle for file '{}' : {}",
+                filename,
+                std::system_error(GetLastError(), std::system_category()).what()
+            );
+        }
+
+        // SymLoadModuleEx needs the module's base address and size, so get these with GetModuleInformation.
+        MODULEINFO module_info;
+        if (
+            !GetModuleInformation(
+                GetCurrentProcess(),
+                hModule,
+                &module_info,
+                sizeof(module_info)
+            )
+        ) {
+            throw internal::internal_error(
+                "Unable to get module information for file '{}' : {}",
+                filename,
+                std::system_error(GetLastError(), std::system_category()).what()
+            );
+        }
+
+        auto lock = internal::get_dbghelp_lock();
+        HANDLE syminit_handle = internal::ensure_syminit().get_process_handle();
+        if (
+            !SymLoadModuleEx(
+                syminit_handle,
+                NULL,
+                filename.c_str(),
+                NULL,
+                (DWORD64)module_info.lpBaseOfDll,
+                // The documentation says this is optional, but if omitted (0), symbol loading fails
+                module_info.SizeOfImage,
+                NULL,
+                0
+            )
+        ) {
+            throw internal::internal_error(
+                "Unable to load symbols for file '{}' : {}",
+                filename,
+                std::system_error(GetLastError(), std::system_category()).what()
+            );
+        }
+    }
+}
+CPPTRACE_END_NAMESPACE
 
 #endif
