@@ -98,5 +98,6 @@ CPPTRACE_BEGIN_NAMESPACE
         export using cpptrace::experimental::set_cache_mode;
         export using cpptrace::experimental::set_dwarf_resolver_line_table_cache_size;
         export using cpptrace::experimental::set_dwarf_resolver_disable_aranges;
+        export using cpptrace::experimental::load_symbols_for_file;
     }
 CPPTRACE_END_NAMESPACE
