@@ -9,11 +9,11 @@
 #include <iosfwd>
 
 #ifdef _WIN32
-#define CPPTRACE_EXPORT_ATTR __declspec(dllexport)
-#define CPPTRACE_IMPORT_ATTR __declspec(dllimport)
+ #define CPPTRACE_EXPORT_ATTR __declspec(dllexport)
+ #define CPPTRACE_IMPORT_ATTR __declspec(dllimport)
 #else
-#define CPPTRACE_EXPORT_ATTR __attribute__((visibility("default")))
-#define CPPTRACE_IMPORT_ATTR __attribute__((visibility("default")))
+ #define CPPTRACE_EXPORT_ATTR __attribute__((visibility("default")))
+ #define CPPTRACE_IMPORT_ATTR __attribute__((visibility("default")))
 #endif
 
 #ifdef CPPTRACE_STATIC_DEFINE
@@ -51,7 +51,7 @@
 #pragma warning(disable: 4251; disable: 4275)
 #endif
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     struct CPPTRACE_EXPORT raw_trace {
         std::vector<frame_ptr> frames;
         static raw_trace current(std::size_t skip = 0);
@@ -166,7 +166,7 @@ namespace cpptrace {
 
         std::string to_string() const;
         std::string to_string(bool color) const;
-        friend std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);
+        friend CPPTRACE_EXPORT std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);
     };
 
     struct CPPTRACE_EXPORT stacktrace {
@@ -182,7 +182,7 @@ namespace cpptrace {
         void clear();
         bool empty() const noexcept;
         std::string to_string(bool color = false) const;
-        friend std::ostream& operator<<(std::ostream& stream, const stacktrace& trace);
+        friend CPPTRACE_EXPORT std::ostream& operator<<(std::ostream& stream, const stacktrace& trace);
 
         using iterator = std::vector<stacktrace_frame>::iterator;
         using const_iterator = std::vector<stacktrace_frame>::const_iterator;
@@ -241,7 +241,7 @@ namespace cpptrace {
     CPPTRACE_EXPORT void register_jit_object(const char*, std::size_t);
     CPPTRACE_EXPORT void unregister_jit_object(const char*);
     CPPTRACE_EXPORT void clear_all_jit_objects();
-}
+CPPTRACE_END_NAMESPACE
 
 #ifdef _MSC_VER
 #pragma warning(pop)

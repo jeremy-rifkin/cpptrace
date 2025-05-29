@@ -67,7 +67,7 @@ CTRACE_FORMAT_EPILOGUE
         return !str || std::char_traits<char>::length(str) == 0;
     }
 
-    static ctrace_owning_string generate_owning_string(cpptrace::detail::string_view raw_string) noexcept {
+    static ctrace_owning_string generate_owning_string(cpptrace::internal::string_view raw_string) noexcept {
         // Returns length to the null terminator.
         char* new_string = new char[raw_string.size() + 1];
         std::char_traits<char>::copy(new_string, raw_string.data(), raw_string.size());
@@ -103,7 +103,7 @@ CTRACE_FORMAT_EPILOGUE
         new_frame.line      = frame.line.value_or(invalid_pos);
         new_frame.column    = frame.column.value_or(invalid_pos);
         new_frame.filename  = generate_owning_string(frame.filename).data;
-        new_frame.symbol    = generate_owning_string(cpptrace::detail::demangle(frame.symbol, true)).data;
+        new_frame.symbol    = generate_owning_string(cpptrace::internal::demangle(frame.symbol, true)).data;
         new_frame.is_inline = ctrace_bool(frame.is_inline);
         return new_frame;
     }
@@ -164,7 +164,7 @@ extern "C" {
     CTRACE_FORCE_NO_INLINE
     ctrace_raw_trace ctrace_generate_raw_trace(size_t skip, size_t max_depth) {
         try {
-            std::vector<cpptrace::frame_ptr> trace = cpptrace::detail::capture_frames(skip + 1, max_depth);
+            std::vector<cpptrace::frame_ptr> trace = cpptrace::internal::capture_frames(skip + 1, max_depth);
             std::size_t count = trace.size();
             auto* frames = new ctrace_frame_ptr[count];
             std::copy(trace.data(), trace.data() + count, frames);
@@ -178,8 +178,8 @@ extern "C" {
     CTRACE_FORCE_NO_INLINE
     ctrace_object_trace ctrace_generate_object_trace(size_t skip, size_t max_depth) {
         try {
-            std::vector<cpptrace::object_frame> trace = cpptrace::detail::get_frames_object_info(
-                cpptrace::detail::capture_frames(skip + 1, max_depth)
+            std::vector<cpptrace::object_frame> trace = cpptrace::internal::get_frames_object_info(
+                cpptrace::internal::capture_frames(skip + 1, max_depth)
             );
             return ctrace::c_convert(trace);
         } catch(...) { // NOSONAR
@@ -191,8 +191,8 @@ extern "C" {
     CTRACE_FORCE_NO_INLINE
     ctrace_stacktrace ctrace_generate_trace(size_t skip, size_t max_depth) {
         try {
-            std::vector<cpptrace::frame_ptr> frames = cpptrace::detail::capture_frames(skip + 1, max_depth);
-            std::vector<cpptrace::stacktrace_frame> trace = cpptrace::detail::resolve_frames(frames);
+            std::vector<cpptrace::frame_ptr> frames = cpptrace::internal::capture_frames(skip + 1, max_depth);
+            std::vector<cpptrace::stacktrace_frame> trace = cpptrace::internal::resolve_frames(frames);
             return ctrace::c_convert(trace);
         } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
@@ -250,7 +250,7 @@ extern "C" {
         try {
             std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
             std::copy(trace->frames, trace->frames + trace->count, frames.begin());
-            std::vector<cpptrace::stacktrace_frame> resolved = cpptrace::detail::resolve_frames(frames);
+            std::vector<cpptrace::stacktrace_frame> resolved = cpptrace::internal::resolve_frames(frames);
             return ctrace::c_convert(resolved);
         } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
@@ -265,7 +265,7 @@ extern "C" {
         try {
             std::vector<cpptrace::frame_ptr> frames(trace->count, 0);
             std::copy(trace->frames, trace->frames + trace->count, frames.begin());
-            std::vector<cpptrace::object_frame> obj = cpptrace::detail::get_frames_object_info(frames);
+            std::vector<cpptrace::object_frame> obj = cpptrace::internal::get_frames_object_info(frames);
             return ctrace::c_convert(obj);
         } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
@@ -287,7 +287,7 @@ extern "C" {
                     return frame.raw_address;
                 }
             );
-            std::vector<cpptrace::stacktrace_frame> resolved = cpptrace::detail::resolve_frames(frames);
+            std::vector<cpptrace::stacktrace_frame> resolved = cpptrace::internal::resolve_frames(frames);
             return ctrace::c_convert(resolved);
         } catch(...) { // NOSONAR
             // Don't check rethrow condition, it's risky.
@@ -331,7 +331,7 @@ extern "C" {
                 (to == stderr && cpptrace::isatty(cpptrace::stderr_fileno))
             )
         ) {
-            cpptrace::detail::enable_virtual_terminal_processing_if_needed();
+            cpptrace::internal::enable_virtual_terminal_processing_if_needed();
         }
         ctrace::ffprintf(to, "Stack trace (most recent call first):\n");
         if(trace->count == 0 || !trace->frames) {
@@ -342,7 +342,7 @@ extern "C" {
         const auto green   = use_color ? ESC "32m" : "";
         const auto yellow  = use_color ? ESC "33m" : "";
         const auto blue    = use_color ? ESC "34m" : "";
-        const auto frame_number_width = cpptrace::detail::n_digits(unsigned(trace->count - 1));
+        const auto frame_number_width = cpptrace::internal::n_digits(unsigned(trace->count - 1));
         ctrace_stacktrace_frame* frames = trace->frames;
         for(std::size_t i = 0; i < trace->count; ++i) {
             static constexpr auto ptr_len = 2 * sizeof(cpptrace::frame_ptr);
@@ -355,7 +355,7 @@ extern "C" {
                 (void)std::fprintf(to, "%s0x%0*llx%s",
                     blue,
                     int(ptr_len),
-                    cpptrace::detail::to_ull(frames[i].raw_address),
+                    cpptrace::internal::to_ull(frames[i].raw_address),
                     reset);
             }
             if(!ctrace::is_empty(frames[i].symbol)) {
@@ -375,7 +375,7 @@ extern "C" {
                 }
                 (void)std::fprintf(to, ":%s%llu%s",
                     blue,
-                    cpptrace::detail::to_ull(frames[i].line),
+                    cpptrace::internal::to_ull(frames[i].line),
                     reset);
                 if(ctrace::is_empty(frames[i].column)) {
                     ctrace::ffprintf(to, "\n");
@@ -383,7 +383,7 @@ extern "C" {
                 }
                 (void)std::fprintf(to, ":%s%llu%s",
                     blue,
-                    cpptrace::detail::to_ull(frames[i].column),
+                    cpptrace::internal::to_ull(frames[i].column),
                     reset);
             }
             // always print newline at end :M
@@ -433,7 +433,7 @@ extern "C" {
 
     ctrace_object_frame ctrace_get_object_info(const ctrace_stacktrace_frame* frame) {
         try {
-            cpptrace::object_frame new_frame = cpptrace::detail::get_frame_object_info(frame->raw_address);
+            cpptrace::object_frame new_frame = cpptrace::internal::get_frame_object_info(frame->raw_address);
             return ctrace::convert_object_frame(new_frame);
         } catch(...) {
             return {0, 0, nullptr};

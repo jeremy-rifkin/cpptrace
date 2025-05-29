@@ -7,7 +7,7 @@
 #include <string>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     Result<std::uintptr_t, internal_error> get_module_image_base(const std::string& object_path);
 }
 }

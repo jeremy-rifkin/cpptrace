@@ -7,9 +7,9 @@
 
 #include "utils/span.hpp"
 
-using cpptrace::detail::span;
-using cpptrace::detail::make_span;
-using cpptrace::detail::make_bspan;
+using cpptrace::internal::span;
+using cpptrace::internal::make_span;
+using cpptrace::internal::make_bspan;
 
 namespace {
 

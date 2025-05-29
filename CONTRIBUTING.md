@@ -15,6 +15,14 @@ premature-optimizations, or micro-optimizations.
 When contributing, please try to match the current code style in the codebase. Style doesn't matter
 too much ultimately but consistency within a codebase is important.
 
+Please base changes against the `dev` branch, which is used for development.
+
+## Code organization
+
+The library's public interface is defined in headers in `include/`. Declarations for the public interface have
+definitions in .cpp files in the top-level of `src/`. Implementation for various actions such as unwinding, demangling,
+symbol resolution, etc. are put in various sub-directories of `src/`.
+
 ## Local development
 
 The easiest way to get started with local development is running `make debug` (which automatically configures cmake and

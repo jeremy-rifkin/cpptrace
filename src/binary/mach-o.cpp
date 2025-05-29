@@ -31,7 +31,7 @@
 #include <mach-o/arch.h>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     bool is_mach_o(std::uint32_t magic) {
         switch(magic) {
             case FAT_MAGIC:
@@ -706,10 +706,10 @@ namespace detail {
         if(get_cache_mode() == cache_mode::prioritize_memory) {
             return mach_o::open(object_path)
                 .transform([](mach_o&& obj) {
-                    return maybe_owned<mach_o>{detail::make_unique<mach_o>(std::move(obj))};
+                    return maybe_owned<mach_o>{internal::make_unique<mach_o>(std::move(obj))};
                 });
         } else {
-            std::mutex m;
+            static std::mutex m;
             std::unique_lock<std::mutex> lock{m};
             // TODO: Re-evaluate storing the error
             static std::unordered_map<std::string, Result<mach_o, internal_error>> cache;

@@ -11,7 +11,7 @@
 #include <mutex>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     class dbghelp_syminit_info {
         // `void*` is used to avoid including the (expensive) windows.h header here
         void* handle = nullptr;

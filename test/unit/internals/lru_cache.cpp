@@ -2,8 +2,8 @@
 
 #include "utils/lru_cache.hpp"
 
-using cpptrace::detail::lru_cache;
-using cpptrace::detail::nullopt;
+using cpptrace::internal::lru_cache;
+using cpptrace::internal::nullopt;
 
 namespace {
 

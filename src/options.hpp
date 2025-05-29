@@ -4,7 +4,7 @@
 #include <cpptrace/utils.hpp>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     // exported for test purposes
     CPPTRACE_EXPORT bool should_absorb_trace_exceptions();
     bool should_resolve_inlined_calls();

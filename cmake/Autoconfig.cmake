@@ -26,6 +26,27 @@ else()
   check_support(HAS_STACKWALK has_stackwalk.cpp "" "dbghelp" "")
 endif()
 
+set(HAS_CXX20_MODULES FALSE)
+if(CMAKE_CXX_STANDARD GREATER_EQUAL 20)
+  # https://cmake.org/cmake/help/latest/manual/cmake-cxxmodules.7.html#compiler-support
+  # msvc 14.34+/19.34+
+  # clang 16+
+  # gcc 15 and newer
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.34)
+      set(HAS_CXX20_MODULES TRUE)
+    endif()
+  elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16.0)
+      set(HAS_CXX20_MODULES TRUE)
+    endif()
+  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0)
+      set(HAS_CXX20_MODULES TRUE)
+    endif()
+  endif()
+endif()
+
 if(NOT WIN32 OR MINGW)
   check_support(HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "${CPPTRACE_BACKTRACE_PATH_DEFINITION}")
   set(STACKTRACE_LINK_LIB "stdc++_libbacktrace")

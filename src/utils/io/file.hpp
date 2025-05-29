@@ -7,7 +7,7 @@
 #include "utils/utils.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     class file : public base_file {
         file_wrapper file_obj;
         std::string object_path;

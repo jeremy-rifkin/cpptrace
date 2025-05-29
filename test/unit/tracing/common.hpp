@@ -11,4 +11,10 @@ template<typename...> using void_t = void;
 #define EXPECT_LINE(A, B) (void_t<decltype(A), decltype(B)>)0
 #endif
 
+#ifdef _MSC_VER
+ #define CPPTRACE_FORCE_NO_INLINE __declspec(noinline)
+#else
+ #define CPPTRACE_FORCE_NO_INLINE __attribute__((noinline))
+#endif
+
 #endif

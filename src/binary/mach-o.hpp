@@ -20,7 +20,7 @@
 #include <mach-o/nlist.h>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     bool file_is_mach_o(cstring_view object_path) noexcept;
 
     struct load_command_entry {

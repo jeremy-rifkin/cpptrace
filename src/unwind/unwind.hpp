@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     #ifdef CPPTRACE_HARD_MAX_FRAMES
     constexpr std::size_t hard_max_frames = CPPTRACE_HARD_MAX_FRAMES;
     #else

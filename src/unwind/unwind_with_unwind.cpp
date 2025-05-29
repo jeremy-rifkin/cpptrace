@@ -13,7 +13,7 @@
 #include <unwind.h>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     struct unwind_state {
         std::size_t skip;
         std::size_t max_depth;
@@ -33,7 +33,7 @@ namespace detail {
 
         ASSERT(
             state.vec.size() < state.max_depth,
-            "Somehow cpptrace::detail::unwind_callback is being called beyond the max_depth"
+            "Somehow cpptrace::internal::unwind_callback is being called beyond the max_depth"
         );
         int is_before_instruction = 0;
         frame_ptr ip = _Unwind_GetIPInfo(context, &is_before_instruction);

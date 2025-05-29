@@ -1,131 +1,151 @@
 #ifndef CPPTRACE_FROM_CURRENT_HPP
 #define CPPTRACE_FROM_CURRENT_HPP
 
-#include <cpptrace/basic.hpp>
+#include <exception>
+#include <typeinfo>
+#include <utility>
 
-namespace cpptrace {
+#ifdef _MSC_VER
+ #include <windows.h>
+#endif
+
+#include <cpptrace/basic.hpp>
+#include <cpptrace/from_current_macros.hpp>
+
+CPPTRACE_BEGIN_NAMESPACE
     CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception();
     CPPTRACE_EXPORT const stacktrace& from_current_exception();
 
-    namespace detail {
-        // Trace switch is to prevent multiple tracing of stacks on call stacks with multiple catches that don't
-        // immediately match
-        inline bool& get_trace_switch() {
-            static thread_local bool trace_switch = true;
-            return trace_switch;
-        }
+    CPPTRACE_EXPORT const raw_trace& raw_trace_from_current_exception_rethrow();
+    CPPTRACE_EXPORT const stacktrace& from_current_exception_rethrow();
 
-        class CPPTRACE_EXPORT try_canary {
-        public:
-            ~try_canary() {
-                // Fires when we exit a try block, either via normal means or during unwinding.
-                // Either way: Flip the switch.
-                get_trace_switch() = true;
-            }
+    CPPTRACE_EXPORT bool current_exception_was_rethrown();
+
+    CPPTRACE_NORETURN CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE
+    void rethrow();
+
+    CPPTRACE_NORETURN CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE
+    void rethrow(std::exception_ptr exception);
+
+    CPPTRACE_EXPORT void clear_current_exception_traces();
+
+    namespace detail {
+        template<typename>
+        struct argument;
+        template<typename R, typename Arg>
+        struct argument<R(Arg)> {
+            using type = Arg;
+        };
+        template<typename R>
+        struct argument<R(...)> {
+            using type = void;
         };
 
         CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip);
 
-        // this function can be void, however, a char return is used to prevent TCO of the collect_current_trace
-        CPPTRACE_FORCE_NO_INLINE inline char exception_unwind_interceptor(std::size_t skip) {
-            if(get_trace_switch()) {
-                // Done during a search phase. Flip the switch off, no more traces until an unwind happens
-                get_trace_switch() = false;
-                collect_current_trace(skip + 1);
-            }
-            return 42;
-        }
-
         #ifdef _MSC_VER
-         CPPTRACE_FORCE_NO_INLINE inline int exception_filter() {
-             exception_unwind_interceptor(1);
-             return 0; // EXCEPTION_CONTINUE_SEARCH
-         }
-         CPPTRACE_FORCE_NO_INLINE inline int unconditional_exception_filter() {
-             collect_current_trace(1);
-             return 0; // EXCEPTION_CONTINUE_SEARCH
+         CPPTRACE_EXPORT bool matches_exception(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info);
+         template<typename E>
+         CPPTRACE_FORCE_NO_INLINE inline int exception_filter(EXCEPTION_POINTERS* exception_ptrs) {
+             if(matches_exception(exception_ptrs, typeid(E))) {
+                 collect_current_trace(1);
+             }
+             return EXCEPTION_CONTINUE_SEARCH;
          }
         #else
-         class CPPTRACE_EXPORT unwind_interceptor {
+         CPPTRACE_EXPORT bool check_can_catch(const std::type_info*, const std::type_info*, void**, unsigned);
+         template<typename T>
+         class unwind_interceptor {
          public:
-             virtual ~unwind_interceptor();
+             static int init;
+             CPPTRACE_FORCE_NO_INLINE static bool can_catch(
+                 const std::type_info* /* this */,
+                 const std::type_info* throw_type,
+                 void** throw_obj,
+                 unsigned outer
+             ) {
+                 if(check_can_catch(&typeid(T), throw_type, throw_obj, outer)) {
+                     collect_current_trace(1);
+                 }
+                 return false;
+             }
          };
-         class CPPTRACE_EXPORT unconditional_unwind_interceptor {
-         public:
-             virtual ~unconditional_unwind_interceptor();
-         };
-
-         CPPTRACE_EXPORT void do_prepare_unwind_interceptor(char(*)(std::size_t));
-
-         #ifndef CPPTRACE_DONT_PREPARE_UNWIND_INTERCEPTOR_ON
-          __attribute__((constructor)) inline void prepare_unwind_interceptor() {
-              // __attribute__((constructor)) inline functions can be called for every source file they're #included in
-              // there is still only one copy of the inline function in the final executable, though
-              // LTO can make the redundant constructs fire only once
-              // do_prepare_unwind_interceptor prevents against multiple preparations however it makes sense to guard
-              // against it here too as a fast path, not that this should matter for performance
-              static bool did_prepare = false;
-              if(!did_prepare) {
-                 do_prepare_unwind_interceptor(exception_unwind_interceptor);
-                 did_prepare = true;
-              }
-          }
-         #endif
+         CPPTRACE_EXPORT void do_prepare_unwind_interceptor(
+             const std::type_info&,
+             bool(*)(const std::type_info*, const std::type_info*, void**, unsigned)
+         );
+         template<typename T>
+         inline int prepare_unwind_interceptor() {
+             do_prepare_unwind_interceptor(typeid(unwind_interceptor<T>), unwind_interceptor<T>::can_catch);
+             return 1;
+         }
+         template<typename T>
+         int unwind_interceptor<T>::init = prepare_unwind_interceptor<T>();
+         template<typename F>
+         using unwind_interceptor_for = unwind_interceptor<typename argument<F>::type>;
+         inline void nop(int) {}
         #endif
     }
-}
 
-#ifdef _MSC_VER
- // this awful double-IILE is due to C2713 "You can't use structured exception handling (__try/__except) and C++
- // exception handling (try/catch) in the same function."
- #define CPPTRACE_TRY \
-     try { \
-         ::cpptrace::detail::try_canary cpptrace_try_canary; \
-         [&]() { \
-             __try { \
-                 [&]() {
- #define CPPTRACE_CATCH(param) \
-                 }(); \
-             } __except(::cpptrace::detail::exception_filter()) {} \
-         }(); \
-     } catch(param)
- #define CPPTRACE_TRYZ \
-     try { \
-         [&]() { \
-             __try { \
-                 [&]() {
- #define CPPTRACE_CATCHZ(param) \
-                 }(); \
-             } __except(::cpptrace::detail::unconditional_exception_filter()) {} \
-         }(); \
-     } catch(param)
-#else
- #define CPPTRACE_TRY \
-     try { \
-         _Pragma("GCC diagnostic push") \
-         _Pragma("GCC diagnostic ignored \"-Wshadow\"") \
-         ::cpptrace::detail::try_canary cpptrace_try_canary; \
-         _Pragma("GCC diagnostic pop") \
-         try {
- #define CPPTRACE_CATCH(param) \
-         } catch(::cpptrace::detail::unwind_interceptor&) {} \
-     } catch(param)
- #define CPPTRACE_TRYZ \
-     try { \
-         try {
- #define CPPTRACE_CATCHZ(param) \
-         } catch(::cpptrace::detail::unconditional_unwind_interceptor&) {} \
-     } catch(param)
-#endif
+    namespace detail {
+        template<typename R, typename Arg>
+        Arg get_callable_argument_helper(R(*) (Arg));
+        template<typename R, typename F, typename Arg>
+        Arg get_callable_argument_helper(R(F::*) (Arg));
+        template<typename R, typename F, typename Arg>
+        Arg get_callable_argument_helper(R(F::*) (Arg) const);
+        template<typename R>
+        void get_callable_argument_helper(R(*) ());
+        template<typename R, typename F>
+        void get_callable_argument_helper(R(F::*) ());
+        template<typename R, typename F>
+        void get_callable_argument_helper(R(F::*) () const);
+        template<typename F>
+        decltype(get_callable_argument_helper(&F::operator())) get_callable_argument_wrapper(F);
+        template<typename T>
+        using get_callable_argument = decltype(get_callable_argument_wrapper(std::declval<T>()));
 
-#define CPPTRACE_CATCH_ALT(param) catch(param)
+        template<typename E, typename F, typename Catch, typename std::enable_if<!std::is_same<E, void>::value, int>::type = 0>
+        void do_try_catch(F&& f, Catch&& catcher) {
+            CPPTRACE_TRY {
+                std::forward<F>(f)();
+            } CPPTRACE_CATCH(E e) {
+                std::forward<Catch>(catcher)(std::forward<E>(e));
+            }
+        }
 
-#ifdef CPPTRACE_UNPREFIXED_TRY_CATCH
- #define TRY CPPTRACE_TRY
- #define CATCH(param) CPPTRACE_CATCH(param)
- #define TRYZ CPPTRACE_TRYZ
- #define CATCHZ(param) CPPTRACE_CATCHZ(param)
- #define CATCH_ALT(param) CPPTRACE_CATCH_ALT(param)
-#endif
+        template<typename E, typename F, typename Catch, typename std::enable_if<std::is_same<E, void>::value, int>::type = 0>
+        void do_try_catch(F&& f, Catch&& catcher) {
+            CPPTRACE_TRY {
+                std::forward<F>(f)();
+            } CPPTRACE_CATCH(...) {
+                std::forward<Catch>(catcher)();
+            }
+        }
+
+        template<typename F>
+        void try_catch_impl(F&& f) {
+            std::forward<F>(f)();
+        }
+
+        // TODO: This could be made more efficient to reduce the number of interceptor levels that do typeid checks
+        // and possible traces
+        template<typename F, typename Catch, typename... Catches>
+        void try_catch_impl(F&& f, Catch&& catcher, Catches&&... catches) {
+            // match the first catch at the inner-most level... no real way to reverse a pack or extract from the end so
+            // we have to wrap with a lambda
+            auto wrapped = [&] () {
+                using E = get_callable_argument<Catch>;
+                do_try_catch<E>(std::forward<F>(f), std::forward<Catch>(catcher));
+            };
+            try_catch_impl(std::move(wrapped), std::forward<Catches>(catches)...);
+        }
+    }
+
+    template<typename F, typename... Catches>
+    void try_catch(F&& f, Catches&&... catches) {
+        return detail::try_catch_impl(std::forward<F>(f), std::forward<Catches>(catches)...);
+    }
+CPPTRACE_END_NAMESPACE
 
 #endif

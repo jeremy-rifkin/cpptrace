@@ -2,6 +2,7 @@
 #define CPPTRACE_EXCEPTIONS_HPP
 
 #include <cpptrace/basic.hpp>
+#include <cpptrace/exceptions_macros.hpp>
 
 #include <exception>
 #include <system_error>
@@ -14,7 +15,7 @@
 #pragma warning(disable: 4251; disable: 4275)
 #endif
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
     // tracing exceptions:
     namespace detail {
         // This is a helper utility, if the library weren't C++11 an std::variant would be used
@@ -39,6 +40,7 @@ namespace cpptrace {
             const raw_trace& get_raw_trace() const;
             stacktrace& get_resolved_trace();
             const stacktrace& get_resolved_trace() const;
+            bool is_resolved() const;
         private:
             void clear();
         };
@@ -192,24 +194,7 @@ namespace cpptrace {
 
     // [[noreturn]] must come first due to old clang
     [[noreturn]] CPPTRACE_EXPORT void rethrow_and_wrap_if_needed(std::size_t skip = 0);
-}
-
-// Exception wrapper utilities
-#define CPPTRACE_WRAP_BLOCK(statements) do { \
-        try { \
-            statements \
-        } catch(...) { \
-            ::cpptrace::rethrow_and_wrap_if_needed(); \
-        } \
-    } while(0)
-
-#define CPPTRACE_WRAP(expression) [&] () -> decltype((expression)) { \
-        try { \
-            return expression; \
-        } catch(...) { \
-            ::cpptrace::rethrow_and_wrap_if_needed(1); \
-        } \
-    } ()
+CPPTRACE_END_NAMESPACE
 
 #ifdef _MSC_VER
 #pragma warning(pop)

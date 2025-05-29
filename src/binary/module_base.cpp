@@ -20,7 +20,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     #if IS_LINUX
     Result<std::uintptr_t, internal_error> get_module_image_base(const std::string& object_path) {
         static std::mutex mutex;

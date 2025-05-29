@@ -14,7 +14,7 @@
 #include <vector>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     #if IS_LINUX || IS_APPLE
     class jit_object_manager {
         struct object_entry {

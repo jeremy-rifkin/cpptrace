@@ -11,35 +11,37 @@
 #include "options.hpp"
 
 namespace cpptrace {
+namespace internal {
+    const formatter& get_terminate_formatter() {
+        static formatter the_formatter = formatter{}
+            .header("Stack trace to reach terminate handler (most recent call first):");
+        return the_formatter;
+    }
+}
+}
+
+CPPTRACE_BEGIN_NAMESPACE
     std::string demangle(const std::string& name) {
-        return detail::demangle(name, false);
+        return internal::demangle(name, false);
     }
 
     std::string get_snippet(const std::string& path, std::size_t line, std::size_t context_size, bool color) {
-        return detail::get_snippet(path, line, context_size, color);
+        return internal::get_snippet(path, line, context_size, color);
     }
 
     bool isatty(int fd) {
-        return detail::isatty(fd);
+        return internal::isatty(fd);
     }
 
-    extern const int stdin_fileno = detail::fileno(stdin);
-    extern const int stdout_fileno = detail::fileno(stdout);
-    extern const int stderr_fileno = detail::fileno(stderr);
-
-    namespace detail {
-        const formatter& get_terminate_formatter() {
-            static formatter the_formatter = formatter{}
-                .header("Stack trace to reach terminate handler (most recent call first):");
-            return the_formatter;
-        }
-    }
+    extern const int stdin_fileno = internal::fileno(stdin);
+    extern const int stdout_fileno = internal::fileno(stdout);
+    extern const int stderr_fileno = internal::fileno(stderr);
 
     CPPTRACE_FORCE_NO_INLINE void print_terminate_trace() {
         try { // try/catch can never be hit but it's needed to prevent TCO
-            detail::get_terminate_formatter().print(std::cerr, generate_trace(1));
+            internal::get_terminate_formatter().print(std::cerr, generate_trace(1));
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
+            if(!internal::should_absorb_trace_exceptions()) {
                 throw;
             }
         }
@@ -70,7 +72,7 @@ namespace cpptrace {
             print_terminate_trace();
         } catch(...) {
             microfmt::print(
-                stderr, "Terminate called after throwing an instance of {}\n", detail::exception_type_name()
+                stderr, "Terminate called after throwing an instance of {}\n", internal::exception_type_name()
             );
             print_terminate_trace();
         }
@@ -81,4 +83,4 @@ namespace cpptrace {
     void register_terminate_handler() {
         std::set_terminate(terminate_handler);
     }
-}
+CPPTRACE_END_NAMESPACE

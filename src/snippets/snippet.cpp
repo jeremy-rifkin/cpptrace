@@ -13,7 +13,7 @@
 #include "utils/utils.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     constexpr std::int64_t max_size = 1024 * 1024 * 10; // 10 MiB
 
     struct line_range {
@@ -88,10 +88,9 @@ namespace detail {
         }
     };
 
-    std::mutex snippet_manager_mutex;
-    std::unordered_map<std::string, const snippet_manager> snippet_managers;
-
     const snippet_manager& get_manager(const std::string& path) {
+        static std::mutex snippet_manager_mutex;
+        static std::unordered_map<std::string, const snippet_manager> snippet_managers;
         std::unique_lock<std::mutex> lock(snippet_manager_mutex);
         auto it = snippet_managers.find(path);
         if(it == snippet_managers.end()) {

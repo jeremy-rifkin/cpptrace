@@ -15,7 +15,7 @@
 #define CPPTRACE_MAX_PATH MAX_PATH
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     inline const char* program_name() {
         static std::mutex mutex;
         const std::lock_guard<std::mutex> lock(mutex);
@@ -45,7 +45,7 @@ namespace detail {
 #define CPPTRACE_MAX_PATH CPPTRACE_PATH_MAX
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     inline const char* program_name() {
         static std::mutex mutex;
         const std::lock_guard<std::mutex> lock(mutex);
@@ -74,7 +74,7 @@ namespace detail {
 #define CPPTRACE_MAX_PATH CPPTRACE_PATH_MAX
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     inline const char* program_name() {
         static std::mutex mutex;
         const std::lock_guard<std::mutex> lock(mutex);

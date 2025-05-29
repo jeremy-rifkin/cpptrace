@@ -1,5 +1,3 @@
-#include <cpptrace/formatting.hpp>
-
 #include <gtest/gtest.h>
 #include <gtest/gtest-matchers.h>
 #include <gmock/gmock.h>
@@ -8,7 +6,13 @@
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 
-using cpptrace::detail::split;
+#ifdef TEST_MODULE
+import cpptrace;
+#else
+#include <cpptrace/formatting.hpp>
+#endif
+
+using cpptrace::internal::split;
 using testing::ElementsAre;
 
 namespace {
@@ -365,6 +369,31 @@ TEST(FormatterTest, CopySemantics) {
             "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
             "#1 (filtered)",
             "#2 0x0000000000000003 in main at foo.cpp:40:25"
+        )
+    );
+}
+
+TEST(FormatterTest, PrettySymbols) {
+    auto normal_formatter = cpptrace::formatter{}
+        .prettify_symbols(false);
+    cpptrace::stacktrace trace;
+    trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "foo(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)", false});
+    auto res = split(normal_formatter.format(trace), "\n");
+    EXPECT_THAT(
+        res,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x0000000000000001 in foo(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) at foo.cpp:20:30"
+        )
+    );
+    auto pretty_formatter = cpptrace::formatter{}
+        .prettify_symbols(true);
+    res = split(pretty_formatter.format(trace), "\n");
+    EXPECT_THAT(
+        res,
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x0000000000000001 in foo(std::string) at foo.cpp:20:30"
         )
     );
 }

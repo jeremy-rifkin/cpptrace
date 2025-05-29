@@ -12,7 +12,7 @@
 #include <string>
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     std::string demangle(const std::string& name, bool check_prefix) {
         // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
         // Check both _Z and __Z, apple prefixes all symbols with an underscore

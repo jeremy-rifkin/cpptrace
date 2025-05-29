@@ -6,7 +6,6 @@
 
 #include <string>
 #include <vector>
-#include <mutex>
 #include <unordered_map>
 #include <cstring>
 #include <iostream>
@@ -19,7 +18,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
         out->raw_address = address;
         dl_find_object result;
@@ -43,7 +42,6 @@ namespace detail {
                 // TODO: Special handling for /proc/pid/exe unlink edge case
             }
         } else {
-            // std::cout<<"error"<<std::endl;
             out->address_relative_to_object_start = 0;
             out->object_path[0] = 0;
         }
@@ -61,7 +59,7 @@ namespace detail {
 }
 #else
 namespace cpptrace {
-namespace detail {
+namespace internal {
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
         out->raw_address = address;
         out->address_relative_to_object_start = 0;

@@ -18,7 +18,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     #if IS_MSVC
     #pragma warning(push)
     #pragma warning(disable: 4740) // warning C4740: flow in or out of inline asm code suppresses global optimization

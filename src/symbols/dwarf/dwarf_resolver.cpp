@@ -35,7 +35,7 @@
 // https://github.com/ruby/ruby/blob/master/addr2line.c
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
 namespace libdwarf {
     // printbugging as we go
     constexpr bool dump_dwarf = false;
@@ -63,10 +63,14 @@ namespace libdwarf {
         // Map from CU -> Line context
         lru_cache<Dwarf_Off, line_table_info> line_tables{get_dwarf_resolver_line_table_cache_size()};
         // Map from CU -> Sorted subprograms vector
-        std::unordered_map<Dwarf_Off, die_cache<monostate>> subprograms_cache;
+        using subprogram_map = range_map<Dwarf_Addr, die_object>;
+        std::unordered_map<Dwarf_Off, subprogram_map> subprograms_cache;
         // Vector of ranges and their corresponding CU offsets
-        // data stored for each cache entry is a Dwarf_Half dwversion
-        die_cache<Dwarf_Half> cu_cache;
+        struct compile_unit {
+            die_object die;
+            Dwarf_Half dwversion;
+        };
+        range_map<Dwarf_Addr, compile_unit> cu_cache;
         bool generated_cu_cache = false;
         // Map from CU -> {srcfiles, count}
         std::unordered_map<Dwarf_Off, srcfiles> srcfiles_cache;
@@ -252,18 +256,18 @@ namespace libdwarf {
                         const auto& skeleton_cu = skeleton.unwrap().cu_die;
                         auto ranges_vec = skeleton_cu.get_rangelist_entries(skeleton_cu, dwversion);
                         if(!ranges_vec.empty()) {
-                            auto cu_die_handle = cu_cache.add_die(cu_die.clone());
+                            auto cu_die_handle = cu_cache.add_item({cu_die.clone(), dwversion});
                             for(auto range : ranges_vec) {
-                                cu_cache.insert(cu_die_handle, range.first, range.second, dwversion);
+                                cu_cache.insert(cu_die_handle, range.first, range.second);
                             }
                         }
                         return false;
                     } else {
                         auto ranges_vec = cu_die.get_rangelist_entries(cu_die, dwversion);
                         if(!ranges_vec.empty()) {
-                            auto cu_die_handle = cu_cache.add_die(cu_die.clone());
+                            auto cu_die_handle = cu_cache.add_item({cu_die.clone(), dwversion});
                             for(auto range : ranges_vec) {
-                                cu_cache.insert(cu_die_handle, range.first, range.second, dwversion);
+                                cu_cache.insert(cu_die_handle, range.first, range.second);
                             }
                         }
                         return true;
@@ -424,7 +428,7 @@ namespace libdwarf {
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram);
             const auto name = subprogram_symbol(die, dwversion);
-            if(detail::should_resolve_inlined_calls()) {
+            if(internal::should_resolve_inlined_calls()) {
                 get_inlines_info(cu_die, die, pc, dwversion, inlines);
             }
             return name;
@@ -498,7 +502,7 @@ namespace libdwarf {
             const die_object& cu_die,
             const die_object& die,
             Dwarf_Half dwversion,
-            die_cache<monostate>& subprogram_cache
+            subprogram_map& subprogram_cache
         ) {
             walk_die_list(
                 die,
@@ -509,7 +513,7 @@ namespace libdwarf {
                                 auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
                                 // TODO: Feels super inefficient and some day should maybe use an interval tree.
                                 if(!ranges_vec.empty()) {
-                                    auto die_handle = subprogram_cache.add_die(die.clone());
+                                    auto die_handle = subprogram_cache.add_item(die.clone());
                                     for(auto range : ranges_vec) {
                                         subprogram_cache.insert(die_handle, range.first, range.second);
                                     }
@@ -562,7 +566,7 @@ namespace libdwarf {
                 auto it = subprograms_cache.find(off);
                 if(it == subprograms_cache.end()) {
                     // TODO: Refactor. Do the sort in the preprocess function and return the vec directly.
-                    die_cache<monostate> subprogram_cache;
+                    subprogram_map subprogram_cache;
                     preprocess_subprograms(cu_die, cu_die, dwversion, subprogram_cache);
                     subprogram_cache.finalize();
                     subprograms_cache.emplace(off, std::move(subprogram_cache));
@@ -863,7 +867,7 @@ namespace libdwarf {
                 // _start is outside of the CU's PC range
                 if(res) {
                     const auto& die = res.unwrap().die;
-                    const auto dwversion = res.unwrap().data;
+                    const auto dwversion = res.unwrap().dwversion;
                     // TODO: Cache the range list?
                     // NOTE: If we have a corresponding skeleton, we assume we have one CU matching the skeleton CU
                     if(
@@ -932,7 +936,7 @@ namespace libdwarf {
                     if(it == split_full_cu_resolvers.end()) {
                         it = split_full_cu_resolvers.emplace(
                             off,
-                            detail::make_unique<dwarf_resolver>(path, skeleton_info{cu_die.clone(), dwversion, *this})
+                            internal::make_unique<dwarf_resolver>(path, skeleton_info{cu_die.clone(), dwversion, *this})
                         ).first;
                     }
                     res = it->second->resolve_frame(object_frame_info);
@@ -1010,7 +1014,7 @@ namespace libdwarf {
     };
 
     std::unique_ptr<symbol_resolver> make_dwarf_resolver(cstring_view object_path) {
-        return detail::make_unique<dwarf_resolver>(object_path);
+        return internal::make_unique<dwarf_resolver>(object_path);
     }
 }
 }

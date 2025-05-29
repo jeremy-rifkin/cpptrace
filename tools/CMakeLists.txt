@@ -33,7 +33,7 @@ function(binary TARGET)
   target_link_libraries(${TARGET} PUBLIC ${COMMON_LIBS})
   target_link_libraries(${TARGET} PUBLIC ${BINARY_LIBS})
   target_compile_definitions(${TARGET} PUBLIC ${BINARY_DEFS})
-  target_compile_options(${TARGET} PUBLIC ${BINARY_FLAGS} ${debug} ${warning_options})
+  target_compile_options(${TARGET} PUBLIC ${BINARY_FLAGS} ${debug} ${warning_options} $<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>)
   target_include_directories(${TARGET} PUBLIC "${PROJECT_SOURCE_DIR}/src")
   target_compile_features(${TARGET} PRIVATE cxx_std_20)
   set_target_properties(

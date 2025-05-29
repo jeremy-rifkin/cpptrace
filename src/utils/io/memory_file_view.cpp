@@ -1,7 +1,7 @@
 #include "utils/io/memory_file_view.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     string_view memory_file_view::path() const {
         return object_path;
     }

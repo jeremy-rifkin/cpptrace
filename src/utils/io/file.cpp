@@ -2,7 +2,7 @@
 #include "utils/io/file.hpp"
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     string_view file::path() const {
         return object_path;
     }

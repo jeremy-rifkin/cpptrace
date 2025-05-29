@@ -15,7 +15,7 @@
 #endif
 
 namespace cpptrace {
-namespace detail {
+namespace internal {
     #if IS_WINDOWS
     constexpr char PATH_SEP = '\\';
     inline bool is_absolute(string_view path) {
