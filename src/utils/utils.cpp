@@ -12,8 +12,8 @@
  #include <unistd.h>
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 
     bool isatty(int fd) {
         #if IS_WINDOWS
@@ -58,4 +58,4 @@ namespace internal {
     }
 
 }
-}
+CPPTRACE_END_NAMESPACE

@@ -6,8 +6,8 @@
 
 #include <type_traits>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     class base_file {
     public:
         virtual ~base_file() = default;
@@ -45,6 +45,6 @@ namespace internal {
         }
     };
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

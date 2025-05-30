@@ -7,8 +7,8 @@
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace libdwarf {
     class srcfiles {
         Dwarf_Debug dbg = nullptr;
@@ -158,6 +158,6 @@ namespace libdwarf {
     };
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

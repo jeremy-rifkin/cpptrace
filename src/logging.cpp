@@ -5,8 +5,8 @@
 
 #include <atomic>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     std::atomic<log_level> current_log_level(log_level::error); // NOSONAR
 
     void default_null_logger(log_level, const char*) {}
@@ -45,19 +45,19 @@ namespace internal {
         }
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 CPPTRACE_BEGIN_NAMESPACE
     void set_log_level(log_level level) {
-        internal::current_log_level = level;
+        detail::current_log_level = level;
     }
 
     void set_log_callback(std::function<void(log_level, const char*)> callback) {
-        internal::log_callback() = std::move(callback);
+        detail::log_callback() = std::move(callback);
     }
 
     void use_default_stderr_logger() {
-        internal::log_callback() = internal::default_stderr_logger;
+        detail::log_callback() = detail::default_stderr_logger;
     }
 
     const char* to_string(log_level level) {

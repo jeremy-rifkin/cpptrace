@@ -14,8 +14,8 @@
 
 #define CPPTRACE_MAX_PATH MAX_PATH
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     inline const char* program_name() {
         static std::mutex mutex;
         const std::lock_guard<std::mutex> lock(mutex);
@@ -34,7 +34,7 @@ namespace internal {
         return valid && !name.empty() ? name.c_str() : nullptr;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #elif IS_APPLE
 
@@ -44,8 +44,8 @@ namespace internal {
 
 #define CPPTRACE_MAX_PATH CPPTRACE_PATH_MAX
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     inline const char* program_name() {
         static std::mutex mutex;
         const std::lock_guard<std::mutex> lock(mutex);
@@ -64,7 +64,7 @@ namespace internal {
         return valid && !name.empty() ? name.c_str() : nullptr;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #elif IS_LINUX
 
@@ -73,8 +73,8 @@ namespace internal {
 
 #define CPPTRACE_MAX_PATH CPPTRACE_PATH_MAX
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     inline const char* program_name() {
         static std::mutex mutex;
         const std::lock_guard<std::mutex> lock(mutex);
@@ -95,7 +95,7 @@ namespace internal {
         return valid && !name.empty() ? name.c_str() : nullptr;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif
 

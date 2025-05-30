@@ -20,8 +20,8 @@
 #include <backtrace.h>
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace libbacktrace {
     int full_callback(void* data, std::uintptr_t address, const char* file, int line, const char* symbol) {
         stacktrace_frame& frame = *static_cast<stacktrace_frame*>(data);
@@ -104,6 +104,6 @@ namespace libbacktrace {
     }
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

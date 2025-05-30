@@ -14,8 +14,8 @@
 #include <windows.h>
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     #if IS_WINDOWS
     constexpr char PATH_SEP = '\\';
     inline bool is_absolute(string_view path) {
@@ -43,6 +43,6 @@ namespace internal {
     }
     #endif
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

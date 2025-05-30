@@ -11,8 +11,8 @@
 #include <functional>
 #include <string>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     std::string demangle(const std::string& name, bool check_prefix) {
         // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
         // Check both _Z and __Z, apple prefixes all symbols with an underscore
@@ -56,6 +56,6 @@ namespace internal {
         }
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

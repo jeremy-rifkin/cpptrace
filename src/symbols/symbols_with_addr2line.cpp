@@ -24,8 +24,8 @@
 #include "binary/object.hpp"
 #include "options.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace addr2line {
     #if IS_LINUX || IS_APPLE
     bool has_addr2line() {
@@ -322,6 +322,6 @@ namespace addr2line {
     }
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

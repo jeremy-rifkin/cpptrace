@@ -24,8 +24,8 @@
  #include <windows.h>
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     #if IS_LINUX || IS_APPLE
     #if defined(CPPTRACE_HAS_DL_FIND_OBJECT) || defined(CPPTRACE_HAS_DLADDR1)
     std::string resolve_l_name(const char* l_name) {
@@ -187,4 +187,4 @@ namespace internal {
         };
     }
 }
-}
+CPPTRACE_END_NAMESPACE

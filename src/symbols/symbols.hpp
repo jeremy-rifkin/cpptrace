@@ -9,8 +9,8 @@
 #include <utility>
 #include <vector>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     using collated_vec = std::vector<
         std::pair<std::reference_wrapper<const object_frame>, std::reference_wrapper<stacktrace_frame>>
     >;
@@ -67,6 +67,6 @@ namespace internal {
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames);
     std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames);
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

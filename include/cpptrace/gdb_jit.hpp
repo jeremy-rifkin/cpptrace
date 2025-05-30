@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
     // https://sourceware.org/gdb/current/onlinedocs/gdb.html/JIT-Interface.html
     extern "C" {
@@ -37,9 +37,7 @@ namespace detail {
         extern struct jit_descriptor __jit_debug_descriptor;
     }
 }
-}
 
-CPPTRACE_BEGIN_NAMESPACE
 namespace experimental {
     inline void register_jit_objects_from_gdb_jit_interface() {
         clear_all_jit_objects();

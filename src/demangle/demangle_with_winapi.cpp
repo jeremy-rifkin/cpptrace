@@ -11,8 +11,8 @@
 #include <windows.h>
 #include <dbghelp.h>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     std::string demangle(const std::string& name, bool) {
         // Dbghelp is is single-threaded, so acquire a lock.
         auto lock = get_dbghelp_lock();
@@ -26,6 +26,6 @@ namespace internal {
         }
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

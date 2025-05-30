@@ -6,8 +6,8 @@
 
 #include "utils/string_view.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     // replace all instances of substr with the replacement
     void replace_all(std::string& str, string_view substr, string_view replacement);
 
@@ -20,6 +20,6 @@ namespace internal {
     // replace all matches of a regex including template parameters
     void replace_all_template(std::string& str, const std::pair<std::regex, string_view>& rule);
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

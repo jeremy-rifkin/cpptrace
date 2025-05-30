@@ -6,8 +6,8 @@
 #include <algorithm>
 #include <cstring>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     char string_view::operator[](size_t i) const {
         ASSERT(i < size());
         return ptr[i];
@@ -45,4 +45,4 @@ namespace internal {
         ASSERT(ptr[count] == 0);
     }
 }
-}
+CPPTRACE_END_NAMESPACE

@@ -12,17 +12,17 @@
  #include "demangle/demangle.hpp"
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     inline std::string exception_type_name() {
         #if defined(CPPTRACE_HAS_CXX_EXCEPTION_TYPE) && (IS_LIBSTDCXX || IS_LIBCXX)
          const std::type_info* t = abi::__cxa_current_exception_type();
-         return t ? internal::demangle(t->name(), false) : "<unknown>";
+         return t ? demangle(t->name(), false) : "<unknown>";
         #else
          return "<unknown>";
         #endif
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

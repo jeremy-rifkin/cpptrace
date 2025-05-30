@@ -19,8 +19,8 @@
  #undef min
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     CPPTRACE_FORCE_NO_INLINE
     std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth) {
         std::vector<void*> addrs(skip + std::min(hard_max_frames, max_depth), nullptr);
@@ -51,6 +51,6 @@ namespace internal {
         return false;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

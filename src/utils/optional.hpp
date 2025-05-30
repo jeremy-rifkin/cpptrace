@@ -9,8 +9,8 @@
 #include "utils/common.hpp"
 #include "utils/error.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     struct nullopt_t {};
 
     static constexpr nullopt_t nullopt;
@@ -165,6 +165,6 @@ namespace internal {
         }
     };
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

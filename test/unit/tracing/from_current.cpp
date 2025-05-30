@@ -50,7 +50,7 @@ CPPTRACE_FORCE_NO_INLINE int stacktrace_from_current_1(std::vector<int>& line_nu
 TEST(FromCurrent, Basic) {
     std::vector<int> line_numbers;
     bool does_enter_catch = false;
-    auto guard = cpptrace::internal::scope_exit([&] {
+    auto guard = cpptrace::detail::scope_exit([&] {
         EXPECT_TRUE(does_enter_catch);
     });
     CPPTRACE_TRY {
@@ -165,7 +165,7 @@ TEST(FromCurrent, RawTrace) {
 TEST(FromCurrent, NonThrowingPath) {
     bool does_enter_catch = false;
     bool does_reach_end = false;
-    auto guard = cpptrace::internal::scope_exit([&] {
+    auto guard = cpptrace::detail::scope_exit([&] {
         EXPECT_FALSE(does_enter_catch);
         EXPECT_TRUE(does_reach_end);
     });

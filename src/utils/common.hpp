@@ -44,8 +44,8 @@
  #define PACKED
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     static const stacktrace_frame null_frame {
         0,
         0,
@@ -56,6 +56,6 @@ namespace internal {
         false
     };
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

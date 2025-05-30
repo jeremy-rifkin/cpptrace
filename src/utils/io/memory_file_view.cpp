@@ -1,7 +1,7 @@
 #include "utils/io/memory_file_view.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     string_view memory_file_view::path() const {
         return object_path;
     }
@@ -20,4 +20,4 @@ namespace internal {
         return monostate{};
     }
 }
-}
+CPPTRACE_END_NAMESPACE

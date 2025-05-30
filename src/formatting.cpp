@@ -15,45 +15,45 @@
 
 CPPTRACE_BEGIN_NAMESPACE
     std::string basename(const std::string& path) {
-        return internal::basename(path, true);
+        return detail::basename(path, true);
     }
 
     std::string prettify_symbol(std::string symbol) {
         // > > -> >> replacement
         // could put in analysis:: but the replacement is basic and this is more convenient for
         // using in the stringifier too
-        internal::replace_all_dynamic(symbol, "> >", ">>");
+        detail::replace_all_dynamic(symbol, "> >", ">>");
         // "," -> ", " and " ," -> ", "
         static const std::regex comma_re(R"(\s*,\s*)");
-        internal::replace_all(symbol, comma_re, ", ");
+        detail::replace_all(symbol, comma_re, ", ");
         // class C -> C for msvc
         static const std::regex class_re(R"(\b(class|struct)\s+)");
-        internal::replace_all(symbol, class_re, "");
+        detail::replace_all(symbol, class_re, "");
         // `anonymous namespace' -> (anonymous namespace) for msvc
         // this brings it in-line with other compilers and prevents any tokenization/highlighting issues
         static const std::regex msvc_anonymous_namespace("`anonymous namespace'");
-        internal::replace_all(symbol, msvc_anonymous_namespace, "(anonymous namespace)");
+        detail::replace_all(symbol, msvc_anonymous_namespace, "(anonymous namespace)");
         // rules to replace std::basic_string -> std::string and std::basic_string_view -> std::string
         // rule to replace ", std::allocator<whatever>"
         static const std::pair<std::regex, std::string> basic_string = {
             std::regex(R"(std(::[a-zA-Z0-9_]+)?::basic_string<char)"), "std::string"
         };
-        internal::replace_all_template(symbol, basic_string);
+        detail::replace_all_template(symbol, basic_string);
         static const std::pair<std::regex, std::string> basic_string_view = {
             std::regex(R"(std(::[a-zA-Z0-9_]+)?::basic_string_view<char)"), "std::string_view"
         };
-        internal::replace_all_template(symbol, basic_string_view);
+        detail::replace_all_template(symbol, basic_string_view);
         static const std::pair<std::regex, std::string> allocator = {
             std::regex(R"(,\s*std(::[a-zA-Z0-9_]+)?::allocator<)"), ""
         };
-        internal::replace_all_template(symbol, allocator);
+        detail::replace_all_template(symbol, allocator);
         static const std::pair<std::regex, std::string> default_delete = {
             std::regex(R"(,\s*std(::[a-zA-Z0-9_]+)?::default_delete<)"), ""
         };
-        internal::replace_all_template(symbol, default_delete);
+        detail::replace_all_template(symbol, default_delete);
         // replace std::__cxx11 -> std:: for gcc dual abi
         // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
-        internal::replace_all_dynamic(symbol, "std::__cxx11::", "std::");
+        detail::replace_all_dynamic(symbol, "std::__cxx11::", "std::");
         return symbol;
     }
 
@@ -109,10 +109,10 @@ CPPTRACE_BEGIN_NAMESPACE
 
         std::string format(
             const stacktrace_frame& input_frame,
-            internal::optional<bool> color_override = internal::nullopt
+            detail::optional<bool> color_override = detail::nullopt
         ) const {
             std::ostringstream oss;
-            internal::optional<stacktrace_frame> transformed_frame;
+            detail::optional<stacktrace_frame> transformed_frame;
             if(options.transform) {
                 transformed_frame = options.transform(input_frame);
             }
@@ -121,45 +121,45 @@ CPPTRACE_BEGIN_NAMESPACE
             return std::move(oss).str();
         }
 
-        std::string format(const stacktrace& trace, internal::optional<bool> color_override = internal::nullopt) const {
+        std::string format(const stacktrace& trace, detail::optional<bool> color_override = detail::nullopt) const {
             std::ostringstream oss;
             print_internal(oss, trace, false, color_override);
             return std::move(oss).str();
         }
 
-        void print(const stacktrace_frame& frame, internal::optional<bool> color_override = internal::nullopt) const {
+        void print(const stacktrace_frame& frame, detail::optional<bool> color_override = detail::nullopt) const {
             print(std::cout, frame, color_override);
         }
         void print(
             std::ostream& stream,
             const stacktrace_frame& frame,
-            internal::optional<bool> color_override = internal::nullopt
+            detail::optional<bool> color_override = detail::nullopt
         ) const {
             print_frame_internal(stream, frame, color_override);
         }
         void print(
             std::FILE* file,
             const stacktrace_frame& frame,
-            internal::optional<bool> color_override = internal::nullopt
+            detail::optional<bool> color_override = detail::nullopt
         ) const {
             auto str = format(frame, color_override);
             std::fwrite(str.data(), 1, str.size(), file);
         }
 
-        void print(const stacktrace& trace, internal::optional<bool> color_override = internal::nullopt) const {
+        void print(const stacktrace& trace, detail::optional<bool> color_override = detail::nullopt) const {
             print(std::cout, trace, color_override);
         }
         void print(
             std::ostream& stream,
             const stacktrace& trace,
-            internal::optional<bool> color_override = internal::nullopt
+            detail::optional<bool> color_override = detail::nullopt
         ) const {
             print_internal(stream, trace, true, color_override);
         }
         void print(
             std::FILE* file,
             const stacktrace& trace,
-            internal::optional<bool> color_override = internal::nullopt
+            detail::optional<bool> color_override = detail::nullopt
         ) const {
             auto str = format(trace, color_override);
             std::fwrite(str.data(), 1, str.size(), file);
@@ -174,24 +174,24 @@ CPPTRACE_BEGIN_NAMESPACE
 
         void maybe_ensure_virtual_terminal_processing(std::ostream& stream, bool color) const {
             if(color && stream_is_tty(stream)) {
-                internal::enable_virtual_terminal_processing_if_needed();
+                detail::enable_virtual_terminal_processing_if_needed();
             }
         }
 
-        bool should_do_color(std::ostream& stream, internal::optional<bool> color_override) const {
+        bool should_do_color(std::ostream& stream, detail::optional<bool> color_override) const {
             bool do_color = options.color == color_mode::always || color_override.value_or(false);
             if(
                 (options.color == color_mode::automatic || options.color == color_mode::always) &&
                 (!color_override || color_override.unwrap() != false) &&
                 stream_is_tty(stream)
             ) {
-                internal::enable_virtual_terminal_processing_if_needed();
+                detail::enable_virtual_terminal_processing_if_needed();
                 do_color = true;
             }
             return do_color;
         }
 
-        void print_internal(std::ostream& stream, const stacktrace& trace, bool newline_at_end, internal::optional<bool> color_override) const {
+        void print_internal(std::ostream& stream, const stacktrace& trace, bool newline_at_end, detail::optional<bool> color_override) const {
             bool do_color = should_do_color(stream, color_override);
             maybe_ensure_virtual_terminal_processing(stream, do_color);
             print_internal(stream, trace, newline_at_end, do_color);
@@ -207,9 +207,9 @@ CPPTRACE_BEGIN_NAMESPACE
                 stream << "<empty trace>\n";
                 return;
             }
-            const auto frame_number_width = internal::n_digits(static_cast<int>(frames.size()) - 1);
+            const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
             for(size_t i = 0; i < frames.size(); ++i) {
-                internal::optional<stacktrace_frame> transformed_frame;
+                detail::optional<stacktrace_frame> transformed_frame;
                 if(options.transform) {
                     transformed_frame = options.transform(frames[i]);
                 }
@@ -223,7 +223,7 @@ CPPTRACE_BEGIN_NAMESPACE
                 } else {
                     print_frame_internal(stream, frame, color, frame_number_width, counter);
                     if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
-                        auto snippet = internal::get_snippet(
+                        auto snippet = detail::get_snippet(
                             frame.filename,
                             frame.line.value(),
                             options.context_lines,
@@ -260,7 +260,7 @@ CPPTRACE_BEGIN_NAMESPACE
         void print_frame_internal(
             std::ostream& stream,
             const stacktrace_frame& frame,
-            internal::optional<bool> color_override
+            detail::optional<bool> color_override
         ) const {
             bool do_color = should_do_color(stream, color_override);
             maybe_ensure_virtual_terminal_processing(stream, do_color);
@@ -290,7 +290,7 @@ CPPTRACE_BEGIN_NAMESPACE
                     "{}at {}{}{}",
                     frame.symbol.empty() ? "" : " ",
                     green,
-                    options.paths == path_mode::full ? frame.filename : internal::basename(frame.filename, true),
+                    options.paths == path_mode::full ? frame.filename : detail::basename(frame.filename, true),
                     reset
                 );
                 if(frame.line.has_value()) {
@@ -308,13 +308,13 @@ CPPTRACE_BEGIN_NAMESPACE
         delete pimpl;
     }
 
-    formatter::formatter(formatter&& other) : pimpl(internal::exchange(other.pimpl, nullptr)) {}
+    formatter::formatter(formatter&& other) : pimpl(detail::exchange(other.pimpl, nullptr)) {}
     formatter::formatter(const formatter& other) : pimpl(new impl(*other.pimpl)) {}
     formatter& formatter::operator=(formatter&& other) {
         if(pimpl) {
             delete pimpl;
         }
-        pimpl = internal::exchange(other.pimpl, nullptr);
+        pimpl = detail::exchange(other.pimpl, nullptr);
         return *this;
     }
     formatter& formatter::operator=(const formatter& other) {

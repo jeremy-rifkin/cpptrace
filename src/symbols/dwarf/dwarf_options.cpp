@@ -4,8 +4,8 @@
 
 #include <atomic>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     std::atomic<nullable<std::size_t>> dwarf_resolver_line_table_cache_size{nullable<std::size_t>::null()};
     std::atomic<bool> dwarf_resolver_disable_aranges{false};
 
@@ -18,16 +18,16 @@ namespace internal {
         return dwarf_resolver_disable_aranges.load();
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 CPPTRACE_BEGIN_NAMESPACE
-    namespace experimental {
-        void set_dwarf_resolver_line_table_cache_size(nullable<std::size_t> max_entries) {
-            internal::dwarf_resolver_line_table_cache_size.store(max_entries);
-        }
-
-        void set_dwarf_resolver_disable_aranges(bool disable) {
-            internal::dwarf_resolver_disable_aranges.store(disable);
-        }
+namespace experimental {
+    void set_dwarf_resolver_line_table_cache_size(nullable<std::size_t> max_entries) {
+        detail::dwarf_resolver_line_table_cache_size.store(max_entries);
     }
+
+    void set_dwarf_resolver_disable_aranges(bool disable) {
+        detail::dwarf_resolver_disable_aranges.store(disable);
+    }
+}
 CPPTRACE_END_NAMESPACE

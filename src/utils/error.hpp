@@ -17,8 +17,8 @@
  #define CPPTRACE_PFUNC __extension__ __PRETTY_FUNCTION__
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     class internal_error : public std::exception {
         std::string msg;
     public:
@@ -40,7 +40,7 @@ namespace internal {
         ) : file(_file), line(_line) {}
     };
 
-    #define CPPTRACE_CURRENT_LOCATION ::cpptrace::internal::source_location(__FILE__, __LINE__)
+    #define CPPTRACE_CURRENT_LOCATION ::cpptrace::detail::source_location(__FILE__, __LINE__)
 
     enum class assert_type {
         assert,
@@ -79,7 +79,7 @@ namespace internal {
     }
 
     // Check condition in both debug and release. std::runtime_error on failure.
-    #define PANIC(...) ((::cpptrace::internal::panic)(CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION, ::cpptrace::internal::as_string(__VA_ARGS__)))
+    #define PANIC(...) ((::cpptrace::detail::panic)(CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION, ::cpptrace::detail::as_string(__VA_ARGS__)))
 
     inline void assert_impl(
         bool condition,
@@ -113,19 +113,19 @@ namespace internal {
 
     // Check condition in both debug and release. std::runtime_error on failure.
     #define VERIFY(...) ( \
-        assert_impl(__VA_ARGS__, ::cpptrace::internal::assert_type::verify, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
+        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::verify, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
     )
 
     #ifndef NDEBUG
      // Check condition in both debug. std::runtime_error on failure.
      #define ASSERT(...) ( \
-        assert_impl(__VA_ARGS__, ::cpptrace::internal::assert_type::assert, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
+        assert_impl(__VA_ARGS__, ::cpptrace::detail::assert_type::assert, #__VA_ARGS__, CPPTRACE_PFUNC, CPPTRACE_CURRENT_LOCATION) \
      )
     #else
      // Check condition in both debug. std::runtime_error on failure.
      #define ASSERT(...) PHONY_USE(__VA_ARGS__)
     #endif
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

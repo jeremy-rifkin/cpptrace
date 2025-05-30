@@ -17,8 +17,8 @@
  #include <dwarf.h>
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace libdwarf {
     static_assert(std::is_pointer<Dwarf_Die>::value, "Dwarf_Die not a pointer");
     static_assert(std::is_pointer<Dwarf_Debug>::value, "Dwarf_Debug not a pointer");
@@ -537,6 +537,6 @@ namespace libdwarf {
     };
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

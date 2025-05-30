@@ -34,8 +34,8 @@
 // https://github.com/davea42/libdwarf-addr2line
 // https://github.com/ruby/ruby/blob/master/addr2line.c
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace libdwarf {
     // printbugging as we go
     constexpr bool dump_dwarf = false;
@@ -428,7 +428,7 @@ namespace libdwarf {
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram);
             const auto name = subprogram_symbol(die, dwversion);
-            if(internal::should_resolve_inlined_calls()) {
+            if(should_resolve_inlined_calls()) {
                 get_inlines_info(cu_die, die, pc, dwversion, inlines);
             }
             return name;
@@ -936,7 +936,7 @@ namespace libdwarf {
                     if(it == split_full_cu_resolvers.end()) {
                         it = split_full_cu_resolvers.emplace(
                             off,
-                            internal::make_unique<dwarf_resolver>(path, skeleton_info{cu_die.clone(), dwversion, *this})
+                            detail::make_unique<dwarf_resolver>(path, skeleton_info{cu_die.clone(), dwversion, *this})
                         ).first;
                     }
                     res = it->second->resolve_frame(object_frame_info);
@@ -1014,10 +1014,10 @@ namespace libdwarf {
     };
 
     std::unique_ptr<symbol_resolver> make_dwarf_resolver(cstring_view object_path) {
-        return internal::make_unique<dwarf_resolver>(object_path);
+        return detail::make_unique<dwarf_resolver>(object_path);
     }
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

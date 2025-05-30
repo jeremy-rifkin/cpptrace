@@ -2,7 +2,7 @@
 
 #include "utils/result.hpp"
 
-using cpptrace::internal::Result;
+using cpptrace::detail::Result;
 
 namespace {
 

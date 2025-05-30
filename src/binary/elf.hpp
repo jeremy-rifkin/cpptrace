@@ -13,8 +13,8 @@
 #include <string>
 #include <unordered_map>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     // TODO: make methods const and a bunch of members mutable
     class elf {
         std::unique_ptr<base_file> file;
@@ -137,7 +137,7 @@ namespace internal {
 
     NODISCARD Result<maybe_owned<elf>, internal_error> open_elf_cached(const std::string& object_path);
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif
 

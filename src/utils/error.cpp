@@ -1,7 +1,7 @@
 #include "utils/error.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     internal_error::internal_error(std::string message) : msg("Cpptrace internal error: " + std::move(message)) {}
 
     constexpr const char* assert_actions[] = {"assertion", "verification", "panic"};
@@ -51,4 +51,4 @@ namespace internal {
         }
     }
 }
-}
+CPPTRACE_END_NAMESPACE

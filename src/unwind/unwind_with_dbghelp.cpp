@@ -17,8 +17,8 @@
  #undef min
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     #if IS_MSVC
     #pragma warning(push)
     #pragma warning(disable: 4740) // warning C4740: flow in or out of inline asm code suppresses global optimization
@@ -151,6 +151,6 @@ namespace internal {
         return false;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

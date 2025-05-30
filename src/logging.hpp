@@ -5,8 +5,8 @@
 
 #include "utils/microfmt.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace log {
     // exported for test purposes
     CPPTRACE_EXPORT void error(const char*);
@@ -34,6 +34,6 @@ namespace log {
     }
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

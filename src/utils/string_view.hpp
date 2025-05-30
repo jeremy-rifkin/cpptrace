@@ -8,8 +8,8 @@
 
 #include <cpptrace/utils.hpp>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     // Simple string view implementations
     // I haven't implemented all members because I don't need most of them currently, more may be added as needed
     // members exported for tests
@@ -137,6 +137,6 @@ namespace internal {
         CPPTRACE_EXPORT void check_null() const;
     };
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

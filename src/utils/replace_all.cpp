@@ -1,7 +1,7 @@
 #include "utils/replace_all.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     void replace_all(std::string& str, string_view substr, string_view replacement) {
         std::string::size_type pos = 0;
         while((pos = str.find(substr.data(), pos, substr.size())) != std::string::npos) {
@@ -51,4 +51,4 @@ namespace internal {
         }
     }
 }
-}
+CPPTRACE_END_NAMESPACE

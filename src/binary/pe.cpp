@@ -15,8 +15,8 @@
 #endif
 #include <windows.h>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
     T pe_byteswap_if_needed(T value) {
         // PE header values are little endian, I think dos e_lfanew should be too
@@ -92,6 +92,6 @@ namespace internal {
         }
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

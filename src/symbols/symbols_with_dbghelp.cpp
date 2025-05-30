@@ -22,8 +22,8 @@
 #include <dbghelp.h>
 #include <psapi.h>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace dbghelp {
     // SymFromAddr only returns the function's name. In order to get information about parameters,
     // important for C++ stack traces where functions may be overloaded, we have to manually use
@@ -438,7 +438,7 @@ namespace dbghelp {
             try {
                 trace.push_back(resolve_frame(syminit_info.get_process_handle() , frame));
             } catch(...) { // NOSONAR
-                if(!internal::should_absorb_trace_exceptions()) {
+                if(!should_absorb_trace_exceptions()) {
                     throw;
                 }
                 auto entry = null_frame;
@@ -450,7 +450,7 @@ namespace dbghelp {
     }
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace experimental {

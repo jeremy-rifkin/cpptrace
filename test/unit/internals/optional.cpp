@@ -2,8 +2,8 @@
 
 #include "utils/optional.hpp"
 
-using cpptrace::internal::optional;
-using cpptrace::internal::nullopt;
+using cpptrace::detail::optional;
+using cpptrace::detail::nullopt;
 
 namespace {
 

@@ -9,8 +9,8 @@
 #include <type_traits>
 #include <utility>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     // basic span implementation
     // I haven't implemented most members because I don't need them, more will be added as needed
 
@@ -93,6 +93,6 @@ namespace internal {
         return span<char>(reinterpret_cast<char*>(std::addressof(object)), sizeof(object));
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

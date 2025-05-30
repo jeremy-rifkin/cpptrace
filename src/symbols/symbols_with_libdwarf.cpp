@@ -18,8 +18,8 @@
 #include <unordered_map>
 #include <vector>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace libdwarf {
     std::unique_ptr<symbol_resolver> get_resolver_for_object(const std::string& object_path) {
         #if IS_APPLE
@@ -183,6 +183,6 @@ namespace libdwarf {
     }
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

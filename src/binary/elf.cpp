@@ -19,8 +19,8 @@
 
 #include <elf.h>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     elf::elf(
         std::unique_ptr<base_file> file,
         bool is_little_endian,
@@ -213,7 +213,7 @@ namespace internal {
 
     template<typename T, typename std::enable_if<std::is_integral<T>::value, int>::type>
     T elf::byteswap_if_needed(T value) {
-        if(cpptrace::internal::is_little_endian() == is_little_endian) {
+        if(detail::is_little_endian() == is_little_endian) {
             return value;
         } else {
             return byteswap(value);
@@ -462,7 +462,7 @@ namespace internal {
         }
         if(get_cache_mode() == cache_mode::prioritize_memory) {
             return elf::open(object_path)
-                .transform([](elf&& obj) { return maybe_owned<elf>{internal::make_unique<elf>(std::move(obj))}; });
+                .transform([](elf&& obj) { return maybe_owned<elf>{detail::make_unique<elf>(std::move(obj))}; });
         } else {
             static std::mutex m;
             std::unique_lock<std::mutex> lock{m};
@@ -478,6 +478,6 @@ namespace internal {
         }
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

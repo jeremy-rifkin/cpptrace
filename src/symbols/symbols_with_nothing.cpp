@@ -6,8 +6,8 @@
 
 #include <vector>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace nothing {
     std::vector<stacktrace_frame> resolve_frames(const std::vector<frame_ptr>& frames) {
         return std::vector<stacktrace_frame>(frames.size(), null_frame);
@@ -18,6 +18,6 @@ namespace nothing {
     }
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

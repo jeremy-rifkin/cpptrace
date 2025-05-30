@@ -5,12 +5,12 @@
 
 #include "utils/utils.hpp"
 
-using cpptrace::internal::byteswap;
-using cpptrace::internal::n_digits;
-using cpptrace::internal::to;
-using cpptrace::internal::raii_wrapper;
-using cpptrace::internal::raii_wrap;
-using cpptrace::internal::maybe_owned;
+using cpptrace::detail::byteswap;
+using cpptrace::detail::n_digits;
+using cpptrace::detail::to;
+using cpptrace::detail::raii_wrapper;
+using cpptrace::detail::raii_wrap;
+using cpptrace::detail::maybe_owned;
 
 namespace {
 

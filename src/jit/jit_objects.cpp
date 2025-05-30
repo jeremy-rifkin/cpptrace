@@ -13,8 +13,8 @@
 #include <map>
 #include <vector>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     #if IS_LINUX || IS_APPLE
     class jit_object_manager {
         struct object_entry {
@@ -141,4 +141,4 @@ namespace internal {
     }
     #endif
 }
-}
+CPPTRACE_END_NAMESPACE

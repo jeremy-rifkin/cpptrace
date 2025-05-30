@@ -14,8 +14,8 @@
  #define CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace libdwarf {
     class symbol_resolver {
     public:
@@ -52,6 +52,6 @@ namespace libdwarf {
     #endif
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

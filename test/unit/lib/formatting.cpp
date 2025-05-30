@@ -12,7 +12,7 @@ import cpptrace;
 #include <cpptrace/formatting.hpp>
 #endif
 
-using cpptrace::internal::split;
+using cpptrace::detail::split;
 using testing::ElementsAre;
 
 namespace {

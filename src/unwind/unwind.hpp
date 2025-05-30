@@ -6,8 +6,8 @@
 #include <cstddef>
 #include <vector>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     #ifdef CPPTRACE_HARD_MAX_FRAMES
     constexpr std::size_t hard_max_frames = CPPTRACE_HARD_MAX_FRAMES;
     #else
@@ -22,6 +22,6 @@ namespace internal {
 
     bool has_safe_unwind();
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

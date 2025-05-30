@@ -19,8 +19,8 @@
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     bool file_is_mach_o(cstring_view object_path) noexcept;
 
     struct load_command_entry {
@@ -143,7 +143,7 @@ namespace internal {
 
     NODISCARD Result<maybe_owned<mach_o>, internal_error> open_mach_o_cached(const std::string& object_path);
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif
 

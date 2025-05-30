@@ -5,8 +5,8 @@
 #include <cstddef>
 #include <vector>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     std::vector<frame_ptr> capture_frames(std::size_t, std::size_t) {
         return {};
     }
@@ -20,6 +20,6 @@ namespace internal {
         return false;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

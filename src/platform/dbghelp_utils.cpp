@@ -20,8 +20,8 @@
 #include <windows.h>
 #include <dbghelp.h>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     dbghelp_syminit_info::dbghelp_syminit_info(void* handle, bool should_sym_cleanup, bool should_close_handle)
         : handle(handle), should_sym_cleanup(should_sym_cleanup), should_close_handle(should_close_handle) {}
 
@@ -141,7 +141,7 @@ namespace internal {
         return std::unique_lock<std::recursive_mutex>{mutex};
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif
 

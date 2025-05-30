@@ -1,8 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "utils/io/file.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     string_view file::path() const {
         return object_path;
     }
@@ -25,4 +25,4 @@ namespace internal {
         return monostate{};
     }
 }
-}
+CPPTRACE_END_NAMESPACE

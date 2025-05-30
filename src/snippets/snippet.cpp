@@ -12,8 +12,8 @@
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     constexpr std::int64_t max_size = 1024 * 1024 * 10; // 10 MiB
 
     struct line_range {
@@ -142,4 +142,4 @@ namespace internal {
         return snippet;
     }
 }
-}
+CPPTRACE_END_NAMESPACE

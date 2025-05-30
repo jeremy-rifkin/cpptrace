@@ -8,11 +8,11 @@
 #include <cstdint>
 #include <string>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     Result<std::uintptr_t, internal_error> pe_get_module_image_base(cstring_view object_path);
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif
 

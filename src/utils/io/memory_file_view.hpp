@@ -6,8 +6,8 @@
 #include "utils/io/base_file.hpp"
 #include "utils/utils.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     class memory_file_view : public base_file {
         cbspan data;
         std::string object_path = "<memory file>";
@@ -21,6 +21,6 @@ namespace internal {
         virtual Result<monostate, internal_error> read_bytes(bspan buffer, off_t offset) const override;
     };
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

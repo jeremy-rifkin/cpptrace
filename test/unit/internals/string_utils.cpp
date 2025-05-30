@@ -6,10 +6,10 @@
 #include "utils/utils.hpp"
 
 using testing::ElementsAre;
-using cpptrace::internal::split;
-using cpptrace::internal::join;
-using cpptrace::internal::trim;
-using cpptrace::internal::starts_with;
+using cpptrace::detail::split;
+using cpptrace::detail::join;
+using cpptrace::detail::trim;
+using cpptrace::detail::starts_with;
 
 namespace {
 

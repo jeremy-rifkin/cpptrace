@@ -4,8 +4,8 @@
 
 #include <atomic>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     std::atomic_bool absorb_trace_exceptions(true); // NOSONAR
     std::atomic_bool resolve_inlined_calls(true); // NOSONAR
     std::atomic<cache_mode> current_cache_mode(cache_mode::prioritize_speed); // NOSONAR
@@ -22,20 +22,20 @@ namespace internal {
         return current_cache_mode;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 CPPTRACE_BEGIN_NAMESPACE
     void absorb_trace_exceptions(bool absorb) {
-        internal::absorb_trace_exceptions = absorb;
+        detail::absorb_trace_exceptions = absorb;
     }
 
     void enable_inlined_call_resolution(bool enable) {
-        internal::resolve_inlined_calls = enable;
+        detail::resolve_inlined_calls = enable;
     }
 
     namespace experimental {
         void set_cache_mode(cache_mode mode) {
-            internal::current_cache_mode = mode;
+            detail::current_cache_mode = mode;
         }
     }
 CPPTRACE_END_NAMESPACE

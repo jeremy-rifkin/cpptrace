@@ -7,8 +7,8 @@
 #include <list>
 #include <unordered_map>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     template<typename K, typename V>
     class lru_cache {
         struct kvp {
@@ -103,6 +103,6 @@ namespace internal {
         }
     };
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

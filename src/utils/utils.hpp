@@ -17,8 +17,8 @@
 #include "utils/optional.hpp"
 #include "utils/result.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     bool isatty(int fd);
     int fileno(std::FILE* stream);
 
@@ -325,6 +325,6 @@ namespace internal {
         return scope_guard<F>(std::forward<F>(f));
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

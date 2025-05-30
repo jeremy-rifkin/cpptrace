@@ -10,8 +10,8 @@
 
 #include <dlfcn.h>
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
 namespace libdl {
     stacktrace_frame resolve_frame(const frame_ptr addr) {
         Dl_info info;
@@ -51,6 +51,6 @@ namespace libdl {
     }
 }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

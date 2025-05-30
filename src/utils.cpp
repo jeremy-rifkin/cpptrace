@@ -10,38 +10,38 @@
 #include "platform/exception_type.hpp"
 #include "options.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     const formatter& get_terminate_formatter() {
         static formatter the_formatter = formatter{}
             .header("Stack trace to reach terminate handler (most recent call first):");
         return the_formatter;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 CPPTRACE_BEGIN_NAMESPACE
     std::string demangle(const std::string& name) {
-        return internal::demangle(name, false);
+        return detail::demangle(name, false);
     }
 
     std::string get_snippet(const std::string& path, std::size_t line, std::size_t context_size, bool color) {
-        return internal::get_snippet(path, line, context_size, color);
+        return detail::get_snippet(path, line, context_size, color);
     }
 
     bool isatty(int fd) {
-        return internal::isatty(fd);
+        return detail::isatty(fd);
     }
 
-    extern const int stdin_fileno = internal::fileno(stdin);
-    extern const int stdout_fileno = internal::fileno(stdout);
-    extern const int stderr_fileno = internal::fileno(stderr);
+    extern const int stdin_fileno = detail::fileno(stdin);
+    extern const int stdout_fileno = detail::fileno(stdout);
+    extern const int stderr_fileno = detail::fileno(stderr);
 
     CPPTRACE_FORCE_NO_INLINE void print_terminate_trace() {
         try { // try/catch can never be hit but it's needed to prevent TCO
-            internal::get_terminate_formatter().print(std::cerr, generate_trace(1));
+            detail::get_terminate_formatter().print(std::cerr, generate_trace(1));
         } catch(...) {
-            if(!internal::should_absorb_trace_exceptions()) {
+            if(!detail::should_absorb_trace_exceptions()) {
                 throw;
             }
         }
@@ -72,7 +72,7 @@ CPPTRACE_BEGIN_NAMESPACE
             print_terminate_trace();
         } catch(...) {
             microfmt::print(
-                stderr, "Terminate called after throwing an instance of {}\n", internal::exception_type_name()
+                stderr, "Terminate called after throwing an instance of {}\n", detail::exception_type_name()
             );
             print_terminate_trace();
         }

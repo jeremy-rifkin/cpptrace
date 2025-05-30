@@ -20,7 +20,7 @@
 // https://github.com/jeremy-rifkin/microfmt
 // Format: {[align][width][:[fill][base]]}  # width: number or {}
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
 namespace microfmt {
     namespace detail {
         inline std::uint64_t clz(std::uint64_t value) {
@@ -141,7 +141,7 @@ namespace microfmt {
             format_value(std::string_view sv)
                 : string_view_value{sv.data(), sv.size()}, value(value_type::string_view_value) {}
             #endif
-            format_value(cpptrace::internal::string_view sv)
+            format_value(cpptrace::detail::string_view sv)
                 : string_view_value{sv.data(), sv.size()}, value(value_type::string_view_value) {}
             format_value(const char* c_string) : c_string_value(c_string), value(value_type::c_string_value) {}
 
@@ -307,6 +307,6 @@ namespace microfmt {
         fwrite(str.data(), 1, str.size(), stream);
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 #endif

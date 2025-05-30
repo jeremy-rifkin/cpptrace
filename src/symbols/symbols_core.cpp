@@ -10,8 +10,8 @@
 #include "utils/error.hpp"
 #include "binary/object.hpp"
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     template<typename CollatedVec, typename Entry>
     std::unordered_map<std::string, CollatedVec> collate_frames(
         const std::vector<object_frame>& frames,
@@ -153,8 +153,7 @@ namespace internal {
         #endif
     }
 }
-}
-
+CPPTRACE_END_NAMESPACE
 
 /*
 Fallback definition for cpptrace::experimental::load_symbols_for_file. If

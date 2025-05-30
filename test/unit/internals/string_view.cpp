@@ -7,8 +7,8 @@
 
 #include "utils/string_view.hpp"
 
-using cpptrace::internal::string_view;
-using cpptrace::internal::cstring_view;
+using cpptrace::detail::string_view;
+using cpptrace::detail::cstring_view;
 
 namespace {
 

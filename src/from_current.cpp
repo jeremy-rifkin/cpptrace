@@ -34,10 +34,10 @@
  #endif
 #endif
 
-namespace cpptrace {
-namespace internal {
-    thread_local detail::lazy_trace_holder current_exception_trace;
-    thread_local detail::lazy_trace_holder saved_rethrow_trace;
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
+    thread_local lazy_trace_holder current_exception_trace;
+    thread_local lazy_trace_holder saved_rethrow_trace;
 
     bool& get_rethrow_switch() {
         static thread_local bool rethrow_switch = false;
@@ -46,11 +46,11 @@ namespace internal {
 
     CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
         auto trace = cpptrace::generate_raw_trace(skip + 1);
-        if(internal::get_rethrow_switch()) {
-            internal::saved_rethrow_trace = detail::lazy_trace_holder(std::move(trace));
+        if(get_rethrow_switch()) {
+            saved_rethrow_trace = lazy_trace_holder(std::move(trace));
         } else {
-            internal::current_exception_trace = detail::lazy_trace_holder(std::move(trace));
-            internal::saved_rethrow_trace = detail::lazy_trace_holder();
+            current_exception_trace = lazy_trace_holder(std::move(trace));
+            saved_rethrow_trace = lazy_trace_holder();
         }
     }
 
@@ -407,30 +407,26 @@ namespace internal {
 
     // called when unwinding starts after rethrowing, after search phase
     void rethrow_scope_cleanup() {
-        internal::get_rethrow_switch() = false;
+        get_rethrow_switch() = false;
     }
 
-    internal::scope_guard<void(&)()> setup_rethrow() {
-        internal::get_rethrow_switch() = true;
+    scope_guard<void(&)()> setup_rethrow() {
+        get_rethrow_switch() = true;
         // will flip the switch back to true as soon as the search phase completes and the unwinding begins
-        return internal::scope_exit<void(&)()>(rethrow_scope_cleanup);
+        return scope_exit<void(&)()>(rethrow_scope_cleanup);
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 
 CPPTRACE_BEGIN_NAMESPACE
     namespace detail {
-        CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
-            internal::collect_current_trace(skip + 1);
-        }
-
         #ifdef _MSC_VER
         bool matches_exception(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info) {
             __try {
                 auto* exception_record = exception_ptrs->ExceptionRecord;
                 // Check if the SEH exception is a C++ exception
                 if(exception_record->ExceptionCode == EH_EXCEPTION_NUMBER) {
-                    return internal::matches_exception(exception_record, type_info);
+                    return detail::matches_exception(exception_record, type_info);
                 }
             } __except(EXCEPTION_EXECUTE_HANDLER) {
                 // pass
@@ -444,61 +440,61 @@ CPPTRACE_BEGIN_NAMESPACE
             void** throw_obj,
             unsigned outer
         ) {
-            return internal::can_catch(type, throw_type, throw_obj, outer);
+            return detail::can_catch(type, throw_type, throw_obj, outer);
         }
 
         void do_prepare_unwind_interceptor(const std::type_info& type_info, bool(*can_catch)(const std::type_info*, const std::type_info*, void**, unsigned)) {
             try {
-                internal::perform_typeinfo_surgery(
+                detail::perform_typeinfo_surgery(
                     type_info,
                     can_catch
                 );
             } catch(std::exception& e) {
-                internal::log::error("Exception occurred while preparing from_current support: {}", e.what());
+                detail::log::error("Exception occurred while preparing from_current support: {}", e.what());
             } catch(...) {
-                internal::log::error("Unknown exception occurred while preparing from_current support");
+                detail::log::error("Unknown exception occurred while preparing from_current support");
             }
         }
         #endif
     }
 
     const raw_trace& raw_trace_from_current_exception() {
-        return internal::current_exception_trace.get_raw_trace();
+        return detail::current_exception_trace.get_raw_trace();
     }
 
     const stacktrace& from_current_exception() {
-        return internal::current_exception_trace.get_resolved_trace();
+        return detail::current_exception_trace.get_resolved_trace();
     }
 
     const raw_trace& raw_trace_from_current_exception_rethrow() {
-        return internal::saved_rethrow_trace.get_raw_trace();
+        return detail::saved_rethrow_trace.get_raw_trace();
     }
 
     const stacktrace& from_current_exception_rethrow() {
-        return internal::saved_rethrow_trace.get_resolved_trace();
+        return detail::saved_rethrow_trace.get_resolved_trace();
     }
 
     bool current_exception_was_rethrown() {
-        if(internal::saved_rethrow_trace.is_resolved()) {
-            return !internal::saved_rethrow_trace.get_resolved_trace().empty();
+        if(detail::saved_rethrow_trace.is_resolved()) {
+            return !detail::saved_rethrow_trace.get_resolved_trace().empty();
         } else {
-            return !internal::saved_rethrow_trace.get_raw_trace().empty();
+            return !detail::saved_rethrow_trace.get_raw_trace().empty();
         }
     }
 
     // The non-argument overload is to serve as room for possible future optimization under Microsoft's STL
     CPPTRACE_FORCE_NO_INLINE void rethrow() {
-        auto guard = internal::setup_rethrow();
+        auto guard = detail::setup_rethrow();
         std::rethrow_exception(std::current_exception());
     }
 
     CPPTRACE_FORCE_NO_INLINE void rethrow(std::exception_ptr exception) {
-        auto guard = internal::setup_rethrow();
+        auto guard = detail::setup_rethrow();
         std::rethrow_exception(exception);
     }
 
     void clear_current_exception_traces() {
-        internal::current_exception_trace = detail::lazy_trace_holder{raw_trace{}};
-        internal::saved_rethrow_trace = detail::lazy_trace_holder{raw_trace{}};
+        detail::current_exception_trace = detail::lazy_trace_holder{raw_trace{}};
+        detail::saved_rethrow_trace = detail::lazy_trace_holder{raw_trace{}};
     }
 CPPTRACE_END_NAMESPACE

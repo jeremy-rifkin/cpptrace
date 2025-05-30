@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace cpptrace {
+CPPTRACE_BEGIN_NAMESPACE
 namespace microfmt {
 namespace detail {
 
@@ -12,4 +12,4 @@ namespace detail {
 
 }
 }
-}
+CPPTRACE_END_NAMESPACE

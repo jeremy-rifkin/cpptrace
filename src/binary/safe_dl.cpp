@@ -17,8 +17,8 @@
  #include <link.h>
 #endif
 
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
         out->raw_address = address;
         dl_find_object result;
@@ -56,10 +56,10 @@ namespace internal {
         return true;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 #else
-namespace cpptrace {
-namespace internal {
+CPPTRACE_BEGIN_NAMESPACE
+namespace detail {
     void get_safe_object_frame(frame_ptr address, safe_object_frame* out) {
         out->raw_address = address;
         out->address_relative_to_object_start = 0;
@@ -70,5 +70,5 @@ namespace internal {
         return false;
     }
 }
-}
+CPPTRACE_END_NAMESPACE
 #endif

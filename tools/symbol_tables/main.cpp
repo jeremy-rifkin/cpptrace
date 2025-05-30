@@ -11,7 +11,7 @@
 #include "binary/mach-o.hpp"
 
 using namespace std::literals;
-using namespace cpptrace::internal;
+using namespace cpptrace::detail;
 
 template<> struct fmt::formatter<lyra::cli> : ostream_formatter {};
 
