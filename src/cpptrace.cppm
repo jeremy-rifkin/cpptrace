@@ -69,6 +69,7 @@ CPPTRACE_BEGIN_NAMESPACE
          export using cpptrace::detail::argument;
          export using cpptrace::detail::exception_filter;
         #else
+         export using cpptrace::detail::unwind_interceptor;
          export using cpptrace::detail::unwind_interceptor_for;
          export using cpptrace::detail::nop;
         #endif
