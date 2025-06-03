@@ -36,15 +36,15 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-            sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
-            pip3 install colorama
+           sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
+           pip3 install colorama
     - name: libdwarf
       run: |
-            cd ..
-            cpptrace/ci/setup-prerequisites.sh
+           cd ..
+           cpptrace/ci/setup-prerequisites.sh
     - name: build and test
       run: |
-            python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
   test-macos:
     runs-on: macos-14
     strategy:
