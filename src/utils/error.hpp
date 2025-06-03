@@ -125,6 +125,8 @@ namespace detail {
      // Check condition in both debug. std::runtime_error on failure.
      #define ASSERT(...) PHONY_USE(__VA_ARGS__)
     #endif
+
+    void log_and_maybe_propagate_exception(std::exception_ptr);
 }
 CPPTRACE_END_NAMESPACE
 

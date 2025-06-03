@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <exception>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -39,9 +40,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             return generate_raw_trace(skip + 1);
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return raw_trace{};
         }
     }
@@ -51,9 +50,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             return generate_raw_trace(skip + 1, max_depth);
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return raw_trace{};
         }
     }
@@ -62,9 +59,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try {
             return object_trace{detail::get_frames_object_info(frames)};
         } catch(...) { // NOSONAR
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return object_trace{};
         }
     }
@@ -77,9 +72,7 @@ CPPTRACE_BEGIN_NAMESPACE
             }
             return {std::move(trace)};
         } catch(...) { // NOSONAR
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return stacktrace{};
         }
     }
@@ -97,9 +90,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             return generate_object_trace(skip + 1);
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return object_trace{};
         }
     }
@@ -109,9 +100,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             return generate_object_trace(skip + 1, max_depth);
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return object_trace{};
         }
     }
@@ -124,9 +113,7 @@ CPPTRACE_BEGIN_NAMESPACE
             }
             return {std::move(trace)};
         } catch(...) { // NOSONAR
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return stacktrace();
         }
     }
@@ -160,9 +147,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             return generate_trace(skip + 1);
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return stacktrace{};
         }
     }
@@ -172,9 +157,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             return generate_trace(skip + 1, max_depth);
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return stacktrace{};
         }
     }
@@ -225,9 +208,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try {
             return raw_trace{detail::capture_frames(skip + 1, SIZE_MAX)};
         } catch(...) { // NOSONAR
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return raw_trace{};
         }
     }
@@ -237,9 +218,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try {
             return raw_trace{detail::capture_frames(skip + 1, max_depth)};
         } catch(...) { // NOSONAR
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return raw_trace{};
         }
     }
@@ -249,9 +228,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             return detail::safe_capture_frames(buffer, size, skip + 1, SIZE_MAX);
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return 0;
         }
     }
@@ -266,9 +243,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             return detail::safe_capture_frames(buffer, size, skip + 1, max_depth);
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return 0;
         }
     }
@@ -278,9 +253,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try {
             return object_trace{detail::get_frames_object_info(detail::capture_frames(skip + 1, SIZE_MAX))};
         } catch(...) { // NOSONAR
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return object_trace{};
         }
     }
@@ -290,9 +263,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try {
             return object_trace{detail::get_frames_object_info(detail::capture_frames(skip + 1, max_depth))};
         } catch(...) { // NOSONAR
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return object_trace{};
         }
     }
@@ -302,9 +273,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             return generate_trace(skip + 1, SIZE_MAX);
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return stacktrace{};
         }
     }
@@ -319,9 +288,7 @@ CPPTRACE_BEGIN_NAMESPACE
             }
             return {std::move(trace)};
         } catch(...) { // NOSONAR
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             return stacktrace();
         }
     }

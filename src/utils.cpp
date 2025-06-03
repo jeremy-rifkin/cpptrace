@@ -41,9 +41,7 @@ CPPTRACE_BEGIN_NAMESPACE
         try { // try/catch can never be hit but it's needed to prevent TCO
             detail::get_terminate_formatter().print(std::cerr, generate_trace(1));
         } catch(...) {
-            if(!detail::should_absorb_trace_exceptions()) {
-                throw;
-            }
+            detail::log_and_maybe_propagate_exception(std::current_exception());
         }
     }
 
