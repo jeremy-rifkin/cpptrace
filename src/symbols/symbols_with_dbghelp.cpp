@@ -464,7 +464,7 @@ namespace experimental {
     void load_symbols_for_file(const std::string& filename) {
         HMODULE hModule = GetModuleHandleA(filename.c_str());
         if (hModule == NULL) {
-            throw internal::internal_error(
+            throw detail::internal_error(
                 "Unable to get module handle for file '{}' : {}",
                 filename,
                 std::system_error(GetLastError(), std::system_category()).what()
@@ -481,15 +481,15 @@ namespace experimental {
                 sizeof(module_info)
             )
         ) {
-            throw internal::internal_error(
+            throw detail::internal_error(
                 "Unable to get module information for file '{}' : {}",
                 filename,
                 std::system_error(GetLastError(), std::system_category()).what()
             );
         }
 
-        auto lock = internal::get_dbghelp_lock();
-        HANDLE syminit_handle = internal::ensure_syminit().get_process_handle();
+        auto lock = detail::get_dbghelp_lock();
+        HANDLE syminit_handle = detail::ensure_syminit().get_process_handle();
         if (
             !SymLoadModuleEx(
                 syminit_handle,
@@ -503,7 +503,7 @@ namespace experimental {
                 0
             )
         ) {
-            throw internal::internal_error(
+            throw detail::internal_error(
                 "Unable to load symbols for file '{}' : {}",
                 filename,
                 std::system_error(GetLastError(), std::system_category()).what()
