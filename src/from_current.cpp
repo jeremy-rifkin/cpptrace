@@ -1,11 +1,13 @@
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 
+#include <cstdint>
 #include <exception>
 #include <system_error>
 #include <typeinfo>
 
 #include "platform/platform.hpp"
+#include "utils/error.hpp"
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 #include "logging.hpp"
@@ -253,44 +255,135 @@ namespace detail {
         return perms;
     }
     #else
-    int get_page_protections(void* page) {
-        auto page_addr = reinterpret_cast<uintptr_t>(page);
+    // Code for reading /proc/self/maps
+    // Unfortunately this is the canonical and only way to get memory permissions on linux
+    // It comes with some surprising behaviors. Because it's a pseudo-file and maps could update at any time, reads of
+    // the file can tear. The surprising observable behavior here is overlapping ranges:
+    // - https://unix.stackexchange.com/questions/704987/overlapping-address-ranges-in-proc-maps
+    // - https://stackoverflow.com/questions/59737950/what-is-the-correct-way-to-get-a-consistent-snapshot-of-proc-pid-smaps
+    // Additional info:
+    //   Note: reading /proc/PID/maps or /proc/PID/smaps is inherently racy (consistent
+    //   output can be achieved only in the single read call).
+    //   This typically manifests when doing partial reads of these files while the
+    //   memory map is being modified.  Despite the races, we do provide the following
+    //   guarantees:
+    //
+    //   1) The mapped addresses never go backwards, which implies no two
+    //      regions will ever overlap.
+    //   2) If there is something at a given vaddr during the entirety of the
+    //      life of the smaps/maps walk, there will be some output for it.
+    //
+    //   https://www.kernel.org/doc/Documentation/filesystems/proc.txt
+    // Ideally we could do everything as a single read() call but I don't think that's practical, especially given that
+    // the kernel has limited buffers internally. While we shouldn't be modifying mapped memory while reading
+    // /proc/self/maps here, it's theoretically possible that we could allocate and that could go to the OS for more
+    // pages.
+    // While reading this is inherently racy, as far as I can tell tears don't happen within a line but they can happen
+    // between lines.
+    // The code that writes /proc/pid/maps:
+    // - https://github.com/torvalds/linux/blob/3d0ebc36b0b3e8486ceb6e08e8ae173aaa6d1221/fs/proc/task_mmu.c#L304-L365
+
+    struct address_range {
+        uintptr_t low;
+        uintptr_t high;
+        int perms;
+        bool operator<(const address_range& other) const {
+            return low < other.low;
+        }
+    };
+
+    // returns nullopt on eof
+    optional<address_range> read_map_entry(std::ifstream& stream) {
+        uintptr_t start;
+        uintptr_t stop;
+        stream>>start;
+        stream.ignore(1); // dash
+        stream>>stop;
+        if(stream.eof()) {
+            return nullopt;
+        }
+        if(stream.fail()) {
+            throw std::runtime_error("Failure reading /proc/self/maps");
+        }
+        stream.ignore(1); // space
+        char r, w, x; // there's a private/shared flag after these but we don't need it
+        stream>>r>>w>>x;
+        if(stream.fail() || stream.eof()) {
+            throw std::runtime_error("Failure reading /proc/self/maps");
+        }
+        int perms = 0;
+        if(r == 'r') {
+            perms |= PROT_READ;
+        }
+        if(w == 'w') {
+            perms |= PROT_WRITE;
+        }
+        if(x == 'x') {
+            perms |= PROT_EXEC;
+        }
+        stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        return address_range{start, stop, perms};
+    }
+
+    // returns a vector or nullopt if a tear is detected
+    optional<std::vector<address_range>> try_load_mapped_region_info() {
         std::ifstream stream("/proc/self/maps");
         stream>>std::hex;
-        while(!stream.eof()) {
-            uintptr_t start;
-            uintptr_t stop;
-            stream>>start;
-            stream.ignore(1); // dash
-            stream>>stop;
-            if(stream.eof()) {
-                break;
+        std::vector<address_range> ranges;
+        while(auto entry = read_map_entry(stream)) {
+            const auto& range = entry.unwrap();
+            VERIFY(range.low <= range.high);
+            if(!ranges.empty()) {
+                const auto& last_range = ranges.back();
+                if(range.low < last_range.high) {
+                    return nullopt;
+                }
             }
-            if(stream.fail()) {
-                throw std::runtime_error("Failure reading /proc/self/maps");
-            }
-            if(page_addr >= start && page_addr < stop) {
-                stream.ignore(1); // space
-                char r, w, x; // there's a private/shared flag after these but we don't need it
-                stream>>r>>w>>x;
-                if(stream.fail() || stream.eof()) {
-                    throw std::runtime_error("Failure reading /proc/self/maps");
-                }
-                int perms = 0;
-                if(r == 'r') {
-                    perms |= PROT_READ;
-                }
-                if(w == 'w') {
-                    perms |= PROT_WRITE;
-                }
-                if(x == 'x') {
-                    perms |= PROT_EXEC;
-                }
-                return perms;
-            }
-            stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            ranges.push_back(range);
         }
-        throw std::runtime_error("Failed to find mapping with page in /proc/self/maps");
+        return ranges;
+    }
+
+    // we can allocate during try_load_mapped_region_info, in theory that could cause a tear
+    optional<std::vector<address_range>> try_load_mapped_region_info_with_retries(int n) {
+        VERIFY(n > 0);
+        for(int i = 0; i < n; i++) {
+            if(auto info = try_load_mapped_region_info()) {
+                return info;
+            }
+        }
+        throw internal_error("Couldn't successfully load /proc/self/maps after {} retries", n);
+    }
+
+    const std::vector<address_range>& load_mapped_region_info() {
+        static std::vector<address_range> regions;
+        static bool has_loaded = false;
+        if(!has_loaded) {
+            has_loaded = true;
+            if(auto info = try_load_mapped_region_info_with_retries(2)) {
+                regions = std::move(info).unwrap();
+            }
+        }
+        return regions;
+    }
+
+    int get_page_protections(void* page) {
+        const auto& mapped_region_info = load_mapped_region_info();
+        auto it = first_less_than_or_equal(
+            mapped_region_info.begin(),
+            mapped_region_info.end(),
+            reinterpret_cast<uintptr_t>(page),
+            [](uintptr_t a, const address_range& b) {
+                return a < b.low;
+            }
+        );
+        if(it == mapped_region_info.end()) {
+            throw internal_error(
+                "Failed to find mapping for {>16:0h} in /proc/self/maps",
+                reinterpret_cast<uintptr_t>(page)
+            );
+        }
+        return it->perms;
     }
     #endif
     void mprotect_page(void* page, int page_size, int protections) {
