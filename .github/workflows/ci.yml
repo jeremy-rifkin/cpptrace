@@ -651,3 +651,37 @@ jobs:
            cmake --build . --config ${{matrix.build_type}}
            ./${{matrix.build_type}}/unittest
     # TODO: Macos, mingw
+
+    unittest-linux-modules:
+      runs-on: ubuntu-24.04
+      needs: unittest-linux
+      strategy:
+        fail-fast: false
+        matrix:
+          compiler: [g++-10, clang++-18]
+          stdlib: [libstdc++, libc++]
+          dwarf_version: [4, 5]
+          split_dwarf: [OFF, ON]
+          exclude:
+            - compiler: g++-10
+              stdlib: libc++
+      steps:
+      - uses: actions/checkout@v4
+      - name: dependencies
+        run: |
+             sudo apt install ninja-build clang-19 clang-tools-19
+      - name: build and test
+        run: |
+             mkdir build
+             cd build
+             cmake .. \
+               -GNinja \
+               -DCMAKE_BUILD_TYPE=Debug \
+               -DCMAKE_CXX_COMPILER=clang++-19 \
+               -DCMAKE_C_COMPILER=clang-19 \
+               -DCMAKE_CXX_STANDARD=20 \
+               -DCPPTRACE_WERROR_BUILD=On \
+               -DCPPTRACE_STD_FORMAT=Off \
+               -DCPPTRACE_BUILD_TESTING=On
+             ninja
+             ./unittest_module
