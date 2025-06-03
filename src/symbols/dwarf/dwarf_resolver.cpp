@@ -13,6 +13,7 @@
 #include "utils/lru_cache.hpp"
 #include "platform/path.hpp"
 #include "platform/program_name.hpp" // For CPPTRACE_MAX_PATH
+#include "logging.hpp"
 
 #if IS_APPLE
 #include "binary/mach-o.hpp"
@@ -147,8 +148,8 @@ namespace libdwarf {
                 buffer = std::unique_ptr<char[]>(new char[CPPTRACE_MAX_PATH]);
             }
             dwarf_set_de_alloc_flag(0);
-            auto ret = wrap(
-                dwarf_init_path_a,
+            Dwarf_Error error = nullptr;
+            auto ret = dwarf_init_path_a(
                 object_path.c_str(),
                 buffer.get(),
                 CPPTRACE_MAX_PATH,
@@ -156,13 +157,19 @@ namespace libdwarf {
                 universal_number,
                 nullptr,
                 nullptr,
-                &dbg.get()
+                &dbg.get(),
+                &error
             );
             if(ret == DW_DLV_OK) {
                 ok = true;
             } else if(ret == DW_DLV_NO_ENTRY) {
                 // fail, no debug info
                 ok = false;
+            } else if(ret == DW_DLV_ERROR) {
+                // fail, parsing error
+                ok = false;
+                auto msg = raii_wrap(dwarf_errmsg(error), [this, error] (char*) { dwarf_dealloc_error(dbg.get(), error); });
+                log::error("dwarf error: dwarf_init_path_a failed with {}", msg.get());
             } else {
                 ok = false;
                 PANIC("Unknown return code from dwarf_init_path");
