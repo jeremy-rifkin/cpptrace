@@ -44,6 +44,14 @@
 #endif
 
 #ifdef _MSC_VER
+ #define CPPTRACE_FORCE_INLINE __forceinline
+#elif defined(__clang__) || defined(__GNUC__)
+ #define CPPTRACE_FORCE_INLINE __attribute__((always_inline)) inline
+#else
+ #define CPPTRACE_FORCE_INLINE inline
+#endif
+
+#ifdef _MSC_VER
 #pragma warning(push)
 // warning C4251: using non-dll-exported type in dll-exported type, firing on std::vector<frame_ptr> and others for some
 // reason

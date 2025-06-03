@@ -15,14 +15,6 @@ import cpptrace;
 
 using namespace std::literals;
 
-#ifdef _MSC_VER
- #define CPPTRACE_FORCE_INLINE [[msvc::flatten]]
-#else
- #define CPPTRACE_FORCE_INLINE [[gnu::always_inline]] static
-#endif
-
-
-
 TEST(Stacktrace, Empty) {
     cpptrace::stacktrace empty;
     EXPECT_TRUE(empty.empty());

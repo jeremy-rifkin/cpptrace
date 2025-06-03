@@ -1,13 +1,6 @@
 #ifndef CPPTRACE_FROM_CURRENT_MACROS_HPP
 #define CPPTRACE_FROM_CURRENT_MACROS_HPP
 
-// https://godbolt.org/z/4MsT6KqP1
-#ifdef _MSC_VER
- #define CPPTRACE_UNREACHABLE() __assume(false)
-#else
- #define CPPTRACE_UNREACHABLE() __builtin_unreachable()
-#endif
-
 // https://godbolt.org/z/7neGPEche
 // gcc added support in 4.8 but I'm too lazy to check the minor version
 #if defined(__GNUC__) && (__GNUC__ < 5)
@@ -39,7 +32,7 @@
          try {
  #define CPPTRACE_CATCH(param) \
          } catch(const CPPTRACE_UNWIND_INTERCEPTOR_FOR(param)&) { \
-             CPPTRACE_UNREACHABLE(); \
+             ::cpptrace::detail::unreachable(); \
              /* force instantiation of the init-er */ \
              ::cpptrace::detail::nop(CPPTRACE_UNWIND_INTERCEPTOR_FOR(param)::init); \
          } \

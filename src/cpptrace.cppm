@@ -73,6 +73,8 @@ CPPTRACE_BEGIN_NAMESPACE
          export using cpptrace::detail::unwind_interceptor_for;
          export using cpptrace::detail::nop;
         #endif
+
+        export using cpptrace::detail::unreachable;
     }
 
     // cpptrace/io

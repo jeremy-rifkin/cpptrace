@@ -85,6 +85,16 @@ CPPTRACE_BEGIN_NAMESPACE
          using unwind_interceptor_for = unwind_interceptor<typename argument<F>::type>;
          inline void nop(int) {}
         #endif
+
+        [[noreturn]] CPPTRACE_FORCE_INLINE void unreachable() noexcept
+        {
+// https://godbolt.org/z/4MsT6KqP1
+#ifdef _MSC_VER
+            __assume(false);
+#else
+            __builtin_unreachable();
+#endif
+        }
     }
 
     namespace detail {
