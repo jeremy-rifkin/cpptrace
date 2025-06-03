@@ -15,19 +15,19 @@ namespace log {
         error(microfmt::format(format, args...).c_str());
     }
 
-    void warn(const char*);
+    CPPTRACE_EXPORT void warn(const char*);
     template<typename... Args>
     void warn(const char* format, Args&&... args) {
         warn(microfmt::format(format, args...).c_str());
     }
 
-    void info(const char*);
+    CPPTRACE_EXPORT void info(const char*);
     template<typename... Args>
     void info(const char* format, Args&&... args) {
         info(microfmt::format(format, args...).c_str());
     }
 
-    void debug(const char*);
+    CPPTRACE_EXPORT void debug(const char*);
     template<typename... Args>
     void debug(const char* format, Args&&... args) {
         debug(microfmt::format(format, args...).c_str());
