@@ -1202,7 +1202,7 @@ This section only applies to the dbghelp backend (`CPPTRACE_GET_SYMBOLS_WITH_DBG
 
 When loading a DLL at runtime with `LoadLibrary` after a stacktrace has already been generated,
 symbols from that library may not be resolved correctly for subsequent stacktraces. To fix this,
-call `cpptrace::experimental::load_symbols_for_file` with the same filename that was passed to 
+call `cpptrace::experimental::load_symbols_for_file` with the same filename that was passed to
 `LoadLibrary`.
 
 ```cpp
@@ -1395,7 +1395,7 @@ make install
 cd ~/scratch/cpptrace-test
 git clone https://github.com/jeremy-rifkin/libdwarf-lite.git
 cd libdwarf-lite
-git checkout fe09ca800b988e2ff21225ac5e7468ceade2a30e
+git checkout 23044a5654d4abc45f0864a06d42144365d9a425 # 2.0.0
 mkdir build
 cd build
 cmake .. -DPIC_ALWAYS=On -DBUILD_DWARFDUMP=Off -DCMAKE_PREFIX_PATH=~/scratch/cpptrace-test/resources -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
