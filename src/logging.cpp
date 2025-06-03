@@ -33,15 +33,15 @@ namespace detail {
         }
 
         void warn(const char* message) {
-            do_log(log_level::error, message);
+            do_log(log_level::warning, message);
         }
 
         void info(const char* message) {
-            do_log(log_level::error, message);
+            do_log(log_level::info, message);
         }
 
         void debug(const char* message) {
-            do_log(log_level::error, message);
+            do_log(log_level::debug, message);
         }
     }
 }
