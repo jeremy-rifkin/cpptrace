@@ -29,7 +29,7 @@ namespace libdwarf {
         Dwarf_Unsigned ev = dwarf_errno(error);
         // dwarf_dealloc_error deallocates the message, attaching to msg is convenient
         auto msg = raii_wrap(dwarf_errmsg(error), [dbg, error] (char*) { dwarf_dealloc_error(dbg, error); });
-        throw internal_error(microfmt::format("dwarf error {} {}", ev, msg.get()));
+        throw internal_error("dwarf error {} {}", ev, msg.get());
     }
 
     struct die_object {

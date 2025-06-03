@@ -20,7 +20,7 @@ namespace libdwarf {
             : dbg(dbg), dw_srcfiles(dw_srcfiles), dw_filecount(static_cast<Dwarf_Unsigned>(filecount))
         {
             if(filecount < 0) {
-                throw internal_error(microfmt::format("Unexpected dw_filecount {}", filecount));
+                throw internal_error("Unexpected dw_filecount {}", filecount);
             }
         }
         ~srcfiles() {
@@ -51,11 +51,11 @@ namespace libdwarf {
         // note: dwarf uses 1-indexing
         const char* get(Dwarf_Unsigned file_i) const {
             if(file_i >= dw_filecount) {
-                throw internal_error(microfmt::format(
+                throw internal_error(
                     "Error while accessing the srcfiles list, requested index {} is out of bounds (count = {})",
                     file_i,
                     dw_filecount
-                ));
+                );
             }
             return dw_srcfiles[file_i];
         }

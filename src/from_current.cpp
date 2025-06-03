@@ -176,11 +176,9 @@ namespace detail {
     int mprotect_page_and_return_old_protections(void* page, int page_size, int protections) {
         DWORD old_protections;
         if(!VirtualProtect(page, page_size, protections, &old_protections)) {
-            throw std::runtime_error(
-                microfmt::format(
-                    "VirtualProtect call failed: {}",
-                    std::system_error(GetLastError(), std::system_category()).what()
-                )
+            throw internal_error(
+                "VirtualProtect call failed: {}",
+                std::system_error(GetLastError(), std::system_category()).what()
             );
         }
         return old_protections;
@@ -191,11 +189,9 @@ namespace detail {
     void* allocate_page(int page_size) {
         auto page = VirtualAlloc(nullptr, page_size, MEM_COMMIT | MEM_RESERVE, memory_readwrite);
         if(!page) {
-            throw std::runtime_error(
-                microfmt::format(
-                    "VirtualAlloc call failed: {}",
-                    std::system_error(GetLastError(), std::system_category()).what()
-                )
+            throw internal_error(
+                "VirtualAlloc call failed: {}",
+                std::system_error(GetLastError(), std::system_category()).what()
             );
         }
         return page;
@@ -240,7 +236,7 @@ namespace detail {
             &object
         );
         if(status == KERN_INVALID_ADDRESS) {
-            throw std::runtime_error("vm_region failed with KERN_INVALID_ADDRESS");
+            throw internal_error("vm_region failed with KERN_INVALID_ADDRESS");
         }
         int perms = 0;
         if(info.protection & VM_PROT_READ) {
@@ -303,13 +299,13 @@ namespace detail {
             return nullopt;
         }
         if(stream.fail()) {
-            throw std::runtime_error("Failure reading /proc/self/maps");
+            throw internal_error("Failure reading /proc/self/maps");
         }
         stream.ignore(1); // space
         char r, w, x; // there's a private/shared flag after these but we don't need it
         stream>>r>>w>>x;
         if(stream.fail() || stream.eof()) {
-            throw std::runtime_error("Failure reading /proc/self/maps");
+            throw internal_error("Failure reading /proc/self/maps");
         }
         int perms = 0;
         if(r == 'r') {
@@ -388,7 +384,7 @@ namespace detail {
     #endif
     void mprotect_page(void* page, int page_size, int protections) {
         if(mprotect(page, page_size, protections) != 0) {
-            throw std::runtime_error(microfmt::format("mprotect call failed: {}", strerror(errno)));
+            throw internal_error("mprotect call failed: {}", strerror(errno));
         }
     }
     int mprotect_page_and_return_old_protections(void* page, int page_size, int protections) {
@@ -399,7 +395,7 @@ namespace detail {
     void* allocate_page(int page_size) {
         auto page = mmap(nullptr, page_size, memory_readwrite, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         if(page == MAP_FAILED) {
-            throw std::runtime_error(microfmt::format("mmap call failed: {}", strerror(errno)));
+            throw internal_error("mmap call failed: {}", strerror(errno));
         }
         return page;
     }
@@ -445,9 +441,7 @@ namespace detail {
         // shouldn't be anything other than 4096 but out of an abundance of caution
         auto page_size = get_page_size();
         if(page_size <= 0 && (page_size & (page_size - 1)) != 0) {
-            throw std::runtime_error(
-                microfmt::format("getpagesize() is not a power of 2 greater than zero (was {})", page_size)
-            );
+            throw internal_error("getpagesize() is not a power of 2 greater than zero (was {})", page_size);
         }
 
         // allocate a page for the new vtable so it can be made read-only later
@@ -467,7 +461,7 @@ namespace detail {
         auto page_addr = type_info_addr & ~(page_size - 1);
         // make sure the memory we're going to set is within the page
         if(type_info_addr - page_addr + sizeof(void*) > static_cast<unsigned>(page_size)) {
-            throw std::runtime_error("pointer crosses page boundaries");
+            throw internal_error("pointer crosses page boundaries");
         }
         auto old_protections = mprotect_page_and_return_old_protections(
             reinterpret_cast<void*>(page_addr),
