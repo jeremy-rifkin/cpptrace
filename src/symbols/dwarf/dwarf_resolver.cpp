@@ -107,7 +107,7 @@ namespace libdwarf {
 
     public:
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
-        dwarf_resolver(cstring_view object_path_, optional<skeleton_info> split_ = nullopt)
+        explicit dwarf_resolver(cstring_view object_path_, optional<skeleton_info> split_ = nullopt)
             : object_path(object_path_),
               skeleton(std::move(split_))
         {

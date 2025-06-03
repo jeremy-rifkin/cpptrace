@@ -26,7 +26,7 @@ namespace libdwarf {
 
     class null_resolver : public symbol_resolver {
     public:
-        null_resolver() = default;
+        explicit null_resolver() = default;
         null_resolver(cstring_view) {}
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
