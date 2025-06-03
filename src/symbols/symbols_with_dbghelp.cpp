@@ -438,9 +438,7 @@ namespace dbghelp {
             try {
                 trace.push_back(resolve_frame(syminit_info.get_process_handle() , frame));
             } catch(...) { // NOSONAR
-                if(!should_absorb_trace_exceptions()) {
-                    throw;
-                }
+                detail::log_and_maybe_propagate_exception(std::current_exception());
                 auto entry = null_frame;
                 entry.raw_address = frame;
                 trace.push_back(entry);

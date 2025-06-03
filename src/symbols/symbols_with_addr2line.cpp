@@ -312,9 +312,7 @@ namespace addr2line {
                         update_trace(output[i], i, entries_vec);
                     }
                 } catch(...) { // NOSONAR
-                    if(!should_absorb_trace_exceptions()) {
-                        throw;
-                    }
+                    detail::log_and_maybe_propagate_exception(std::current_exception());
                 }
             }
         }

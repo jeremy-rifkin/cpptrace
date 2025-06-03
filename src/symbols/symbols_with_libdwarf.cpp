@@ -106,12 +106,10 @@ namespace libdwarf {
         try {
             frame = resolver->resolve_frame(dlframe);
         } catch(...) {
+            detail::log_and_maybe_propagate_exception(std::current_exception());
             frame.frame.raw_address = dlframe.raw_address;
             frame.frame.object_address = dlframe.object_address;
             frame.frame.filename = dlframe.object_path;
-            if(!should_absorb_trace_exceptions()) {
-                throw;
-            }
         }
     }
 
@@ -154,9 +152,7 @@ namespace libdwarf {
                     #endif
                 }
             } catch(...) { // NOSONAR
-                if(!should_absorb_trace_exceptions()) {
-                    throw;
-                }
+                detail::log_and_maybe_propagate_exception(std::current_exception());
             }
         }
         // fill in basic info for any frames where there were resolution issues
