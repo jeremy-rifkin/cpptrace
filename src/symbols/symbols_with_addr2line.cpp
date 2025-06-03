@@ -79,8 +79,9 @@ namespace addr2line {
     std::string resolve_addresses(const std::string& addresses, const std::string& executable) {
         pipe_t output_pipe;
         pipe_t input_pipe;
-        VERIFY(pipe(output_pipe.data) == 0);
-        VERIFY(pipe(input_pipe.data) == 0);
+        if(pipe(output_pipe.data) != 0 || pipe(input_pipe.data) != 0) {
+            throw internal_error("call to pipe failed: {}", errno);
+        }
         const pid_t pid = fork();
         if(pid == -1) { return ""; } // error? TODO: Diagnostic
         if(pid == 0) { // child
@@ -124,7 +125,9 @@ namespace addr2line {
             #endif
             _exit(1); // TODO: Diagnostic?
         }
-        VERIFY(write(input_pipe.end.write, addresses.data(), addresses.size()) != -1);
+        if(write(input_pipe.end.write, addresses.data(), addresses.size()) == -1) {
+            throw internal_error("call to write failed: {}", errno);
+        }
         close(input_pipe.end.read);
         close(input_pipe.end.write);
         close(output_pipe.end.write);
