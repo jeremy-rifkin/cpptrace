@@ -7,12 +7,12 @@
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
-    std::atomic<log_level> current_log_level(log_level::error); // NOSONAR
+    std::atomic<log_level> current_log_level(log_level::warning); // NOSONAR
 
     void default_null_logger(log_level, const char*) {}
 
     void default_stderr_logger(log_level level, const char* message) {
-        microfmt::print(std::cerr, "cpptrace {}: {}\n", to_string(level), message);
+        microfmt::print(std::cerr, "[cpptrace {}] {}\n", to_string(level), message);
     }
 
     std::function<void(log_level, const char*)>& log_callback() {
