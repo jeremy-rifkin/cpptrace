@@ -55,6 +55,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Package Managers](#package-managers)
     - [Conan](#conan)
     - [Vcpkg](#vcpkg)
+  - [C++20 Moduels](#c20-moduels)
 - [Platform Logistics](#platform-logistics)
   - [Windows](#windows)
   - [macOS](#macos)
@@ -1448,6 +1449,11 @@ vcpkg install cpptrace
 find_package(cpptrace CONFIG REQUIRED)
 target_link_libraries(main PRIVATE cpptrace::cpptrace)
 ```
+
+## C++20 Moduels
+
+Cpptrace supports C++20 modules: `import cpptrace;`. You'll need a modern toolchain in order to use C++20 modules (i.e.
+relatively new compilers, cmake, etc).
 
 # Platform Logistics
 
