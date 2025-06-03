@@ -168,8 +168,12 @@ namespace libdwarf {
             } else if(ret == DW_DLV_ERROR) {
                 // fail, parsing error
                 ok = false;
-                auto msg = raii_wrap(dwarf_errmsg(error), [this, error] (char*) { dwarf_dealloc_error(dbg.get(), error); });
-                log::error("dwarf error: dwarf_init_path_a failed with {}", msg.get());
+                Dwarf_Unsigned ev = dwarf_errno(error);
+                auto msg = raii_wrap(
+                    dwarf_errmsg(error),
+                    [this, error] (char*) { dwarf_dealloc_error(dbg.get(), error); }
+                );
+                log::error("dwarf error: dwarf_init_path_a failed with error {} {}", ev, msg.get());
             } else {
                 ok = false;
                 PANIC("Unknown return code from dwarf_init_path");
