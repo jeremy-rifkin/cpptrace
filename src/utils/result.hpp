@@ -25,15 +25,11 @@ namespace detail {
     public:
         Result(value_type&& value) : value_(std::move(value)), active(member::value) {}
         Result(E&& error) : error_(std::move(error)), active(member::error) {
-            if(!should_absorb_trace_exceptions()) {
-                log::error(unwrap_error().what());
-            }
+            log::debug("Error result constructed: {}", unwrap_error().what());
         }
         Result(const value_type& value) : value_(value_type(value)), active(member::value) {}
         Result(const E& error) : error_(E(error)), active(member::error) {
-            if(!should_absorb_trace_exceptions()) {
-                log::error(unwrap_error().what());
-            }
+            log::debug("Error result constructed: {}", unwrap_error().what());
         }
         template<
             typename U = T,
