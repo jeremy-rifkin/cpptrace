@@ -72,8 +72,8 @@ CPPTRACE_BEGIN_NAMESPACE
     };
 
     struct CPPTRACE_EXPORT object_frame {
-        frame_ptr raw_address;
-        frame_ptr object_address;
+        frame_ptr raw_address = 0;
+        frame_ptr object_address = 0;
         std::string object_path;
     };
 
@@ -141,13 +141,13 @@ CPPTRACE_BEGIN_NAMESPACE
     };
 
     struct CPPTRACE_EXPORT stacktrace_frame {
-        frame_ptr raw_address;
-        frame_ptr object_address;
+        frame_ptr raw_address = 0;
+        frame_ptr object_address = 0;
         nullable<std::uint32_t> line;
         nullable<std::uint32_t> column;
         std::string filename;
         std::string symbol;
-        bool is_inline;
+        bool is_inline = false;
 
         bool operator==(const stacktrace_frame& other) const {
             return raw_address == other.raw_address
