@@ -998,7 +998,7 @@ namespace libdwarf {
                     {}
                 };
             }
-            stacktrace_frame frame = null_frame;
+            stacktrace_frame frame = null_frame();
             frame.filename = frame_info.object_path;
             frame.raw_address = frame_info.raw_address;
             frame.object_address = frame_info.object_address;

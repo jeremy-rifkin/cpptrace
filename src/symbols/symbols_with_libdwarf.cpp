@@ -115,7 +115,7 @@ namespace libdwarf {
 
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
-        std::vector<frame_with_inlines> trace(frames.size(), {null_frame, {}});
+        std::vector<frame_with_inlines> trace(frames.size(), {null_frame(), {}});
         // Locking around all libdwarf interaction per https://github.com/davea42/libdwarf-code/discussions/184
         // And also locking for interactions with get_resolver
         static std::mutex mutex;
@@ -159,7 +159,7 @@ namespace libdwarf {
         for(std::size_t i = 0; i < frames.size(); i++) {
             const auto& dlframe = frames[i];
             auto& frame = trace[i];
-            if(frame.frame == null_frame) {
+            if(frame.frame == null_frame()) {
                 frame = {
                     {
                         dlframe.raw_address,

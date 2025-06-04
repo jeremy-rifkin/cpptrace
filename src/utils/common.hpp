@@ -46,15 +46,17 @@
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
-    static const stacktrace_frame null_frame {
-        0,
-        0,
-        nullable<std::uint32_t>::null(),
-        nullable<std::uint32_t>::null(),
-        "",
-        "",
-        false
-    };
+    inline stacktrace_frame null_frame() {
+        return {
+            0,
+            0,
+            nullable<std::uint32_t>::null(),
+            nullable<std::uint32_t>::null(),
+            "",
+            "",
+            false
+        };
+    }
 }
 CPPTRACE_END_NAMESPACE
 

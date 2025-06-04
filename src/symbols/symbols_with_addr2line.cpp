@@ -274,7 +274,7 @@ namespace addr2line {
 
     std::vector<stacktrace_frame> resolve_frames(const std::vector<object_frame>& frames) {
         // TODO: Refactor better
-        std::vector<stacktrace_frame> trace(frames.size(), null_frame);
+        std::vector<stacktrace_frame> trace(frames.size(), null_frame());
         for(std::size_t i = 0; i < frames.size(); i++) {
             trace[i].raw_address = frames[i].raw_address;
             trace[i].object_address = frames[i].object_address;
