@@ -104,12 +104,13 @@ TEST(FromCurrent, Basic) {
 
 TEST(FromCurrent, CorrectHandler) {
     std::vector<int> line_numbers;
+    bool wrong_handler = false;
     CPPTRACE_TRY {
         CPPTRACE_TRY {
             line_numbers.insert(line_numbers.begin(), __LINE__ + 1);
             stacktrace_from_current_1(line_numbers);
         } CPPTRACE_CATCH(const std::logic_error&) {
-            FAIL();
+            wrong_handler = true;
         }
     } CPPTRACE_CATCH(const std::exception& e) {
         EXPECT_EQ(e.what(), "foobar"sv);
@@ -130,6 +131,9 @@ TEST(FromCurrent, CorrectHandler) {
             }
         );
         EXPECT_NE(it, trace.frames.end());
+    }
+    if(wrong_handler) {
+        FAIL();
     }
 }
 

@@ -53,7 +53,7 @@ void resolve(const options& opts, cpptrace::frame_ptr address) {
     }
 }
 
-int main(int argc, char** argv) CPPTRACE_TRY {
+int resolver(int argc, char** argv) {
     options opts;
     auto cli = lyra::cli()
         | lyra::help(opts.show_help)
@@ -103,7 +103,16 @@ int main(int argc, char** argv) CPPTRACE_TRY {
         }
     }
     return 0;
-} CPPTRACE_CATCH(const std::exception& e) {
-    fmt::println(stderr, "Caught exception {}: {}", cpptrace::demangle(typeid(e).name()), e.what());
-    cpptrace::from_current_exception().print();
+}
+
+int main(int argc, char** argv) {
+    int ret = 0;
+    CPPTRACE_TRY {
+        ret = resolver(argc, argv);
+    } CPPTRACE_CATCH(const std::exception& e) {
+        fmt::println(stderr, "Caught exception {}: {}", cpptrace::demangle(typeid(e).name()), e.what());
+        cpptrace::from_current_exception().print();
+        ret = 1;
+    }
+    return ret;
 }

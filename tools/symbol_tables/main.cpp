@@ -70,7 +70,7 @@ void lookup_symbol(const std::filesystem::path&, cpptrace::frame_ptr) {
 }
 #endif
 
-int main(int argc, char** argv) CPPTRACE_TRY {
+int symbol_tables(int argc, char** argv) {
     bool show_help = false;
     std::filesystem::path path;
     std::optional<std::string> lookup;
@@ -103,7 +103,16 @@ int main(int argc, char** argv) CPPTRACE_TRY {
     }
     dump_symbols(path);
     return 0;
-} CPPTRACE_CATCH(const std::exception& e) {
-    fmt::println(stderr, "Caught exception {}: {}", cpptrace::demangle(typeid(e).name()), e.what());
-    cpptrace::from_current_exception().print();
+}
+
+int main(int argc, char** argv) {
+    int ret = 0;
+    CPPTRACE_TRY {
+        ret = symbol_tables(argc, argv);
+    } CPPTRACE_CATCH(const std::exception& e) {
+        fmt::println(stderr, "Caught exception {}: {}", cpptrace::demangle(typeid(e).name()), e.what());
+        cpptrace::from_current_exception().print();
+        ret = 1;
+    }
+    return ret;
 }
