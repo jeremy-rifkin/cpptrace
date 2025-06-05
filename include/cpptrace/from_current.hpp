@@ -52,6 +52,10 @@ CPPTRACE_BEGIN_NAMESPACE
              }
              return EXCEPTION_CONTINUE_SEARCH;
          }
+         class dont_return_from_try_catch_macros {
+         public:
+             explicit dont_return_from_try_catch_macros() = default;
+         };
         #else
          CPPTRACE_EXPORT bool check_can_catch(const std::type_info*, const std::type_info*, void**, unsigned);
          template<typename T>
