@@ -63,6 +63,8 @@ namespace detail {
         const_iterator end() const noexcept {
             return ptr + count;
         }
+
+        std::string str() const;
     };
 
     bool operator==(string_view, string_view);
@@ -132,6 +134,10 @@ namespace detail {
         }
         const_iterator end() const noexcept {
             return ptr + count;
+        }
+
+        std::string str() const {
+            return operator string_view().str();
         }
     private:
         CPPTRACE_EXPORT void check_null() const;

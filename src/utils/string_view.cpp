@@ -32,6 +32,10 @@ namespace detail {
         return npos;
     }
 
+    std::string string_view::str() const {
+        return std::string{begin(), end()};
+    }
+
     bool operator==(string_view a, string_view b) {
         return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size()) == 0;
     }

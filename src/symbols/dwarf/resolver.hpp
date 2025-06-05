@@ -39,6 +39,7 @@ namespace libdwarf {
                     nullable<std::uint32_t>::null(),
                     frame_info.object_path,
                     "",
+                    "",
                     false
                 },
                 {}

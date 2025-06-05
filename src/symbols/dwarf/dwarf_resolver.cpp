@@ -65,7 +65,11 @@ namespace libdwarf {
         lru_cache<Dwarf_Off, line_table_info> line_tables{get_dwarf_resolver_line_table_cache_size()};
         // Map from CU -> Sorted subprograms vector
         using subprogram_map = range_map<Dwarf_Addr, die_object>;
-        std::unordered_map<Dwarf_Off, subprogram_map> subprograms_cache;
+        struct cu_subprogram_info {
+            subprogram_map subprograms;
+            std::unordered_map<Dwarf_Off, std::string> namespace_info; // TODO: String pool
+        };
+        std::unordered_map<Dwarf_Off, cu_subprogram_info> subprograms_cache;
         // Vector of ranges and their corresponding CU offsets
         struct compile_unit {
             die_object die;
@@ -289,10 +293,7 @@ namespace libdwarf {
             }
         }
 
-        std::string subprogram_symbol(
-            const die_object& die,
-            Dwarf_Half dwversion
-        ) {
+        std::string subprogram_symbol(const die_object& die, Dwarf_Half dwversion) {
             ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
             optional<std::string> name;
             if(auto linkage_name = die.get_string_attribute(DW_AT_linkage_name)) {
@@ -311,6 +312,34 @@ namespace libdwarf {
                 } else if(die.has_attr(DW_AT_abstract_origin)) {
                     die_object spec = die.resolve_reference_attribute(DW_AT_abstract_origin);
                     return subprogram_symbol(spec, dwversion);
+                }
+            }
+            return "";
+        }
+
+        std::string subprogram_name(
+            const die_object& die,
+            Dwarf_Half dwversion,
+            optional<const cu_subprogram_info&> cu_info
+        ) {
+            ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
+            if(auto dw_name = die.get_string_attribute(DW_AT_name)) {
+                auto name = std::move(dw_name).unwrap();
+                string_view namespace_name = "";
+                if(cu_info.has_value()) {
+                    auto namespace_info_it = cu_info.unwrap().namespace_info.find(die.get_global_offset());
+                    if(namespace_info_it != cu_info.unwrap().namespace_info.end()) {
+                        namespace_name = namespace_info_it->second;
+                    }
+                }
+                return namespace_name.empty() ? std::move(name) : microfmt::format("{}{}", namespace_name, name);
+            } else {
+                if(die.has_attr(DW_AT_specification)) {
+                    die_object spec = die.resolve_reference_attribute(DW_AT_specification);
+                    return subprogram_name(spec, dwversion, cu_info);
+                } else if(die.has_attr(DW_AT_abstract_origin)) {
+                    die_object spec = die.resolve_reference_attribute(DW_AT_abstract_origin);
+                    return subprogram_name(spec, dwversion, cu_info);
                 }
             }
             return "";
@@ -354,6 +383,7 @@ namespace libdwarf {
             const die_object& die,
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
+            optional<const cu_subprogram_info&> cu_info,
             std::vector<stacktrace_frame>& inlines
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
@@ -371,9 +401,12 @@ namespace libdwarf {
                 optional<std::reference_wrapper<const die_object>> target_die;
                 walk_die_list(
                     child,
-                    [this, &cu_die, pc, dwversion, &inlines, &target_die, &current_obj_holder] (const die_object& die) {
+                    [this, &cu_die, pc, dwversion, &inlines, &target_die, &current_obj_holder, &cu_info] (
+                        const die_object& die
+                    ) {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(cu_die, dwversion, pc)) {
-                            const auto name = subprogram_symbol(die, dwversion);
+                            const auto name = subprogram_name(die, dwversion, cu_info);
+                            const auto symbol = subprogram_symbol(die, dwversion);
                             auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
                             // TODO: Refactor.... Probably put logic in resolve_filename.
                             if(file_i) {
@@ -411,6 +444,7 @@ namespace libdwarf {
                                 {static_cast<std::uint32_t>(col.value_or(0))},
                                 file,
                                 name,
+                                symbol,
                                 true
                             });
                             current_obj_holder = die.clone();
@@ -430,19 +464,21 @@ namespace libdwarf {
             }
         }
 
-        std::string retrieve_symbol_for_subprogram(
+        void retrieve_symbol_for_subprogram(
             const die_object& cu_die,
             const die_object& die,
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
+            optional<const cu_subprogram_info&> cu_info,
+            stacktrace_frame& frame,
             std::vector<stacktrace_frame>& inlines
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram);
-            const auto name = subprogram_symbol(die, dwversion);
+            frame.name = subprogram_name(die, dwversion, cu_info);
+            frame.symbol = subprogram_symbol(die, dwversion);
             if(should_resolve_inlined_calls()) {
-                get_inlines_info(cu_die, die, pc, dwversion, inlines);
+                get_inlines_info(cu_die, die, pc, dwversion, cu_info, inlines);
             }
-            return name;
         }
 
         // returns true if this call found the symbol
@@ -483,7 +519,7 @@ namespace libdwarf {
                             );
                         }
                         if(die.get_tag() == DW_TAG_subprogram) {
-                            frame.symbol = retrieve_symbol_for_subprogram(cu_die, die, pc, dwversion, inlines);
+                            retrieve_symbol_for_subprogram(cu_die, die, pc, dwversion, nullopt, frame, inlines);
                             found = true;
                             return false;
                         }
@@ -513,41 +549,58 @@ namespace libdwarf {
             const die_object& cu_die,
             const die_object& die,
             Dwarf_Half dwversion,
-            subprogram_map& subprogram_cache
+            cu_subprogram_info& cu_info,
+            string_view namespace_name
         ) {
             walk_die_list(
                 die,
-                [this, &cu_die, dwversion, &subprogram_cache] (const die_object& die) {
+                [this, &cu_die, dwversion, &cu_info, &namespace_name] (const die_object& die) {
                     switch(die.get_tag()) {
                         case DW_TAG_subprogram:
                             {
                                 auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
                                 // TODO: Feels super inefficient and some day should maybe use an interval tree.
                                 if(!ranges_vec.empty()) {
-                                    auto die_handle = subprogram_cache.add_item(die.clone());
+                                    auto die_handle = cu_info.subprograms.add_item(die.clone());
                                     for(auto range : ranges_vec) {
-                                        subprogram_cache.insert(die_handle, range.first, range.second);
+                                        cu_info.subprograms.insert(die_handle, range.first, range.second);
                                     }
                                 }
+                                cu_info.namespace_info.emplace(die.get_global_offset(), namespace_name);
                                 // Walk children to get things like lambdas
                                 // TODO: Somehow find a way to get better names here? For gcc it's just "operator()"
                                 // On clang it's better
                                 auto child = die.get_child();
                                 if(child) {
-                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache);
+                                    preprocess_subprograms(cu_die, child, dwversion, cu_info, namespace_name);
                                 }
                             }
                             break;
                         case DW_TAG_namespace:
                         case DW_TAG_structure_type:
                         case DW_TAG_class_type:
+                            {
+                                auto child = die.get_child();
+                                if(child) {
+                                    preprocess_subprograms(
+                                        cu_die,
+                                        child,
+                                        dwversion,
+                                        cu_info,
+                                        microfmt::format("{}{}::",
+                                        namespace_name,
+                                        die.get_name())
+                                    );
+                                }
+                            }
+                            break;
                         case DW_TAG_module:
                         case DW_TAG_imported_module:
                         case DW_TAG_compile_unit:
                             {
                                 auto child = die.get_child();
                                 if(child) {
-                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache);
+                                    preprocess_subprograms(cu_die, child, dwversion, cu_info, namespace_name);
                                 }
                             }
                             break;
@@ -577,17 +630,25 @@ namespace libdwarf {
                 auto it = subprograms_cache.find(off);
                 if(it == subprograms_cache.end()) {
                     // TODO: Refactor. Do the sort in the preprocess function and return the vec directly.
-                    subprogram_map subprogram_cache;
-                    preprocess_subprograms(cu_die, cu_die, dwversion, subprogram_cache);
-                    subprogram_cache.finalize();
-                    subprograms_cache.emplace(off, std::move(subprogram_cache));
+                    cu_subprogram_info cu_info;
+                    preprocess_subprograms(cu_die, cu_die, dwversion, cu_info, "");
+                    cu_info.subprograms.finalize();
+                    subprograms_cache.emplace(off, std::move(cu_info));
                     it = subprograms_cache.find(off);
                 }
                 const auto& subprogram_cache = it->second;
-                auto maybe_die = subprogram_cache.lookup(pc);
+                auto maybe_subprogram = subprogram_cache.subprograms.lookup(pc);
                 // If the vector has been empty this can happen
-                if(maybe_die.has_value() && maybe_die.unwrap().pc_in_die(cu_die, dwversion, pc)) {
-                    frame.symbol = retrieve_symbol_for_subprogram(cu_die, maybe_die.unwrap(), pc, dwversion, inlines);
+                if(maybe_subprogram.has_value() && maybe_subprogram.unwrap().pc_in_die(cu_die, dwversion, pc)) {
+                    retrieve_symbol_for_subprogram(
+                        cu_die,
+                        maybe_subprogram.unwrap(),
+                        pc,
+                        dwversion,
+                        subprogram_cache,
+                        frame,
+                        inlines
+                    );
                 }
             }
         }
@@ -992,6 +1053,7 @@ namespace libdwarf {
                         nullable<std::uint32_t>::null(),
                         nullable<std::uint32_t>::null(),
                         frame_info.object_path,
+                        "",
                         "",
                         false
                     },

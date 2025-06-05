@@ -168,6 +168,7 @@ namespace libdwarf {
                         nullable<std::uint32_t>::null(),
                         dlframe.object_path,
                         "",
+                        "",
                         false
                     },
                     {}

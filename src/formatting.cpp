@@ -67,6 +67,7 @@ CPPTRACE_BEGIN_NAMESPACE
             int context_lines = 2;
             bool columns = true;
             bool prettify_symbols = false;
+            bool full_symbol = true;
             bool show_filtered_frames = true;
             std::function<bool(const stacktrace_frame&)> filter;
             std::function<stacktrace_frame(stacktrace_frame)> transform;
@@ -96,6 +97,9 @@ CPPTRACE_BEGIN_NAMESPACE
         }
         void prettify_symbols(bool prettify) {
             options.prettify_symbols = prettify;
+        }
+        void full_symbol(bool full) {
+            options.full_symbol = full;
         }
         void filtered_frame_placeholders(bool show) {
             options.show_filtered_frames = show;
@@ -278,17 +282,26 @@ CPPTRACE_BEGIN_NAMESPACE
                 auto address = options.addresses == address_mode::raw ? frame.raw_address : frame.object_address;
                 microfmt::print(stream, "{}0x{>{}:0h}{} ", blue, 2 * sizeof(frame_ptr), address, reset);
             }
-            if(!frame.symbol.empty()) {
-                microfmt::print(
-                    stream, "in {}{}{}",
-                    yellow, options.prettify_symbols ? prettify_symbol(frame.symbol) : frame.symbol, reset
-                );
+            bool did_print_in = false;
+            if(options.full_symbol) {
+                if(!frame.symbol.empty()) {
+                    did_print_in = true;
+                    microfmt::print(
+                        stream, "in {}{}{}",
+                        yellow, options.prettify_symbols ? prettify_symbol(frame.symbol) : frame.symbol, reset
+                    );
+                }
+            } else {
+                if(!frame.name.empty()) {
+                    did_print_in = true;
+                    microfmt::print(stream, "in {}{}{}", yellow, frame.name, reset);
+                }
             }
             if(!frame.filename.empty()) {
                 microfmt::print(
                     stream,
                     "{}at {}{}{}",
-                    frame.symbol.empty() ? "" : " ",
+                    did_print_in ? " " : "",
                     green,
                     options.paths == path_mode::full ? frame.filename : detail::basename(frame.filename, true),
                     reset
@@ -355,6 +368,10 @@ CPPTRACE_BEGIN_NAMESPACE
     }
     formatter& formatter::prettify_symbols(bool prettify) {
         pimpl->prettify_symbols(prettify);
+        return *this;
+    }
+    formatter& formatter::full_symbol(bool full) {
+        pimpl->full_symbol(full);
         return *this;
     }
     formatter& formatter::filtered_frame_placeholders(bool show) {

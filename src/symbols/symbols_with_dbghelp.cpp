@@ -365,6 +365,7 @@ namespace dbghelp {
                         nullable<std::uint32_t>::null(),
                         line.FileName,
                         symbol->Name,
+                        symbol->Name,
                         false
                     };
                 }
@@ -397,6 +398,7 @@ namespace dbghelp {
                     { static_cast<std::uint32_t>(line.LineNumber) },
                     nullable<std::uint32_t>::null(),
                     line.FileName,
+                    symbol->Name,
                     signature,
                     false,
                 };
@@ -408,6 +410,7 @@ namespace dbghelp {
                     nullable<std::uint32_t>::null(),
                     "",
                     symbol->Name,
+                    symbol->Name,
                     false
                 };
             }
@@ -417,6 +420,7 @@ namespace dbghelp {
                 object_frame.object_address,
                 nullable<std::uint32_t>::null(),
                 nullable<std::uint32_t>::null(),
+                "",
                 "",
                 "",
                 false

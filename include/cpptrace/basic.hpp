@@ -146,6 +146,7 @@ CPPTRACE_BEGIN_NAMESPACE
         nullable<std::uint32_t> line;
         nullable<std::uint32_t> column;
         std::string filename;
+        std::string name;
         std::string symbol;
         bool is_inline;
 
@@ -155,6 +156,7 @@ CPPTRACE_BEGIN_NAMESPACE
                 && line == other.line
                 && column == other.column
                 && filename == other.filename
+                && name == other.name
                 && symbol == other.symbol;
         }
 

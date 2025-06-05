@@ -19,9 +19,9 @@ namespace {
 
 cpptrace::stacktrace make_test_stacktrace() {
     cpptrace::stacktrace trace;
-    trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "foo()", false});
-    trace.frames.push_back({0x2, 0x1002, {30}, {40}, "bar.cpp", "bar()", false});
-    trace.frames.push_back({0x3, 0x1003, {40}, {25}, "foo.cpp", "main", false});
+    trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "", "foo()", false});
+    trace.frames.push_back({0x2, 0x1002, {30}, {40}, "bar.cpp", "", "bar()", false});
+    trace.frames.push_back({0x3, 0x1003, {40}, {25}, "foo.cpp", "", "main", false});
     return trace;
 }
 
@@ -117,10 +117,10 @@ TEST(FormatterTest, NoAddresses) {
 
 TEST(FormatterTest, PathShortening) {
     cpptrace::stacktrace trace;
-    trace.frames.push_back({0x1, 0x1001, {20}, {30}, "/home/foo/foo.cpp", "foo()", false});
-    trace.frames.push_back({0x2, 0x1002, {30}, {40}, "/bar.cpp", "bar()", false});
-    trace.frames.push_back({0x3, 0x1003, {40}, {25}, "baz/foo.cpp", "main", false});
-    trace.frames.push_back({0x3, 0x1003, {50}, {25}, "C:\\foo\\bar\\baz.cpp", "main", false});
+    trace.frames.push_back({0x1, 0x1001, {20}, {30}, "/home/foo/foo.cpp", "", "foo()", false});
+    trace.frames.push_back({0x2, 0x1002, {30}, {40}, "/bar.cpp", "", "bar()", false});
+    trace.frames.push_back({0x3, 0x1003, {40}, {25}, "baz/foo.cpp", "", "main", false});
+    trace.frames.push_back({0x3, 0x1003, {50}, {25}, "C:\\foo\\bar\\baz.cpp", "", "main", false});
     auto formatter = cpptrace::formatter{}
         .paths(cpptrace::formatter::path_mode::basename);
     auto res = split(formatter.format(trace), "\n");
@@ -140,8 +140,8 @@ TEST(FormatterTest, PathShortening) {
 TEST(FormatterTest, Snippets) {
     cpptrace::stacktrace trace;
     unsigned line = __LINE__ + 1;
-    trace.frames.push_back({0x1, 0x1001, {line}, {20}, __FILE__, "foo()", false});
-    trace.frames.push_back({0x2, 0x1002, {line + 1}, {20}, __FILE__, "foo()", false});
+    trace.frames.push_back({0x1, 0x1001, {line}, {20}, __FILE__, "", "foo()", false});
+    trace.frames.push_back({0x2, 0x1002, {line + 1}, {20}, __FILE__, "", "foo()", false});
     auto formatter = cpptrace::formatter{}
         .snippets(true);
     auto res = split(formatter.format(trace), "\n");
@@ -154,11 +154,11 @@ TEST(FormatterTest, Snippets) {
             cpptrace::microfmt::format("     {}:     cpptrace::stacktrace trace;", line - 2),
             cpptrace::microfmt::format("     {}:     unsigned line = __LINE__ + 1;", line - 1),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"\", \"foo()\", false});",
                 line
             ),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"\", \"foo()\", false});",
                 line + 1
             ),
             cpptrace::microfmt::format("     {}:     auto formatter = cpptrace::formatter{{}}", line + 2),
@@ -166,11 +166,11 @@ TEST(FormatterTest, Snippets) {
             cpptrace::microfmt::format("#1 0x0000000000000002 in foo() at {}:{}:20", __FILE__, line + 1),
             cpptrace::microfmt::format("     {}:     unsigned line = __LINE__ + 1;", line - 1),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"\", \"foo()\", false});",
                 line
             ),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"\", \"foo()\", false});",
                 line + 1
             ),
             cpptrace::microfmt::format("     {}:     auto formatter = cpptrace::formatter{{}}", line + 2),
@@ -187,21 +187,21 @@ TEST(FormatterTest, Snippets) {
             cpptrace::microfmt::format("#0 0x0000000000000001 in foo() at {}:{}:20", __FILE__, line),
             cpptrace::microfmt::format("     {}:     unsigned line = __LINE__ + 1;", line - 1),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"\", \"foo()\", false});",
                 line
             ),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"\", \"foo()\", false});",
                 line + 1
             ),
             // frame 2
             cpptrace::microfmt::format("#1 0x0000000000000002 in foo() at {}:{}:20", __FILE__, line + 1),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"\", \"foo()\", false});",
                 line
             ),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"\", \"foo()\", false});",
                 line + 1
             ),
             cpptrace::microfmt::format("     {}:     auto formatter = cpptrace::formatter{{}}", line + 2)
@@ -377,7 +377,7 @@ TEST(FormatterTest, PrettySymbols) {
     auto normal_formatter = cpptrace::formatter{}
         .prettify_symbols(false);
     cpptrace::stacktrace trace;
-    trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "foo(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)", false});
+    trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "", "foo(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)", false});
     auto res = split(normal_formatter.format(trace), "\n");
     EXPECT_THAT(
         res,

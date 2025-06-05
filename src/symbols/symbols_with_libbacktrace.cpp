@@ -28,6 +28,7 @@ namespace libbacktrace {
         frame.raw_address = address;
         frame.line = line;
         frame.filename = file ? file : "";
+        frame.name = symbol ? symbol : "";
         frame.symbol = symbol ? symbol : "";
         return 0;
     }
@@ -37,6 +38,7 @@ namespace libbacktrace {
         frame.raw_address = address;
         frame.line = 0;
         frame.filename = "";
+        frame.name = symbol ? symbol : "";
         frame.symbol = symbol ? symbol : "";
     }
 
