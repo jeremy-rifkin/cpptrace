@@ -205,14 +205,14 @@ namespace cpptrace {
     using frame_ptr = std::uintptr_t;
 
     struct stacktrace_frame {
-        frame_ptr raw_address = 0; // address in memory
-        frame_ptr object_address = 0; // address in the object file
+        frame_ptr raw_address; // address in memory
+        frame_ptr object_address; // address in the object file
         // nullable<T> represents a nullable integer. More docs later.
         nullable<std::uint32_t> line;
         nullable<std::uint32_t> column;
         std::string filename;
         std::string symbol;
-        bool is_inline = false;
+        bool is_inline;
         bool operator==(const stacktrace_frame& other) const;
         bool operator!=(const stacktrace_frame& other) const;
         object_frame get_object_info() const; // object_address is stored but if the object_path is needed this can be used
@@ -252,8 +252,8 @@ is resolved), and the path to the object the instruction pointer is located in.
 namespace cpptrace {
     struct object_frame {
         std::string object_path;
-        frame_ptr raw_address = 0;
-        frame_ptr object_address = 0;
+        frame_ptr raw_address;
+        frame_ptr object_address;
     };
 
     struct object_trace {
