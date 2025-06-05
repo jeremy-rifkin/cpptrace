@@ -25,14 +25,13 @@
      try { \
          [&]() -> ::cpptrace::detail::dont_return_from_try_catch_macros { \
              __try { \
-                 [&]() -> ::cpptrace::detail::dont_return_from_try_catch_macros {
+                 return [&]() -> ::cpptrace::detail::dont_return_from_try_catch_macros {
  #define CPPTRACE_CATCH(param) \
                      return ::cpptrace::detail::dont_return_from_try_catch_macros(); \
                  }(); \
              } __except(::cpptrace::detail::exception_filter<CPPTRACE_TYPE_FOR(param)>(GetExceptionInformation())) { \
                  CPPTRACE_UNREACHABLE(); \
              } \
-             return ::cpptrace::detail::dont_return_from_try_catch_macros(); \
          }(); \
      } catch(param)
 #else
