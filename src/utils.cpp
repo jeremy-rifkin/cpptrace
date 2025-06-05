@@ -10,6 +10,10 @@
 #include "platform/exception_type.hpp"
 #include "options.hpp"
 
+#if !IS_WINDOWS
+ #include <unistd.h>
+#endif
+
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
     const formatter& get_terminate_formatter() {
@@ -33,9 +37,15 @@ CPPTRACE_BEGIN_NAMESPACE
         return detail::isatty(fd);
     }
 
-    extern const int stdin_fileno = detail::fileno(stdin);
-    extern const int stdout_fileno = detail::fileno(stdout);
-    extern const int stderr_fileno = detail::fileno(stderr);
+    #if IS_WINDOWS
+     extern const int stdin_fileno = detail::fileno(stdin);
+     extern const int stdout_fileno = detail::fileno(stdout);
+     extern const int stderr_fileno = detail::fileno(stderr);
+    #else
+     extern const int stdin_fileno = STDIN_FILENO;
+     extern const int stdout_fileno = STDOUT_FILENO;
+     extern const int stderr_fileno = STDERR_FILENO;
+    #endif
 
     CPPTRACE_FORCE_NO_INLINE void print_terminate_trace() {
         try { // try/catch can never be hit but it's needed to prevent TCO
