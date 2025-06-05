@@ -400,7 +400,6 @@ namespace detail {
         return page;
     }
     #endif
-
     void perform_typeinfo_surgery(const std::type_info& info, bool(*do_catch_function)(const std::type_info*, const std::type_info*, void**, unsigned)) {
         if(vtable_size == 0) { // set to zero if we don't know what standard library we're working with
             return;
@@ -408,6 +407,8 @@ namespace detail {
         void* type_info_pointer = const_cast<void*>(static_cast<const void*>(&info));
         void** type_info_vtable_pointer = *static_cast<void***>(type_info_pointer);
         // the type info vtable pointer points to two pointers inside the vtable, adjust it back
+        // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#vtable-components (see offset to top, typeinfo ptr,
+        // and the following bullet point)
         type_info_vtable_pointer -= 2;
 
         // for libstdc++ the class type info vtable looks like
@@ -440,7 +441,7 @@ namespace detail {
 
         // shouldn't be anything other than 4096 but out of an abundance of caution
         auto page_size = get_page_size();
-        if(page_size <= 0 && (page_size & (page_size - 1)) != 0) {
+        if(page_size <= 0 && is_positive_power_of_two(page_size)) {
             throw internal_error("getpagesize() is not a power of 2 greater than zero (was {})", page_size);
         }
         if(static_cast<size_t>(page_size) < vtable_size * sizeof(void*)) {
@@ -454,6 +455,16 @@ namespace detail {
         // allocate a page for the new vtable so it can be made read-only later
         // the OS cleans this up, no cleanup done here for it
         void* new_vtable_page = allocate_page(page_size);
+
+        // Double-check alignment: "This address must have the alignment required for pointers"
+        //   https://itanium-cxx-abi.github.io/cxx-abi/abi.html#vtable-components
+        constexpr auto ptr_align = alignof(void*);
+        static_assert(is_positive_power_of_two(ptr_align), "alignof has to return a power of two");
+        auto align_mask = ptr_align - 1;
+        if((reinterpret_cast<uintptr_t>(new_vtable_page) & align_mask) != 0) {
+            throw internal_error("Bad allocation alignment: {}", reinterpret_cast<uintptr_t>(new_vtable_page));
+        }
+
         // make our own copy of the vtable
         memcpy(new_vtable_page, type_info_vtable_pointer, vtable_size * sizeof(void*));
         // ninja in the custom __do_catch interceptor
