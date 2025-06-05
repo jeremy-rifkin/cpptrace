@@ -88,7 +88,7 @@ namespace libbacktrace {
             return frame;
         } catch(...) { // NOSONAR
             detail::log_and_maybe_propagate_exception(std::current_exception());
-            return null_frame;
+            return null_frame();
         }
     }
 
