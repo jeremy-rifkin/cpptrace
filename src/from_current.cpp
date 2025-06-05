@@ -443,6 +443,13 @@ namespace detail {
         if(page_size <= 0 && (page_size & (page_size - 1)) != 0) {
             throw internal_error("getpagesize() is not a power of 2 greater than zero (was {})", page_size);
         }
+        if(static_cast<size_t>(page_size) < vtable_size * sizeof(void*)) {
+            throw internal_error(
+                "Page size isn't big enough for a vtable: Needed {}, got {}",
+                vtable_size * sizeof(void*),
+                page_size
+            );
+        }
 
         // allocate a page for the new vtable so it can be made read-only later
         // the OS cleans this up, no cleanup done here for it
