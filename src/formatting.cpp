@@ -67,6 +67,7 @@ CPPTRACE_BEGIN_NAMESPACE
             int context_lines = 2;
             bool columns = true;
             bool prettify_symbols = false;
+            bool full_symbol = true;
             bool show_filtered_frames = true;
             std::function<bool(const stacktrace_frame&)> filter;
             std::function<stacktrace_frame(stacktrace_frame)> transform;
@@ -96,6 +97,9 @@ CPPTRACE_BEGIN_NAMESPACE
         }
         void prettify_symbols(bool prettify) {
             options.prettify_symbols = prettify;
+        }
+        void full_symbol(bool full) {
+            options.full_symbol = full;
         }
         void filtered_frame_placeholders(bool show) {
             options.show_filtered_frames = show;
@@ -279,10 +283,20 @@ CPPTRACE_BEGIN_NAMESPACE
                 microfmt::print(stream, "{}0x{>{}:0h}{} ", blue, 2 * sizeof(frame_ptr), address, reset);
             }
             if(!frame.symbol.empty()) {
-                microfmt::print(
-                    stream, "in {}{}{}",
-                    yellow, options.prettify_symbols ? prettify_symbol(frame.symbol) : frame.symbol, reset
-                );
+                detail::optional<std::string> maybe_stored_string;
+                detail::string_view symbol;
+                if(options.full_symbol) {
+                    if(options.prettify_symbols) {
+                        maybe_stored_string = prettify_symbol(frame.symbol);
+                        symbol = maybe_stored_string.unwrap();
+                    } else {
+                        symbol = frame.symbol;
+                    }
+                } else {
+                    maybe_stored_string = frame.name();
+                    symbol = maybe_stored_string.unwrap();
+                }
+                microfmt::print(stream, "in {}{}{}", yellow, symbol, reset);
             }
             if(!frame.filename.empty()) {
                 microfmt::print(
@@ -355,6 +369,10 @@ CPPTRACE_BEGIN_NAMESPACE
     }
     formatter& formatter::prettify_symbols(bool prettify) {
         pimpl->prettify_symbols(prettify);
+        return *this;
+    }
+    formatter& formatter::full_symbol(bool full) {
+        pimpl->full_symbol(full);
         return *this;
     }
     formatter& formatter::filtered_frame_placeholders(bool show) {

@@ -130,6 +130,10 @@ CPPTRACE_BEGIN_NAMESPACE
         return detail::get_frame_object_info(raw_address);
     }
 
+    std::string stacktrace_frame::name() const {
+        return name_from_symbol(symbol);
+    }
+
     std::string stacktrace_frame::to_string() const {
         return to_string(false);
     }
