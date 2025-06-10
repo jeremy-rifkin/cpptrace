@@ -9,10 +9,6 @@ import cpptrace;
 #include <cpptrace/utils.hpp>
 #endif
 
-#include "utils/span.hpp"
-
-using cpptrace::detail::span;
-
 namespace {
 
 #define DO_TEST(symbol, expected) EXPECT_EQ(cpptrace::name_from_symbol(symbol), expected) << "Input: " << symbol
@@ -205,7 +201,7 @@ TEST(NameFromSymbolTests, NTTPs) {
     DO_TEST("void foo<&void foo<20,1>(void)>(void)", "foo");
 
     // https://godbolt.org/z/zx9nnqjdq
-    DO_TEST(R"(void foo<fixed_string<13ul>{"foobar`\"bar\"'"}>())", "foo");
+    DO_TEST("void foo<fixed_string<13ul>{\"foobar`\\\"bar\\\"'\"}>()", "foo");
     DO_TEST("void foo<fixed_string<13>{char{102,111,111,98,97,114,96,34,98,97,114,34,39,0}}>(void)", "foo");
 }
 
