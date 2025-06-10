@@ -48,6 +48,7 @@ CPPTRACE_BEGIN_NAMESPACE
         formatter& snippet_context(int);
         formatter& columns(bool);
         formatter& prettify_symbols(bool);
+        formatter& full_symbol(bool);
         formatter& filtered_frame_placeholders(bool);
         formatter& filter(std::function<bool(const stacktrace_frame&)>);
         formatter& transform(std::function<stacktrace_frame(stacktrace_frame)>);
