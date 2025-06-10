@@ -139,14 +139,14 @@ namespace detail {
     #define CONCAT_IMPL(X, Y) X##Y
     #define CONCAT(X, Y) CONCAT_IMPL(X, Y)
     #define UNIQUE(X) CONCAT(X, __COUNTER__)
-    #define TRY_IMPL(ACTION, SUCCESS, RES) \
-        Result<bool, parse_error> RES = (ACTION)(); \
+    #define TRY_PARSE_IMPL(ACTION, SUCCESS, RES) \
+        Result<bool, parse_error> RES = (ACTION); \
         if((RES).is_error()) { \
             return std::move((RES)).unwrap_error(); \
         } else if((RES).unwrap_value()) { \
             SUCCESS; \
         }
-    #define TRY(ACTION, SUCCESS) TRY_IMPL(ACTION, SUCCESS, UNIQUE(res))
+    #define TRY_PARSE(ACTION, SUCCESS) TRY_PARSE_IMPL(ACTION, SUCCESS, UNIQUE(res))
 
     #define TRY_TOK_IMPL(RES, ACTION, TMP) \
         const auto TMP = (ACTION); \
@@ -267,6 +267,7 @@ namespace detail {
                     cursor++;
                 }
             }
+
             if(cursor == start) {
                 return nullopt;
             }
@@ -348,11 +349,8 @@ namespace detail {
         }
 
         NODISCARD Result<optional<token>, parse_error> accept(token_type type, bool in_template_argument_list = false) {
-            auto next = peek(in_template_argument_list);
-            if(next.is_error()) {
-                return next.unwrap_error();
-            }
-            if(next.unwrap_value() && next.unwrap_value().unwrap().type == type) {
+            TRY_TOK(next, peek(in_template_argument_list));
+            if(next && next.unwrap().type == type) {
                 advance();
                 return next;
             }
@@ -360,11 +358,8 @@ namespace detail {
         }
 
         NODISCARD Result<optional<token>, parse_error> accept(token token, bool in_template_argument_list = false) {
-            auto next = peek(in_template_argument_list);
-            if(next.is_error()) {
-                return next.unwrap_error();
-            }
-            if(next.unwrap_value() && next.unwrap_value().unwrap() == token) {
+            TRY_TOK(next, peek(in_template_argument_list));
+            if(next && next.unwrap() == token) {
                 advance();
                 return next;
             }
@@ -402,7 +397,7 @@ namespace detail {
             return false;
         }
 
-        NODISCARD optional<parse_error> consume_balanced(string_view opening_punctuation) {
+        NODISCARD Result<bool, parse_error> consume_balanced(string_view opening_punctuation) {
             // priority means only consider this punctuation type and no priority means considers each independently
             bool is_in_template_list = opening_punctuation == "<";
             int depth = 1;
@@ -410,13 +405,7 @@ namespace detail {
             while(depth > 0) {
                 // first try to accept an operator, this is for things like void foo<&S::operator>(S const&)>()::test
                 if(is_in_template_list) {
-                    const auto res = accept_operator(true);
-                    if(res.is_error()) {
-                        return res.unwrap_error();
-                    }
-                    if(res.unwrap_value()) {
-                        continue;
-                    }
+                    TRY_PARSE(accept_operator(true), continue);
                 }
                 // otherwise handle arbitrary token
                 TRY_TOK(next, tokenizer.advance(is_in_template_list));
@@ -431,11 +420,11 @@ namespace detail {
                     } else if(is_in_template_list && is_opening_punctuation(next.unwrap().str)) {
                         // If we're in a template list, recurse into any balanced punctuation we see. This handles cases
                         // like foo<(S > S)>
-                        consume_balanced(next.unwrap().str);
+                        TRY_PARSE(consume_balanced(next.unwrap().str), (void)0);
                     }
                 }
             }
-            return nullopt;
+            return true;
         }
 
         NODISCARD Result<bool, parse_error> accept_balanced_punctuation() {
@@ -445,7 +434,7 @@ namespace detail {
             }
             if(token.unwrap().type == token_type::punctuation && is_opening_punctuation(token.unwrap().str)) {
                 tokenizer.advance();
-                consume_balanced(token.unwrap().str);
+                TRY_PARSE(consume_balanced(token.unwrap().str), (void)0);
                 return true;
             }
             return false;
@@ -547,20 +536,8 @@ namespace detail {
             if(token) {
                 if(!is_in_template_list) {
                     append_output(token.unwrap());
-                    auto res = accept_new_delete();
-                    if(res.is_error()) {
-                        return res.unwrap_error();
-                    }
-                    if(res.unwrap_value()) {
-                        return true;
-                    }
-                    res = accept_decltype_auto();
-                    if(res.is_error()) {
-                        return res.unwrap_error();
-                    }
-                    if(res.unwrap_value()) {
-                        return true;
-                    }
+                    TRY_PARSE(accept_new_delete(), return true);
+                    TRY_PARSE(accept_decltype_auto(), return true);
                     TRY_TOK(coawait, tokenizer.accept({token_type::identifier, "co_await"}));
                     if(coawait) {
                         append_output(coawait.unwrap());
@@ -596,10 +573,7 @@ namespace detail {
                 if(!is_in_template_list) {
                     // otherwise try to parse a name, in the case of a conversion operator
                     // there is a bit of a grammer hack here, it doesn't properly "nest," but it works
-                    auto term_res = parse_symbol_term();
-                    if(term_res) {
-                        return term_res.unwrap();
-                    }
+                    TRY_PARSE(parse_symbol_term(), (void)0);
                     return true;
                 }
             }
@@ -618,9 +592,7 @@ namespace detail {
                 if(!lambda_token) {
                     return parse_error{};
                 }
-                if(auto res = consume_punctuation()) {
-                    return res.unwrap();
-                }
+                TRY_PARSE(consume_punctuation(), (void)0);
                 TRY_TOK(hash_token, tokenizer.accept({token_type::punctuation, "#"}));
                 if(!hash_token) {
                     return parse_error{};
@@ -705,16 +677,17 @@ namespace detail {
             return matched;
         }
 
-        NODISCARD optional<parse_error> parse_symbol_term() {
-            TRY(accept_anonymous_namespace, return nullopt);
-            TRY(accept_operator, return nullopt);
-            TRY(accept_ignored_identifier, return nullopt);
-            TRY(accept_identifier_token, return nullopt);
-            TRY(accept_lambda, return nullopt);
+        NODISCARD Result<bool, parse_error> parse_symbol_term() {
+            TRY_PARSE(accept_anonymous_namespace(), return true);
+            TRY_PARSE(accept_operator(), return true);
+            TRY_PARSE(accept_ignored_identifier(), return true);
+            TRY_PARSE(accept_identifier_token(), return true);
+            TRY_PARSE(accept_lambda(), return true);
             return parse_error{};
         }
 
-        NODISCARD optional<parse_error> consume_punctuation() {
+        NODISCARD Result<bool, parse_error> consume_punctuation() {
+            bool did_consume = false;
             while(true) {
                 TRY_TOK(token, tokenizer.peek());
                 if(
@@ -727,92 +700,67 @@ namespace detail {
                 ) {
                     break;
                 }
-                TRY(accept_balanced_punctuation, continue);
+                TRY_PARSE(accept_balanced_punctuation(), {did_consume = true; continue;});
                 // otherwise, if not balanced punctuation, just consume and drop
                 tokenizer.advance();
+                did_consume = true;
             }
-            return nullopt;
+            return did_consume;
         }
 
-        NODISCARD optional<parse_error> consume_punctuation_and_trailing_modifiers() {
+        NODISCARD Result<bool, parse_error> consume_punctuation_and_trailing_modifiers() {
+            bool did_consume = false;
             while(true) {
                 TRY_TOK(token, tokenizer.peek());
                 if(!token) {
                     break;
                 }
-                {
-                    Result<bool, parse_error> res = accept_balanced_punctuation();
-                    if(res.is_error()) {
-                        return std::move(res).unwrap_error();
-                    } else if(res.unwrap_value()) {
-                        continue;
-                    }
-                }
-                {
-                    Result<bool, parse_error> res = accept_ignored_identifier();
-                    if(res.is_error()) {
-                        return std::move(res).unwrap_error();
-                    } else if(res.unwrap_value()) {
-                        continue;
-                    }
-                }
-                {
-                    Result<bool, parse_error> res = accept_pointer_ref(false);
-                    if(res.is_error()) {
-                        return std::move(res).unwrap_error();
-                    } else if(res.unwrap_value()) {
-                        continue;
-                    }
-                }
+                TRY_PARSE(accept_balanced_punctuation(), {did_consume = true; continue;});
+                TRY_PARSE(accept_ignored_identifier(), {did_consume = true; continue;});
+                TRY_PARSE(accept_pointer_ref(false), {did_consume = true; continue;});
                 break;
             }
-            return nullopt;
+            return did_consume;
         }
 
-        NODISCARD optional<parse_error> parse_symbol() {
+        NODISCARD Result<bool, parse_error> parse_symbol() {
+            bool made_progress = false;
             while(true) {
                 TRY_TOK(token, tokenizer.peek());
                 if(!token) {
                     break;
                 }
-                if(auto res = parse_symbol_term()) {
-                    return res.unwrap();
-                }
-                {
-                    Result<bool, parse_error> res = accept_pointer_ref(true);
-                    if(res.is_error()) {
-                        return std::move(res).unwrap_error();
-                    }
-                }
-                if(auto res = consume_punctuation_and_trailing_modifiers()) {
-                    return res.unwrap();
-                }
+                TRY_PARSE(parse_symbol_term(), made_progress = true);
+                TRY_PARSE(accept_pointer_ref(true), made_progress = true);
+                TRY_PARSE(consume_punctuation_and_trailing_modifiers(), made_progress = true);
                 TRY_TOK(scope_resolution, tokenizer.accept({token_type::punctuation, "::"}));
                 if(scope_resolution) {
                     append_output(scope_resolution.unwrap());
+                    made_progress = true;
                 } else {
                     break;
                 }
             }
-            return nullopt;
+            return made_progress;
         }
 
     public:
         symbol_parser(symbol_tokenizer& tokenizer) : tokenizer(tokenizer) {}
 
-        NODISCARD optional<parse_error> parse() {
+        NODISCARD Result<monostate, parse_error> parse() {
             while(true) {
                 TRY_TOK(token, tokenizer.peek());
                 if(!token) {
                     break;
                 }
                 reset_output_flag = true;
-                auto res = parse_symbol();
-                if(res) {
-                    return res.unwrap();
+                bool made_progress = false;
+                TRY_PARSE(parse_symbol(), made_progress = true);
+                if(!made_progress) {
+                    return parse_error{};
                 }
             }
-            return nullopt;
+            return monostate{};
         }
 
         NODISCARD std::string name() && {
@@ -824,7 +772,7 @@ namespace detail {
         detail::symbol_tokenizer tokenizer(symbol);
         detail::symbol_parser parser(tokenizer);
         auto res = parser.parse();
-        if(res) {
+        if(res.is_error()) {
             // error
             return std::string(symbol);
         }
