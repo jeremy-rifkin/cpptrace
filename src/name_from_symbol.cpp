@@ -100,6 +100,10 @@ namespace detail {
         PANIC();
     }
 
+    bool is_ignored_identifier(string_view string) {
+        return is_any(string, "const", "volatile", "decltype", "noexcept");
+    }
+
     // There are five kinds of tokens in C++: identifiers, keywords, literals, operators, and other separators
     // We tokenize a mostly-subset of this:
     //  - identifiers/keywords
@@ -142,7 +146,7 @@ namespace detail {
             return text == source.substr(pos, text.size());
         }
 
-        optional<token> peek_anonymous_namespace() const {
+        NODISCARD optional<token> peek_anonymous_namespace() const {
             for(const auto& spelling : anonymous_namespace_spellings) {
                 if(peek(spelling)) {
                     return token{token_type::anonymous_namespace, {source.begin(), spelling.size()}};
@@ -151,7 +155,7 @@ namespace detail {
             return nullopt;
         }
 
-        optional<token> peek_number() const {
+        NODISCARD optional<token> peek_number() const {
             // More or less following pp-number https://eel.is/c++draft/lex.ppnumber
             auto cursor = source.begin();
             if(cursor != source.end() && std::isdigit(*cursor)) {
@@ -172,7 +176,7 @@ namespace detail {
             return token{token_type::literal, {source.begin(), cursor}};
         }
 
-        optional<token> peek_msvc_string() const {
+        NODISCARD optional<token> peek_msvc_string() const {
             // msvc strings look like `this'
             // they nest, e.g.: ``int main(void)'::`2'::<lambda_1>::operator()(void)const '
             // TODO: Escapes?
@@ -193,7 +197,7 @@ namespace detail {
             return token{token_type::literal, {source.begin(), cursor}};
         }
 
-        optional<token> peek_char_or_string() const {
+        NODISCARD optional<token> peek_char_or_string() const {
             // TODO: Escapes?
             auto cursor = source.begin();
             if(cursor != source.end() && *cursor == '`') {
@@ -215,7 +219,7 @@ namespace detail {
             return token{token_type::literal, {source.begin(), cursor}};
         }
 
-        optional<token> peek_literal() const {
+        NODISCARD optional<token> peek_literal() const {
             if(auto res = peek_number()) {
                 return res;
             } else if(auto res2 = peek_char_or_string()) {
@@ -225,21 +229,16 @@ namespace detail {
             }
         }
 
-        optional<token> peek_punctuation(bool in_template_argument_list, size_t pos = 0) const {
+        NODISCARD optional<token> peek_punctuation(size_t pos = 0) const {
             for(const auto punctuation : punctuators_and_operators) {
                 if(peek(punctuation, pos)) {
-                    // https://eel.is/c++draft/temp.names#4 decompose >> to > when we think we're in a template argument
-                    // list. We don't have to do this for >>= or >=.
-                    if(in_template_argument_list && punctuation == ">>") {
-                        return token{token_type::punctuation, {source.begin() + pos, 1}}; // ">"
-                    }
                     return token{token_type::punctuation, {source.begin() + pos, punctuation.size()}};
                 }
             }
             return nullopt;
         }
 
-        optional<token> peek_identifier(size_t pos = 0) const {
+        NODISCARD optional<token> peek_identifier(size_t pos = 0) const {
             auto start = source.begin() + std::min(pos, source.size());;
             auto cursor = start;
             if(cursor != source.end() && is_identifier_start(*cursor)) {
@@ -253,12 +252,12 @@ namespace detail {
             return token{token_type::identifier, {start, cursor}};
         }
 
-        token peek_misc() const {
+        NODISCARD token peek_misc() const {
             ASSERT(!source.empty());
             return token{token_type::punctuation, {source.begin(), 1}};
         }
 
-        void maybe_load_next_token(bool in_template_argument_list) {
+        void maybe_load_next_token() {
             if(next_token.has_value()) {
                 return;
             }
@@ -275,7 +274,7 @@ namespace detail {
                 next_token = peek_literal();
             }
             if(!next_token.has_value()) {
-                next_token = peek_punctuation(in_template_argument_list);
+                next_token = peek_punctuation();
             }
             if(!next_token.has_value()) {
                 next_token = peek_identifier();
@@ -285,26 +284,42 @@ namespace detail {
             }
         }
 
-    public:
-        symbol_tokenizer(string_view source) : source(source) {}
-
-        optional<token> peek(bool in_template_argument_list = false) {
-            maybe_load_next_token(in_template_argument_list);
+        optional<token> get_adjusted_next_token(bool in_template_argument_list) {
+            // https://eel.is/c++draft/temp.names#4 decompose >> to > when we think we're in a template argument list.
+            // We don't have to do this for >>= or >=.
+            if(
+                next_token
+                && in_template_argument_list
+                && next_token.unwrap().type == token_type::punctuation
+                && next_token.unwrap().str == ">>"
+            ) {
+                auto copy = next_token.unwrap();
+                copy.str = copy.str.substr(0, 1); // ">"
+                return copy;
+            }
             return next_token;
         }
 
-        optional<token> advance(bool in_template_argument_list = false) {
-            maybe_load_next_token(in_template_argument_list);
-            if(!next_token) {
-                return nullopt;
-            }
-            auto token = next_token;
-            source.advance(token.unwrap().str.size());
-            next_token.reset();
-            return token;
+    public:
+        symbol_tokenizer(string_view source) : source(source) {}
+
+        NODISCARD optional<token> peek(bool in_template_argument_list = false) {
+            maybe_load_next_token();
+            return get_adjusted_next_token(in_template_argument_list);
         }
 
-        optional<token> accept(token_type type, bool in_template_argument_list = false) {
+        optional<token> advance(bool in_template_argument_list = false) {
+            maybe_load_next_token();
+            auto next = get_adjusted_next_token(in_template_argument_list);
+            if(!next) {
+                return nullopt;
+            }
+            source.advance(next.unwrap().str.size());
+            next_token.reset();
+            return next;
+        }
+
+        NODISCARD optional<token> accept(token_type type, bool in_template_argument_list = false) {
             auto next = peek(in_template_argument_list);
             if(next && next.unwrap().type == type) {
                 advance();
@@ -313,7 +328,7 @@ namespace detail {
             return nullopt;
         }
 
-        optional<token> accept(token token, bool in_template_argument_list = false) {
+        NODISCARD optional<token> accept(token token, bool in_template_argument_list = false) {
             auto next = peek(in_template_argument_list);
             if(next && next.unwrap() == token) {
                 advance();
@@ -323,41 +338,6 @@ namespace detail {
         }
     };
 
-    void consume_balanced(symbol_tokenizer& tokenizer, string_view opening_punctuation);
-
-    // consume a balanced set of some kind of brace, priority means it only considers those and no priority means it
-    // considers each independently
-    void consume_balanced(symbol_tokenizer& tokenizer, string_view opening_punctuation, bool priority) {
-        int depth = 1;
-        auto closing_punctuation = get_corresponding_punctuation(opening_punctuation);
-        while(depth > 0) {
-            const auto token = tokenizer.advance(opening_punctuation == "<");
-            if(!token.has_value()) {
-                break;
-            }
-            if(token.unwrap().type == token_type::punctuation) {
-                if(token.unwrap().str == opening_punctuation) {
-                    depth++;
-                } else if(token.unwrap().str == closing_punctuation) {
-                    depth--;
-                } else if(!priority && is_opening_punctuation(token.unwrap().str)) {
-                    consume_balanced(tokenizer, token.unwrap().str);
-                }
-            }
-        }
-    }
-
-    void consume_balanced(symbol_tokenizer& tokenizer, string_view opening_punctuation) {
-        consume_balanced(tokenizer, opening_punctuation, opening_punctuation != "<");
-    }
-
-    bool is_ignored_identifier(string_view string) {
-        return string == "const"
-            || string == "volatile"
-            || string == "decltype"
-            || string == "noexcept";
-    }
-
     std::string name_from_symbol(string_view symbol);
 
     class symbol_parser {
@@ -366,7 +346,7 @@ namespace detail {
         bool last_was_identifier = false;
         bool reset_output_flag = false;
 
-        void append_output(token token, bool = false) {
+        void append_output(token token) {
             auto is_identifier = token.type == token_type::identifier;
             if(reset_output_flag) {
                 name_output.clear();
@@ -379,7 +359,7 @@ namespace detail {
             last_was_identifier = is_identifier;
         }
 
-        Result<bool, parse_error> accept_anonymous_namespace() {
+        NODISCARD Result<bool, parse_error> accept_anonymous_namespace() {
             if(tokenizer.accept(token_type::anonymous_namespace)) {
                 append_output({ token_type::identifier, "(anonymous namespace)" });
                 return true;
@@ -387,27 +367,63 @@ namespace detail {
             return false;
         }
 
-        Result<bool, parse_error> accept_balanced_punctuation() {
+        NODISCARD optional<parse_error> consume_balanced(string_view opening_punctuation) {
+            // priority means only consider this punctuation type and no priority means considers each independently
+            bool is_in_template_list = opening_punctuation == "<";
+            int depth = 1;
+            auto closing_punctuation = get_corresponding_punctuation(opening_punctuation);
+            while(depth > 0) {
+                // first try to accept an operator, this is for things like void foo<&S::operator>(S const&)>()::test
+                if(is_in_template_list) {
+                    const auto res = accept_operator(true);
+                    if(res.is_error()) {
+                        return res.unwrap_error();
+                    }
+                    if(res.unwrap_value()) {
+                        continue;
+                    }
+                }
+                // otherwise handle arbitrary token
+                const auto next = tokenizer.advance(is_in_template_list);
+                if(!next.has_value()) {
+                    break;
+                }
+                if(next.unwrap().type == token_type::punctuation) {
+                    if(next.unwrap().str == opening_punctuation) {
+                        depth++;
+                    } else if(next.unwrap().str == closing_punctuation) {
+                        depth--;
+                    } else if(is_in_template_list && is_opening_punctuation(next.unwrap().str)) {
+                        // If we're in a template list, recurse into any balanced punctuation we see. This handles cases
+                        // like foo<(S > S)>
+                        consume_balanced(next.unwrap().str);
+                    }
+                }
+            }
+            return nullopt;
+        }
+
+        NODISCARD Result<bool, parse_error> accept_balanced_punctuation() {
             auto token = tokenizer.peek();
             if(!token) {
                 return false;
             }
             if(token.unwrap().type == token_type::punctuation && is_opening_punctuation(token.unwrap().str)) {
                 tokenizer.advance();
-                consume_balanced(tokenizer, token.unwrap().str);
+                consume_balanced(token.unwrap().str);
                 return true;
             }
             return false;
         }
 
-        Result<bool, parse_error> accept_punctuation() {
+        NODISCARD Result<bool, parse_error> accept_punctuation() {
             if(tokenizer.accept(token_type::punctuation)) {
                 return true;
             }
             return false;
         }
 
-        Result<bool, parse_error> accept_ignored_identifier() {
+        NODISCARD Result<bool, parse_error> accept_ignored_identifier() {
             auto token = tokenizer.peek();
             if(!token) {
                 return false;
@@ -419,7 +435,7 @@ namespace detail {
             return false;
         }
 
-        Result<bool, parse_error> accept_identifier_token() {
+        NODISCARD Result<bool, parse_error> accept_identifier_token() {
             if(auto complement = tokenizer.accept({token_type::punctuation, "~"})) {
                 append_output(complement.unwrap());
                 auto token = tokenizer.accept(token_type::identifier);
@@ -435,13 +451,13 @@ namespace detail {
             return false;
         }
 
-        Result<bool, parse_error> accept_new_delete() {
+        NODISCARD Result<bool, parse_error> accept_new_delete() {
             optional<token> token;
             if(
                 (token = tokenizer.accept({token_type::identifier, "new"}))
                 || (token = tokenizer.accept({token_type::identifier, "delete"}))
             ) {
-                append_output(token.unwrap(), true);
+                append_output(token.unwrap());
                 auto op = tokenizer.accept({token_type::punctuation, "["});
                 if(op) {
                     append_output(op.unwrap());
@@ -456,9 +472,9 @@ namespace detail {
             return false;
         }
 
-        Result<bool, parse_error> accept_decltype_auto() {
+        NODISCARD Result<bool, parse_error> accept_decltype_auto() {
             if(auto token = tokenizer.accept({token_type::identifier, "decltype"})) {
-                append_output(token.unwrap(), true);
+                append_output(token.unwrap());
                 auto op = tokenizer.accept({token_type::punctuation, "("});
                 if(!op) {
                     return parse_error{};
@@ -479,59 +495,69 @@ namespace detail {
             return false;
         }
 
-        Result<bool, parse_error> accept_operator() {
+        NODISCARD Result<bool, parse_error> accept_operator(bool is_in_template_list = false) {
+            // If we're in a template argument list we skip new/delete/auto/co_await/literal/conversion and only handle
+            // the operator punctuation case. We also don't append for template lists.
             if(auto token = tokenizer.accept({token_type::identifier, "operator"})) {
-                append_output(token.unwrap());
-                auto res = accept_new_delete();
-                if(res.is_error()) {
-                    return res.unwrap_error();
-                }
-                if(res.unwrap_value()) {
-                    return true;
-                }
-                res = accept_decltype_auto();
-                if(res.is_error()) {
-                    return res.unwrap_error();
-                }
-                if(res.unwrap_value()) {
-                    return true;
-                }
-                if(auto coawait = tokenizer.accept({token_type::identifier, "co_await"})) {
-                    append_output(coawait.unwrap());
-                    return true;
-                }
-                if(auto literal = tokenizer.accept({token_type::literal, "\"\""})) {
-                    auto name = tokenizer.accept(token_type::identifier);
-                    if(!name) {
-                        return parse_error{};
+                if(!is_in_template_list) {
+                    append_output(token.unwrap());
+                    auto res = accept_new_delete();
+                    if(res.is_error()) {
+                        return res.unwrap_error();
                     }
-                    append_output(literal.unwrap());
-                    append_output(name.unwrap());
-                    return true;
+                    if(res.unwrap_value()) {
+                        return true;
+                    }
+                    res = accept_decltype_auto();
+                    if(res.is_error()) {
+                        return res.unwrap_error();
+                    }
+                    if(res.unwrap_value()) {
+                        return true;
+                    }
+                    if(auto coawait = tokenizer.accept({token_type::identifier, "co_await"})) {
+                        append_output(coawait.unwrap());
+                        return true;
+                    }
+                    if(auto literal = tokenizer.accept({token_type::literal, "\"\""})) {
+                        auto name = tokenizer.accept(token_type::identifier);
+                        if(!name) {
+                            return parse_error{};
+                        }
+                        append_output(literal.unwrap());
+                        append_output(name.unwrap());
+                        return true;
+                    }
                 }
                 if(auto op = tokenizer.accept(token_type::punctuation)) {
-                    append_output(op.unwrap());
+                    if(!is_in_template_list) {
+                        append_output(op.unwrap());
+                    }
                     if(is_any(op.unwrap().str, "(", "[", "{")) {
                         auto op2 = tokenizer.accept(token_type::punctuation);
                         if(!op2 || op2.unwrap().str != get_corresponding_punctuation(op.unwrap().str)) {
                             return parse_error{};
                         }
-                        append_output(op2.unwrap());
+                        if(!is_in_template_list) {
+                            append_output(op2.unwrap());
+                        }
                     }
                     return true;
                 }
-                // otherwise try to parse a name, in the case of a conversion operator
-                // there is a bit of a grammer hack here, it doesn't properly "nest," but it works
-                auto term_res = parse_symbol_term();
-                if(term_res) {
-                    return term_res.unwrap();
+                if(!is_in_template_list) {
+                    // otherwise try to parse a name, in the case of a conversion operator
+                    // there is a bit of a grammer hack here, it doesn't properly "nest," but it works
+                    auto term_res = parse_symbol_term();
+                    if(term_res) {
+                        return term_res.unwrap();
+                    }
+                    return true;
                 }
-                return true;
             }
             return false;
         }
 
-        Result<bool, parse_error> accept_lambda() {
+        NODISCARD Result<bool, parse_error> accept_lambda() {
             // LLVM does main::'lambda'<...>(...)::operator()<...>(...) -- apparently this can be 'lambda<count>'
             // GCC does main::{lambda<...>(...)#1}::operator()<...>(...)
             // MSVC does `int main(void)'::`2'::<lambda_1>::operator()<...>(...)
@@ -612,7 +638,23 @@ namespace detail {
             return false;
         }
 
-        optional<parse_error> parse_symbol_term() {
+        NODISCARD Result<bool, parse_error> accept_pointer_ref(bool append) {
+            bool matched = false;
+            while(auto token = tokenizer.peek()) {
+                if(token.unwrap().type == token_type::punctuation && is_any(token.unwrap().str, "*", "&", "&&")) {
+                    matched = true;
+                    if(append) {
+                        append_output(token.unwrap());
+                    }
+                    tokenizer.advance();
+                } else {
+                    break;
+                }
+            }
+            return matched;
+        }
+
+        NODISCARD optional<parse_error> parse_symbol_term() {
             {
                 Result<bool, parse_error> res = accept_anonymous_namespace();
                 if(res.is_error()) {
@@ -656,7 +698,7 @@ namespace detail {
             return parse_error{};
         }
 
-        optional<parse_error> consume_punctuation() {
+        NODISCARD optional<parse_error> consume_punctuation() {
             while(
                 tokenizer.peek()
                 && tokenizer.peek().unwrap().type == token_type::punctuation
@@ -675,36 +717,47 @@ namespace detail {
             return nullopt;
         }
 
-        optional<parse_error> consume_punctuation_and_trailing_modifiers() {
-            while(
-                tokenizer.peek()
-                && (
-                    (
-                        tokenizer.peek().unwrap().type == token_type::punctuation
-                        && tokenizer.peek().unwrap().str != "::"
-                        && tokenizer.peek().unwrap().str != "#"
-                    ) || (
-                        tokenizer.peek().unwrap().type == token_type::identifier
-                        && is_ignored_identifier(tokenizer.peek().unwrap().str)
-                    )
-                )
-            ) {
-                Result<bool, parse_error> res = accept_balanced_punctuation();
-                if(res.is_error()) {
-                    return std::move(res).unwrap_error();
-                } else if(res.unwrap_value()) {
-                    continue;
+        NODISCARD optional<parse_error> consume_punctuation_and_trailing_modifiers() {
+            while(tokenizer.peek()) {
+                {
+                    Result<bool, parse_error> res = accept_balanced_punctuation();
+                    if(res.is_error()) {
+                        return std::move(res).unwrap_error();
+                    } else if(res.unwrap_value()) {
+                        continue;
+                    }
                 }
-                // otherwise, if not balanced punctuation, just consume and drop
-                tokenizer.advance();
+                {
+                    Result<bool, parse_error> res = accept_ignored_identifier();
+                    if(res.is_error()) {
+                        return std::move(res).unwrap_error();
+                    } else if(res.unwrap_value()) {
+                        continue;
+                    }
+                }
+                {
+                    Result<bool, parse_error> res = accept_pointer_ref(false);
+                    if(res.is_error()) {
+                        return std::move(res).unwrap_error();
+                    } else if(res.unwrap_value()) {
+                        continue;
+                    }
+                }
+                break;
             }
             return nullopt;
         }
 
-        optional<parse_error> parse_symbol() {
+        NODISCARD optional<parse_error> parse_symbol() {
             while(tokenizer.peek()) {
                 if(auto res = parse_symbol_term()) {
                     return res.unwrap();
+                }
+                {
+                    Result<bool, parse_error> res = accept_pointer_ref(true);
+                    if(res.is_error()) {
+                        return std::move(res).unwrap_error();
+                    }
                 }
                 if(auto res = consume_punctuation_and_trailing_modifiers()) {
                     return res.unwrap();
@@ -721,7 +774,7 @@ namespace detail {
     public:
         symbol_parser(symbol_tokenizer& tokenizer) : tokenizer(tokenizer) {}
 
-        optional<parse_error> parse() {
+        NODISCARD optional<parse_error> parse() {
             while(tokenizer.peek()) {
                 reset_output_flag = true;
                 auto res = parse_symbol();
@@ -732,12 +785,12 @@ namespace detail {
             return nullopt;
         }
 
-        std::string name() && {
+        NODISCARD std::string name() && {
             return std::move(name_output);
         }
     };
 
-    std::string name_from_symbol(string_view symbol) {
+    NODISCARD std::string name_from_symbol(string_view symbol) {
         detail::symbol_tokenizer tokenizer(symbol);
         detail::symbol_parser parser(tokenizer);
         auto res = parser.parse();
