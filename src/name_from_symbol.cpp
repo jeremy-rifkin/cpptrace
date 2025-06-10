@@ -2,8 +2,6 @@
 
 #include <array>
 #include <cctype>
-#include <unordered_set>
-#include <variant>
 #include <vector>
 
 #include "utils/error.hpp"
@@ -220,8 +218,8 @@ namespace detail {
         optional<token> peek_literal() const {
             if(auto res = peek_number()) {
                 return res;
-            } else if(auto res = peek_char_or_string()) {
-                return res;
+            } else if(auto res2 = peek_char_or_string()) {
+                return res2;
             } else {
                 return nullopt;
             }
