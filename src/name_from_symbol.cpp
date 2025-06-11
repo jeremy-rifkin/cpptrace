@@ -393,6 +393,73 @@ namespace detail {
 
     std::string name_from_symbol(string_view symbol);
 
+    /*
+
+    Approximate grammar:
+
+    full-symbol := { symbol }
+
+    symbol := symbol-fragment { "::" ["*"] symbol-fragment }
+
+    symbol-fragment := symbol-base [ pointer-ref ] [ punctuation-and-trailing-modifiers ]
+
+    symbol-base := symbol-term function-pointer
+                 | symbol-term
+                 | function-pointer
+
+    punctuation-and-trailing-modifiers := { [ balanced-punctuation ] [ ignored-identifier ] [ pointer-ref ] }
+
+    symbol-term := anonymous-namespace
+                 | operator
+                 | name
+                 | lambda
+
+    function-pointer := "(" pointer-ref-junk symbol ")"
+
+    pointer-ref-junk := { function-pointer-modifier } { pointer-ref }
+
+    anonymous-namespace := "(anonymous namespace)" | "`anonymous namespace'"
+
+    operator := "operator" operator-type
+
+    operator-type := new-delete
+                   | special-decltype
+                   | "co_await"
+                   | "\"\"" IDENTIFIER
+                   | OPERATOR
+                   | matching-punctuation
+                   | conversion-operator
+
+    new-delete := ( "new" | "delete" ) [ "[" "]" ]
+
+    special-decltype := "decltype" "(" ( "auto" | "nullptr" ) ")"
+
+    matching-punctuation := "(" ")"
+                          | "[" "]"
+
+    conversion-operator := symbol [ symbol ] // kind of a hack
+
+    name := [ "~" ] IDENTIFIER
+
+    lambda := "{" "lambda" { PUNCTUATION } "#" LITERAL "}"
+            | LITERAL                          // 'lambda*' or `symbol'
+            | "<" IDENTIFIER ">"               // lambda_*
+
+    balanced-punctuation := "(" balanced-punctuation-innards ")"
+                          | "[" balanced-punctuation-innards "]"
+                          | "<" balanced-punctuation-innards ">"
+                          | "{" balanced-punctuation-innards "}"
+
+    balanced-punctuation-innards := { ANY-TOKEN } | balanced-punctuation
+
+    pointer-ref := "*" | "&" | "&&"
+
+    ignored-identifier := "const" | "volatile" | "decltype" | "noexcept"
+
+    function-pointer-modifier := "__cdecl" | "__clrcall" | "__stdcall" | "__fastcall" | "__thiscall" | "__vectorcall"
+
+    */
+
     class symbol_parser {
         symbol_tokenizer& tokenizer;
         std::string name_output;
@@ -563,7 +630,7 @@ namespace detail {
                     if(!is_in_template_list) {
                         append_output(op.unwrap());
                     }
-                    if(is_any(op.unwrap().str, "(", "[", "{")) {
+                    if(is_any(op.unwrap().str, "(", "[")) {
                         TRY_TOK(op2, tokenizer.accept(token_type::punctuation));
                         if(!op2 || op2.unwrap().str != get_corresponding_punctuation(op.unwrap().str)) {
                             return parse_error{};
@@ -761,7 +828,6 @@ namespace detail {
         NODISCARD Result<bool, parse_error> parse_symbol_term() {
             TRY_PARSE(accept_anonymous_namespace(), return true);
             TRY_PARSE(accept_operator(), return true);
-            TRY_PARSE(accept_ignored_identifier(), return true);
             TRY_PARSE(accept_identifier_token(), return true);
             TRY_PARSE(accept_lambda(), return true);
             return false;
@@ -827,7 +893,7 @@ namespace detail {
                 if(scope_resolution) {
                     append_output(scope_resolution.unwrap());
                     made_progress = true;
-                    // // for pointer to members
+                    // for pointer to members
                     TRY_TOK(star, tokenizer.accept({token_type::punctuation, "*"}));
                     if(star) {
                         append_output(star.unwrap());
