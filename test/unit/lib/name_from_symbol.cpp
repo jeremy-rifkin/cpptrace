@@ -200,13 +200,20 @@ TEST(NameFromSymbolTests, NTTPs) {
     DO_TEST("void foo<&int p>(void)", "foo");
     DO_TEST("void foo<&void foo<20,1>(void)>(void)", "foo");
 
-    // https://godbolt.org/z/zx9nnqjdq
-    DO_TEST("void foo<fixed_string<13ul>{\"foobar`\\\"bar\\\"'\"}>()", "foo");
-    DO_TEST("void foo<fixed_string<13>{char{102,111,111,98,97,114,96,34,98,97,114,34,39,0}}>(void)", "foo");
+    // https://godbolt.org/z/WEz836Yv7
+    DO_TEST("void foo<fixed_string<12ul>{\"foobar`'\\\"bar\"}>()", "foo");
+    DO_TEST("void foo<fixed_string<12>{char{102,111,111,98,97,114,96,39,34,98,97,114,0}}>(void)", "foo");
 
+    DO_TEST("void foo<fixed_string<12ul>{\"foobar`'\\\"bar\"}>()::test", "foo::test");
     DO_TEST("void foo<fixed_string<13ul>{\"foobar`\\\"bar\\\"'\"}>()::test", "foo::test");
-    // DO_TEST("void foo<fixed_string<13ul>{\"foobar`\\\"bar'\"}>()::test", "foo::test"); // TODO FAIL
+    DO_TEST("void foo<fixed_string<13ul>{\"foobar`\\\"bar'\"}>()::test", "foo::test");
     DO_TEST("void foo<fixed_string<13>{char{102,111,111,98,97,114,96,34,98,97,114,34,39,0}}>(void)::test", "foo::test");
+
+    // test that unterminated strings cause errors
+    DO_TEST("void foo<bar(\"test\")>::baz", "foo::baz");
+    DO_TEST("void foo<bar(`test')>::baz", "foo::baz");
+    DO_TEST("void foo<bar(\"test)>::baz", "void foo<bar(\"test)>::baz");
+    DO_TEST("void foo<bar(`test)>::baz", "void foo<bar(`test)>::baz");
 }
 
 TEST(NameFromSymbolTests, OperatorNTTPs) {
@@ -356,7 +363,7 @@ TEST(NameFromSymbolTests, ConversionOperator) {
     DO_TEST("S::operator main::'lambda'()<main::'lambda'()>()", "S::operator main::<lambda>");
     DO_TEST("S::operator main::'lambda'()<main::'lambda'()>()::'lambda'()::operator()() const", "S::operator main::<lambda>::<lambda>::operator()");
 
-    // DO_TEST("S::operator decltype(nullptr)()", "S::operator decltype(nullptr)"); // TODO FAIL
+    DO_TEST("S::operator decltype(nullptr)()", "S::operator decltype(nullptr)");
     DO_TEST("S::operator main::{lambda()#1}<main::{lambda()#1}>()", "S::operator main::<lambda#1>");
     DO_TEST("S::operator main::{lambda()#1}<main::{lambda()#1}>()::{lambda()#1}::operator()() const", "S::operator main::<lambda#1>::<lambda#1>::operator()");
 
@@ -369,6 +376,17 @@ TEST(NameFromSymbolTests, ConversionOperator) {
 
     DO_TEST("S::operator T&()", "S::operator T&");
     DO_TEST("S::operator T&&()", "S::operator T&&");
+
+    // https://godbolt.org/z/PTe1xh6Go
+    DO_TEST("S::operator int X::*()", "S::operator int X::*");
+    DO_TEST("S::operator int Y<int>::*()", "S::operator int Y::*");
+
+    DO_TEST("S::operator std::vector<int> X::*()", "S::operator std::vector X::*");
+    DO_TEST("S::operator std::vector<int> Y<int>::*()", "S::operator std::vector Y::*");
+    DO_TEST("S::operator std::vector<int> ns<X>::ns::X::*()", "S::operator std::vector ns::ns::X::*");
+    DO_TEST("S::operator std::vector<int> ns<X>::ns::Y<int>::*()", "S::operator std::vector ns::ns::Y::*");
+    DO_TEST("S::operator std::vector<int> ns<X>::ns::X::*()::test", "S::operator std::vector ns::ns::X::*::test");
+    DO_TEST("S::operator std::vector<int> ns<X>::ns::Y<int>::*()::test", "S::operator std::vector ns::ns::Y::*::test");
 }
 
 TEST(NameFromSymbolTests, DeducedConversionOperator) {
