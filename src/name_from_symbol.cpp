@@ -104,6 +104,18 @@ namespace detail {
         return is_any(string, "const", "volatile", "decltype", "noexcept");
     }
 
+    bool is_microsoft_calling_convention(string_view string) {
+        return is_any(
+            string,
+            "__cdecl",
+            "__clrcall",
+            "__stdcall",
+            "__fastcall",
+            "__thiscall",
+            "__vectorcall"
+        );
+    }
+
     // There are five kinds of tokens in C++: identifiers, keywords, literals, operators, and other separators
     // We tokenize a mostly-subset of this:
     //  - identifiers/keywords
@@ -127,6 +139,10 @@ namespace detail {
             return type == other.type && str == other.str;
         }
     };
+
+    bool is_pointer_ref(const token& token) {
+        return token.type == token_type::punctuation && is_any(token.str, "*", "&", "&&");
+    }
 
     struct parse_error {
         int x; // this works around a gcc bug with warn_unused_result and empty structs
@@ -655,11 +671,82 @@ namespace detail {
             return false;
         }
 
+        // lookahead to match "(*", "(__cdecl*", etc
+        NODISCARD bool lookahead_is_function_pointer() const {
+            auto res = [] (symbol_tokenizer tokenizer_copy) -> Result<bool, parse_error> {
+                TRY_TOK(maybe_opening_parenthesis, tokenizer_copy.accept({token_type::punctuation, "("}));
+                if(maybe_opening_parenthesis) {
+                    while(true) {
+                        auto res = tokenizer_copy.advance();
+                        if(res.is_error()) {
+                            return false;
+                        }
+                        auto token = res.unwrap_value();
+                        if(token && is_pointer_ref(token.unwrap())) {
+                            return true;
+                        } else if(
+                            token
+                            && token.unwrap().type == token_type::identifier
+                            && is_microsoft_calling_convention(token.unwrap().str)
+                        ) {
+                            // pass
+                        } else {
+                            break;
+                        }
+                    }
+                    return false;
+                }
+                return false;
+            } (tokenizer);
+            if(res.is_error()) {
+                return false;
+            }
+            return res.unwrap_value();
+        }
+
+        NODISCARD Result<bool, parse_error> parse_function_pointer() {
+            ASSERT(lookahead_is_function_pointer());
+            TRY_TOK(opening_parenthesis, tokenizer.accept({token_type::punctuation, "("}));
+            if(opening_parenthesis) {
+                bool saw_pointer = false;
+                while(true) {
+                    TRY_TOK(next, tokenizer.peek());
+                    if(next && is_pointer_ref(next.unwrap())) {
+                        tokenizer.advance();
+                        saw_pointer = true;
+                    } else if(
+                        next
+                        && next.unwrap().type == token_type::identifier
+                        && is_microsoft_calling_convention(next.unwrap().str)
+                    ) {
+                        tokenizer.advance();
+                    } else {
+                        break;
+                    }
+                }
+                if(!saw_pointer) {
+                    return parse_error{};
+                }
+                bool did_parse = false;
+                reset_output_flag = true;
+                TRY_PARSE(parse_symbol(), did_parse = true);
+                if(!did_parse) {
+                    return parse_error{};
+                }
+                TRY_TOK(closing_parenthesis, tokenizer.accept({token_type::punctuation, ")"}));
+                if(!closing_parenthesis) {
+                    return parse_error{};
+                }
+                return true;
+            }
+            return false;
+        }
+
         NODISCARD Result<bool, parse_error> accept_pointer_ref(bool append) {
             bool matched = false;
             while(true) {
                 TRY_TOK(token, tokenizer.peek());
-                if(!token || !(token.unwrap().type == token_type::punctuation && is_any(token.unwrap().str, "*", "&", "&&"))) {
+                if(!token || !is_pointer_ref(token.unwrap())) {
                     break;
                 }
                 matched = true;
@@ -726,6 +813,9 @@ namespace detail {
                 }
                 bool did_match_term = false;
                 TRY_PARSE(parse_symbol_term(), did_match_term = true);
+                if(lookahead_is_function_pointer()) {
+                    TRY_PARSE(parse_function_pointer(), did_match_term = true);
+                }
                 if(did_match_term) {
                     made_progress = true;
                 } else {
