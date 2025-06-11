@@ -298,8 +298,11 @@ namespace cpptrace {
 
 ## Utilities
 
-`cpptrace::demangle` provides a helper function for name demangling, since it has to implement that helper internally
-anyways.
+`cpptrace::demangle` is a helper function for name demangling, since it has to implement that helper internally anyways.
+
+`cpptrace::prune_symbol` is a helper function that prunes demangled symbols by removing return types, template
+arguments, and function parameters. It also does some minimal normalization. For example, it prunes
+`ns::S<int, float>::~S()` to `ns::S::~S`.
 
 `cpptrace::get_snippet` gets a text snippet, if possible, from for the given source file for +/- `context_size` lines
 around `line`.
@@ -312,6 +315,7 @@ stack trace from a cpptrace exception (more info below) and otherwise behaves li
 ```cpp
 namespace cpptrace {
     std::string demangle(const std::string& name);
+    std::string prune_symbol(const std::string& symbol);
     std::string get_snippet(
         const std::string& path,
         std::size_t line,

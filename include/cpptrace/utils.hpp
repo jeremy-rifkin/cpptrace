@@ -15,7 +15,7 @@
 
 CPPTRACE_BEGIN_NAMESPACE
     CPPTRACE_EXPORT std::string demangle(const std::string& name);
-    CPPTRACE_EXPORT std::string name_from_symbol(const std::string& symbol);
+    CPPTRACE_EXPORT std::string prune_symbol(const std::string& symbol);
     CPPTRACE_EXPORT std::string get_snippet(
         const std::string& path,
         std::size_t line,

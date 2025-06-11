@@ -131,7 +131,7 @@ CPPTRACE_BEGIN_NAMESPACE
     }
 
     std::string stacktrace_frame::name() const {
-        return name_from_symbol(symbol);
+        return prune_symbol(symbol);
     }
 
     std::string stacktrace_frame::to_string() const {

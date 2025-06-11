@@ -125,7 +125,7 @@ target_sources(
     src/logging.cpp
     src/options.cpp
     src/utils.cpp
-    src/name_from_symbol.cpp
+    src/prune_symbol.cpp
     src/demangle/demangle_with_cxxabi.cpp
     src/demangle/demangle_with_nothing.cpp
     src/demangle/demangle_with_winapi.cpp

@@ -391,7 +391,7 @@ namespace detail {
         }
     };
 
-    std::string name_from_symbol(string_view symbol);
+    std::string prune_symbol(string_view symbol);
 
     /*
 
@@ -753,7 +753,7 @@ namespace detail {
                 append_output({token_type::punctuation, "`"});
                 auto symbol = maybe_literal_token.unwrap().str;
                 ASSERT(symbol.size() >= 2);
-                auto name = detail::name_from_symbol(symbol.substr(1, symbol.size() - 2));
+                auto name = detail::prune_symbol(symbol.substr(1, symbol.size() - 2));
                 append_output({token_type::literal, name});
                 append_output({token_type::punctuation, "'"});
                 return true;
@@ -929,7 +929,7 @@ namespace detail {
         }
     };
 
-    NODISCARD std::string name_from_symbol(string_view symbol) {
+    NODISCARD std::string prune_symbol(string_view symbol) {
         detail::symbol_tokenizer tokenizer(symbol);
         detail::symbol_parser parser(tokenizer);
         auto res = parser.parse();
@@ -947,9 +947,9 @@ namespace detail {
 CPPTRACE_END_NAMESPACE
 
 CPPTRACE_BEGIN_NAMESPACE
-    std::string name_from_symbol(const std::string& symbol) {
+    std::string prune_symbol(const std::string& symbol) {
         try {
-            return detail::name_from_symbol(symbol);
+            return detail::prune_symbol(symbol);
         } catch(...) {
             detail::log_and_maybe_propagate_exception(std::current_exception());
             return symbol;
