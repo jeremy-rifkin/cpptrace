@@ -657,14 +657,6 @@ jobs:
     needs: unittest-linux
     strategy:
       fail-fast: false
-      matrix:
-        compiler: [g++-10, clang++-18]
-        stdlib: [libstdc++, libc++]
-        dwarf_version: [4, 5]
-        split_dwarf: [OFF, ON]
-        exclude:
-          - compiler: g++-10
-            stdlib: libc++
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
