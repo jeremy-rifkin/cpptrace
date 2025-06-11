@@ -37,6 +37,7 @@ namespace detail {
         string_view(const char* str) : ptr(str), count(std::strlen(str)) {}
         string_view(const std::string& str) : ptr(str.c_str()), count(str.size()) {}
         string_view(const char* ptr, std::size_t count) : ptr(ptr), count(count) {}
+        string_view(const char* begin, const char* end) : ptr(begin), count(end - begin) {}
 
         explicit operator std::string() {
             return std::string(ptr, ptr + count);
@@ -55,6 +56,23 @@ namespace detail {
         CPPTRACE_EXPORT char operator[](size_t i) const;
         CPPTRACE_EXPORT char at(size_t i) const;
 
+        char front() {
+            return operator[](0);
+        }
+        char back() {
+            return operator[](size() - 1);
+        }
+
+        string_view substr(size_t pos = 0, size_t n = npos) const {
+            return {ptr + pos, (std::min)(size() - pos, n)};
+        }
+
+        void advance(size_t n) {
+            *this = substr(n);
+        }
+
+        CPPTRACE_EXPORT bool starts_with(string_view chars) const;
+        CPPTRACE_EXPORT bool ends_with(string_view chars) const;
         CPPTRACE_EXPORT std::size_t find_last_of(string_view chars) const;
 
         const_iterator begin() const noexcept {
@@ -65,7 +83,13 @@ namespace detail {
         }
     };
 
-    bool operator==(string_view, string_view);
+    CPPTRACE_EXPORT bool operator==(string_view, string_view);
+    inline bool operator!=(string_view a, string_view b) {
+        return !(a == b);
+    }
+    inline void operator+=(std::string& str, string_view sv) {
+        str.append(sv.data(), sv.size());
+    }
 
     class cstring_view {
         const char* ptr;
@@ -121,6 +145,19 @@ namespace detail {
             return operator string_view().at(i);
         }
 
+        char front() {
+            return operator string_view().front();
+        }
+        char back() {
+            return operator string_view().back();
+        }
+
+        bool starts_with(string_view chars) const {
+            return operator string_view().starts_with(chars);
+        }
+        bool ends_with(string_view chars) const {
+            return operator string_view().ends_with(chars);
+        }
         std::size_t find_last_of(string_view chars) const {
             return operator string_view().find_last_of(chars);
         }

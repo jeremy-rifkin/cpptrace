@@ -19,6 +19,17 @@ namespace detail {
         return ptr[i];
     }
 
+    bool string_view::starts_with(string_view str) const {
+        return substr(0, str.size()) == str;
+    }
+
+    bool string_view::ends_with(string_view str) const {
+        if(size() < str.size()) {
+            return false;
+        }
+        return substr(size() - str.size(), str.size()) == str;
+    }
+
     std::size_t string_view::find_last_of(string_view chars) const {
         if(empty() || chars.empty()) {
             return npos;
