@@ -197,40 +197,47 @@ namespace detail {
 
         NODISCARD Result<optional<token>, parse_error> peek_msvc_string() const {
             // msvc strings look like `this'
-            // they nest, e.g.: ``int main(void)'::`2'::<lambda_1>::operator()(void)const '
+            // they nest, e.g.: ``int main(void)'::`2'::<lambda_1>::operator()(void)const'
             // TODO: Escapes?
             auto cursor = source.begin();
-            VERIFY(cursor != source.end() && *cursor == '`');
-            int depth = 0;
-            do {
-                if(*cursor == '`') {
-                    depth++;
-                } else if(*cursor == '\'') {
-                    depth--;
+            if(cursor != source.end() && *cursor == '`') {
+                int depth = 0;
+                do {
+                    if(*cursor == '`') {
+                        depth++;
+                    } else if(*cursor == '\'') {
+                        depth--;
+                    }
+                    cursor++;
+                } while(cursor != source.end() && depth != 0);
+                if(depth != 0) {
+                    return parse_error{};
                 }
-                cursor++;
-            } while(cursor != source.end() && depth != 0);
+            }
             if(cursor == source.begin()) {
                 return nullopt;
             }
             return token{token_type::literal, {source.begin(), cursor}};
         }
 
-        NODISCARD Result<optional<token>, parse_error> peek_char_or_string() const {
-            // TODO: Escapes?
+        NODISCARD Result<optional<token>, parse_error> parse_quoted_string() const {
             auto cursor = source.begin();
-            if(cursor != source.end() && *cursor == '`') {
-                return peek_msvc_string();
-            }
             if(cursor != source.end() && is_any(*cursor, '\'', '"')) {
                 auto closing_quote = *cursor;
                 cursor++;
                 while(cursor != source.end() && *cursor != closing_quote) {
+                    if(*cursor == '\\') {
+                        if(cursor + 1 == source.end()) {
+                            return parse_error{};
+                        }
+                        cursor += 2;
+                    }
                     cursor++;
                 }
-                if(cursor != source.end() && *cursor == closing_quote) {
-                    cursor++;
+                if(cursor == source.end() || *cursor != closing_quote) {
+                    return parse_error{};
                 }
+                cursor++;
             }
             if(cursor == source.begin()) {
                 return nullopt;
@@ -243,9 +250,13 @@ namespace detail {
             if(number) {
                 return number;
             }
-            TRY_TOK(char_or_string, peek_char_or_string());
-            if(char_or_string) {
-                return char_or_string;
+            TRY_TOK(msvc_string, peek_msvc_string());
+            if(msvc_string) {
+                return msvc_string;
+            }
+            TRY_TOK(quoted_string, parse_quoted_string());
+            if(quoted_string) {
+                return quoted_string;
             }
             return nullopt;
         }
@@ -333,12 +344,12 @@ namespace detail {
         symbol_tokenizer(string_view source) : source(source) {}
 
         NODISCARD Result<optional<token>, parse_error> peek(bool in_template_argument_list = false) {
-            maybe_load_next_token();
+            TRY_TOK(unused, maybe_load_next_token()); (void)unused;
             return get_adjusted_next_token(in_template_argument_list);
         }
 
         Result<optional<token>, parse_error> advance(bool in_template_argument_list = false) {
-            maybe_load_next_token();
+            TRY_TOK(unused, maybe_load_next_token()); (void)unused;
             auto next = get_adjusted_next_token(in_template_argument_list);
             if(!next) {
                 return nullopt;
@@ -505,7 +516,7 @@ namespace detail {
             return false;
         }
 
-        NODISCARD Result<bool, parse_error> accept_decltype_auto() {
+        NODISCARD Result<bool, parse_error> accept_special_decltype() {
             TRY_TOK(token, tokenizer.accept({token_type::identifier, "decltype"}));
             if(token) {
                 append_output(token.unwrap());
@@ -514,8 +525,11 @@ namespace detail {
                     return parse_error{};
                 }
                 append_output(op.unwrap());
-                TRY_TOK(ident, tokenizer.accept({token_type::identifier, "auto"}));
+                TRY_TOK(ident, tokenizer.accept(token_type::identifier));
                 if(!ident) {
+                    return parse_error{};
+                }
+                if(!is_any(ident.unwrap().str, "auto", "nullptr")) {
                     return parse_error{};
                 }
                 append_output(ident.unwrap());
@@ -537,7 +551,7 @@ namespace detail {
                 if(!is_in_template_list) {
                     append_output(token.unwrap());
                     TRY_PARSE(accept_new_delete(), return true);
-                    TRY_PARSE(accept_decltype_auto(), return true);
+                    TRY_PARSE(accept_special_decltype(), return true);
                     TRY_TOK(coawait, tokenizer.accept({token_type::identifier, "co_await"}));
                     if(coawait) {
                         append_output(coawait.unwrap());
@@ -571,9 +585,15 @@ namespace detail {
                     return true;
                 }
                 if(!is_in_template_list) {
-                    // otherwise try to parse a name, in the case of a conversion operator
-                    // there is a bit of a grammer hack here, it doesn't properly "nest," but it works
-                    TRY_PARSE(parse_symbol_term(), (void)0);
+                    // Otherwise try to parse a symbol, in the case of a conversion operator
+                    // There is a bit of a grammer hack here, it doesn't properly "nest," but it works
+                    TRY_PARSE(parse_symbol(), (void)0);
+                    // In the case of a member function pointer, there will be a type symbol followed by a symbol for
+                    // the type that the member pointer points to
+                    TRY_TOK(maybe_ident, tokenizer.peek());
+                    if(maybe_ident && maybe_ident.unwrap().type == token_type::identifier) {
+                        TRY_PARSE(parse_symbol(), (void)0);
+                    }
                     return true;
                 }
             }
@@ -683,7 +703,7 @@ namespace detail {
             TRY_PARSE(accept_ignored_identifier(), return true);
             TRY_PARSE(accept_identifier_token(), return true);
             TRY_PARSE(accept_lambda(), return true);
-            return parse_error{};
+            return false;
         }
 
         NODISCARD Result<bool, parse_error> consume_punctuation() {
@@ -730,13 +750,24 @@ namespace detail {
                 if(!token) {
                     break;
                 }
-                TRY_PARSE(parse_symbol_term(), made_progress = true);
+                bool did_match_term = false;
+                TRY_PARSE(parse_symbol_term(), did_match_term = true);
+                if(did_match_term) {
+                    made_progress = true;
+                } else {
+                    break;
+                }
                 TRY_PARSE(accept_pointer_ref(true), made_progress = true);
                 TRY_PARSE(consume_punctuation_and_trailing_modifiers(), made_progress = true);
                 TRY_TOK(scope_resolution, tokenizer.accept({token_type::punctuation, "::"}));
                 if(scope_resolution) {
                     append_output(scope_resolution.unwrap());
                     made_progress = true;
+                    // // for pointer to members
+                    TRY_TOK(star, tokenizer.accept({token_type::punctuation, "*"}));
+                    if(star) {
+                        append_output(star.unwrap());
+                    }
                 } else {
                     break;
                 }
