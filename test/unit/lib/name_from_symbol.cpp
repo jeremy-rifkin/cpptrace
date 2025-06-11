@@ -400,6 +400,18 @@ TEST(NameFromSymbolTests, DeducedConversionOperator) {
     DO_TEST("S<float>::operator float(void)", "S::operator float");
 }
 
+TEST(NameFromSymbolTests, FunctionPointers) {
+    // https://godbolt.org/z/TWfa4f6Kc
+    DO_TEST("void (*foo<int>())(int, double)", "foo");
+    DO_TEST("void (**foo<int>())(int, double)", "foo");
+    DO_TEST("void (&baz<int>())(int, double)", "baz");
+    DO_TEST("void (** (**bar<int>())(int, double))(int, double)", "bar");
+    DO_TEST("void (**(**bar<int>())(int, double))(int, double)", "bar");
+    DO_TEST("void (__cdecl** foo<int>(void))(int,double)", "foo");
+    DO_TEST("void (__cdecl** (__cdecl** bar<int>(void))(int,double))(int,double)", "bar");
+    DO_TEST("void (__cdecl&baz<int>(void))(int,double)", "baz");
+}
+
 TEST(NameFromSymbolTests, TemplateHeavySymbols) {
     // https://godbolt.org/z/z1nrMsYfs
     DO_TEST("__find_if<__gnu_cxx::__normal_iterator<int*, std::vector<int> >, __gnu_cxx::__ops::_Iter_pred<main()::<lambda(auto:19)> > >", "__find_if");
