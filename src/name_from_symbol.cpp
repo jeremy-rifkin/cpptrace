@@ -395,28 +395,28 @@ namespace detail {
 
     /*
 
-    Approximate grammar:
+    Approximate grammar, very hacky:
 
     full-symbol := { symbol }
 
     symbol := symbol-fragment { "::" ["*"] symbol-fragment }
 
-    symbol-fragment := symbol-base [ pointer-ref ] [ punctuation-and-trailing-modifiers ]
+    symbol-fragment := symbol-base [ pointer-refs ] [ punctuation-and-trailing-modifiers ]
 
     symbol-base := symbol-term function-pointer
                  | symbol-term
                  | function-pointer
 
-    punctuation-and-trailing-modifiers := { [ balanced-punctuation ] [ ignored-identifier ] [ pointer-ref ] }
+    punctuation-and-trailing-modifiers := { [ balanced-punctuation ] [ ignored-identifier ] [ pointer-refs ] }
 
     symbol-term := anonymous-namespace
                  | operator
                  | name
                  | lambda
 
-    function-pointer := "(" pointer-ref-junk symbol ")"
+    function-pointer := "(" pointer-refs-junk symbol ")"
 
-    pointer-ref-junk := { function-pointer-modifier } { pointer-ref }
+    pointer-refs-junk := { function-pointer-modifier } { pointer-refs }
 
     anonymous-namespace := "(anonymous namespace)" | "`anonymous namespace'"
 
@@ -452,7 +452,7 @@ namespace detail {
 
     balanced-punctuation-innards := { ANY-TOKEN } | balanced-punctuation
 
-    pointer-ref := "*" | "&" | "&&"
+    pointer-refs := { "*" | "&" | "&&" }
 
     ignored-identifier := "const" | "volatile" | "decltype" | "noexcept"
 
@@ -479,13 +479,20 @@ namespace detail {
             last_was_identifier = is_identifier;
         }
 
-        NODISCARD Result<bool, parse_error> accept_anonymous_namespace() {
-            TRY_TOK(token, tokenizer.accept(token_type::anonymous_namespace));
-            if(token) {
-                append_output({ token_type::identifier, "(anonymous namespace)" });
-                return true;
+        NODISCARD Result<bool, parse_error> accept_pointer_ref(bool append) {
+            bool matched = false;
+            while(true) {
+                TRY_TOK(token, tokenizer.peek());
+                if(!token || !is_pointer_ref(token.unwrap())) {
+                    break;
+                }
+                matched = true;
+                if(append) {
+                    append_output(token.unwrap());
+                }
+                tokenizer.advance();
             }
-            return false;
+            return matched;
         }
 
         NODISCARD Result<bool, parse_error> consume_balanced(string_view opening_punctuation) {
@@ -537,19 +544,11 @@ namespace detail {
             return false;
         }
 
-        NODISCARD Result<bool, parse_error> accept_identifier_token() {
-            bool expect = false;
-            TRY_TOK(complement, tokenizer.accept({token_type::punctuation, "~"}));
-            if(complement) {
-                append_output(complement.unwrap());
-                expect = true;
-            }
-            TRY_TOK(token, tokenizer.accept(token_type::identifier));
+        NODISCARD Result<bool, parse_error> accept_anonymous_namespace() {
+            TRY_TOK(token, tokenizer.accept(token_type::anonymous_namespace));
             if(token) {
-                append_output(token.unwrap());
+                append_output({ token_type::identifier, "(anonymous namespace)" });
                 return true;
-            } else if(expect) {
-                return parse_error{};
             }
             return false;
         }
@@ -655,6 +654,45 @@ namespace detail {
                 }
             }
             return false;
+        }
+
+        NODISCARD Result<bool, parse_error> accept_identifier_token() {
+            bool expect = false;
+            TRY_TOK(complement, tokenizer.accept({token_type::punctuation, "~"}));
+            if(complement) {
+                append_output(complement.unwrap());
+                expect = true;
+            }
+            TRY_TOK(token, tokenizer.accept(token_type::identifier));
+            if(token) {
+                append_output(token.unwrap());
+                return true;
+            } else if(expect) {
+                return parse_error{};
+            }
+            return false;
+        }
+
+        NODISCARD Result<bool, parse_error> consume_punctuation() {
+            bool did_consume = false;
+            while(true) {
+                TRY_TOK(token, tokenizer.peek());
+                if(
+                    !token
+                    || !(
+                        token.unwrap().type == token_type::punctuation
+                        && token.unwrap().str != "::"
+                        && token.unwrap().str != "#"
+                    )
+                ) {
+                    break;
+                }
+                TRY_PARSE(accept_balanced_punctuation(), {did_consume = true; continue;});
+                // otherwise, if not balanced punctuation, just consume and drop
+                tokenizer.advance();
+                did_consume = true;
+            }
+            return did_consume;
         }
 
         NODISCARD Result<bool, parse_error> accept_lambda() {
@@ -809,50 +847,12 @@ namespace detail {
             return false;
         }
 
-        NODISCARD Result<bool, parse_error> accept_pointer_ref(bool append) {
-            bool matched = false;
-            while(true) {
-                TRY_TOK(token, tokenizer.peek());
-                if(!token || !is_pointer_ref(token.unwrap())) {
-                    break;
-                }
-                matched = true;
-                if(append) {
-                    append_output(token.unwrap());
-                }
-                tokenizer.advance();
-            }
-            return matched;
-        }
-
         NODISCARD Result<bool, parse_error> parse_symbol_term() {
             TRY_PARSE(accept_anonymous_namespace(), return true);
             TRY_PARSE(accept_operator(), return true);
             TRY_PARSE(accept_identifier_token(), return true);
             TRY_PARSE(accept_lambda(), return true);
             return false;
-        }
-
-        NODISCARD Result<bool, parse_error> consume_punctuation() {
-            bool did_consume = false;
-            while(true) {
-                TRY_TOK(token, tokenizer.peek());
-                if(
-                    !token
-                    || !(
-                        token.unwrap().type == token_type::punctuation
-                        && token.unwrap().str != "::"
-                        && token.unwrap().str != "#"
-                    )
-                ) {
-                    break;
-                }
-                TRY_PARSE(accept_balanced_punctuation(), {did_consume = true; continue;});
-                // otherwise, if not balanced punctuation, just consume and drop
-                tokenizer.advance();
-                did_consume = true;
-            }
-            return did_consume;
         }
 
         NODISCARD Result<bool, parse_error> consume_punctuation_and_trailing_modifiers() {
