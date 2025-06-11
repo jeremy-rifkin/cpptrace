@@ -474,6 +474,7 @@ namespace detail {
         NODISCARD Result<bool, parse_error> accept_new_delete() {
             TRY_TOK(token, tokenizer.peek());
             if(token && token.unwrap().type == token_type::identifier && is_any(token.unwrap().str, "new", "delete")) {
+                tokenizer.advance();
                 append_output(token.unwrap());
                 TRY_TOK(op, tokenizer.accept({token_type::punctuation, "["}));
                 if(op) {
