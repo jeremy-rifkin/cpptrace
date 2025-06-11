@@ -26,15 +26,6 @@
 #include "options.hpp"
 
 CPPTRACE_BEGIN_NAMESPACE
-namespace detail {
-    const formatter& get_default_snippet_formatter() {
-        static formatter snippet_formatter = formatter{}.snippets(true);
-        return snippet_formatter;
-    }
-}
-CPPTRACE_END_NAMESPACE
-
-CPPTRACE_BEGIN_NAMESPACE
     CPPTRACE_FORCE_NO_INLINE
     raw_trace raw_trace::current(std::size_t skip) {
         try { // try/catch can never be hit but it's needed to prevent TCO
@@ -176,6 +167,13 @@ CPPTRACE_BEGIN_NAMESPACE
 
     void stacktrace::print(std::ostream& stream, bool color) const {
         get_default_formatter().print(stream, *this, color);
+    }
+
+    namespace detail {
+        const formatter& get_default_snippet_formatter() {
+            static formatter snippet_formatter = formatter{}.snippets(true);
+            return snippet_formatter;
+        }
     }
 
     void stacktrace::print_with_snippets() const {
