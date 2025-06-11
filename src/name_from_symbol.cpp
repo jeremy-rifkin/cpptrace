@@ -327,12 +327,7 @@ namespace detail {
         optional<token> get_adjusted_next_token(bool in_template_argument_list) {
             // https://eel.is/c++draft/temp.names#4 decompose >> to > when we think we're in a template argument list.
             // We don't have to do this for >>= or >=.
-            if(
-                next_token
-                && in_template_argument_list
-                && next_token.unwrap().type == token_type::punctuation
-                && next_token.unwrap().str == ">>"
-            ) {
+            if(next_token && in_template_argument_list && next_token.unwrap() == token{token_type::punctuation, ">>"}) {
                 auto copy = next_token.unwrap();
                 copy.str = copy.str.substr(0, 1); // ">"
                 return copy;
@@ -344,13 +339,15 @@ namespace detail {
         symbol_tokenizer(string_view source) : source(source) {}
 
         NODISCARD Result<optional<token>, parse_error> peek(bool in_template_argument_list = false) {
-            TRY_TOK(unused, maybe_load_next_token()); (void)unused;
+            auto res = maybe_load_next_token();
+            if(res.is_error()) {
+                return res.unwrap_error();
+            }
             return get_adjusted_next_token(in_template_argument_list);
         }
 
         Result<optional<token>, parse_error> advance(bool in_template_argument_list = false) {
-            TRY_TOK(unused, maybe_load_next_token()); (void)unused;
-            auto next = get_adjusted_next_token(in_template_argument_list);
+            TRY_TOK(next, peek(in_template_argument_list));
             if(!next) {
                 return nullopt;
             }
@@ -440,10 +437,7 @@ namespace detail {
 
         NODISCARD Result<bool, parse_error> accept_balanced_punctuation() {
             TRY_TOK(token, tokenizer.peek());
-            if(!token) {
-                return false;
-            }
-            if(token.unwrap().type == token_type::punctuation && is_opening_punctuation(token.unwrap().str)) {
+            if(token && token.unwrap().type == token_type::punctuation && is_opening_punctuation(token.unwrap().str)) {
                 tokenizer.advance();
                 TRY_PARSE(consume_balanced(token.unwrap().str), (void)0);
                 return true;
@@ -451,20 +445,9 @@ namespace detail {
             return false;
         }
 
-        NODISCARD Result<bool, parse_error> accept_punctuation() {
-            TRY_TOK(token, tokenizer.accept(token_type::punctuation));
-            if(token) {
-                return true;
-            }
-            return false;
-        }
-
         NODISCARD Result<bool, parse_error> accept_ignored_identifier() {
             TRY_TOK(token, tokenizer.peek());
-            if(!token) {
-                return false;
-            }
-            if(token.unwrap().type == token_type::identifier && is_ignored_identifier(token.unwrap().str)) {
+            if(token && token.unwrap().type == token_type::identifier && is_ignored_identifier(token.unwrap().str)) {
                 tokenizer.advance();
                 return true;
             }
@@ -472,35 +455,25 @@ namespace detail {
         }
 
         NODISCARD Result<bool, parse_error> accept_identifier_token() {
+            bool expect = false;
             TRY_TOK(complement, tokenizer.accept({token_type::punctuation, "~"}));
             if(complement) {
                 append_output(complement.unwrap());
-                TRY_TOK(token, tokenizer.accept(token_type::identifier));
-                if(!token) {
-                    return parse_error{};
-                }
+                expect = true;
+            }
+            TRY_TOK(token, tokenizer.accept(token_type::identifier));
+            if(token) {
                 append_output(token.unwrap());
                 return true;
-            } else {
-                TRY_TOK(token, tokenizer.accept(token_type::identifier));
-                if(token) {
-                    append_output(token.unwrap());
-                    return true;
-                }
+            } else if(expect) {
+                return parse_error{};
             }
             return false;
         }
 
         NODISCARD Result<bool, parse_error> accept_new_delete() {
-            optional<token> token;
-            TRY_TOK(maybe_new, tokenizer.accept({token_type::identifier, "new"}));
-            if(maybe_new) {
-                token = maybe_new;
-            } else {
-                TRY_TOK(maybe_delete, tokenizer.accept({token_type::identifier, "delete"}));
-                token = maybe_delete;
-            }
-            if(token) {
+            TRY_TOK(token, tokenizer.peek());
+            if(token && token.unwrap().type == token_type::identifier && is_any(token.unwrap().str, "new", "delete")) {
                 append_output(token.unwrap());
                 TRY_TOK(op, tokenizer.accept({token_type::punctuation, "["}));
                 if(op) {
