@@ -7,9 +7,6 @@
 #include <functional>
 
 CPPTRACE_BEGIN_NAMESPACE
-    CPPTRACE_EXPORT std::string basename(const std::string& path);
-    CPPTRACE_EXPORT std::string prettify_symbol(std::string symbol);
-
     class CPPTRACE_EXPORT formatter {
         class impl;
         // can't be a std::unique_ptr due to msvc awfulness with dllimport/dllexport and https://stackoverflow.com/q/4145605/15675011

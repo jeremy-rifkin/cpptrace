@@ -25,7 +25,6 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Utilities](#utilities)
   - [Formatting](#formatting)
     - [Transforms](#transforms)
-    - [Formatting Utilities](#formatting-utilities)
   - [Configuration](#configuration)
     - [Logging](#logging)
   - [Traces From All Exceptions (`CPPTRACE_TRY` and `CPPTRACE_CATCH`)](#traces-from-all-exceptions-cpptrace_try-and-cpptrace_catch)
@@ -300,8 +299,14 @@ namespace cpptrace {
 
 `cpptrace::demangle` is a helper function for name demangling, since it has to implement that helper internally anyways.
 
-`cpptrace::prune_symbol` is a helper function that prunes demangled symbols by removing return types, template
-arguments, and function parameters. It also does some minimal normalization. For example, it prunes
+`cpptrace::basename` is a helper for custom formatters that extracts a base file name from a path.
+
+`cpptrace::prettify_symbol` is a helper for custom formatters that applies a number of transformations to clean up long
+symbol names. For example, it turns `std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >`
+into `std::string`.
+
+`cpptrace::prune_symbol` is a helper for custom formatters that prunes demangled symbols by removing return types,
+template arguments, and function parameters. It also does some minimal normalization. For example, it prunes
 `ns::S<int, float>::~S()` to `ns::S::~S`.
 
 `cpptrace::get_snippet` gets a text snippet, if possible, from for the given source file for +/- `context_size` lines
@@ -315,13 +320,19 @@ stack trace from a cpptrace exception (more info below) and otherwise behaves li
 ```cpp
 namespace cpptrace {
     std::string demangle(const std::string& name);
+
+    std::string basename(const std::string& path);
+
+    std::string prettify_symbol(std::string symbol);
     std::string prune_symbol(const std::string& symbol);
+
     std::string get_snippet(
         const std::string& path,
         std::size_t line,
         std::size_t context_size,
         bool color = false
     );
+
     bool isatty(int fd);
 
     extern const int stdin_fileno;
@@ -432,18 +443,6 @@ auto formatter = cpptrace::formatter{}
         frame.symbol = replace_all(frame, "std::__cxx11::", "std::");
         return frame;
     });
-```
-
-### Formatting Utilities
-
-Cpptrace exports a couple formatting utilities used internally which might be useful for custom formatters that don't
-use `cpptrace::formatter`:
-
-```cpp
-namespace cpptrace {
-    std::string basename(const std::string& path);
-    std::string prettify_symbol(std::string symbol);
-}
 ```
 
 ## Configuration
