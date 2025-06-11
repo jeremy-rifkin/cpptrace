@@ -80,7 +80,7 @@ CPPTRACE_BEGIN_NAMESPACE
 
     // cpptrace/utils
     export using cpptrace::demangle;
-    export using cpptrace::name_from_symbol;
+    export using cpptrace::prune_symbol;
     export using cpptrace::get_snippet;
     export using cpptrace::isatty;
     export using cpptrace::stdin_fileno;

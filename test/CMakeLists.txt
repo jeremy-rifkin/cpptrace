@@ -96,7 +96,7 @@ function(test_cpptrace)
     unit/internals/string_view.cpp
     unit/lib/formatting.cpp
     unit/lib/nullable.cpp
-    unit/lib/name_from_symbol.cpp
+    unit/lib/prune_symbol.cpp
   )
 
   target_compile_features("${CPPTRACE_TEST_NAME}" PRIVATE cxx_std_20)

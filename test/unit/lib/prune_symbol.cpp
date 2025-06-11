@@ -11,9 +11,9 @@ import cpptrace;
 
 namespace {
 
-#define DO_TEST(symbol, expected) EXPECT_EQ(cpptrace::name_from_symbol(symbol), expected) << "Input: " << symbol
+#define DO_TEST(symbol, expected) EXPECT_EQ(cpptrace::prune_symbol(symbol), expected) << "Input: " << symbol
 
-TEST(NameFromSymbolTests, Basic) {
+TEST(PruneSymbolTests, Basic) {
     // https://godbolt.org/z/Weas1ETPv
     DO_TEST("foo()", "foo");
     DO_TEST("foo(int, char)", "foo");
@@ -21,7 +21,7 @@ TEST(NameFromSymbolTests, Basic) {
     DO_TEST("void foo(int, char)", "foo");
 }
 
-TEST(NameFromSymbolTests, Namespaces) {
+TEST(PruneSymbolTests, Namespaces) {
     // https://godbolt.org/z/WzfsrPhE4
     DO_TEST("foo()", "foo");
     DO_TEST("ns::foo()", "ns::foo");
@@ -36,7 +36,7 @@ TEST(NameFromSymbolTests, Namespaces) {
     DO_TEST("void `anonymous namespace'::bar(void)", "(anonymous namespace)::bar");
 }
 
-TEST(NameFromSymbolTests, BasicTemplates) {
+TEST(PruneSymbolTests, BasicTemplates) {
     // https://godbolt.org/z/czWo9bdrn
     DO_TEST("void foo<int>(int const&)", "foo");
     DO_TEST("void foo<int, double>(int const&, double const&)", "foo");
@@ -54,7 +54,7 @@ TEST(NameFromSymbolTests, BasicTemplates) {
     DO_TEST("void foo<S<S<float>,S<int> > >(S<S<float>,S<int> > const &)", "foo");
 }
 
-TEST(NameFromSymbolTests, MemberFunctions) {
+TEST(PruneSymbolTests, MemberFunctions) {
     // https://godbolt.org/z/re9zfzPq5
     DO_TEST("S::S()", "S::S");
     DO_TEST("S::~S()", "S::~S");
@@ -83,7 +83,7 @@ TEST(NameFromSymbolTests, MemberFunctions) {
     DO_TEST("void ns::SS<ns::SS<int>,ns::SS<float> >::foo(void)", "ns::SS::foo");
 }
 
-TEST(NameFromSymbolTests, TemplatedMemberFunctions) {
+TEST(PruneSymbolTests, TemplatedMemberFunctions) {
     // https://godbolt.org/z/dc3TEheK9
     DO_TEST("ns::SS<>::SS<>()", "ns::SS::SS");
     DO_TEST("void ns::SS<>::foo<>()", "ns::SS::foo");
@@ -103,7 +103,7 @@ TEST(NameFromSymbolTests, TemplatedMemberFunctions) {
     DO_TEST("void ns::SS<ns::SS<int>,ns::SS<float> >::foo<ns::SS<int>,ns::SS<float> >(void)", "ns::SS::foo");
 }
 
-TEST(NameFromSymbolTests, Decltype) {
+TEST(PruneSymbolTests, Decltype) {
     // https://godbolt.org/z/dc3TEheK9
     DO_TEST("decltype(declval<int>() + declval<int>()) foo<int>(int)", "foo");
     DO_TEST("decltype (((declval<int>)())+((declval<int>)())) foo<int>(int)", "foo");
@@ -126,7 +126,7 @@ TEST(NameFromSymbolTests, Decltype) {
     DO_TEST("int foo<int>(int)", "foo");
 }
 
-TEST(NameFromSymbolTests, Operators) {
+TEST(PruneSymbolTests, Operators) {
     // https://godbolt.org/z/qMKEKW656
     DO_TEST("S<int>::operator*() const", "S::operator*");
     DO_TEST("S<int>::operator+(S<int> const&) const", "S::operator+");
@@ -148,7 +148,7 @@ TEST(NameFromSymbolTests, Operators) {
     DO_TEST("unsigned __int64 operator \"\" _w(unsigned __int64)", "operator\"\"_w");
 }
 
-TEST(NameFromSymbolTests, TemplatedOperators) {
+TEST(PruneSymbolTests, TemplatedOperators) {
     // https://godbolt.org/z/nfcrTfj7M
     DO_TEST("void operator+<S>(S, S)", "operator+");
     // DO_TEST("void operator<<S>(S, S)", "operator<"); // TODO FAIL
@@ -157,7 +157,7 @@ TEST(NameFromSymbolTests, TemplatedOperators) {
     DO_TEST("void operator<< <S>(S, S)", "operator<<");
 }
 
-TEST(NameFromSymbolTests, OperatorNewDeleteCoAwait) {
+TEST(PruneSymbolTests, OperatorNewDeleteCoAwait) {
     // https://godbolt.org/z/rq16K9sK3
     DO_TEST("operator new(unsigned long)", "operator new");
     DO_TEST("operator new[](unsigned long)", "operator new[]");
@@ -184,7 +184,7 @@ TEST(NameFromSymbolTests, OperatorNewDeleteCoAwait) {
     DO_TEST("void B::operator co_await(void)", "B::operator co_await");
 }
 
-TEST(NameFromSymbolTests, NTTPs) {
+TEST(PruneSymbolTests, NTTPs) {
     // https://godbolt.org/z/4aPavzsba
     DO_TEST("void foo<12, 20, 256, 1>()", "foo");
     DO_TEST("void foo<true, false>()", "foo");
@@ -216,7 +216,7 @@ TEST(NameFromSymbolTests, NTTPs) {
     DO_TEST("void foo<bar(`test)>::baz", "void foo<bar(`test)>::baz");
 }
 
-TEST(NameFromSymbolTests, OperatorNTTPs) {
+TEST(PruneSymbolTests, OperatorNTTPs) {
     // https://godbolt.org/z/foY7WfGv3
     DO_TEST("void foo<&S::operator<(S const&)>()", "foo");
     DO_TEST("void foo<&S::operator>(S const&)>()", "foo");
@@ -266,7 +266,7 @@ TEST(NameFromSymbolTests, OperatorNTTPs) {
     // TODO: foo<&S::operator>>() isn't legal C++ but maybe it could appear in demangled output?
 }
 
-TEST(NameFromSymbolTests, BasicLambdas) {
+TEST(PruneSymbolTests, BasicLambdas) {
     // https://godbolt.org/z/5n83rGK8j
     DO_TEST("main::'lambda'()::operator()() const", "main::<lambda>::operator()");
     DO_TEST("main::'lambda0'()::operator()() const", "main::<lambda0>::operator()");
@@ -278,7 +278,7 @@ TEST(NameFromSymbolTests, BasicLambdas) {
     DO_TEST("`int main(void)'::`2'::<lambda_2>::operator()(void)const", "`main'::`2'::<lambda_2>::operator()");
 }
 
-TEST(NameFromSymbolTests, TemplatedLambdas) {
+TEST(PruneSymbolTests, TemplatedLambdas) {
     // https://godbolt.org/z/GGEWfE144
     DO_TEST("auto main::'lambda'<typename $T>($T)::operator()<int>($T) const", "main::<lambda>::operator()");
     DO_TEST("auto main::{lambda<typename $T0>($T0)#1}::operator()<int>(int) const", "main::<lambda#1>::operator()");
@@ -286,7 +286,7 @@ TEST(NameFromSymbolTests, TemplatedLambdas) {
     DO_TEST("auto `int main(void)'::`2'::<lambda_1>::operator()<int>(int)const", "`main'::`2'::<lambda_1>::operator()");
 }
 
-TEST(NameFromSymbolTests, NestedLambdas) {
+TEST(PruneSymbolTests, NestedLambdas) {
     // https://godbolt.org/z/s4GseqrGK
     DO_TEST("main::'lambda'()::operator()() const", "main::<lambda>::operator()");
     DO_TEST("main::'lambda'()::operator()() const::'lambda'()::operator()() const", "main::<lambda>::operator()::<lambda>::operator()");
@@ -307,7 +307,7 @@ TEST(NameFromSymbolTests, NestedLambdas) {
     DO_TEST("auto `auto `int main(void)'::`2'::<lambda_1>::operator()<int>(int)const '::`2'::<lambda_1>::operator()<int>(int)const", "``main'::`2'::<lambda_1>::operator()'::`2'::<lambda_1>::operator()");
 }
 
-TEST(NameFromSymbolTests, LambdaTemplateArgs) {
+TEST(PruneSymbolTests, LambdaTemplateArgs) {
     // https://godbolt.org/z/9f53KezPE
     DO_TEST("S<main::'lambda'()>::foo()", "S::foo");
     DO_TEST("SS<main::'lambda0'(){}>::foo()", "SS::foo");
@@ -317,14 +317,14 @@ TEST(NameFromSymbolTests, LambdaTemplateArgs) {
     DO_TEST("void SS<`int main(void)'::`2'::<lambda_2_>{}>::foo(void)", "SS::foo");
 }
 
-TEST(NameFromSymbolTests, LambdasInTemplates) {
+TEST(PruneSymbolTests, LambdasInTemplates) {
     // https://godbolt.org/z/qKv8xz7Mv
     DO_TEST("S<int>::foo()::'lambda'()::operator()() const", "S::foo::<lambda>::operator()");
     DO_TEST("S<int>::foo()::{lambda()#1}::operator()() const", "S::foo::<lambda#1>::operator()");
     DO_TEST("`void S<int>::foo(void)'::`2'::<lambda_1>::operator()(void)const", "`S::foo'::`2'::<lambda_1>::operator()");
 }
 
-TEST(NameFromSymbolTests, LocalTypes) {
+TEST(PruneSymbolTests, LocalTypes) {
     // https://godbolt.org/z/51fbhMTMe
     DO_TEST("foo()::S::bar()", "foo::S::bar");
     DO_TEST("void `void foo(void)'::`2'::S::bar(void)", "`foo'::`2'::S::bar");
@@ -342,7 +342,7 @@ TEST(NameFromSymbolTests, LocalTypes) {
     DO_TEST("void `auto `auto A<SS>::foo<SS>(void)'::`2'::<lambda_1>::operator()<int>(int)const '::`2'::S::foo(void)", "``A::foo'::`2'::<lambda_1>::operator()'::`2'::S::foo");
 }
 
-TEST(NameFromSymbolTests, QualifiersAndAttributes) {
+TEST(PruneSymbolTests, QualifiersAndAttributes) {
     // https://godbolt.org/z/rG5Ed5qed
     DO_TEST("S::foo() const volatile &&", "S::foo");
     DO_TEST("int const && S::foo(void)const volatile &&", "S::foo");
@@ -352,7 +352,7 @@ TEST(NameFromSymbolTests, QualifiersAndAttributes) {
     DO_TEST("static auto `int main(void)'::`2'::<lambda_1>::operator()<`int main(void)'::`2'::<lambda_1> >(UNKNOWN,`int main(void)'::`2'::<lambda_1> const volatile &&)", "`main'::`2'::<lambda_1>::operator()");
 }
 
-TEST(NameFromSymbolTests, ConversionOperator) {
+TEST(PruneSymbolTests, ConversionOperator) {
     // https://godbolt.org/z/v8hc1vb9P
     DO_TEST("S::operator int()", "S::operator int");
     DO_TEST("S::operator void*()", "S::operator void*");
@@ -389,7 +389,7 @@ TEST(NameFromSymbolTests, ConversionOperator) {
     DO_TEST("S::operator std::vector<int> ns<X>::ns::Y<int>::*()::test", "S::operator std::vector ns::ns::Y::*::test");
 }
 
-TEST(NameFromSymbolTests, DeducedConversionOperator) {
+TEST(PruneSymbolTests, DeducedConversionOperator) {
     // https://godbolt.org/z/9rzdKvGh7
     DO_TEST("S<float>::operator auto()", "S::operator auto");
     DO_TEST("S<float>::operator auto()", "S::operator auto");
@@ -400,7 +400,7 @@ TEST(NameFromSymbolTests, DeducedConversionOperator) {
     DO_TEST("S<float>::operator float(void)", "S::operator float");
 }
 
-TEST(NameFromSymbolTests, FunctionPointers) {
+TEST(PruneSymbolTests, FunctionPointers) {
     // https://godbolt.org/z/TWfa4f6Kc
     DO_TEST("void (*foo<int>())(int, double)", "foo");
     DO_TEST("void (**foo<int>())(int, double)", "foo");
@@ -412,7 +412,7 @@ TEST(NameFromSymbolTests, FunctionPointers) {
     DO_TEST("void (__cdecl&baz<int>(void))(int,double)", "baz");
 }
 
-TEST(NameFromSymbolTests, TemplateHeavySymbols) {
+TEST(PruneSymbolTests, TemplateHeavySymbols) {
     // https://godbolt.org/z/z1nrMsYfs
     DO_TEST("__find_if<__gnu_cxx::__normal_iterator<int*, std::vector<int> >, __gnu_cxx::__ops::_Iter_pred<main()::<lambda(auto:19)> > >", "__find_if");
     // DO_TEST("operator()<__gnu_cxx::__normal_iterator<int*, std::vector<int> >, __gnu_cxx::__normal_iterator<int*, std::vector<int> >, std::identity, main()::<lambda(auto:18)> >", "ns::SS::SS");
@@ -421,17 +421,17 @@ TEST(NameFromSymbolTests, TemplateHeavySymbols) {
     DO_TEST("std::__1::ranges::__find_if_impl[abi:ne200100]<std::__1::__wrap_iter<int*>, std::__1::__wrap_iter<int*>, main::$_0, std::__1::identity>(std::__1::__wrap_iter<int*>, std::__1::__wrap_iter<int*>, main::$_0&, std::__1::identity&)", "std::__1::ranges::__find_if_impl");
 }
 
-TEST(NameFromSymbolTests, StorageClasses) {
+TEST(PruneSymbolTests, StorageClasses) {
     // https://godbolt.org/z/xPYKW8Pz5
     DO_TEST("static void S::foo(void)", "S::foo");
 }
 
-TEST(NameFromSymbolTests, Noexcept) {
+TEST(PruneSymbolTests, Noexcept) {
     // https://godbolt.org/z/xjsM67s17
     DO_TEST("void foo<X>(X (*)() noexcept(X::n))", "foo");
 }
 
-TEST(NameFromSymbolTests, MiscNesting) {
+TEST(PruneSymbolTests, MiscNesting) {
     // https://godbolt.org/z/5Gj99ernr
     DO_TEST("void use1<5>(Wrapper<(5)<(5)>)", "use1");
     DO_TEST("void use2<5>(Wrapper<((5)>(5))>)", "use2");
@@ -441,12 +441,12 @@ TEST(NameFromSymbolTests, MiscNesting) {
     DO_TEST("void use2<5>(Wrapper<0>)", "use2");
 }
 
-TEST(NameFromSymbolTests, Misc) {
+TEST(PruneSymbolTests, Misc) {
     // https://godbolt.org/z/cqfW7MK57
     DO_TEST("foo(...)", "foo");
 }
 
-TEST(NameFromSymbolTests, Extra) {
+TEST(PruneSymbolTests, Extra) {
     DO_TEST("operator<<(std::ostream&, Foo const&)", "operator<<");
     DO_TEST("std::ostream & operator<<(std::ostream &, Foo const &)", "operator<<");
     DO_TEST("Foo::operator+=(int)", "Foo::operator+=");
