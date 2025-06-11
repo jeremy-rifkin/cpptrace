@@ -22,6 +22,13 @@ namespace detail {
         };
         enum class member { value, error };
         member active;
+        void destroy() {
+            if(active == member::value) {
+                value_.~value_type();
+            } else {
+                error_.~E();
+            }
+        }
     public:
         Result(value_type&& value) : value_(std::move(value)), active(member::value) {}
         Result(E&& error) : error_(std::move(error)), active(member::error) {
@@ -49,11 +56,33 @@ namespace detail {
             }
         }
         ~Result() {
-            if(active == member::value) {
-                value_.~value_type();
-            } else {
-                error_.~E();
+            destroy();
+        }
+        Result& operator=(const Result& other) {
+            if (this != &other) {
+                destroy();
+                if(other.active == member::value) {
+                    new (&value_) value_type(other.value_);
+                } else {
+                    new (&error_) E(other.error_);
+                }
+                active = other.active;
             }
+            return *this;
+        }
+        Result& operator=(Result&& other)
+            noexcept(std::is_nothrow_move_assignable<value_type>::value && std::is_nothrow_move_constructible<value_type>::value)
+        {
+            if (this != &other) {
+                destroy();
+                if(other.active == member::value) {
+                    new (&value_) value_type(std::move(other.value_));
+                } else {
+                    new (&error_) E(std::move(other.error_));
+                }
+                active = other.active;
+            }
+            return *this;
         }
 
         bool has_value() const {

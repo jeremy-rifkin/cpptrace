@@ -99,6 +99,66 @@ TEST_F(ResultFixture, MoveConstructorError) {
     EXPECT_TRUE(original.is_error());
 }
 
+TEST_F(ResultFixture, MoveAssignmentValue) {
+    Result<std::string, error> original(std::string("move"));
+    Result<std::string, error> target = std::string{};
+    target = std::move(original);
+    EXPECT_TRUE(target.has_value());
+    EXPECT_EQ(target.unwrap_value(), "move");
+    EXPECT_TRUE(original.has_value());
+
+    std::string s = "test";
+    std::string n;
+    Result<std::string&, error> r1(s);
+    Result<std::string&, error> r2(n);
+    r2 = std::move(r1);
+    EXPECT_TRUE(r2.has_value());
+    EXPECT_EQ(r2.unwrap_value(), "test");
+    s = "foo";
+    EXPECT_EQ(r2.unwrap_value(), "foo");
+    EXPECT_TRUE(r2.has_value());
+}
+
+TEST_F(ResultFixture, MoveAssignmentError) {
+    Result<std::string, error> original(error{1});
+    Result<std::string, error> target = std::string{};
+    target = std::move(original);
+
+    EXPECT_TRUE(target.is_error());
+    EXPECT_EQ(target.unwrap_error().x, 1);
+    EXPECT_TRUE(original.is_error());
+}
+
+TEST_F(ResultFixture, CopyAssignmentValue) {
+    Result<std::string, error> original(std::string("move"));
+    Result<std::string, error> target = std::string{};
+    target = original;
+    EXPECT_TRUE(target.has_value());
+    EXPECT_EQ(target.unwrap_value(), "move");
+    EXPECT_TRUE(original.has_value());
+
+    std::string s = "test";
+    std::string n;
+    Result<std::string&, error> r1(s);
+    Result<std::string&, error> r2(n);
+    r2 = r1;
+    EXPECT_TRUE(r2.has_value());
+    EXPECT_EQ(r2.unwrap_value(), "test");
+    s = "foo";
+    EXPECT_EQ(r2.unwrap_value(), "foo");
+    EXPECT_TRUE(r2.has_value());
+}
+
+TEST_F(ResultFixture, CopyAssignmentError) {
+    Result<std::string, error> original(error{1});
+    Result<std::string, error> target = std::string{};
+    target = original;
+
+    EXPECT_TRUE(target.is_error());
+    EXPECT_EQ(target.unwrap_error().x, 1);
+    EXPECT_TRUE(original.is_error());
+}
+
 TEST_F(ResultFixture, ValueOr) {
     {
         Result<int, error> res_with_value(42);
