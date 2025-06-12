@@ -85,6 +85,10 @@ int main() {
     cpptrace::experimental::set_dwarf_resolver_line_table_cache_size(100);
     cpptrace::experimental::set_dwarf_resolver_disable_aranges(true);
 
+    cpptrace::detail::lazy_trace_holder lh;
+    lh.is_resolved();
+
     cpptrace::basename("");
     cpptrace::prettify_symbol("");
+    cpptrace::prune_symbol("");
 }

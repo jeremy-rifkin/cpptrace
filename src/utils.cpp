@@ -15,16 +15,6 @@
 #endif
 
 CPPTRACE_BEGIN_NAMESPACE
-namespace detail {
-    const formatter& get_terminate_formatter() {
-        static formatter the_formatter = formatter{}
-            .header("Stack trace to reach terminate handler (most recent call first):");
-        return the_formatter;
-    }
-}
-CPPTRACE_END_NAMESPACE
-
-CPPTRACE_BEGIN_NAMESPACE
     std::string demangle(const std::string& name) {
         return detail::demangle(name, false);
     }
@@ -46,6 +36,14 @@ CPPTRACE_BEGIN_NAMESPACE
      extern const int stdout_fileno = STDOUT_FILENO;
      extern const int stderr_fileno = STDERR_FILENO;
     #endif
+
+    namespace detail {
+        const formatter& get_terminate_formatter() {
+            static formatter the_formatter = formatter{}
+                .header("Stack trace to reach terminate handler (most recent call first):");
+            return the_formatter;
+        }
+    }
 
     CPPTRACE_FORCE_NO_INLINE void print_terminate_trace() {
         try { // try/catch can never be hit but it's needed to prevent TCO

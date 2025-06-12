@@ -479,9 +479,10 @@ namespace cpptrace {
 
 ### Logging
 
-Cpptrace attempts to gracefully recover from any internal errors. By default, cpptrace doesn't log anything to the
-console in order to avoid interfering with user programs. However, there are a couple configurations that can be used
-to set a custom logging behavior or enable logging to stderr.
+Cpptrace attempts to gracefully recover from any internal errors in order to provide the best information it can and not
+interfere with user applications. However, sometimes it's important to see what's going wrong inside cpptrace if
+anything does go wrong. To facilitate this, cpptrace has an internal logger. By default it doesn't log anything out. The
+following configurations that can be used to set a custom logging callback or enable logging to stderr:
 
 ```cpp
 namespace cpptrace {
@@ -577,23 +578,23 @@ CPPTRACE_TRY {
 }
 ```
 
-> [!CAUTION]
-> There is a footgun with `return` statements in these try/catch macros: The implementation on Windows requires wrapping
-> the try body in an immediately-invoked lambda and and as such `return` statements return from the lambda not the
-> enclosing function. If you're writing code that will be compiled on windows, it's important to not write `return`
-> statements within CPPTRACE_TRY. E.g., this does not work as expected on windows:
+> [!WARNING]
+> There is an unfortunate limitation with `return` statements in these try/catch macros: The implementation on Windows
+> requires wrapping the try body in an immediately-invoked lambda and and as such `return` statements would return from
+> the lambda not the enclosing function. Cpptrace guards against misleading `return`s compiling by requiring the lambdas
+> to return a special internal type, but, if you're writing code that will be compiled on windows it's important to not
+> write `return` statements within CPPTRACE_TRY. For example, this is invalid:
 > ```cpp
 > CPPTRACE_TRY {
->     if(condition) return 40; // does not return from the enclosing function on windows
+>     if(condition) return 40; // error, type int doesn't match cpptrace::detail::dont_return_from_try_catch_macros
 > } CPPTRACE_CATCH(const std::exception& e) {
 >     ...
 > }
-> return 20;
 > ```
 
 > [!WARNING]
-> There is one other footgun which is mainly relevant for code that was written on an older version of cpptrace: It's
-> possible to write the following without getting errors
+> There is a footgun which is mainly relevant for code that was written on an older version of cpptrace: It's possible
+> to write the following without getting errors
 > ```cpp
 > CPPTRACE_TRY {
 >     ...
@@ -603,9 +604,9 @@ CPPTRACE_TRY {
 >     ...
 > }
 > ```
-> This code will compile and in some sense work as expected as the second catch handler will work, however, cpptrace
-> won't know about the handler and as such it would be able to correctly collect a trace on a non-`std::runtime_error`
-> that is thrown. No run-time errors will occur, however, `from_current_exception` may report a misleading trace.
+> This code will compile and the second catch handler will work, however, cpptrace won't know about the handler and as
+> such it won't be able to correctly collect a trace when a type that does not match `std::runtime_error` is thrown. No
+> run-time errors will occur, however, `from_current_exception` will report a misleading trace.
 
 ### Removing the `CPPTRACE_` prefix
 

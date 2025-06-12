@@ -71,7 +71,9 @@ namespace detail {
             return *this;
         }
         Result& operator=(Result&& other)
-            noexcept(std::is_nothrow_move_assignable<value_type>::value && std::is_nothrow_move_constructible<value_type>::value)
+            noexcept(
+                std::is_nothrow_move_constructible<value_type>::value && std::is_nothrow_move_constructible<E>::value
+            )
         {
             if (this != &other) {
                 destroy();
