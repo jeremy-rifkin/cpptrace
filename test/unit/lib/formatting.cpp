@@ -375,7 +375,7 @@ TEST(FormatterTest, CopySemantics) {
 
 TEST(FormatterTest, PrettySymbols) {
     auto normal_formatter = cpptrace::formatter{}
-        .prettify_symbols(false);
+        .symbols(cpptrace::formatter::symbol_mode::full);
     cpptrace::stacktrace trace;
     trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "foo(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)", false});
     auto res = split(normal_formatter.format(trace), "\n");
@@ -387,7 +387,7 @@ TEST(FormatterTest, PrettySymbols) {
         )
     );
     auto pretty_formatter = cpptrace::formatter{}
-        .prettify_symbols(true);
+        .symbols(cpptrace::formatter::symbol_mode::pretty);
     res = split(pretty_formatter.format(trace), "\n");
     EXPECT_THAT(
         res,
@@ -398,9 +398,9 @@ TEST(FormatterTest, PrettySymbols) {
     );
 }
 
-TEST(FormatterTest, FullSymbols) {
+TEST(FormatterTest, PrunedSymbols) {
     auto normal_formatter = cpptrace::formatter{}
-        .full_symbol(true);
+        .symbols(cpptrace::formatter::symbol_mode::full);
     cpptrace::stacktrace trace;
     trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "ns::S<float, int>::foo(int, int, int)", false});
     auto res = split(normal_formatter.format(trace), "\n");
@@ -411,9 +411,9 @@ TEST(FormatterTest, FullSymbols) {
             "#0 0x0000000000000001 in ns::S<float, int>::foo(int, int, int) at foo.cpp:20:30"
         )
     );
-    auto pretty_formatter = cpptrace::formatter{}
-        .full_symbol(false);
-    res = split(pretty_formatter.format(trace), "\n");
+    auto pruned_formatter = cpptrace::formatter{}
+        .symbols(cpptrace::formatter::symbol_mode::pruned);
+    res = split(pruned_formatter.format(trace), "\n");
     EXPECT_THAT(
         res,
         ElementsAre(

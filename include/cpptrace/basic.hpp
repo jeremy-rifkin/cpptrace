@@ -164,8 +164,6 @@ CPPTRACE_BEGIN_NAMESPACE
 
         object_frame get_object_info() const;
 
-        std::string name() const;
-
         std::string to_string() const;
         std::string to_string(bool color) const;
         friend CPPTRACE_EXPORT std::ostream& operator<<(std::ostream& stream, const stacktrace_frame& frame);

@@ -66,8 +66,7 @@ CPPTRACE_BEGIN_NAMESPACE
             bool snippets = false;
             int context_lines = 2;
             bool columns = true;
-            bool prettify_symbols = false;
-            bool full_symbol = true;
+            symbol_mode symbols = symbol_mode::full;
             bool show_filtered_frames = true;
             std::function<bool(const stacktrace_frame&)> filter;
             std::function<stacktrace_frame(stacktrace_frame)> transform;
@@ -95,11 +94,8 @@ CPPTRACE_BEGIN_NAMESPACE
         void columns(bool columns) {
             options.columns = columns;
         }
-        void prettify_symbols(bool prettify) {
-            options.prettify_symbols = prettify;
-        }
-        void full_symbol(bool full) {
-            options.full_symbol = full;
+        void symbols(symbol_mode mode) {
+            options.symbols = mode;
         }
         void filtered_frame_placeholders(bool show) {
             options.show_filtered_frames = show;
@@ -285,16 +281,20 @@ CPPTRACE_BEGIN_NAMESPACE
             if(!frame.symbol.empty()) {
                 detail::optional<std::string> maybe_stored_string;
                 detail::string_view symbol;
-                if(options.full_symbol) {
-                    if(options.prettify_symbols) {
+                switch(options.symbols) {
+                    case symbol_mode::full:
+                        symbol = frame.symbol;
+                        break;
+                    case symbol_mode::pruned:
+                        maybe_stored_string = prune_symbol(frame.symbol);
+                        symbol = maybe_stored_string.unwrap();
+                        break;
+                    case symbol_mode::pretty:
                         maybe_stored_string = prettify_symbol(frame.symbol);
                         symbol = maybe_stored_string.unwrap();
-                    } else {
-                        symbol = frame.symbol;
-                    }
-                } else {
-                    maybe_stored_string = frame.name();
-                    symbol = maybe_stored_string.unwrap();
+                        break;
+                    default:
+                        PANIC("Unhandled symbol mode");
                 }
                 microfmt::print(stream, "in {}{}{}", yellow, symbol, reset);
             }
@@ -367,12 +367,8 @@ CPPTRACE_BEGIN_NAMESPACE
         pimpl->columns(columns);
         return *this;
     }
-    formatter& formatter::prettify_symbols(bool prettify) {
-        pimpl->prettify_symbols(prettify);
-        return *this;
-    }
-    formatter& formatter::full_symbol(bool full) {
-        pimpl->full_symbol(full);
+    formatter& formatter::symbols(symbol_mode mode) {
+        pimpl->symbols(mode);
         return *this;
     }
     formatter& formatter::filtered_frame_placeholders(bool show) {

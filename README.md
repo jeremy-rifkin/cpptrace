@@ -307,7 +307,7 @@ into `std::string`.
 
 `cpptrace::prune_symbol` is a helper for custom formatters that prunes demangled symbols by removing return types,
 template arguments, and function parameters. It also does some minimal normalization. For example, it prunes
-`ns::S<int, float>::~S()` to `ns::S::~S`.
+`ns::S<int, float>::~S()` to `ns::S::~S`. If cpptrace is unable to parse the symbol it will return the original symbol.
 
 `cpptrace::get_snippet` gets a text snippet, if possible, from for the given source file for +/- `context_size` lines
 around `line`.
@@ -370,7 +370,8 @@ namespace cpptrace {
         formatter& snippets(bool);
         formatter& snippet_context(int);
         formatter& columns(bool);
-        formatter& prettify_symbols(bool);
+        enum class symbol_mode { full, pretty, pruned };
+        formatter& symbols(symbol_mode);
         formatter& filtered_frame_placeholders(bool);
         formatter& filter(std::function<bool(const stacktrace_frame&)>);
         formatter& transform(std::function<stacktrace_frame(stacktrace_frame)>);
@@ -399,28 +400,32 @@ namespace cpptrace {
 ```
 
 Options:
-| Setting                       | Description                                                    | Default                                                                  |
-| ----------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `header`                      | Header line printed before the trace                           | `Stack trace (most recent call first):`                                  |
-| `colors`                      | Default color mode for the trace                               | `automatic`, which attempts to detect if the target stream is a terminal |
-| `addresses`                   | Raw addresses, object addresses, or no addresses               | `raw`                                                                    |
-| `paths`                       | Full paths or just filenames                                   | `full`                                                                   |
-| `snippets`                    | Whether to include source code snippets                        | `false`                                                                  |
-| `snippet_context`             | How many lines of source context to show in a snippet          | `2`                                                                      |
-| `columns`                     | Whether to include column numbers if present                   | `true`                                                                   |
-| `prettify_symbols`            | Whether to attempt to clean up long symbol names               | `false`                                                                  |
-| `filtered_frame_placeholders` | Whether to still print filtered frames as just `#n (filtered)` | `true`                                                                   |
-| `filter`                      | A predicate to filter frames with                              | None                                                                     |
-| `transform`                   | A transformer which takes a stacktrace frame and modifies it   | None                                                                     |
+| Setting                       | Description                                                        | Default                                                                  |
+| ----------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `header`                      | Header line printed before the trace                               | `Stack trace (most recent call first):`                                  |
+| `colors`                      | Default color mode for the trace                                   | `automatic`, which attempts to detect if the target stream is a terminal |
+| `addresses`                   | Raw addresses, object addresses, or no addresses                   | `raw`                                                                    |
+| `paths`                       | Full paths or just filenames                                       | `full`                                                                   |
+| `snippets`                    | Whether to include source code snippets                            | `false`                                                                  |
+| `snippet_context`             | How many lines of source context to show in a snippet              | `2`                                                                      |
+| `columns`                     | Whether to include column numbers if present                       | `true`                                                                   |
+| `symbols`                     | Full demangled symbols, pruned symbol names, or prettified symbols | `full`                                                                   |
+| `filtered_frame_placeholders` | Whether to still print filtered frames as just `#n (filtered)`     | `true`                                                                   |
+| `filter`                      | A predicate to filter frames with                                  | None                                                                     |
+| `transform`                   | A transformer which takes a stacktrace frame and modifies it       | None                                                                     |
 
 The `automatic` color mode attempts to detect if a stream that may be attached to a terminal. As such, it will not use
 colors for the `formatter::format` method and it may not be able to detect if some ostreams correspond to terminals or
 not. For this reason, `formatter::format` and `formatter::print` methods have overloads taking a color parameter. This
 color parameter will override configured color mode.
 
-The `prettify_symbols` option applies a number of simple rewrite rules to symbols in an attempt to clean them up, e.g.
-it rewrites `foo(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >)`
-as `foo(std::vector<std::string>)`.
+The `symbols` option provides a few settings for pretty-printing symbol names. By default the full name is printed.
+- `symbol_mode::pretty` applies a number of transformations to clean up long symbol names. For example, it turns
+  `std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >` into `std::string`. This is
+  equivalent to `cpptrace::prettify_symbol`.
+- `symbol_mode::prune` prunes demangled symbols by removing return types, template arguments, and function parameters.
+  It also does some minimal normalization. For example, it prunes `ns::S<int, float>::~S()` to `ns::S::~S`. If cpptrace
+  is unable to parse the symbol it will uses the full symbol. This is equivalent to `cpptrace::prune_symbol`.
 
 Recommended practice with formatters: It's generally preferable to create formatters objects that are long-lived rather
 than to create them on the fly every time a trace needs to be formatted.
