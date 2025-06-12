@@ -5,10 +5,13 @@
 <br/>
 [![Community Discord Link](https://img.shields.io/badge/Chat%20on%20the%20(very%20small)-Community%20Discord-blue?labelColor=2C3239&color=7289DA&style=flat&logo=discord&logoColor=959DA5)](https://discord.gg/frjaAZvqUZ)
 <br/>
-[![Try on Compiler Explorer](https://img.shields.io/badge/-Compiler%20Explorer-brightgreen?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAYAAAAmlE46AAAACXBIWXMAAACwAAAAsAEUaqtpAAABSElEQVQokYVTsU7DMBB9QMTCEJbOMLB5oF0tRfUPIPIJZctYJkZYu3WMxNL+ARUfQKpImcPgDYnsXWBgYQl61TkYyxI3Wef37j3fnQ/6vkcsikY9AbiWq0mpbevDBmLRqDEAA4CEHMADgFRwrwDmch6X2i73RCFVHvC/WCeCMAFpC2AFoPPu5x4md4rnAN4luS61nYWSgauNU8ydkr0bLTMYAoIYtWqxM4LtEumeERDtfUjlMDrp7L67iddyyJtOvUIu2rquVn4iiVSOKXYhiMSJWLwUJZLuQ2CWmVldV4MT11UmXgB8fr0dX3WP6VHMiVrscim6Da2mJxffzwSU2v6xWzSKmzQ4cUTOaCBTvWgU14xkzjhckKm/q3wnrRAcAhksxMZNAdxEf0fRKI6E8zqT1C0X28ccRpqAUltW5pu4sxv5Mb8B4AciE3bHMxz/+gAAAABJRU5ErkJggg==&labelColor=2C3239&style=flat&label=Try+it+on&color=30C452)](https://godbolt.org/z/c6TqTzqcf)
+[![Try on Compiler Explorer](https://img.shields.io/badge/-Compiler%20Explorer-brightgreen?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAYAAAAmlE46AAAACXBIWXMAAACwAAAAsAEUaqtpAAABSElEQVQokYVTsU7DMBB9QMTCEJbOMLB5oF0tRfUPIPIJZctYJkZYu3WMxNL+ARUfQKpImcPgDYnsXWBgYQl61TkYyxI3Wef37j3fnQ/6vkcsikY9AbiWq0mpbevDBmLRqDEAA4CEHMADgFRwrwDmch6X2i73RCFVHvC/WCeCMAFpC2AFoPPu5x4md4rnAN4luS61nYWSgauNU8ydkr0bLTMYAoIYtWqxM4LtEumeERDtfUjlMDrp7L67iddyyJtOvUIu2rquVn4iiVSOKXYhiMSJWLwUJZLuQ2CWmVldV4MT11UmXgB8fr0dX3WP6VHMiVrscim6Da2mJxffzwSU2v6xWzSKmzQ4cUTOaCBTvWgU14xkzjhckKm/q3wnrRAcAhksxMZNAdxEf0fRKI6E8zqT1C0X28ccRpqAUltW5pu4sxv5Mb8B4AciE3bHMxz/+gAAAABJRU5ErkJggg==&labelColor=2C3239&style=flat&label=Try+it+on&color=30C452)](https://godbolt.org/z/aP8PsxxeY)
 
-Cpptrace is a simple and portable C++ stacktrace library supporting C++11 and greater on Linux, macOS,
-and Windows including MinGW and Cygwin environments. The goal: Make stack traces simple for once.
+Cpptrace is a simple and portable C++ stacktrace library supporting C++11 and greater on Linux, macOS, and Windows
+including MinGW and Cygwin environments. The goal: Make stack traces simple for once.
+
+In addition to providing access to stack traces, cpptrace also provides a mechanism for getting stacktraces from thrown
+exceptions which is immensely valuable for debugging and triaging. More info [below](#traces-from-all-exceptions-cpptrace_try-and-cpptrace_catch).
 
 Cpptrace also has a C API, docs [here](docs/c-api.md).
 
@@ -87,8 +90,8 @@ Cpptrace can also retrieve function inlining information on optimized release bu
 
 ![Inlining](res/inlining.png)
 
-Cpptrace provides access to resolved stack traces as well as lightweight raw traces (just addresses) that can be
-resolved later:
+Cpptrace provides access to resolved stack traces as well as fast and lightweight raw traces (just addresses) that can
+be resolved later:
 
 ```cpp
 const auto raw_trace = cpptrace::generate_raw_trace();
@@ -96,13 +99,17 @@ const auto raw_trace = cpptrace::generate_raw_trace();
 raw_trace.resolve().print();
 ```
 
-Cpptrace provides a way to produce stack traces on arbitrary exceptions. More information on this system
-[below](#traces-from-all-exceptions).
+One of the most important features cpptrace offers is the ability to retrieve stack traces on arbitrary exceptions.
+More information on this system [below]((#traces-from-all-exceptions-cpptrace_try-and-cpptrace_catch)).
 ```cpp
 #include <cpptrace/from_current.hpp>
+#include <iostream>
+#include <stdexcept>
+
 void foo() {
     throw std::runtime_error("foo failed");
 }
+
 int main() {
     CPPTRACE_TRY {
         foo();
@@ -135,8 +142,9 @@ Additional notable features:
 - Utilities for demangling
 - Utilities for catching `std::exception`s and wrapping them in traced exceptions
 - Signal-safe stack tracing
+  - As far as I can tell cpptrace is the only library which can truly do this in a signal-safe manner
 - Source code snippets in traces
-- Extensive configuration options for [trace formatting](#formatting)
+- Extensive configuration options for [trace formatting](#formatting) and pretty-printing
 
 ![Snippets](res/snippets.png)
 
