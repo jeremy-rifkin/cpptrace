@@ -108,22 +108,17 @@ CPPTRACE_BEGIN_NAMESPACE
         }
 
         std::string format(
-            const stacktrace_frame& input_frame,
+            const stacktrace_frame& frame,
             detail::optional<bool> color_override = detail::nullopt
         ) const {
             std::ostringstream oss;
-            detail::optional<stacktrace_frame> transformed_frame;
-            if(options.transform) {
-                transformed_frame = options.transform(input_frame);
-            }
-            const stacktrace_frame& frame = options.transform ? transformed_frame.unwrap() : input_frame;
-            print_frame_inner(oss, frame, color_override.value_or(options.color == color_mode::always));
+            print_internal(oss, frame, color_override.value_or(options.color == color_mode::always));
             return std::move(oss).str();
         }
 
         std::string format(const stacktrace& trace, detail::optional<bool> color_override = detail::nullopt) const {
             std::ostringstream oss;
-            print_internal(oss, trace, false, color_override);
+            print_internal(oss, trace, color_override.value_or(options.color == color_mode::always));
             return std::move(oss).str();
         }
 
@@ -135,7 +130,8 @@ CPPTRACE_BEGIN_NAMESPACE
             const stacktrace_frame& frame,
             detail::optional<bool> color_override = detail::nullopt
         ) const {
-            print_frame_internal(stream, frame, color_override);
+            print_internal(stream, frame, color_override);
+            stream << "\n";
         }
         void print(
             std::FILE* file,
@@ -143,6 +139,7 @@ CPPTRACE_BEGIN_NAMESPACE
             detail::optional<bool> color_override = detail::nullopt
         ) const {
             auto str = format(frame, color_override);
+            str += "\n";
             std::fwrite(str.data(), 1, str.size(), file);
         }
 
@@ -154,7 +151,8 @@ CPPTRACE_BEGIN_NAMESPACE
             const stacktrace& trace,
             detail::optional<bool> color_override = detail::nullopt
         ) const {
-            print_internal(stream, trace, true, color_override);
+            print_internal(stream, trace, color_override);
+            stream << "\n";
         }
         void print(
             std::FILE* file,
@@ -162,10 +160,28 @@ CPPTRACE_BEGIN_NAMESPACE
             detail::optional<bool> color_override = detail::nullopt
         ) const {
             auto str = format(trace, color_override);
+            str += "\n";
             std::fwrite(str.data(), 1, str.size(), file);
         }
 
     private:
+        struct color_setting {
+            bool color;
+            color_setting(bool color) : color(color) {}
+            detail::string_view reset() const {
+                return color ? RESET : "";
+            }
+            detail::string_view green() const {
+                return color ? GREEN : "";
+            }
+            detail::string_view yellow() const {
+                return color ? YELLOW : "";
+            }
+            detail::string_view blue() const {
+                return color ? BLUE : "";
+            }
+        };
+
         bool stream_is_tty(std::ostream& stream) const {
             // not great, but it'll have to do
             return (&stream == &std::cout && isatty(stdout_fileno))
@@ -185,26 +201,36 @@ CPPTRACE_BEGIN_NAMESPACE
                 (!color_override || color_override.unwrap() != false) &&
                 stream_is_tty(stream)
             ) {
-                detail::enable_virtual_terminal_processing_if_needed();
                 do_color = true;
             }
             return do_color;
         }
 
-        void print_internal(std::ostream& stream, const stacktrace& trace, bool newline_at_end, detail::optional<bool> color_override) const {
-            bool do_color = should_do_color(stream, color_override);
-            maybe_ensure_virtual_terminal_processing(stream, do_color);
-            print_internal(stream, trace, newline_at_end, do_color);
+        void print_internal(std::ostream& stream, const stacktrace_frame& input_frame, detail::optional<bool> color_override) const {
+            bool color = should_do_color(stream, color_override);
+            maybe_ensure_virtual_terminal_processing(stream, color);
+            detail::optional<stacktrace_frame> transformed_frame;
+            if(options.transform) {
+                transformed_frame = options.transform(input_frame);
+            }
+            const stacktrace_frame& frame = options.transform ? transformed_frame.unwrap() : input_frame;
+            write_frame(stream, frame, color);
         }
 
-        void print_internal(std::ostream& stream, const stacktrace& trace, bool newline_at_end, bool color) const {
+        void print_internal(std::ostream& stream, const stacktrace& trace, detail::optional<bool> color_override) const {
+            bool color = should_do_color(stream, color_override);
+            maybe_ensure_virtual_terminal_processing(stream, color);
+            write_trace(stream, trace, color);
+        }
+
+        void write_trace(std::ostream& stream, const stacktrace& trace, bool color) const {
             if(!options.header.empty()) {
                 stream << options.header << '\n';
             }
             std::size_t counter = 0;
             const auto& frames = trace.frames;
             if(frames.empty()) {
-                stream << "<empty trace>\n";
+                stream << "<empty trace>";
                 return;
             }
             const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
@@ -214,14 +240,16 @@ CPPTRACE_BEGIN_NAMESPACE
                     transformed_frame = options.transform(frames[i]);
                 }
                 const stacktrace_frame& frame = options.transform ? transformed_frame.unwrap() : frames[i];
-                if(options.filter && !options.filter(frame)) {
-                    if(!options.show_filtered_frames) {
-                        counter++;
-                        continue;
-                    }
-                    print_placeholder_frame(stream, frame_number_width, counter);
+                bool filter_out_frame = options.filter && !options.filter(frame);
+                if(filter_out_frame && !options.show_filtered_frames) {
+                    counter++;
+                    continue;
+                }
+                microfmt::print(stream, "#{<{}} ", frame_number_width, counter);
+                if(filter_out_frame) {
+                    microfmt::print(stream, "(filtered)");
                 } else {
-                    print_frame_internal(stream, frame, color, frame_number_width, counter);
+                    write_frame(stream, frame, color);
                     if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
                         auto snippet = detail::get_snippet(
                             frame.filename,
@@ -235,83 +263,71 @@ CPPTRACE_BEGIN_NAMESPACE
                         }
                     }
                 }
-                if(newline_at_end || i + 1 != frames.size()) {
+                if(i + 1 != frames.size()) {
                     stream << '\n';
                 }
                 counter++;
             }
         }
 
-        void print_frame_internal(
-            std::ostream& stream,
-            const stacktrace_frame& frame,
-            bool color,
-            unsigned frame_number_width,
-            std::size_t counter
-        ) const {
-            microfmt::print(stream, "#{<{}} ", frame_number_width, counter);
-            print_frame_inner(stream, frame, color);
-        }
-
-        void print_placeholder_frame(std::ostream& stream, unsigned frame_number_width, std::size_t counter) const {
-            microfmt::print(stream, "#{<{}} (filtered)", frame_number_width, counter);
-        }
-
-        void print_frame_internal(
-            std::ostream& stream,
-            const stacktrace_frame& frame,
-            detail::optional<bool> color_override
-        ) const {
-            bool do_color = should_do_color(stream, color_override);
-            maybe_ensure_virtual_terminal_processing(stream, do_color);
-            print_frame_inner(stream, frame, do_color);
-        }
-
-        void print_frame_inner(std::ostream& stream, const stacktrace_frame& frame, bool color) const {
-            const auto reset  = color ? RESET : "";
-            const auto green  = color ? GREEN : "";
-            const auto yellow = color ? YELLOW : "";
-            const auto blue   = color ? BLUE : "";
-            if(frame.is_inline) {
-                microfmt::print(stream, "{<{}} ", 2 * sizeof(frame_ptr) + 2, "(inlined)");
-            } else if(options.addresses != address_mode::none) {
-                auto address = options.addresses == address_mode::raw ? frame.raw_address : frame.object_address;
-                microfmt::print(stream, "{}0x{>{}:0h}{} ", blue, 2 * sizeof(frame_ptr), address, reset);
+        void write_frame(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
+            write_address(stream, frame, color);
+            if(frame.is_inline || options.addresses != address_mode::none) {
+                stream << ' ';
             }
             if(!frame.symbol.empty()) {
-                detail::optional<std::string> maybe_stored_string;
-                detail::string_view symbol;
-                switch(options.symbols) {
-                    case symbol_mode::full:
-                        symbol = frame.symbol;
-                        break;
-                    case symbol_mode::pruned:
-                        maybe_stored_string = prune_symbol(frame.symbol);
-                        symbol = maybe_stored_string.unwrap();
-                        break;
-                    case symbol_mode::pretty:
-                        maybe_stored_string = prettify_symbol(frame.symbol);
-                        symbol = maybe_stored_string.unwrap();
-                        break;
-                    default:
-                        PANIC("Unhandled symbol mode");
-                }
-                microfmt::print(stream, "in {}{}{}", yellow, symbol, reset);
+                write_symbol(stream, frame, color);
+            }
+            if(!frame.symbol.empty() && !frame.filename.empty()) {
+                stream << ' ';
             }
             if(!frame.filename.empty()) {
-                microfmt::print(
-                    stream,
-                    "{}at {}{}{}",
-                    frame.symbol.empty() ? "" : " ",
-                    green,
-                    options.paths == path_mode::full ? frame.filename : detail::basename(frame.filename, true),
-                    reset
-                );
-                if(frame.line.has_value()) {
-                    microfmt::print(stream, ":{}{}{}", blue, frame.line.value(), reset);
-                    if(frame.column.has_value() && options.columns) {
-                        microfmt::print(stream, ":{}{}{}", blue, frame.column.value(), reset);
-                    }
+                write_source_location(stream, frame, color);
+            }
+        }
+
+        void write_address(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
+            if(frame.is_inline) {
+                microfmt::print(stream, "{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
+            } else if(options.addresses != address_mode::none) {
+                auto address = options.addresses == address_mode::raw ? frame.raw_address : frame.object_address;
+                microfmt::print(stream, "{}0x{>{}:0h}{}", color.blue(), 2 * sizeof(frame_ptr), address, color.reset());
+            }
+        }
+
+        void write_symbol(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
+            detail::optional<std::string> maybe_stored_string;
+            detail::string_view symbol;
+            switch(options.symbols) {
+                case symbol_mode::full:
+                    symbol = frame.symbol;
+                    break;
+                case symbol_mode::pruned:
+                    maybe_stored_string = prune_symbol(frame.symbol);
+                    symbol = maybe_stored_string.unwrap();
+                    break;
+                case symbol_mode::pretty:
+                    maybe_stored_string = prettify_symbol(frame.symbol);
+                    symbol = maybe_stored_string.unwrap();
+                    break;
+                default:
+                    PANIC("Unhandled symbol mode");
+            }
+            microfmt::print(stream, "in {}{}{}", color.yellow(), symbol, color.reset());
+        }
+
+        void write_source_location(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
+            microfmt::print(
+                stream,
+                "at {}{}{}",
+                color.green(),
+                options.paths == path_mode::full ? frame.filename : detail::basename(frame.filename, true),
+                color.reset()
+            );
+            if(frame.line.has_value()) {
+                microfmt::print(stream, ":{}{}{}", color.blue(), frame.line.value(), color.reset());
+                if(frame.column.has_value() && options.columns) {
+                    microfmt::print(stream, ":{}{}{}", color.blue(), frame.column.value(), color.reset());
                 }
             }
         }

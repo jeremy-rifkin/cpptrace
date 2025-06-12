@@ -146,6 +146,7 @@ Fixed
 - Prevented a couple code paths that could be susceptible to static init order issues
 - Fixed bug with loading elf symbol tables that contain zero-sized entries
 - Fixed an incorrect assertion regarding looking up symbols at program counters that reside before any seen subprogram DIE https://github.com/jeremy-rifkin/cpptrace/issues/250
+- Fixed issue with `cpptrace::stacktrace::to_string()` ending with a newline on empty traces
 
 Other
 - Marked some paths in `CPPTRACE_CATCH` and `CPPTRACE_CATCHZ` as unreachable to improve usability in cases where the

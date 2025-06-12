@@ -21,7 +21,7 @@ using namespace std::literals;
 TEST(ObjectTrace, Empty) {
     cpptrace::object_trace empty;
     EXPECT_TRUE(empty.empty());
-    EXPECT_EQ(empty.resolve().to_string(), "Stack trace (most recent call first):\n<empty trace>\n");
+    EXPECT_EQ(empty.resolve().to_string(), "Stack trace (most recent call first):\n<empty trace>");
 }
 
 
