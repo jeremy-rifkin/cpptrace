@@ -412,6 +412,12 @@ TEST(PruneSymbolTests, FunctionPointers) {
     DO_TEST("void (__cdecl&baz<int>(void))(int,double)", "baz");
 }
 
+TEST(PruneSymbolTests, UnnamedTypes) {
+    // https://godbolt.org/z/jx8GnrW4v
+    DO_TEST("main::'unnamed'::foo()", "main::<unnamed>::foo");
+    DO_TEST("main::{unnamed type#1}::foo()", "main::<unnamed type#1>::foo");
+}
+
 TEST(PruneSymbolTests, TemplateHeavySymbols) {
     // https://godbolt.org/z/z1nrMsYfs
     DO_TEST("__find_if<__gnu_cxx::__normal_iterator<int*, std::vector<int> >, __gnu_cxx::__ops::_Iter_pred<main()::<lambda(auto:19)> > >", "__find_if");
@@ -479,6 +485,15 @@ TEST(PruneSymbolTests, Extra) {
 
     DO_TEST("void foo<std::vector<int,std::allocator<int>>>(std::vector<int,std::allocator<int>> const&)", "foo");
     DO_TEST("void foo<std::basic_string<char>>(std::basic_string<char> const&)", "foo");
+}
+
+TEST(PruneSymbolTests, RegressionTests) {
+    // Symbols I've observed not pruning correctly
+    DO_TEST("void (* const&std::_Any_data::_M_access<void (*)(cpptrace::v1::log_level, char const*)>() const)(cpptrace::v1::log_level, char const*)", "std::_Any_data::_M_access");
+    DO_TEST("void (* const*std::__addressof<void (* const)(cpptrace::v1::log_level, char const*)>(void (* const&)(cpptrace::v1::log_level, char const*)))(cpptrace::v1::log_level, char const*)", "std::__addressof");
+    DO_TEST("void (* const&std::forward<void (* const&)(cpptrace::v1::log_level, char const*)>(std::remove_reference<void (* const&)(cpptrace::v1::log_level, char const*)>::type&))(cpptrace::v1::log_level, char const*)", "std::forward");
+    DO_TEST("fmt::v10::detail::parse_format_specs<char>(char const*, char const*, fmt::v10::detail::dynamic_format_specs<char>&, fmt::v10::basic_format_parse_context<char>&, fmt::v10::detail::type)::{unnamed type#1}::operator()(fmt::v10::detail::state, bool)", "fmt::v10::detail::parse_format_specs::<unnamed type#1>::operator()");
+    DO_TEST("fmt::v10::detail::parse_format_specs<char>(char const*, char const*, fmt::v10::detail::dynamic_format_specs<char>&, fmt::v10::basic_format_parse_context<char>&, fmt::v10::detail::type)::{unnamed type#2}::operator()(fmt::v10::presentation_type, int)", "fmt::v10::detail::parse_format_specs::<unnamed type#2>::operator()");
 }
 
 }

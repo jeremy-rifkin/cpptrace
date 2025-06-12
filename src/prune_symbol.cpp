@@ -413,10 +413,11 @@ namespace detail {
                  | operator
                  | name
                  | lambda
+                 | unnamed
 
     function-pointer := "(" pointer-refs-junk symbol ")"
 
-    pointer-refs-junk := { function-pointer-modifier } { pointer-refs }
+    pointer-refs-junk := { function-pointer-modifier } { pointer-refs } { ignored-identifier }
 
     anonymous-namespace := "(anonymous namespace)" | "`anonymous namespace'"
 
@@ -444,6 +445,9 @@ namespace detail {
     lambda := "{" "lambda" { PUNCTUATION } "#" LITERAL "}"
             | LITERAL                          // 'lambda*' or `symbol'
             | "<" IDENTIFIER ">"               // lambda_*
+
+    unnamed := "{" "unnamed" "#" LITERAL "}"
+             | LITERAL                         // 'unnamed*'
 
     balanced-punctuation := "(" balanced-punctuation-innards ")"
                           | "[" balanced-punctuation-innards "]"
@@ -695,7 +699,7 @@ namespace detail {
             return did_consume;
         }
 
-        NODISCARD Result<bool, parse_error> accept_lambda() {
+        NODISCARD Result<bool, parse_error> accept_lambda_or_unnamed() {
             // LLVM does main::'lambda'<...>(...)::operator()<...>(...) -- apparently this can be 'lambda<count>'
             // GCC does main::{lambda<...>(...)#1}::operator()<...>(...)
             // MSVC does `int main(void)'::`2'::<lambda_1>::operator()<...>(...)
@@ -703,9 +707,22 @@ namespace detail {
             // https://github.com/gcc-mirror/gcc/blob/b76f1fb7bf8a7b66b8acd469309257f8b18c0c51/libiberty/cp-demangle.c#L6210-L6251 TODO: What special characters can appear?
             TRY_TOK(opening_brace, tokenizer.accept({token_type::punctuation, "{"}));
             if(opening_brace) {
+                optional<token> token1;
+                optional<token> token2;
                 TRY_TOK(lambda_token, tokenizer.accept({token_type::identifier, "lambda"}));
-                if(!lambda_token) {
-                    return parse_error{};
+                if(lambda_token) {
+                    token1 = lambda_token;
+                } else {
+                    TRY_TOK(unnamed_token, tokenizer.accept({token_type::identifier, "unnamed"}));
+                    if(!unnamed_token) {
+                        return parse_error{};
+                    }
+                    TRY_TOK(type_token, tokenizer.accept({token_type::identifier, "type"}));
+                    if(!type_token) {
+                        return parse_error{};
+                    }
+                    token1 = unnamed_token;
+                    token2 = type_token;
                 }
                 TRY_PARSE(consume_punctuation(), (void)0);
                 TRY_TOK(hash_token, tokenizer.accept({token_type::punctuation, "#"}));
@@ -721,7 +738,10 @@ namespace detail {
                     return parse_error{};
                 }
                 append_output({token_type::punctuation, "<"});
-                append_output(lambda_token.unwrap());
+                append_output(token1.unwrap());
+                if(token2) {
+                    append_output(token2.unwrap());
+                }
                 append_output(hash_token.unwrap());
                 append_output(discriminator_token.unwrap());
                 append_output({token_type::punctuation, ">"});
@@ -731,7 +751,10 @@ namespace detail {
             if(
                 maybe_literal_token
                 && maybe_literal_token.unwrap().type == token_type::literal
-                && maybe_literal_token.unwrap().str.starts_with("'lambda")
+                && (
+                    maybe_literal_token.unwrap().str.starts_with("'lambda")
+                    || maybe_literal_token.unwrap().str.starts_with("'unnamed")
+                )
                 && maybe_literal_token.unwrap().str.ends_with("'")
             ) {
                 tokenizer.advance();
@@ -822,7 +845,10 @@ namespace detail {
                     } else if(
                         next
                         && next.unwrap().type == token_type::identifier
-                        && is_microsoft_calling_convention(next.unwrap().str)
+                        && (
+                            is_microsoft_calling_convention(next.unwrap().str)
+                            || is_ignored_identifier(next.unwrap().str)
+                        )
                     ) {
                         tokenizer.advance();
                     } else {
@@ -851,7 +877,7 @@ namespace detail {
             TRY_PARSE(accept_anonymous_namespace(), return true);
             TRY_PARSE(accept_operator(), return true);
             TRY_PARSE(accept_identifier_token(), return true);
-            TRY_PARSE(accept_lambda(), return true);
+            TRY_PARSE(accept_lambda_or_unnamed(), return true);
             return false;
         }
 
