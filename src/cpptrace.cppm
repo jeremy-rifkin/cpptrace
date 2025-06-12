@@ -103,5 +103,7 @@ CPPTRACE_BEGIN_NAMESPACE
         export using cpptrace::experimental::set_dwarf_resolver_disable_aranges;
     }
 
-    export using cpptrace::load_symbols_for_file;
+    #ifdef _WIN32
+     export using cpptrace::load_symbols_for_file;
+    #endif
 CPPTRACE_END_NAMESPACE

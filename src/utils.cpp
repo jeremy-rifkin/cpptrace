@@ -90,7 +90,7 @@ CPPTRACE_BEGIN_NAMESPACE
         std::set_terminate(terminate_handler);
     }
 
-    #if defined(_MSC_VER) && !defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+    #if defined(_WIN32) && !defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
      void load_symbols_for_file(const std::string&) {
          // nop
      }

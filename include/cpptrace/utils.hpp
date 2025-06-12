@@ -65,7 +65,7 @@ CPPTRACE_BEGIN_NAMESPACE
     }
 
     // dbghelp
-    #ifdef _MSC_VER
+    #ifdef _WIN32
      CPPTRACE_EXPORT void load_symbols_for_file(const std::string& filename);
     #endif
 CPPTRACE_END_NAMESPACE
