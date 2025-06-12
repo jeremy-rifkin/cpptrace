@@ -120,7 +120,7 @@ namespace detail {
     };
 
     catchable_type_info get_catchable_types(const EXCEPTION_RECORD* exception_record) {
-        static_assert(EXCEPTION_MAXIMUM_PARAMETERS >= 4);
+        static_assert(EXCEPTION_MAXIMUM_PARAMETERS >= 4, "Unexpected EXCEPTION_MAXIMUM_PARAMETERS");
         // ExceptionInformation will contain
         // [0] EH_MAGIC_NUMBER1
         // [1] ExceptionObject
