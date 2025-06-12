@@ -33,7 +33,7 @@
 # v1.0.0
 
 Major changes:
-- Overhauled how the from current exception system and `CPPTRACE_TRY`/`CPPTRACE_CATCH` macros work. They now check the
+- Overhauled how the from-current-exception system and `CPPTRACE_TRY`/`CPPTRACE_CATCH` macros work. They now check the
   thrown exception type against the type the catch accepts to decide whether or not to collect a trace. This eliminates
   the need for The `TRYZ`/`CATCHZ` variants of the macros as now the normal macro is equally zero-overhead. As such, the
   `Z` variants have been removed.
@@ -45,7 +45,8 @@ Breaking changes:
   > **Details**
   >
   > Author's note: I apologize for this non-trivial breaking change, however, it allows for a much improved
-  > implementation of the from current exception system and the impact should be [minimal for most codebases](https://github.com/search?type=code&q=%2F%5CbCPPTRACE_CATCH_ALT%5Cb%2F+language%3Ac%2B%2B+-is%3Afork+-repo%3Ajeremy-rifkin%2Fcpptrace+-path%3Afrom_current.hpp).
+  > implementation of the from-current-exception system. The impact should be [very minimal](https://github.com/search?type=code&q=%2F%5CbCPPTRACE_CATCH_ALT%5Cb%2F+language%3Ac%2B%2B+-is%3Afork+-repo%3Ajeremy-rifkin%2Fcpptrace+-path%3Afrom_current.hpp)
+  > for most codebases.
   >
   > Transitioning to `cpptrace::try_catch` is straightforward:
   > <table>
@@ -71,7 +72,7 @@ Breaking changes:
   > } CPPTRACE_CATCH_ALT(const std::exception& e) {
   >     handle_exception(e);
   > } CPPTRACE_CATCH_ALT(...) {
-  >     handle_unknown_exception(e);
+  >     handle_unknown_exception();
   > }
   > ```
 
@@ -90,7 +91,7 @@ Breaking changes:
   >         handle_exception(e);
   >     },
   >     [&] () { // `catch(...)`
-  >         handle_unknown_exception(e);
+  >         handle_unknown_exception();
   >     }
   > );
   > ```
@@ -100,8 +101,9 @@ Breaking changes:
   > </tbody>
   > </table>
   >
-  > Please note as well that code such as the following, which was valid before, will still compile now. The catch
-  > handler will work but it won't receive a correct current trace.
+  > Please note as well that code such as the following, which was valid before, will still compile now but may report a
+  > misleading trace. The second catch handler will work but it cpptrace won't know about the handler's type and won't
+  > collect a trace that doesn't match the first handler's type, `std::logic_error`.
   >
   > ```cpp
   > CPPTRACE_TRY {
@@ -109,13 +111,13 @@ Breaking changes:
   > } CPPTRACE_CATCH(const std::logic_error& e) {
   >     ...
   > } catch(const std::exception& e) {
-  >     handle_exception(e);
+  >     ...
   > }
   > ```
 
 Potentially-breaking changes:
 - This version of cpptrace reworks the public interface to use an inline ABI versioning namespace. All symbols in the
-  public interface are now secretly in the `cpptrace::v1` namespace. This is an ABI break, but any abi mismatch will
+  public interface are now secretly in the `cpptrace::v1` namespace. This is an ABI break, but any ABI mismatch will
   result in linker errors instead of silent bugs. This change is an effort to allow future evolution of cpptrace in a
   way that respects ABI.
 - This version fixes a problem with returns from `CPPTRACE_TRY` blocks on windows. Unfortunately, this macro has to use
@@ -123,7 +125,7 @@ Potentially-breaking changes:
   footgun and now `return` statements in `CPPTRACE_TRY` blocks are prevented from compiling on windows.
 
 Added
-- Added `cpptrace::try_catch` for handling multiple alternatives with stack traces access
+- Added `cpptrace::try_catch` for handling multiple alternatives with access to current exception traces
 - Added `cpptrace::rethrow` utility for rethrowing exceptions from `CPPTRACE_CATCH` while preserving the stacktrace https://github.com/jeremy-rifkin/cpptrace/issues/214
 - Added utilities for getting the current trace from the last rethrow point
   (`cpptrace::raw_trace_from_current_exception_rethrow`, `cpptrace::from_current_exception_rethrow`,
@@ -132,18 +134,22 @@ Added
   anything. The following functions can be used to change this: (`cpptrace::set_log_level`,
   `cpptrace::set_log_callback`, and `cpptrace::use_default_stderr_logger`)
 - Added `cpptrace::basename` utility
-- Added formatter option to clean up some long symbol names (`cpptrace::formatter::prettify_symbols`)
 - Added `cpptrace::prettify_type` utility
 - Added `cpptrace::prune_symbol` utility
+- Added formatter option for symbol formatting (`cpptrace::formatter::symbols`)
 - Added `cpptrace::detail::lazy_trace_holder::is_resolved`
 - Added support for C++20 modules https://github.com/jeremy-rifkin/cpptrace/pull/248
 - Added `cpptrace::load_symbols_for_file` to support DLLs loaded at runtime when using dbghelp https://github.com/jeremy-rifkin/cpptrace/pull/247
+
+Removed
+- Removed `CPPTRACE_TRYZ` and `CPPTRACE_CATCHZ` macros
+- Removed the `CPPTRACE_CATCH_ALT` macro
 
 Fixed
 - Fixed a problem where `CPPTRACE_TRY` blocks could contain `return` statements but not return on windows due to an IILE. This is now an error. https://github.com/jeremy-rifkin/cpptrace/issues/245
 - Fixed cases where cpptrace could print to stderr on internal errors without the user desiring so https://github.com/jeremy-rifkin/cpptrace/issues/234
 - Fixed a couple internal locking mistakes
-- Prevented a couple code paths that could be susceptible to static init order issues
+- Fixed a couple of code paths that could be susceptible to static init order issues
 - Fixed bug with loading elf symbol tables that contain zero-sized entries
 - Fixed an incorrect assertion regarding looking up symbols at program counters that reside before any seen subprogram DIE https://github.com/jeremy-rifkin/cpptrace/issues/250
 - Fixed issue with `cpptrace::stacktrace::to_string()` ending with a newline on empty traces
