@@ -592,7 +592,7 @@ CPPTRACE_TRY {
 }
 ```
 
-> [!WARNING]
+> [!IMPORTANT]
 > There is an unfortunate limitation with `return` statements in these try/catch macros: The implementation on Windows
 > requires wrapping the try body in an immediately-invoked lambda and and as such `return` statements would return from
 > the lambda not the enclosing function. Cpptrace guards against misleading `return`s compiling by requiring the lambdas
@@ -606,7 +606,7 @@ CPPTRACE_TRY {
 > }
 > ```
 
-> [!WARNING]
+> [!IMPORTANT]
 > There is a footgun which is mainly relevant for code that was written on an older version of cpptrace: It's possible
 > to write the following without getting errors
 > ```cpp
