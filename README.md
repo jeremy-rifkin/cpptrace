@@ -419,11 +419,12 @@ colors for the `formatter::format` method and it may not be able to detect if so
 not. For this reason, `formatter::format` and `formatter::print` methods have overloads taking a color parameter. This
 color parameter will override configured color mode.
 
-The `symbols` option provides a few settings for pretty-printing symbol names. By default the full name is printed.
+The `symbols` option provides a few settings for pretty-printing symbol names:
+- `symbol_mode::full` default, uses the full demangled name
 - `symbol_mode::pretty` applies a number of transformations to clean up long symbol names. For example, it turns
   `std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >` into `std::string`. This is
   equivalent to `cpptrace::prettify_symbol`.
-- `symbol_mode::prune` prunes demangled symbols by removing return types, template arguments, and function parameters.
+- `symbol_mode::pruned` prunes demangled symbols by removing return types, template arguments, and function parameters.
   It also does some minimal normalization. For example, it prunes `ns::S<int, float>::~S()` to `ns::S::~S`. If cpptrace
   is unable to parse the symbol it will uses the full symbol. This is equivalent to `cpptrace::prune_symbol`.
 
