@@ -1232,8 +1232,8 @@ namespace cpptrace {
 
 # ABI Versioning
 
-Since cpptrace vX, the library uses an inline ABI versioning namespace and all symbols part of the public interface are
-secretly under the namespace `cpptrace::v1`. This is done to allow for potential future library evolution in an
+Since cpptrace v1.0.0, the library uses an inline ABI versioning namespace and all symbols part of the public interface
+are secretly under the namespace `cpptrace::v1`. This is done to allow for potential future library evolution in an
 ABI-friendly manner.
 
 # Supported Debug Formats
