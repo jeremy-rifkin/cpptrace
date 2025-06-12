@@ -707,11 +707,12 @@ namespace detail {
             // https://github.com/gcc-mirror/gcc/blob/b76f1fb7bf8a7b66b8acd469309257f8b18c0c51/libiberty/cp-demangle.c#L6210-L6251 TODO: What special characters can appear?
             TRY_TOK(opening_brace, tokenizer.accept({token_type::punctuation, "{"}));
             if(opening_brace) {
-                optional<token> token1;
-                optional<token> token2;
+                token token1{};
+                token token2{};
+                bool two_tokens = false; // this awfulness to work around gcc's maybe-uninitialized analysis
                 TRY_TOK(lambda_token, tokenizer.accept({token_type::identifier, "lambda"}));
                 if(lambda_token) {
-                    token1 = lambda_token;
+                    token1 = lambda_token.unwrap();
                 } else {
                     TRY_TOK(unnamed_token, tokenizer.accept({token_type::identifier, "unnamed"}));
                     if(!unnamed_token) {
@@ -721,8 +722,9 @@ namespace detail {
                     if(!type_token) {
                         return parse_error{};
                     }
-                    token1 = unnamed_token;
-                    token2 = type_token;
+                    token1 = unnamed_token.unwrap();
+                    token2 = type_token.unwrap();
+                    two_tokens = true;
                 }
                 TRY_PARSE(consume_punctuation(), (void)0);
                 TRY_TOK(hash_token, tokenizer.accept({token_type::punctuation, "#"}));
@@ -738,9 +740,9 @@ namespace detail {
                     return parse_error{};
                 }
                 append_output({token_type::punctuation, "<"});
-                append_output(token1.unwrap());
-                if(token2) {
-                    append_output(token2.unwrap());
+                append_output(token1);
+                if(two_tokens) {
+                    append_output(token2);
                 }
                 append_output(hash_token.unwrap());
                 append_output(discriminator_token.unwrap());
