@@ -9,14 +9,24 @@
 
 #include "binary/elf.hpp"
 #include "binary/mach-o.hpp"
+#include "cpptrace/utils.hpp"
 
 using namespace std::literals;
 using namespace cpptrace::detail;
 
 template<> struct fmt::formatter<lyra::cli> : ostream_formatter {};
 
+struct options {
+    std::filesystem::path path;
+    bool demangle = false;
+    bool prune = false;
+};
+
 #if IS_LINUX
-void dump_symtab_result(const Result<optional<std::vector<elf::symbol_entry>>, internal_error>& res) {
+void dump_symtab_result(
+    const Result<optional<std::vector<elf::symbol_entry>>, internal_error>& res,
+    const options& options
+) {
     if(!res) {
         fmt::println(stderr, "Error loading: {}", res.unwrap_error().what());
     }
@@ -27,7 +37,16 @@ void dump_symtab_result(const Result<optional<std::vector<elf::symbol_entry>>, i
     const auto& entries = entries_.unwrap();
     fmt::println("{:16} {:16} {:4} {}", "value", "size", "shdx", "symbol");
     for(const auto& entry : entries) {
-        fmt::println("{:016x} {:016x} {:04x} {}", entry.st_value, entry.st_size, entry.st_shndx, entry.st_name);
+        std::string name;
+        if(options.demangle) {
+            name = cpptrace::demangle(entry.st_name);
+            if(options.prune) {
+                name = cpptrace::prune_symbol(name);
+            }
+        } else {
+            name = entry.st_name;
+        }
+        fmt::println("{:016x} {:016x} {:04x} {}", entry.st_value, entry.st_size, entry.st_shndx, name);
     }
 }
 
@@ -39,17 +58,17 @@ auto get_elf(const std::filesystem::path& path) {
     return std::move(elf_).unwrap_value();
 }
 
-void dump_symbols(const std::filesystem::path& path) {
-    auto elf = get_elf(path);
+void dump_symbols(const options& options) {
+    auto elf = get_elf(options.path);
     fmt::println("Symtab:");
-    dump_symtab_result(elf.get_symtab_entries());
+    dump_symtab_result(elf.get_symtab_entries(), options);
     fmt::println("Dynamic symtab:");
-    dump_symtab_result(elf.get_dynamic_symtab_entries());
+    dump_symtab_result(elf.get_dynamic_symtab_entries(), options);
 }
-void lookup_symbol(const std::filesystem::path& path, cpptrace::frame_ptr address) {
-    auto elf = get_elf(path);
+void lookup_symbol(const options& options, cpptrace::frame_ptr address) {
+    auto elf = get_elf(options.path);
     if(auto symbol = elf.lookup_symbol(address)) {
-        fmt::println("Symbol: {}", symbol.unwrap());
+        fmt::println("Symbol: {}", options.demangle ? cpptrace::demangle(symbol.unwrap()) : symbol.unwrap());
     } else {
         fmt::println("Could not find symbol");
     }
@@ -72,12 +91,14 @@ void lookup_symbol(const std::filesystem::path&, cpptrace::frame_ptr) {
 
 int symbol_tables(int argc, char** argv) {
     bool show_help = false;
-    std::filesystem::path path;
     std::optional<std::string> lookup;
+    options options;
     auto cli = lyra::cli()
         | lyra::help(show_help)
         | lyra::opt(lookup, "address")["--lookup"]("address in hex to lookup")
-        | lyra::arg(path, "binary path")("binary to dump symbol tables for").required();
+        | lyra::opt(options.demangle)["--demangle"]("demangle the symbol")
+        | lyra::opt(options.prune)["--prune"]("prune the symbol")
+        | lyra::arg(options.path, "binary path")("binary to dump symbol tables for").required();
     if(auto result = cli.parse({ argc, argv }); !result) {
         fmt::println(stderr, "Error in command line: {}", result.message());
         fmt::println("{}", cli);
@@ -87,21 +108,21 @@ int symbol_tables(int argc, char** argv) {
         fmt::println("{}", cli);
         return 0;
     }
-    if(!std::filesystem::exists(path)) {
-        fmt::println(stderr, "Error: Path doesn't exist {}", path);
+    if(!std::filesystem::exists(options.path)) {
+        fmt::println(stderr, "Error: Path doesn't exist {}", options.path);
         return 1;
     }
-    if(!std::filesystem::is_regular_file(path)) {
-        fmt::println(stderr, "Error: Path isn't a regular file {}", path);
+    if(!std::filesystem::is_regular_file(options.path)) {
+        fmt::println(stderr, "Error: Path isn't a regular file {}", options.path);
         return 1;
     }
     if(lookup) {
         auto address = std::stoull(*lookup, nullptr, 16);
         fmt::println(stderr, "Looking up address {:016x}", address);
-        lookup_symbol(path, address);
+        lookup_symbol(options, address);
         return 0;
     }
-    dump_symbols(path);
+    dump_symbols(options);
     return 0;
 }
 
