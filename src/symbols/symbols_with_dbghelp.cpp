@@ -451,7 +451,6 @@ namespace dbghelp {
 CPPTRACE_END_NAMESPACE
 
 CPPTRACE_BEGIN_NAMESPACE
-namespace experimental {
     /*
     When a module was loaded at runtime with LoadLibrary after SymInitialize was already called,
     it is necessary to manually load the symbols from that module with SymLoadModuleEx.
@@ -508,7 +507,6 @@ namespace experimental {
             );
         }
     }
-}
 CPPTRACE_END_NAMESPACE
 
 #endif

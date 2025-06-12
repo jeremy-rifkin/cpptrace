@@ -65,9 +65,9 @@ CPPTRACE_BEGIN_NAMESPACE
     }
 
     // dbghelp
-    namespace experimental {
-        CPPTRACE_EXPORT void load_symbols_for_file(const std::string& filename);
-    }
+    #ifdef _MSC_VER
+     CPPTRACE_EXPORT void load_symbols_for_file(const std::string& filename);
+    #endif
 CPPTRACE_END_NAMESPACE
 
 #endif

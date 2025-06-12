@@ -89,4 +89,10 @@ CPPTRACE_BEGIN_NAMESPACE
     void register_terminate_handler() {
         std::set_terminate(terminate_handler);
     }
+
+    #if defined(_MSC_VER) && !defined(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
+     void load_symbols_for_file(const std::string&) {
+         // nop
+     }
+    #endif
 CPPTRACE_END_NAMESPACE

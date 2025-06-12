@@ -1207,18 +1207,23 @@ This section only applies to the dbghelp backend (`CPPTRACE_GET_SYMBOLS_WITH_DBG
 
 When loading a DLL at runtime with `LoadLibrary` after a stacktrace has already been generated,
 symbols from that library may not be resolved correctly for subsequent stacktraces. To fix this,
-call `cpptrace::experimental::load_symbols_for_file` with the same filename that was passed to
-`LoadLibrary`.
+call `cpptrace::load_symbols_for_file` with the same path that was passed to `LoadLibrary`.
 
 ```cpp
 HMODULE hModule = LoadLibrary("mydll.dll");
 if (hModule) {
-    cpptrace::experimental::load_symbols_for_file("mydll.dll");
+    cpptrace::load_symbols_for_file("mydll.dll");
 }
 ```
 
 For backends other than dbghelp, `load_symbols_for_file` does nothing. For platforms other than
 Windows, it is not declared.
+
+```cpp
+namespace cpptrace {
+    void load_symbols_for_file(const std::string& filename);
+}
+```
 
 # ABI Versioning
 

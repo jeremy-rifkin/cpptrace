@@ -154,17 +154,3 @@ namespace detail {
     }
 }
 CPPTRACE_END_NAMESPACE
-
-/*
-Fallback definition for cpptrace::experimental::load_symbols_for_file. If
-CPPTRACE_GET_SYMBOLS_WITH_DBGHELP is defined, this function is defined in symbols_with_dbghelp.cpp.
-*/
-#ifndef CPPTRACE_GET_SYMBOLS_WITH_DBGHELP
-CPPTRACE_BEGIN_NAMESPACE
-namespace experimental {
-    void load_symbols_for_file(const std::string& filename) {
-        (void)filename;
-    }
-}
-CPPTRACE_END_NAMESPACE
-#endif
