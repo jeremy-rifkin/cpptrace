@@ -70,6 +70,7 @@ CPPTRACE_BEGIN_NAMESPACE
             bool show_filtered_frames = true;
             std::function<bool(const stacktrace_frame&)> filter;
             std::function<stacktrace_frame(stacktrace_frame)> transform;
+            std::function<bool(const stacktrace_frame&)> interesting;
         } options;
 
     public:
@@ -105,6 +106,9 @@ CPPTRACE_BEGIN_NAMESPACE
         }
         void transform(std::function<stacktrace_frame(stacktrace_frame)> transform) {
             options.transform = std::move(transform);
+        }
+        void interesting(std::function<bool(const stacktrace_frame&)> interesting) {
+            options.interesting = std::move(interesting);
         }
 
         std::string format(
@@ -214,7 +218,13 @@ CPPTRACE_BEGIN_NAMESPACE
                 transformed_frame = options.transform(input_frame);
             }
             const stacktrace_frame& frame = options.transform ? transformed_frame.unwrap() : input_frame;
-            write_frame(stream, frame, color);
+            auto interesting = options.interesting ? options.interesting(frame) : true;
+            write_frame(
+                stream,
+                frame,
+                interesting ? color : false,
+                interesting ? options.symbols : symbol_mode::pruned
+            );
         }
 
         void print_internal(std::ostream& stream, const stacktrace& trace, detail::optional<bool> color_override) const {
@@ -249,8 +259,14 @@ CPPTRACE_BEGIN_NAMESPACE
                 if(filter_out_frame) {
                     microfmt::print(stream, "(filtered)");
                 } else {
-                    write_frame(stream, frame, color);
-                    if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
+                    auto interesting = options.interesting ? options.interesting(frame) : true;
+                    write_frame(
+                        stream,
+                        frame,
+                        interesting ? color : false,
+                        interesting ? options.symbols : symbol_mode::pruned
+                    );
+                    if(frame.line.has_value() && !frame.filename.empty() && options.snippets && interesting) {
                         auto snippet = detail::get_snippet(
                             frame.filename,
                             frame.line.value(),
@@ -270,13 +286,18 @@ CPPTRACE_BEGIN_NAMESPACE
             }
         }
 
-        void write_frame(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
+        void write_frame(
+            std::ostream& stream,
+            const stacktrace_frame& frame,
+            color_setting color,
+            symbol_mode symbols
+        ) const {
             write_address(stream, frame, color);
             if(frame.is_inline || options.addresses != address_mode::none) {
                 stream << ' ';
             }
             if(!frame.symbol.empty()) {
-                write_symbol(stream, frame, color);
+                write_symbol(stream, frame, color, symbols);
             }
             if(!frame.symbol.empty() && !frame.filename.empty()) {
                 stream << ' ';
@@ -295,10 +316,15 @@ CPPTRACE_BEGIN_NAMESPACE
             }
         }
 
-        void write_symbol(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
+        void write_symbol(
+            std::ostream& stream,
+            const stacktrace_frame& frame,
+            color_setting color,
+            symbol_mode symbols
+        ) const {
             detail::optional<std::string> maybe_stored_string;
             detail::string_view symbol;
-            switch(options.symbols) {
+            switch(symbols) {
                 case symbol_mode::full:
                     symbol = frame.symbol;
                     break;
@@ -397,6 +423,10 @@ CPPTRACE_BEGIN_NAMESPACE
     }
     formatter& formatter::transform(std::function<stacktrace_frame(stacktrace_frame)> transform) {
         pimpl->transform(std::move(transform));
+        return *this;
+    }
+    formatter& formatter::interesting(std::function<bool(const stacktrace_frame&)> interesting) {
+        pimpl->interesting(std::move(interesting));
         return *this;
     }
 
