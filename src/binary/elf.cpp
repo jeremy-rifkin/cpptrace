@@ -1,5 +1,8 @@
 #include "binary/elf.hpp"
+#include <memory>
 
+#include "utils/decompress/decompress_zlib.h"
+#include "utils/decompress/decompress_zstd.h"
 #include "utils/error.hpp"
 #include "utils/io/base_file.hpp"
 #include "utils/io/memory_file_view.hpp"
@@ -292,6 +295,7 @@ namespace detail {
             section_info info;
             info.sh_name = byteswap_if_needed(section_header.sh_name);
             info.sh_type = byteswap_if_needed(section_header.sh_type);
+            info.sh_flags = byteswap_if_needed(section_header.sh_flags);
             info.sh_addr = byteswap_if_needed(section_header.sh_addr);
             info.sh_offset = byteswap_if_needed(section_header.sh_offset);
             info.sh_size = byteswap_if_needed(section_header.sh_size);
@@ -301,6 +305,59 @@ namespace detail {
         }
         did_load_sections = true;
         return sections;
+    }
+
+    template<typename T>
+    Result<std::vector<T>, internal_error> elf::read_compressed_section(const section_info& section) {
+        if(is_64) {
+            return this->read_compressed_section_impl<T, 64>(section);
+        } else {
+            return this->read_compressed_section_impl<T, 32>(section);
+        }
+    }
+
+    template<typename T, std::size_t Bits>
+    Result<std::vector<T>, internal_error> elf::read_compressed_section_impl(const section_info& section) {
+        static_assert(Bits == 32 || Bits == 64, "Unexpected Bits argument");
+        using CHeader = typename std::conditional<Bits == 32, Elf32_Chdr, Elf64_Chdr>::type;
+        if((section.sh_flags & SHF_COMPRESSED) == 0) {
+            return internal_error("requested section is not compressed");
+        }
+        if(section.sh_entsize > 0 && section.sh_entsize != sizeof(T)) {
+            return internal_error("compressed section entsize mismatch: {} != {}", section.sh_entsize, sizeof(T));
+        }
+        auto loaded_sh = file->read<CHeader>(static_cast<off_t>(section.sh_offset));
+        if(loaded_sh.is_error()) {
+            return std::move(loaded_sh).unwrap_error();
+        }
+        const CHeader& comp_header = loaded_sh.unwrap_value();
+        auto decompression_type = byteswap_if_needed(comp_header.ch_type);
+        decltype(&decompress_zlib) decompress_function = nullptr;
+        switch(decompression_type) {
+            case ELFCOMPRESS_ZLIB:
+                decompress_function = decompress_zlib;
+                break;
+            case ELFCOMPRESS_ZSTD:
+                decompress_function = decompress_zstd;
+                break;
+            default:
+                return internal_error("unsupported compression type {} in {}", decompression_type, file->path());
+        }
+        auto decompressed_size = byteswap_if_needed(comp_header.ch_size);
+        if(decompressed_size % sizeof(T) != 0) {
+            return internal_error("decompressed size not a multiple of entry size");
+        }
+        std::vector<T> buffer(decompressed_size / sizeof(T));
+        auto decompress_res = decompress_function(
+            cpptrace::detail::bspan(reinterpret_cast<char*>(buffer.data()), decompressed_size),
+            *file,
+            static_cast<off_t>(section.sh_offset + sizeof(CHeader)),
+            section.sh_size - sizeof(CHeader)
+        );
+        if(!decompress_res) {
+            return decompress_res.unwrap_error();
+        }
+        return buffer;
     }
 
     Result<const std::vector<char>&, internal_error> elf::get_strtab(std::size_t index) {
@@ -329,12 +386,21 @@ namespace detail {
         if(section.sh_type != SHT_STRTAB) {
             return internal_error("requested strtab section not a strtab (requested {} of {})", index, file->path());
         }
-        entry.data.resize(section.sh_size + 1);
-        auto read_res = file->read_bytes(span<char>{entry.data.data(), section.sh_size}, section.sh_offset);
-        if(!read_res) {
-            return read_res.unwrap_error();
+        if(section.sh_flags & SHF_COMPRESSED) {
+            auto decompressed = read_compressed_section<char>(section);
+            if(decompressed.is_error()) {
+                return std::move(decompressed).unwrap_error();
+            }
+            entry.data = std::move(decompressed.unwrap_value());
+            entry.data.push_back(0); // null-terminate for safety
+        } else {
+            entry.data.resize(section.sh_size + 1);
+            auto read_res = file->read_bytes(span<char>{entry.data.data(), section.sh_size}, section.sh_offset);
+            if(!read_res) {
+                return read_res.unwrap_error();
+            }
+            entry.data[section.sh_size] = 0; // just out of an abundance of caution
         }
-        entry.data[section.sh_size] = 0; // just out of an abundance of caution
         entry.did_load_strtab = true;
         return entry.data;
     }
@@ -415,13 +481,22 @@ namespace detail {
                 if(section.sh_entsize != sizeof(SymEntry)) {
                     return internal_error("elf seems corrupted, sym entry mismatch {}", file->path());
                 }
-                if(section.sh_size % section.sh_entsize != 0) {
-                    return internal_error("elf seems corrupted, sym entry vs section size mismatch {}", file->path());
-                }
-                std::vector<SymEntry> buffer(section.sh_size / section.sh_entsize);
-                auto res = file->read_span(make_span(buffer.begin(), buffer.end()), section.sh_offset);
-                if(!res) {
-                    return res.unwrap_error();
+                std::vector<SymEntry> buffer;
+                if(section.sh_flags & SHF_COMPRESSED) {
+                    auto decompressed = read_compressed_section<SymEntry>(section);
+                    if(!decompressed) {
+                        return decompressed.unwrap_error();
+                    }
+                    buffer = std::move(decompressed.unwrap_value());
+                } else {
+                    if(section.sh_size % section.sh_entsize != 0) {
+                        return internal_error("elf seems corrupted, sym entry vs section size mismatch {}", file->path());
+                    }
+                    buffer.resize(section.sh_size / section.sh_entsize);
+                    auto res = file->read_span(make_span(buffer.begin(), buffer.end()), static_cast<off_t>(section.sh_offset));
+                    if(!res) {
+                        return res.unwrap_error();
+                    }
                 }
                 symbol_table = symtab_info{};
                 symbol_table.unwrap().entries.reserve(buffer.size());
