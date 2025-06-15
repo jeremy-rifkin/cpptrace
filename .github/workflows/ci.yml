@@ -677,3 +677,25 @@ jobs:
              -DCPPTRACE_BUILD_TESTING=On
            ninja
            ./unittest_module
+
+  unittest-windows-clangcl:
+    runs-on: windows-2022
+    needs: unittest-windows
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.13.0
+    - name: build and test
+      run: |
+           mkdir build
+           cd build
+           cmake .. `
+            -T ClangCL `
+            -DCPPTRACE_WERROR_BUILD=On `
+            -DCPPTRACE_BUILD_TESTING=On
+           cmake --build . --config ${{matrix.build_type}}
+           ./${{matrix.build_type}}/unittest

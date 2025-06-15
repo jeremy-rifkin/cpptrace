@@ -18,7 +18,7 @@
 
 #ifdef _MSC_VER
  #define CPPTRACE_TYPE_FOR(param) \
-     ::cpptrace::detail::argument<void(param)>::type
+     typename ::cpptrace::detail::argument<void(param)>::type
  // this awful double-IILE is due to C2713 "You can't use structured exception handling (__try/__except) and C++
  // exception handling (try/catch) in the same function."
  #define CPPTRACE_TRY \

@@ -153,19 +153,21 @@ TEST(Rethrow, RethrowTraceCorrect) {
         EXPECT_TRUE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
         auto rethrow_trace = cpptrace::from_current_exception_rethrow();
+        rethrow_trace.print();
         ASSERT_GE(rethrow_trace.frames.size(), 4);
-        auto it = std::find_if(
-            rethrow_trace.frames.begin(),
-            rethrow_trace.frames.end(),
+        // reverse to get the last one matching instead of "`stacktrace_from_current_rethrow_2'::`1'::catch$4()" on msvc
+        auto rit = std::find_if(
+            rethrow_trace.frames.rbegin(),
+            rethrow_trace.frames.rend(),
             [](const cpptrace::stacktrace_frame& frame) {
-                // catch check is to ignore "`stacktrace_from_current_rethrow_2'::`1'::catch$4()" on msvc
                 return frame.symbol.find("stacktrace_from_current_rethrow_2") != std::string::npos
                     && frame.symbol.find("::catch") == std::string::npos;
             }
         );
-        ASSERT_NE(it, rethrow_trace.frames.end()) << rethrow_trace;
+        ASSERT_NE(rit, rethrow_trace.frames.rend()) << rethrow_trace;
+        size_t i = static_cast<size_t>(&*rit - &*rethrow_trace.frames.begin());
+        auto it = rethrow_trace.frames.begin() + i;
         clean_trace(rethrow_trace, it);
-        size_t i = static_cast<size_t>(it - rethrow_trace.frames.begin());
         int j = 0;
         ASSERT_LT(i, rethrow_trace.frames.size());
         ASSERT_LT(j, rethrow_line_numbers.size());

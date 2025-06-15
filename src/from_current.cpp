@@ -12,9 +12,7 @@
 #include "utils/utils.hpp"
 #include "logging.hpp"
 
-#ifdef _MSC_VER
- #include <ehdata.h>
-#else
+#ifndef _MSC_VER
  #include <string.h>
  #if IS_WINDOWS
   #ifndef WIN32_LEAN_AND_MEAN
@@ -62,15 +60,53 @@ namespace detail {
     // https://github.com/ecatmur/stacktrace-from-exception/blob/main/stacktrace-from-exception.cpp
     // https://github.com/wine-mirror/wine/blob/7f833db11ffea4f3f4fa07be31d30559aff9c5fb/dlls/msvcrt/except.c#L371
     // https://github.com/facebook/folly/blob/d17bf897cb5bbf8f07b122a614e8cffdc38edcde/folly/lang/Exception.cpp
+
+    // ClangCL doesn't define ThrowInfo so we use our own
+    // sources:
+    // - https://github.com/ecatmur/stacktrace-from-exception/blob/main/stacktrace-from-exception.cpp
+    // - https://github.com/catboost/catboost/blob/master/contrib/libs/cxxsupp/libcxx/src/support/runtime/exception_pointer_msvc.ipp
+    // - https://www.geoffchappell.com/studies/msvc/language/predefined/index.htm
+    #if defined _WIN64
+     #pragma pack(push, 4)
+     struct CatchableType {
+         std::uint32_t properties;
+         std::int32_t pType;
+         std::uint32_t non_virtual_adjustment; // these next three are from _PMD
+         std::uint32_t offset_to_virtual_base_ptr;
+         std::uint32_t virtual_base_table_index;
+         std::uint32_t sizeOrOffset;
+         std::int32_t copyFunction;
+     };
+     struct ThrowInfo {
+         std::uint32_t attributes;
+         std::int32_t pmfnUnwind;
+         std::int32_t pForwardCompat;
+         std::int32_t pCatchableTypeArray;
+     };
+     #pragma warning(disable:4200)
+     struct CatchableTypeArray {
+         uint32_t nCatchableTypes;
+         int32_t arrayOfCatchableTypes[];
+     };
+     #pragma warning (pop)
+     #pragma pack(pop)
+    #else
+     using CatchableType = ::_CatchableType;
+     using ThrowInfo = ::_ThrowInfo;
+    #endif
+
+    static constexpr unsigned EH_MAGIC_NUMBER1 = 0x19930520; // '?msc' version magic, see ehdata.h
+    static constexpr unsigned EH_EXCEPTION_NUMBER = 0xE06D7363;  // '?msc', 'msc' | 0xE0000000
+
     using catchable_type_array_t = decltype(ThrowInfo::pCatchableTypeArray);
 
     class catchable_type_info {
         HMODULE module_pointer = nullptr;
-        const _CatchableTypeArray* catchable_types = nullptr;
+        const CatchableTypeArray* catchable_types = nullptr;
     public:
         catchable_type_info(const HMODULE module_pointer, catchable_type_array_t catchable_type_array)
             : module_pointer(module_pointer) {
-            catchable_types = rtti_rva<const _CatchableTypeArray*>(catchable_type_array);
+            catchable_types = rtti_rva<const CatchableTypeArray*>(catchable_type_array);
         }
 
         class iterator {
