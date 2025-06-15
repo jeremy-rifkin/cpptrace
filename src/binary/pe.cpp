@@ -84,7 +84,7 @@ namespace detail {
         } else {
             // 64 bit
             // I get an "error: 'QWORD' was not declared in this scope" for some reason when using QWORD
-            auto bytes = load_bytes<unsigned __int64>(file, nt_header_offset + 0x18 + 0x18); // optional header + 0x18
+            auto bytes = load_bytes<std::uint64_t>(file, nt_header_offset + 0x18 + 0x18); // optional header + 0x18
             if(!bytes) {
                 return std::move(bytes).unwrap_error();
             }

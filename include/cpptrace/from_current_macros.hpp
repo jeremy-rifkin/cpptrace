@@ -17,6 +17,16 @@
 #endif
 
 #ifdef _MSC_VER
+ #if defined(__clang__)
+  #define CPPTRACE_PUSH_EXTENSION_WARNINGS \
+     _Pragma("clang diagnostic push") \
+     _Pragma("clang diagnostic ignored \"-Wlanguage-extension-token\"")
+  #define CPPTRACE_POP_EXTENSION_WARNINGS \
+     _Pragma("clang diagnostic pop")
+ #else
+  #define CPPTRACE_PUSH_EXTENSION_WARNINGS
+  #define CPPTRACE_POP_EXTENSION_WARNINGS
+ #endif
  #define CPPTRACE_TYPE_FOR(param) \
      typename ::cpptrace::detail::argument<void(param)>::type
  // this awful double-IILE is due to C2713 "You can't use structured exception handling (__try/__except) and C++
@@ -24,12 +34,16 @@
  #define CPPTRACE_TRY \
      try { \
          [&]() -> ::cpptrace::detail::dont_return_from_try_catch_macros { \
+             CPPTRACE_PUSH_EXTENSION_WARNINGS \
              __try { \
+             CPPTRACE_POP_EXTENSION_WARNINGS \
                  return [&]() -> ::cpptrace::detail::dont_return_from_try_catch_macros {
  #define CPPTRACE_CATCH(param) \
                      return ::cpptrace::detail::dont_return_from_try_catch_macros(); \
                  }(); \
+             CPPTRACE_PUSH_EXTENSION_WARNINGS \
              } __except(::cpptrace::detail::exception_filter<CPPTRACE_TYPE_FOR(param)>(GetExceptionInformation())) { \
+             CPPTRACE_POP_EXTENSION_WARNINGS \
                  CPPTRACE_UNREACHABLE(); \
              } \
          }(); \

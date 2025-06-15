@@ -84,10 +84,17 @@ namespace detail {
          std::int32_t pCatchableTypeArray;
      };
      #pragma warning(disable:4200)
+     #if IS_CLANG
+     #pragma clang diagnostic push
+     #pragma clang diagnostic ignored "-Wc99-extensions"
+     #endif
      struct CatchableTypeArray {
          uint32_t nCatchableTypes;
          int32_t arrayOfCatchableTypes[];
      };
+     #if IS_CLANG
+     #pragma clang diagnostic pop
+     #endif
      #pragma warning (pop)
      #pragma pack(pop)
     #else
@@ -563,6 +570,7 @@ CPPTRACE_BEGIN_NAMESPACE
     namespace detail {
         #ifdef _MSC_VER
         bool matches_exception(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info) {
+            CPPTRACE_PUSH_EXTENSION_WARNINGS
             __try {
                 auto* exception_record = exception_ptrs->ExceptionRecord;
                 // Check if the SEH exception is a C++ exception
@@ -572,6 +580,7 @@ CPPTRACE_BEGIN_NAMESPACE
             } __except(EXCEPTION_EXECUTE_HANDLER) {
                 // pass
             }
+            CPPTRACE_POP_EXTENSION_WARNINGS
             return false;
         }
         #else
