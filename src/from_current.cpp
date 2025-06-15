@@ -83,19 +83,6 @@ namespace detail {
          std::int32_t pForwardCompat;
          std::int32_t pCatchableTypeArray;
      };
-     #pragma warning(disable:4200)
-     #if IS_CLANG
-     #pragma clang diagnostic push
-     #pragma clang diagnostic ignored "-Wc99-extensions"
-     #endif
-     struct CatchableTypeArray {
-         uint32_t nCatchableTypes;
-         int32_t arrayOfCatchableTypes[];
-     };
-     #if IS_CLANG
-     #pragma clang diagnostic pop
-     #endif
-     #pragma warning (pop)
      #pragma pack(pop)
     #else
      using CatchableType = ::_CatchableType;
@@ -109,11 +96,11 @@ namespace detail {
 
     class catchable_type_info {
         HMODULE module_pointer = nullptr;
-        const CatchableTypeArray* catchable_types = nullptr;
+        const _CatchableTypeArray* catchable_types = nullptr;
     public:
         catchable_type_info(const HMODULE module_pointer, catchable_type_array_t catchable_type_array)
             : module_pointer(module_pointer) {
-            catchable_types = rtti_rva<const CatchableTypeArray*>(catchable_type_array);
+            catchable_types = rtti_rva<const _CatchableTypeArray*>(catchable_type_array);
         }
 
         class iterator {
