@@ -17,9 +17,9 @@ CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
 
     constexpr bool is_32bit_v{INTPTR_MAX < INT64_MAX};
-    using Elf_Addr = std::conditional_t<is_32bit_v, std::uint32_t, std::uint64_t>;
-    using Elf_Off = std::conditional_t<is_32bit_v, std::uint32_t, std::uint64_t>;
-    using Elf_Xword = std::conditional_t<is_32bit_v, std::uint32_t, std::uint64_t>;
+    using Elf_Addr = typename std::conditional<is_32bit_v, std::uint32_t, std::uint64_t>::type;
+    using Elf_Off = typename std::conditional<is_32bit_v, std::uint32_t, std::uint64_t>::type;
+    using Elf_Xword = typename std::conditional<is_32bit_v, std::uint32_t, std::uint64_t>::type;
 
     // TODO: make methods const and a bunch of members mutable
     class elf {
