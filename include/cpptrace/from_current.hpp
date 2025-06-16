@@ -41,15 +41,12 @@ CPPTRACE_BEGIN_NAMESPACE
             using type = void;
         };
 
-        CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip);
-
         #ifdef _MSC_VER
-         CPPTRACE_EXPORT bool matches_exception(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info);
+         CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE
+         void maybe_collect_trace(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info);
          template<typename E>
          CPPTRACE_FORCE_NO_INLINE inline int exception_filter(EXCEPTION_POINTERS* exception_ptrs) {
-             if(matches_exception(exception_ptrs, typeid(E))) {
-                 collect_current_trace(1);
-             }
+             maybe_collect_trace(exception_ptrs, typeid(E));
              return EXCEPTION_CONTINUE_SEARCH;
          }
          class dont_return_from_try_catch_macros {
@@ -57,7 +54,8 @@ CPPTRACE_BEGIN_NAMESPACE
              explicit dont_return_from_try_catch_macros() = default;
          };
         #else
-         CPPTRACE_EXPORT bool check_can_catch(const std::type_info*, const std::type_info*, void**, unsigned);
+         CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE
+         void maybe_collect_trace(const std::type_info*, const std::type_info*, void**, unsigned);
          template<typename T>
          class unwind_interceptor {
          public:
@@ -68,9 +66,7 @@ CPPTRACE_BEGIN_NAMESPACE
                  void** throw_obj,
                  unsigned outer
              ) {
-                 if(check_can_catch(&typeid(T), throw_type, throw_obj, outer)) {
-                     collect_current_trace(1);
-                 }
+                 maybe_collect_trace(&typeid(T), throw_type, throw_obj, outer);
                  return false;
              }
          };

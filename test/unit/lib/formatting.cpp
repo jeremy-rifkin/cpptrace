@@ -17,6 +17,14 @@ using testing::ElementsAre;
 
 namespace {
 
+#if !defined(_WIN32) || defined(_WIN64)
+ #define ADDR_PREFIX "00000000"
+ #define INLINED_TAG "(inlined)         "
+#else
+ #define ADDR_PREFIX ""
+ #define INLINED_TAG "(inlined) "
+#endif
+
 cpptrace::stacktrace make_test_stacktrace() {
     cpptrace::stacktrace trace;
     trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "foo()", false});
@@ -31,9 +39,9 @@ TEST(FormatterTest, Basic) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
-            "#1 0x0000000000000002 in bar() at bar.cpp:30:40",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
+            "#1 0x" ADDR_PREFIX "00000002 in bar() at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25"
         )
     );
 }
@@ -48,9 +56,9 @@ TEST(FormatterTest, Inlines) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
-            "#1 (inlined)          in bar() at bar.cpp:30:40",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
+            "#1 " INLINED_TAG " in bar() at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25"
         )
     );
 }
@@ -63,9 +71,9 @@ TEST(FormatterTest, Header) {
         res,
         ElementsAre(
             "Stack trace:",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
-            "#1 0x0000000000000002 in bar() at bar.cpp:30:40",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
+            "#1 0x" ADDR_PREFIX "00000002 in bar() at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25"
         )
     );
 }
@@ -78,9 +86,9 @@ TEST(FormatterTest, NoColumn) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20",
-            "#1 0x0000000000000002 in bar() at bar.cpp:30",
-            "#2 0x0000000000000003 in main at foo.cpp:40"
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20",
+            "#1 0x" ADDR_PREFIX "00000002 in bar() at bar.cpp:30",
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40"
         )
     );
 }
@@ -93,9 +101,9 @@ TEST(FormatterTest, ObjectAddresses) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000001001 in foo() at foo.cpp:20:30",
-            "#1 0x0000000000001002 in bar() at bar.cpp:30:40",
-            "#2 0x0000000000001003 in main at foo.cpp:40:25"
+            "#0 0x" ADDR_PREFIX "00001001 in foo() at foo.cpp:20:30",
+            "#1 0x" ADDR_PREFIX "00001002 in bar() at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00001003 in main at foo.cpp:40:25"
         )
     );
 }
@@ -128,10 +136,10 @@ TEST(FormatterTest, PathShortening) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
-            "#1 0x0000000000000002 in bar() at bar.cpp:30:40",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25",
-            "#3 0x0000000000000003 in main at baz.cpp:50:25"
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
+            "#1 0x" ADDR_PREFIX "00000002 in bar() at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25",
+            "#3 0x" ADDR_PREFIX "00000003 in main at baz.cpp:50:25"
         )
     );
 }
@@ -150,7 +158,7 @@ TEST(FormatterTest, Snippets) {
         ElementsAre(
             "Stack trace (most recent call first):",
             // frame 1
-            cpptrace::microfmt::format("#0 0x0000000000000001 in foo() at {}:{}:20", __FILE__, line),
+            cpptrace::microfmt::format("#0 0x" ADDR_PREFIX "00000001 in foo() at {}:{}:20", __FILE__, line),
             cpptrace::microfmt::format("     {}:     cpptrace::stacktrace trace;", line - 2),
             cpptrace::microfmt::format("     {}:     unsigned line = __LINE__ + 1;", line - 1),
             cpptrace::microfmt::format(
@@ -163,7 +171,7 @@ TEST(FormatterTest, Snippets) {
             ),
             cpptrace::microfmt::format("     {}:     auto formatter = cpptrace::formatter{{}}", line + 2),
             // frame 2
-            cpptrace::microfmt::format("#1 0x0000000000000002 in foo() at {}:{}:20", __FILE__, line + 1),
+            cpptrace::microfmt::format("#1 0x" ADDR_PREFIX "00000002 in foo() at {}:{}:20", __FILE__, line + 1),
             cpptrace::microfmt::format("     {}:     unsigned line = __LINE__ + 1;", line - 1),
             cpptrace::microfmt::format(
                 "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"foo()\", false});",
@@ -184,7 +192,7 @@ TEST(FormatterTest, Snippets) {
         ElementsAre(
             "Stack trace (most recent call first):",
             // frame 1
-            cpptrace::microfmt::format("#0 0x0000000000000001 in foo() at {}:{}:20", __FILE__, line),
+            cpptrace::microfmt::format("#0 0x" ADDR_PREFIX "00000001 in foo() at {}:{}:20", __FILE__, line),
             cpptrace::microfmt::format("     {}:     unsigned line = __LINE__ + 1;", line - 1),
             cpptrace::microfmt::format(
                 "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"foo()\", false});",
@@ -195,7 +203,7 @@ TEST(FormatterTest, Snippets) {
                 line + 1
             ),
             // frame 2
-            cpptrace::microfmt::format("#1 0x0000000000000002 in foo() at {}:{}:20", __FILE__, line + 1),
+            cpptrace::microfmt::format("#1 0x" ADDR_PREFIX "00000002 in foo() at {}:{}:20", __FILE__, line + 1),
             cpptrace::microfmt::format(
                 "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"foo()\", false});",
                 line
@@ -218,9 +226,9 @@ TEST(FormatterTest, Colors) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 \x1B[34m0x0000000000000001\x1B[0m in \x1B[33mfoo()\x1B[0m at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m20\x1B[0m:\x1B[34m30\x1B[0m",
-            "#1 \x1B[34m0x0000000000000002\x1B[0m in \x1B[33mbar()\x1B[0m at \x1B[32mbar.cpp\x1B[0m:\x1B[34m30\x1B[0m:\x1B[34m40\x1B[0m",
-            "#2 \x1B[34m0x0000000000000003\x1B[0m in \x1B[33mmain\x1B[0m at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m40\x1B[0m:\x1B[34m25\x1B[0m"
+            "#0 \x1B[34m0x" ADDR_PREFIX "00000001\x1B[0m in \x1B[33mfoo()\x1B[0m at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m20\x1B[0m:\x1B[34m30\x1B[0m",
+            "#1 \x1B[34m0x" ADDR_PREFIX "00000002\x1B[0m in \x1B[33mbar()\x1B[0m at \x1B[32mbar.cpp\x1B[0m:\x1B[34m30\x1B[0m:\x1B[34m40\x1B[0m",
+            "#2 \x1B[34m0x" ADDR_PREFIX "00000003\x1B[0m in \x1B[33mmain\x1B[0m at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m40\x1B[0m:\x1B[34m25\x1B[0m"
         )
     );
 }
@@ -235,9 +243,9 @@ TEST(FormatterTest, Filtering) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
             "#1 (filtered)",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25"
         )
     );
 }
@@ -253,8 +261,8 @@ TEST(FormatterTest, DontShowFilteredFrames) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25"
         )
     );
 }
@@ -271,9 +279,9 @@ TEST(FormatterTest, Transforming) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in sym0 at foo.cpp:20:30",
-            "#1 0x0000000000000002 in sym1 at bar.cpp:30:40",
-            "#2 0x0000000000000003 in sym2 at foo.cpp:40:25"
+            "#0 0x" ADDR_PREFIX "00000001 in sym0 at foo.cpp:20:30",
+            "#1 0x" ADDR_PREFIX "00000002 in sym1 at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in sym2 at foo.cpp:40:25"
         )
     );
 
@@ -281,7 +289,7 @@ TEST(FormatterTest, Transforming) {
     EXPECT_THAT(
         frame_res,
         ElementsAre(
-            "0x0000000000000002 in sym3 at bar.cpp:30:40"
+            "0x" ADDR_PREFIX "00000002 in sym3 at bar.cpp:30:40"
         )
     );
 }
@@ -298,9 +306,9 @@ TEST(FormatterTest, TransformingRvalueRef) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in sym0 at foo.cpp:20:30",
-            "#1 0x0000000000000002 in sym1 at bar.cpp:30:40",
-            "#2 0x0000000000000003 in sym2 at foo.cpp:40:25"
+            "#0 0x" ADDR_PREFIX "00000001 in sym0 at foo.cpp:20:30",
+            "#1 0x" ADDR_PREFIX "00000002 in sym1 at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in sym2 at foo.cpp:40:25"
         )
     );
 
@@ -308,7 +316,7 @@ TEST(FormatterTest, TransformingRvalueRef) {
     EXPECT_THAT(
         frame_res,
         ElementsAre(
-            "0x0000000000000002 in sym3 at bar.cpp:30:40"
+            "0x" ADDR_PREFIX "00000002 in sym3 at bar.cpp:30:40"
         )
     );
 }
@@ -324,9 +332,9 @@ TEST(FormatterTest, MoveSemantics) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
             "#1 (filtered)",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25"
         )
     );
     cpptrace::formatter formatter3;
@@ -336,9 +344,9 @@ TEST(FormatterTest, MoveSemantics) {
         res2,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
             "#1 (filtered)",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25"
         )
     );
 }
@@ -354,9 +362,9 @@ TEST(FormatterTest, CopySemantics) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
             "#1 (filtered)",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25"
         )
     );
     cpptrace::formatter formatter3;
@@ -366,9 +374,9 @@ TEST(FormatterTest, CopySemantics) {
         res2,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo() at foo.cpp:20:30",
+            "#0 0x" ADDR_PREFIX "00000001 in foo() at foo.cpp:20:30",
             "#1 (filtered)",
-            "#2 0x0000000000000003 in main at foo.cpp:40:25"
+            "#2 0x" ADDR_PREFIX "00000003 in main at foo.cpp:40:25"
         )
     );
 }
@@ -383,7 +391,7 @@ TEST(FormatterTest, PrettySymbols) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) at foo.cpp:20:30"
+            "#0 0x" ADDR_PREFIX "00000001 in foo(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) at foo.cpp:20:30"
         )
     );
     auto pretty_formatter = cpptrace::formatter{}
@@ -393,7 +401,7 @@ TEST(FormatterTest, PrettySymbols) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo(std::string) at foo.cpp:20:30"
+            "#0 0x" ADDR_PREFIX "00000001 in foo(std::string) at foo.cpp:20:30"
         )
     );
 }
@@ -408,7 +416,7 @@ TEST(FormatterTest, PrunedSymbols) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in ns::S<float, int>::foo(int, int, int) at foo.cpp:20:30"
+            "#0 0x" ADDR_PREFIX "00000001 in ns::S<float, int>::foo(int, int, int) at foo.cpp:20:30"
         )
     );
     auto pruned_formatter = cpptrace::formatter{}
@@ -418,7 +426,7 @@ TEST(FormatterTest, PrunedSymbols) {
         res,
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in ns::S::foo at foo.cpp:20:30"
+            "#0 0x" ADDR_PREFIX "00000001 in ns::S::foo at foo.cpp:20:30"
         )
     );
 }

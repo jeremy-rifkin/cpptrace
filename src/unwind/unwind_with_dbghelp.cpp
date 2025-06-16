@@ -24,7 +24,11 @@ namespace detail {
     #pragma warning(disable: 4740) // warning C4740: flow in or out of inline asm code suppresses global optimization
     #endif
     CPPTRACE_FORCE_NO_INLINE
-    std::vector<frame_ptr> capture_frames(std::size_t skip, std::size_t max_depth) {
+    std::vector<frame_ptr> capture_frames(
+        std::size_t skip,
+        std::size_t max_depth,
+        EXCEPTION_POINTERS* exception_pointers
+    ) {
         skip++;
         // https://jpassing.com/2008/03/12/walking-the-stack-of-the-current-thread/
 
@@ -32,32 +36,36 @@ namespace detail {
         // GetThreadContext cannot be used on the current thread.
         // RtlCaptureContext doesn't work on i386
         CONTEXT context;
-        #if defined(_M_IX86) || defined(__i386__)
         ZeroMemory(&context, sizeof(CONTEXT));
-        context.ContextFlags = CONTEXT_CONTROL;
-        #if IS_MSVC
-        __asm {
-            label:
-            mov [context.Ebp], ebp;
-            mov [context.Esp], esp;
-            mov eax, [label];
-            mov [context.Eip], eax;
+        if(exception_pointers) {
+            context = *exception_pointers->ContextRecord;
+        } else {
+            #if defined(_M_IX86) || defined(__i386__)
+             context.ContextFlags = CONTEXT_CONTROL;
+             #if IS_MSVC
+              __asm {
+                  label:
+                  mov [context.Ebp], ebp;
+                  mov [context.Esp], esp;
+                  mov eax, [label];
+                  mov [context.Eip], eax;
+              }
+             #else
+              asm(
+                  "label:\n\t"
+                  "mov{l %%ebp, %[cEbp] | %[cEbp], ebp};\n\t"
+                  "mov{l %%esp, %[cEsp] | %[cEsp], esp};\n\t"
+                  "mov{l $label, %%eax | eax, OFFSET label};\n\t"
+                  "mov{l %%eax, %[cEip] | %[cEip], eax};\n\t"
+                  : [cEbp] "=r" (context.Ebp),
+                    [cEsp] "=r" (context.Esp),
+                    [cEip] "=r" (context.Eip)
+              );
+             #endif
+            #else
+             RtlCaptureContext(&context);
+            #endif
         }
-        #else
-        asm(
-            "label:\n\t"
-            "mov{l %%ebp, %[cEbp] | %[cEbp], ebp};\n\t"
-            "mov{l %%esp, %[cEsp] | %[cEsp], esp};\n\t"
-            "mov{l $label, %%eax | eax, OFFSET label};\n\t"
-            "mov{l %%eax, %[cEip] | %[cEip], eax};\n\t"
-            : [cEbp] "=r" (context.Ebp),
-              [cEsp] "=r" (context.Esp),
-              [cEip] "=r" (context.Eip)
-        );
-        #endif
-        #else
-        RtlCaptureContext(&context);
-        #endif
         // Setup current frame
         STACKFRAME64 frame;
         ZeroMemory(&frame, sizeof(STACKFRAME64));
