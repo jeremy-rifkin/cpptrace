@@ -342,7 +342,7 @@ extern "C" {
         const auto green   = use_color ? ESC "32m" : "";
         const auto yellow  = use_color ? ESC "33m" : "";
         const auto blue    = use_color ? ESC "34m" : "";
-        const auto frame_number_width = cpptrace::detail::n_digits(unsigned(trace->count - 1));
+        const auto frame_number_width = cpptrace::detail::n_digits(trace->count - 1);
         ctrace_stacktrace_frame* frames = trace->frames;
         for(std::size_t i = 0; i < trace->count; ++i) {
             static constexpr auto ptr_len = 2 * sizeof(cpptrace::frame_ptr);

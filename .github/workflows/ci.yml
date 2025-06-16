@@ -689,7 +689,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           sudo apt install gcc-10 g++-10 libgcc-10-dev clang-19 clang-tools-19 ninja-build gcc-multilib g++-10-multilib
+           sudo apt install gcc-10 g++-10 libgcc-10-dev clang-19 clang-tools-19 ninja-build gcc-multilib g++-multilib g++-10-multilib
     - name: build and test
       run: |
            mkdir build
