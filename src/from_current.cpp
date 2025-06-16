@@ -111,13 +111,17 @@ namespace detail {
          std::int32_t pCatchableTypeArray;
      };
      #pragma warning(disable:4200)
-     #pragma clang diagnostic push
-     #pragma clang diagnostic ignored "-Wc99-extensions"
+     #if IS_CLANG
+      #pragma clang diagnostic push
+      #pragma clang diagnostic ignored "-Wc99-extensions"
+     #endif
      struct CatchableTypeArray {
          uint32_t nCatchableTypes;
          int32_t arrayOfCatchableTypes[];
      };
-     #pragma clang diagnostic pop
+     #if IS_CLANG
+      #pragma clang diagnostic pop
+     #endif
      #pragma warning (pop)
      #pragma pack(pop)
     #else
