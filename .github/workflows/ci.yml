@@ -689,7 +689,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           sudo apt install ninja-build clang-19 clang-tools-19
+           sudo apt install gcc-10 g++-10 libgcc-10-dev clang-19 clang-tools-19 ninja-build gcc-multilib g++-10-multilib
     - name: build and test
       run: |
            mkdir build
@@ -698,6 +698,7 @@ jobs:
              -GNinja \
              -DCMAKE_BUILD_TYPE=Debug \
              -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
+             -DCMAKE_C_COMPILER=${{matrix.compiler == 'clang++-18' && 'clang' || 'gcc'}} \
              -DCPPTRACE_WERROR_BUILD=On \
              -DCPPTRACE_STD_FORMAT=Off \
              -DCPPTRACE_BUILD_TESTING=On \
