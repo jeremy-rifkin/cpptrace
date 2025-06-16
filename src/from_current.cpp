@@ -614,7 +614,11 @@ CPPTRACE_BEGIN_NAMESPACE
         CPPTRACE_FORCE_NO_INLINE
         void maybe_collect_trace(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info) {
             if(matches_exception(exception_ptrs, type_info)) {
+                #ifdef CPPTRACE_UNWIND_WITH_DBGHELP
                 collect_current_trace(2, exception_ptrs);
+                #else
+                collect_current_trace(2);
+                #endif
             }
         }
         #else
