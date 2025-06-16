@@ -54,22 +54,30 @@ namespace detail {
         }
     }
 
-    #ifdef CPPTRACE_UNWIND_WITH_DBGHELP
+    #if defined(_MSC_VER) && defined(CPPTRACE_UNWIND_WITH_DBGHELP)
      CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip, EXCEPTION_POINTERS* exception_ptrs) {
-         #if defined(_M_IX86) || defined(__i386__)
-          // skip one frame, first is CxxThrowException
-          (void)skip;
-          auto trace = raw_trace{detail::capture_frames(1, SIZE_MAX, exception_ptrs)};
-         #else
-          (void)exception_ptrs;
-          auto trace = raw_trace{detail::capture_frames(skip + 1, SIZE_MAX)};
-         #endif
-         save_current_trace(std::move(trace));
+         try {
+             #if defined(_M_IX86) || defined(__i386__)
+              // skip one frame, first is CxxThrowException
+              (void)skip;
+              auto trace = raw_trace{detail::capture_frames(1, SIZE_MAX, exception_ptrs)};
+             #else
+              (void)exception_ptrs;
+              auto trace = raw_trace{detail::capture_frames(skip + 1, SIZE_MAX)};
+             #endif
+             save_current_trace(std::move(trace));
+         } catch(...) {
+             detail::log_and_maybe_propagate_exception(std::current_exception());
+         }
      }
     #else
      CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip) {
-         auto trace = raw_trace{detail::capture_frames(skip + 1, SIZE_MAX)};
-         save_current_trace(std::move(trace));
+         try {
+             auto trace = raw_trace{detail::capture_frames(skip + 1, SIZE_MAX)};
+             save_current_trace(std::move(trace));
+         } catch(...) {
+             detail::log_and_maybe_propagate_exception(std::current_exception());
+         }
      }
     #endif
 
@@ -85,7 +93,7 @@ namespace detail {
     // - https://github.com/ecatmur/stacktrace-from-exception/blob/main/stacktrace-from-exception.cpp
     // - https://github.com/catboost/catboost/blob/master/contrib/libs/cxxsupp/libcxx/src/support/runtime/exception_pointer_msvc.ipp
     // - https://www.geoffchappell.com/studies/msvc/language/predefined/index.htm
-    #if defined _WIN64
+    #ifdef _WIN64
      #pragma pack(push, 4)
      struct CatchableType {
          std::uint32_t properties;
@@ -102,8 +110,18 @@ namespace detail {
          std::int32_t pForwardCompat;
          std::int32_t pCatchableTypeArray;
      };
+     #pragma warning(disable:4200)
+     #pragma clang diagnostic push
+     #pragma clang diagnostic ignored "-Wc99-extensions"
+     struct CatchableTypeArray {
+         uint32_t nCatchableTypes;
+         int32_t arrayOfCatchableTypes[];
+     };
+     #pragma clang diagnostic pop
+     #pragma warning (pop)
      #pragma pack(pop)
     #else
+     using CatchableTypeArray = ::_CatchableTypeArray;
      using CatchableType = ::_CatchableType;
      using ThrowInfo = ::_ThrowInfo;
     #endif
@@ -115,11 +133,11 @@ namespace detail {
 
     class catchable_type_info {
         HMODULE module_pointer = nullptr;
-        const _CatchableTypeArray* catchable_types = nullptr;
+        const CatchableTypeArray* catchable_types = nullptr;
     public:
         catchable_type_info(const HMODULE module_pointer, catchable_type_array_t catchable_type_array)
             : module_pointer(module_pointer) {
-            catchable_types = rtti_rva<const _CatchableTypeArray*>(catchable_type_array);
+            catchable_types = rtti_rva<const CatchableTypeArray*>(catchable_type_array);
         }
 
         class iterator {
