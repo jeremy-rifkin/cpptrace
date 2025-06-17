@@ -21,8 +21,10 @@ namespace {
 
 #if UINTPTR_MAX > 0xffffffff
  #define ADDR_PREFIX "00000000"
+ #define PADDING_TAG "        "
  #define INLINED_TAG "(inlined)         "
 #else
+ #define PADDING_TAG ""
  #define ADDR_PREFIX ""
  #define INLINED_TAG "(inlined) "
 #endif
@@ -134,12 +136,12 @@ TEST(FormatterTest, BreakBeforeFilename) {
         split(formatter.format(make_test_stacktrace()), "\n"),
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo()",
-            "                      at foo.cpp:20:30",
-            "#1 0x0000000000000002 in bar()",
-            "                      at bar.cpp:30:40",
-            "#2 0x0000000000000003 in main",
-            "                      at foo.cpp:40:25"
+            "#0 0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "         at foo.cpp:20:30",
+            "#1 0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "         at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "         at foo.cpp:40:25"
         )
     );
 }
@@ -174,12 +176,12 @@ TEST(FormatterTest, BreakBeforeFilenameInlines) {
         split(formatter.format(trace), "\n"),
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 0x0000000000000001 in foo()",
-            "                      at foo.cpp:20:30",
-            "#1 (inlined)          in bar()",
-            "                      at bar.cpp:30:40",
-            "#2 0x0000000000000003 in main",
-            "                      at foo.cpp:40:25"
+            "#0 0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "         at foo.cpp:20:30",
+            "#1 " INLINED_TAG " in bar()",
+            "     " PADDING_TAG "         at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "         at foo.cpp:40:25"
         )
     );
 }
@@ -194,30 +196,30 @@ TEST(FormatterTest, BreakBeforeFilenameLongTrace) {
         split(formatter.format(make_test_stacktrace(4)), "\n"),
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0  0x0000000000000001 in foo()",
-            "                       at foo.cpp:20:30",
-            "#1  0x0000000000000002 in bar()",
-            "                       at bar.cpp:30:40",
-            "#2  0x0000000000000003 in main",
-            "                       at foo.cpp:40:25",
-            "#3  0x0000000000000001 in foo()",
-            "                       at foo.cpp:20:30",
-            "#4  0x0000000000000002 in bar()",
-            "                       at bar.cpp:30:40",
-            "#5  0x0000000000000003 in main",
-            "                       at foo.cpp:40:25",
-            "#6  0x0000000000000001 in foo()",
-            "                       at foo.cpp:20:30",
-            "#7  0x0000000000000002 in bar()",
-            "                       at bar.cpp:30:40",
-            "#8  0x0000000000000003 in main",
-            "                       at foo.cpp:40:25",
-            "#9  0x0000000000000001 in foo()",
-            "                       at foo.cpp:20:30",
-            "#10 0x0000000000000002 in bar()",
-            "                       at bar.cpp:30:40",
-            "#11 0x0000000000000003 in main",
-            "                       at foo.cpp:40:25"
+            "#0  0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "          at foo.cpp:20:30",
+            "#1  0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "          at bar.cpp:30:40",
+            "#2  0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "          at foo.cpp:40:25",
+            "#3  0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "          at foo.cpp:20:30",
+            "#4  0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "          at bar.cpp:30:40",
+            "#5  0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "          at foo.cpp:40:25",
+            "#6  0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "          at foo.cpp:20:30",
+            "#7  0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "          at bar.cpp:30:40",
+            "#8  0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "          at foo.cpp:40:25",
+            "#9  0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "          at foo.cpp:20:30",
+            "#10 0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "          at bar.cpp:30:40",
+            "#11 0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "          at foo.cpp:40:25"
         )
     );
 }
@@ -235,12 +237,12 @@ TEST(FormatterTest, BreakBeforeFilenameColors) {
         split(formatter.format(make_test_stacktrace()), "\n"),
         ElementsAre(
             "Stack trace (most recent call first):",
-            "#0 \x1B[34m0x0000000000000001\x1B[0m in \x1B[33mfoo()\x1B[0m",
-            "                      at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m20\x1B[0m:\x1B[34m30\x1B[0m",
-            "#1 \x1B[34m0x0000000000000002\x1B[0m in \x1B[33mbar()\x1B[0m",
-            "                      at \x1B[32mbar.cpp\x1B[0m:\x1B[34m30\x1B[0m:\x1B[34m40\x1B[0m",
-            "#2 \x1B[34m0x0000000000000003\x1B[0m in \x1B[33mmain\x1B[0m",
-            "                      at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m40\x1B[0m:\x1B[34m25\x1B[0m"
+            "#0 \x1B[34m0x" ADDR_PREFIX "00000001\x1B[0m in \x1B[33mfoo()\x1B[0m",
+            "     " PADDING_TAG "         at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m20\x1B[0m:\x1B[34m30\x1B[0m",
+            "#1 \x1B[34m0x" ADDR_PREFIX "00000002\x1B[0m in \x1B[33mbar()\x1B[0m",
+            "     " PADDING_TAG "         at \x1B[32mbar.cpp\x1B[0m:\x1B[34m30\x1B[0m:\x1B[34m40\x1B[0m",
+            "#2 \x1B[34m0x" ADDR_PREFIX "00000003\x1B[0m in \x1B[33mmain\x1B[0m",
+            "     " PADDING_TAG "         at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m40\x1B[0m:\x1B[34m25\x1B[0m"
         )
     );
 }
