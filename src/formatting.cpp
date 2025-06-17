@@ -435,6 +435,9 @@ CPPTRACE_BEGIN_NAMESPACE
     std::string formatter::format(const stacktrace_frame& frame, bool color) const {
         return pimpl->format(frame, color);
     }
+    std::string formatter::format(const stacktrace_frame& frame, bool color, size_t filename_indent) const {
+        return pimpl->format(frame, color, filename_indent);
+    }
 
     std::string formatter::format(const stacktrace& trace) const {
         return pimpl->format(trace);

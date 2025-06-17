@@ -60,6 +60,8 @@ CPPTRACE_BEGIN_NAMESPACE
 
         std::string format(const stacktrace_frame&) const;
         std::string format(const stacktrace_frame&, bool color) const;
+        // The last argument is the indent to use for the filename, if break_before_filename is set
+        std::string format(const stacktrace_frame&, bool color, size_t filename_indent) const;
 
         std::string format(const stacktrace&) const;
         std::string format(const stacktrace&, bool color) const;
