@@ -705,7 +705,7 @@ jobs:
              -DCMAKE_C_FLAGS=-m32 \
              -DCMAKE_CXX_FLAGS=-m32
            ninja
-           ./unittest_module
+           ./unittest
 
   unittest-windows-32-bit:
     runs-on: windows-2022
