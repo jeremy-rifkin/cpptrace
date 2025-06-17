@@ -168,7 +168,9 @@ namespace detail {
         const auto& sections = sections_res.unwrap_value();
         for(const auto& section : sections) {
             if(string_view(strtab.data() + section.sh_name) == ".text") {
-                vec.push_back(pc_range{section.sh_addr, section.sh_addr + section.sh_size});
+                vec.push_back(
+                    pc_range{to<frame_ptr>(section.sh_addr), to<frame_ptr>(section.sh_addr + section.sh_size)}
+                );
             }
         }
         return vec;
@@ -330,7 +332,10 @@ namespace detail {
             return internal_error("requested strtab section not a strtab (requested {} of {})", index, file->path());
         }
         entry.data.resize(section.sh_size + 1);
-        auto read_res = file->read_bytes(span<char>{entry.data.data(), section.sh_size}, section.sh_offset);
+        auto read_res = file->read_bytes(
+            span<char>{entry.data.data(), to<std::size_t>(section.sh_size)},
+            section.sh_offset
+        );
         if(!read_res) {
             return read_res.unwrap_error();
         }
