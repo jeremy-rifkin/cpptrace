@@ -56,6 +56,7 @@ CPPTRACE_BEGIN_NAMESPACE
         formatter& filtered_frame_placeholders(bool);
         formatter& filter(std::function<bool(const stacktrace_frame&)>);
         formatter& transform(std::function<stacktrace_frame(stacktrace_frame)>);
+        formatter& break_before_filename(bool do_break = true);
 
         std::string format(const stacktrace_frame&) const;
         std::string format(const stacktrace_frame&, bool color) const;
@@ -67,8 +68,12 @@ CPPTRACE_BEGIN_NAMESPACE
         void print(const stacktrace_frame&, bool color) const;
         void print(std::ostream&, const stacktrace_frame&) const;
         void print(std::ostream&, const stacktrace_frame&, bool color) const;
+        // The last argument is the indent to use for the filename, if break_before_filename is set
+        void print(std::ostream&, const stacktrace_frame&, bool color, size_t filename_indent) const;
         void print(std::FILE*, const stacktrace_frame&) const;
         void print(std::FILE*, const stacktrace_frame&, bool color) const;
+        // The last argument is the indent to use for the filename, if break_before_filename is set
+        void print(std::FILE*, const stacktrace_frame&, bool color, size_t filename_indent) const;
 
         void print(const stacktrace&) const;
         void print(const stacktrace&, bool color) const;

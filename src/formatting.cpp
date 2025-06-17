@@ -64,6 +64,7 @@ CPPTRACE_BEGIN_NAMESPACE
             address_mode addresses = address_mode::raw;
             path_mode paths = path_mode::full;
             bool snippets = false;
+            bool break_before_filename = false;
             int context_lines = 2;
             bool columns = true;
             symbol_mode symbols = symbol_mode::full;
@@ -106,13 +107,17 @@ CPPTRACE_BEGIN_NAMESPACE
         void transform(std::function<stacktrace_frame(stacktrace_frame)> transform) {
             options.transform = std::move(transform);
         }
+        void break_before_filename(bool do_break) {
+            options.break_before_filename = do_break;
+        }
 
         std::string format(
             const stacktrace_frame& frame,
-            detail::optional<bool> color_override = detail::nullopt
+            detail::optional<bool> color_override = detail::nullopt,
+            size_t filename_indent = 0
         ) const {
             std::ostringstream oss;
-            print_internal(oss, frame, color_override.value_or(options.color == color_mode::always));
+            print_internal(oss, frame, color_override.value_or(options.color == color_mode::always), filename_indent);
             return std::move(oss).str();
         }
 
@@ -128,17 +133,19 @@ CPPTRACE_BEGIN_NAMESPACE
         void print(
             std::ostream& stream,
             const stacktrace_frame& frame,
-            detail::optional<bool> color_override = detail::nullopt
+            detail::optional<bool> color_override = detail::nullopt,
+            size_t filename_indent = 0
         ) const {
-            print_internal(stream, frame, color_override);
+            print_internal(stream, frame, color_override, filename_indent);
             stream << "\n";
         }
         void print(
             std::FILE* file,
             const stacktrace_frame& frame,
-            detail::optional<bool> color_override = detail::nullopt
+            detail::optional<bool> color_override = detail::nullopt,
+            size_t filename_indent = 0
         ) const {
-            auto str = format(frame, color_override);
+            auto str = format(frame, color_override, filename_indent);
             str += "\n";
             std::fwrite(str.data(), 1, str.size(), file);
         }
@@ -206,7 +213,7 @@ CPPTRACE_BEGIN_NAMESPACE
             return do_color;
         }
 
-        void print_internal(std::ostream& stream, const stacktrace_frame& input_frame, detail::optional<bool> color_override) const {
+        void print_internal(std::ostream& stream, const stacktrace_frame& input_frame, detail::optional<bool> color_override, size_t col_indent) const {
             bool color = should_do_color(stream, color_override);
             maybe_ensure_virtual_terminal_processing(stream, color);
             detail::optional<stacktrace_frame> transformed_frame;
@@ -214,7 +221,7 @@ CPPTRACE_BEGIN_NAMESPACE
                 transformed_frame = options.transform(input_frame);
             }
             const stacktrace_frame& frame = options.transform ? transformed_frame.unwrap() : input_frame;
-            write_frame(stream, frame, color);
+            write_frame(stream, frame, color, col_indent);
         }
 
         void print_internal(std::ostream& stream, const stacktrace& trace, detail::optional<bool> color_override) const {
@@ -222,6 +229,7 @@ CPPTRACE_BEGIN_NAMESPACE
             maybe_ensure_virtual_terminal_processing(stream, color);
             write_trace(stream, trace, color);
         }
+
 
         void write_trace(std::ostream& stream, const stacktrace& trace, bool color) const {
             if(!options.header.empty()) {
@@ -245,11 +253,12 @@ CPPTRACE_BEGIN_NAMESPACE
                     counter++;
                     continue;
                 }
-                microfmt::print(stream, "#{<{}} ", frame_number_width, counter);
+
+                size_t filename_indent = write_frame_number(stream, frame_number_width, counter);
                 if(filter_out_frame) {
                     microfmt::print(stream, "(filtered)");
                 } else {
-                    write_frame(stream, frame, color);
+                    write_frame(stream, frame, color, filename_indent);
                     if(frame.line.has_value() && !frame.filename.empty() && options.snippets) {
                         auto snippet = detail::get_snippet(
                             frame.filename,
@@ -270,29 +279,45 @@ CPPTRACE_BEGIN_NAMESPACE
             }
         }
 
-        void write_frame(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
-            write_address(stream, frame, color);
+        /// Write the frame number, and return the number of characters written
+        size_t write_frame_number(std::ostream& stream, unsigned int frame_number_width, size_t counter) const
+        {
+            microfmt::print(stream, "#{<{}} ", frame_number_width, counter);
+            return 2 + frame_number_width;
+        }
+
+        void write_frame(std::ostream& stream, const stacktrace_frame& frame, color_setting color, size_t col) const {
+            col += write_address(stream, frame, color);
             if(frame.is_inline || options.addresses != address_mode::none) {
                 stream << ' ';
+                col += 1;
             }
             if(!frame.symbol.empty()) {
                 write_symbol(stream, frame, color);
             }
             if(!frame.symbol.empty() && !frame.filename.empty()) {
-                stream << ' ';
+                if(options.break_before_filename) {
+                    microfmt::print(stream, "\n{<{}}", col, "");
+                } else {
+                    stream << ' ';
+                }
             }
             if(!frame.filename.empty()) {
                 write_source_location(stream, frame, color);
             }
         }
 
-        void write_address(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
+        /// Write the address of the frame, return the number of characters written
+        size_t write_address(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
             if(frame.is_inline) {
                 microfmt::print(stream, "{<{}}", 2 * sizeof(frame_ptr) + 2, "(inlined)");
+                return 2 * sizeof(frame_ptr) + 2;
             } else if(options.addresses != address_mode::none) {
                 auto address = options.addresses == address_mode::raw ? frame.raw_address : frame.object_address;
                 microfmt::print(stream, "{}0x{>{}:0h}{}", color.blue(), 2 * sizeof(frame_ptr), address, color.reset());
+                return 2 * sizeof(frame_ptr) + 2;
             }
+            return 0;
         }
 
         void write_symbol(std::ostream& stream, const stacktrace_frame& frame, color_setting color) const {
@@ -399,6 +424,10 @@ CPPTRACE_BEGIN_NAMESPACE
         pimpl->transform(std::move(transform));
         return *this;
     }
+    formatter& formatter::break_before_filename(bool do_break) {
+        pimpl->break_before_filename(do_break);
+        return *this;
+    }
 
     std::string formatter::format(const stacktrace_frame& frame) const {
         return pimpl->format(frame);
@@ -445,11 +474,17 @@ CPPTRACE_BEGIN_NAMESPACE
     void formatter::print(std::ostream& stream, const stacktrace_frame& frame, bool color) const {
         pimpl->print(stream, frame, color);
     }
+    void formatter::print(std::ostream& stream, const stacktrace_frame& frame, bool color, size_t filename_indent) const {
+        pimpl->print(stream, frame, color, filename_indent);
+    }
     void formatter::print(std::FILE* file, const stacktrace_frame& frame) const {
         pimpl->print(file, frame);
     }
     void formatter::print(std::FILE* file, const stacktrace_frame& frame, bool color) const {
         pimpl->print(file, frame, color);
+    }
+    void formatter::print(std::FILE* file, const stacktrace_frame& frame, bool color, size_t filename_indent) const {
+        pimpl->print(file, frame, color, filename_indent);
     }
 
     const formatter& get_default_formatter() {
