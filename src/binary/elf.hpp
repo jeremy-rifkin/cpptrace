@@ -15,6 +15,10 @@
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
+    using Elf_Addr = std::uintptr_t;
+    using Elf_Off = std::uintptr_t;
+    using Elf_Xword = std::size_t;
+
     // TODO: make methods const and a bunch of members mutable
     class elf {
         std::unique_ptr<base_file> file;
@@ -36,10 +40,10 @@ namespace detail {
         struct section_info {
             uint32_t sh_name;
             uint32_t sh_type;
-            uint64_t sh_addr;
-            uint64_t sh_offset;
-            uint64_t sh_size;
-            uint64_t sh_entsize;
+            Elf_Addr sh_addr;
+            Elf_Off sh_offset;
+            Elf_Xword sh_size;
+            Elf_Xword sh_entsize;
             uint32_t sh_link;
         };
         bool tried_to_load_sections = false;
