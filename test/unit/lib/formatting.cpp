@@ -6,6 +6,8 @@
 #include "utils/microfmt.hpp"
 #include "utils/utils.hpp"
 
+#include <cstdint>
+
 #ifdef TEST_MODULE
 import cpptrace;
 #else
@@ -17,7 +19,7 @@ using testing::ElementsAre;
 
 namespace {
 
-#if !defined(_WIN32) || defined(_WIN64)
+#if UINTPTR_MAX > 0xffffffff
  #define ADDR_PREFIX "00000000"
  #define INLINED_TAG "(inlined)         "
 #else
