@@ -23,6 +23,34 @@ namespace detail {
     #pragma warning(push)
     #pragma warning(disable: 4740) // warning C4740: flow in or out of inline asm code suppresses global optimization
     #endif
+    void capture_context(CONTEXT& context) {
+        #if defined(_M_IX86) || defined(__i386__)
+         context.ContextFlags = CONTEXT_CONTROL;
+         #if IS_MSVC
+          __asm {
+              label:
+              mov [context.Ebp], ebp;
+              mov [context.Esp], esp;
+              mov eax, [label];
+              mov [context.Eip], eax;
+          }
+         #else
+          asm(
+              "label:\n\t"
+              "mov{l %%ebp, %[cEbp] | %[cEbp], ebp};\n\t"
+              "mov{l %%esp, %[cEsp] | %[cEsp], esp};\n\t"
+              "mov{l $label, %%eax | eax, OFFSET label};\n\t"
+              "mov{l %%eax, %[cEip] | %[cEip], eax};\n\t"
+              : [cEbp] "=r" (context.Ebp),
+                [cEsp] "=r" (context.Esp),
+                [cEip] "=r" (context.Eip)
+          );
+         #endif
+        #else
+         RtlCaptureContext(&context);
+        #endif
+    }
+
     CPPTRACE_FORCE_NO_INLINE
     std::vector<frame_ptr> capture_frames(
         std::size_t skip,
@@ -40,31 +68,7 @@ namespace detail {
         if(exception_pointers) {
             context = *exception_pointers->ContextRecord;
         } else {
-            #if defined(_M_IX86) || defined(__i386__)
-             context.ContextFlags = CONTEXT_CONTROL;
-             #if IS_MSVC
-              __asm {
-                  label:
-                  mov [context.Ebp], ebp;
-                  mov [context.Esp], esp;
-                  mov eax, [label];
-                  mov [context.Eip], eax;
-              }
-             #else
-              asm(
-                  "label:\n\t"
-                  "mov{l %%ebp, %[cEbp] | %[cEbp], ebp};\n\t"
-                  "mov{l %%esp, %[cEsp] | %[cEsp], esp};\n\t"
-                  "mov{l $label, %%eax | eax, OFFSET label};\n\t"
-                  "mov{l %%eax, %[cEip] | %[cEip], eax};\n\t"
-                  : [cEbp] "=r" (context.Ebp),
-                    [cEsp] "=r" (context.Esp),
-                    [cEip] "=r" (context.Eip)
-              );
-             #endif
-            #else
-             RtlCaptureContext(&context);
-            #endif
+            capture_context(context);
         }
         // Setup current frame
         STACKFRAME64 frame;
@@ -104,11 +108,6 @@ namespace detail {
 
         // Dbghelp is is single-threaded, so acquire a lock.
         auto lock = get_dbghelp_lock();
-        // For some reason SymInitialize must be called before StackWalk64
-        // Note that the code assumes that
-        // SymInitialize( GetCurrentProcess(), NULL, TRUE ) has
-        // already been called.
-        //
         auto syminit_info = ensure_syminit();
         HANDLE thread = GetCurrentThread();
         while(trace.size() < max_depth) {
