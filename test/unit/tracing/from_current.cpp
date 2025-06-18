@@ -203,7 +203,7 @@ TEST(FromCurrent, SEHBasic) {
     [&] () {
         CPPTRACE_SEH_TRY {
             [&] () {
-                auto res = my_div_function(10, 0);
+                volatile auto res = my_div_function(10, 0);
                 (void)res;
             } ();
         } CPPTRACE_SEH_EXCEPT(divide_zero_filter(GetExceptionCode())) {
@@ -238,7 +238,7 @@ TEST(FromCurrent, SEHCorrectHandler) {
             [&] () {
                 CPPTRACE_SEH_TRY {
                     [&] () {
-                        auto res = my_div_function(10, 0);
+                        volatile auto res = my_div_function(10, 0);
                         (void)res;
                     } ();
                 } CPPTRACE_SEH_EXCEPT(EXCEPTION_CONTINUE_SEARCH) {
