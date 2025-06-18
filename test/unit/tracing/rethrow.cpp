@@ -153,7 +153,6 @@ TEST(Rethrow, RethrowTraceCorrect) {
         EXPECT_TRUE(cpptrace::current_exception_was_rethrown());
         EXPECT_EQ(e.what(), "foobar"sv);
         auto rethrow_trace = cpptrace::from_current_exception_rethrow();
-        rethrow_trace.print();
         ASSERT_GE(rethrow_trace.frames.size(), 4);
         // reverse to get the last one matching instead of "`stacktrace_from_current_rethrow_2'::`1'::catch$4()" on msvc
         auto rit = std::find_if(
