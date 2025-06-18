@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v1.0.1](#v101)
 - [v1.0.0](#v100)
 - [v0.8.3](#v083)
 - [v0.8.2](#v082)
@@ -29,6 +30,17 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v1.0.1
+
+Added:
+- Added from-current-exception utility for SEH on windows (`CPPTRACE_SEH_TRY`/`CPPTRACE_SEH_EXCEPT`)
+
+Fixes:
+- Fixed a static assert without a message causing issues on some C++11 builds
+- Fixed build 32-bit build on linux
+- Fixed from-current-exception system for 32-bit windows where SEH behaves much differently
+- Fixed clang-cl build
 
 # v1.0.0
 
