@@ -36,6 +36,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
     - [Performance](#performance)
   - [Rethrowing Exceptions](#rethrowing-exceptions)
   - [`cpptrace::try_catch`](#cpptracetry_catch)
+  - [Traces from SEH exceptions](#traces-from-seh-exceptions)
   - [Traced Exception Objects](#traced-exception-objects)
     - [Wrapping std::exceptions](#wrapping-stdexceptions)
     - [Exception handling with cpptrace exception objects](#exception-handling-with-cpptrace-exception-objects)
@@ -876,6 +877,40 @@ namespace cpptrace {
 Similar to a language `try`/`catch`, `catch` handlers will be considered in the order they are listed. Handlers should
 take exactly one argument, equivalent to what would be written for a catch handler, except for `catch(...)` which can be
 achieved by a handler taking no arguments.
+
+## Traces from SEH exceptions
+
+Similar to the above section on collecting [traces from C++ exceptions](#traces-from-all-exceptions-cpptrace_try-and-cpptrace_catch),
+cpptrace provides `CPPTRACE_SEH_TRY` and `CPPTRACE_SEH_EXCEPT` macros that collect traces from SEH exceptions on windows
+with no overhead in the non-throwing (happy) path:
+
+```cpp
+#include <cpptrace/from_current.hpp>
+#include <iostream>
+#include <windows.h>
+
+void foo(int x, int y) {
+    return x / y;
+}
+
+int divide_zero_filter(int code) {
+    if(code == STATUS_INTEGER_DIVIDE_BY_ZERO || code == EXCEPTION_FLT_DIVIDE_BY_ZERO) {
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
+int main() {
+    CPPTRACE_SEH_TRY {
+        foo(10, 0);
+    } CPPTRACE_SEH_EXCEPT(divide_zero_filter(GetExceptionCode())) {
+        std::cerr<<"Division by zero happened!"<<std::endl;
+        cpptrace::from_current_exception().print();
+    }
+}
+```
+
+The `CPPTRACE_SEH_EXCEPT` macro takes a filter expression as input, any expression valid in `__except` is valid.
 
 ## Traced Exception Objects
 

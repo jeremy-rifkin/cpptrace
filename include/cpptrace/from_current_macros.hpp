@@ -48,6 +48,9 @@
              } \
          }(); \
      } catch(param)
+ #define CPPTRACE_SEH_TRY __try
+ #define CPPTRACE_SEH_EXCEPT(filter) \
+    __except(::cpptrace::detail::maybe_collect_trace(GetExceptionInformation(), (filter)))
 #else
  #define CPPTRACE_UNWIND_INTERCEPTOR_FOR(param) \
      ::cpptrace::detail::unwind_interceptor_for<void(param)>
@@ -66,6 +69,10 @@
 #ifdef CPPTRACE_UNPREFIXED_TRY_CATCH
  #define TRY CPPTRACE_TRY
  #define CATCH(param) CPPTRACE_CATCH(param)
+ #ifdef _MSC_VER
+  #define SEH_TRY CPPTRACE_SEH_TRY
+  #define SEH_EXCEPT(filter) CPPTRACE_SEH_EXCEPT(filter)
+ #endif
 #endif
 
 #endif // CPPTRACE_FROM_CURRENT_MACROS_HPP

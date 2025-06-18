@@ -612,12 +612,23 @@ CPPTRACE_BEGIN_NAMESPACE
             return false;
         }
         CPPTRACE_FORCE_NO_INLINE
+        int maybe_collect_trace(EXCEPTION_POINTERS* exception_ptrs, int filter_result) {
+            if(filter_result == EXCEPTION_EXECUTE_HANDLER) {
+                #ifdef CPPTRACE_UNWIND_WITH_DBGHELP
+                 collect_current_trace(2, exception_ptrs);
+                #else
+                 collect_current_trace(2);
+                #endif
+            }
+            return filter_result;
+        }
+        CPPTRACE_FORCE_NO_INLINE
         void maybe_collect_trace(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info) {
             if(matches_exception(exception_ptrs, type_info)) {
                 #ifdef CPPTRACE_UNWIND_WITH_DBGHELP
-                collect_current_trace(2, exception_ptrs);
+                 collect_current_trace(2, exception_ptrs);
                 #else
-                collect_current_trace(2);
+                 collect_current_trace(2);
                 #endif
             }
         }

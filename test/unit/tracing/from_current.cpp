@@ -180,3 +180,78 @@ TEST(FromCurrent, NonThrowingPath) {
     }
     does_reach_end = true;
 }
+
+#ifdef _MSC_VER
+
+CPPTRACE_FORCE_NO_INLINE
+int my_div_function(int x, int y) {
+    return x / y;
+}
+
+int divide_zero_filter(int code) {
+    if(code == STATUS_INTEGER_DIVIDE_BY_ZERO || code == EXCEPTION_FLT_DIVIDE_BY_ZERO) {
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
+TEST(FromCurrent, SEHBasic) {
+    bool does_enter_catch = false;
+    auto guard = cpptrace::detail::scope_exit([&] {
+        EXPECT_TRUE(does_enter_catch);
+    });
+    [&] () {
+        CPPTRACE_SEH_TRY {
+            [&] () {
+                auto res = my_div_function(10, 0);
+                (void)res;
+            } ();
+        } CPPTRACE_SEH_EXCEPT(divide_zero_filter(GetExceptionCode())) {
+            [&] () {
+                does_enter_catch = true;
+                EXPECT_FALSE(cpptrace::current_exception_was_rethrown());
+                const auto& trace = cpptrace::from_current_exception();
+                ASSERT_GE(trace.frames.size(), 4);
+                auto it = std::find_if(
+                    trace.frames.begin(),
+                    trace.frames.end(),
+                    [](const cpptrace::stacktrace_frame& frame) {
+                        return frame.symbol.find("my_div_function") != std::string::npos;
+                    }
+                );
+                EXPECT_NE(it, trace.frames.end()) << trace;
+                size_t i = static_cast<size_t>(it - trace.frames.begin());
+                EXPECT_FILE(trace.frames[i].filename, "from_current.cpp");
+            } ();
+        }
+    } ();
+    EXPECT_TRUE(does_enter_catch);
+}
+
+TEST(FromCurrent, SEHCorrectHandler) {
+    bool does_enter_catch = false;
+    auto guard = cpptrace::detail::scope_exit([&] {
+        EXPECT_TRUE(does_enter_catch);
+    });
+    [&] () {
+        CPPTRACE_SEH_TRY {
+            [&] () {
+                CPPTRACE_SEH_TRY {
+                    [&] () {
+                        auto res = my_div_function(10, 0);
+                        (void)res;
+                    } ();
+                } CPPTRACE_SEH_EXCEPT(EXCEPTION_CONTINUE_SEARCH) {
+                    [&] () {
+                        FAIL();
+                    } ();
+                }
+            } ();
+        } CPPTRACE_SEH_EXCEPT(divide_zero_filter(GetExceptionCode())) {
+            does_enter_catch = true;
+        }
+    } ();
+    EXPECT_TRUE(does_enter_catch);
+}
+
+#endif

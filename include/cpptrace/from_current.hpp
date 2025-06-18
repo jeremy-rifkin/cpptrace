@@ -43,6 +43,8 @@ CPPTRACE_BEGIN_NAMESPACE
 
         #ifdef _MSC_VER
          CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE
+         int maybe_collect_trace(EXCEPTION_POINTERS* exception_ptrs, int filter_result);
+         CPPTRACE_EXPORT CPPTRACE_FORCE_NO_INLINE
          void maybe_collect_trace(EXCEPTION_POINTERS* exception_ptrs, const std::type_info& type_info);
          template<typename E>
          CPPTRACE_FORCE_NO_INLINE inline int exception_filter(EXCEPTION_POINTERS* exception_ptrs) {
