@@ -7,6 +7,7 @@
 #include <vector>
 
 #ifdef CPPTRACE_UNWIND_WITH_DBGHELP
+ #define UNWIND_MAY_NEED_CONTEXT_RECORD
  #define WIN32_LEAN_AND_MEAN
  #include <windows.h>
 #endif
