@@ -29,7 +29,6 @@ namespace detail {
         std::size_t max_depth,
         EXCEPTION_POINTERS* exception_pointers
     ) {
-        skip++;
         // https://jpassing.com/2008/03/12/walking-the-stack-of-the-current-thread/
 
         // Get current thread context
@@ -40,6 +39,7 @@ namespace detail {
         if(exception_pointers) {
             context = *exception_pointers->ContextRecord;
         } else {
+            skip++; // we're unwinding from the capture_frames frame, skip it
             #if defined(_M_IX86) || defined(__i386__)
              context.ContextFlags = CONTEXT_CONTROL;
              #if IS_MSVC

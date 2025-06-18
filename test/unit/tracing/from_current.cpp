@@ -211,7 +211,6 @@ TEST(FromCurrent, SEHBasic) {
                 does_enter_catch = true;
                 EXPECT_FALSE(cpptrace::current_exception_was_rethrown());
                 const auto& trace = cpptrace::from_current_exception();
-                ASSERT_GE(trace.frames.size(), 4);
                 auto it = std::find_if(
                     trace.frames.begin(),
                     trace.frames.end(),
@@ -219,7 +218,7 @@ TEST(FromCurrent, SEHBasic) {
                         return frame.symbol.find("my_div_function") != std::string::npos;
                     }
                 );
-                EXPECT_NE(it, trace.frames.end()) << trace;
+                ASSERT_NE(it, trace.frames.end()) << trace;
                 size_t i = static_cast<size_t>(it - trace.frames.begin());
                 EXPECT_FILE(trace.frames[i].filename, "from_current.cpp");
             } ();
