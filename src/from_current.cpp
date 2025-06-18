@@ -618,6 +618,7 @@ CPPTRACE_BEGIN_NAMESPACE
                  collect_current_trace(2, exception_ptrs);
                 #else
                  collect_current_trace(2);
+                 (void)exception_ptrs;
                 #endif
             }
             return filter_result;
@@ -629,6 +630,7 @@ CPPTRACE_BEGIN_NAMESPACE
                  collect_current_trace(2, exception_ptrs);
                 #else
                  collect_current_trace(2);
+                 (void)exception_ptrs;
                 #endif
             }
         }
