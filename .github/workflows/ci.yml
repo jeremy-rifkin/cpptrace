@@ -736,6 +736,7 @@ jobs:
       fail-fast: false
       matrix:
         build_type: [Debug]
+        arch: [x64, Win32]
     steps:
     - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
@@ -746,6 +747,7 @@ jobs:
            cd build
            cmake .. `
             -T ClangCL `
+            -A ${{matrix.arch}} `
             -DCPPTRACE_WERROR_BUILD=On `
             -DCPPTRACE_BUILD_TESTING=On
            cmake --build . --config ${{matrix.build_type}}
