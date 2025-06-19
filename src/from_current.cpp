@@ -92,42 +92,37 @@ namespace detail {
     // - https://github.com/ecatmur/stacktrace-from-exception/blob/main/stacktrace-from-exception.cpp
     // - https://github.com/catboost/catboost/blob/master/contrib/libs/cxxsupp/libcxx/src/support/runtime/exception_pointer_msvc.ipp
     // - https://www.geoffchappell.com/studies/msvc/language/predefined/index.htm
-    #ifdef _WIN64
-     #pragma pack(push, 4)
-     struct CatchableType {
-         std::uint32_t properties;
-         std::int32_t pType;
-         std::uint32_t non_virtual_adjustment; // these next three are from _PMD
-         std::uint32_t offset_to_virtual_base_ptr;
-         std::uint32_t virtual_base_table_index;
-         std::uint32_t sizeOrOffset;
-         std::int32_t copyFunction;
-     };
-     struct ThrowInfo {
-         std::uint32_t attributes;
-         std::int32_t pmfnUnwind;
-         std::int32_t pForwardCompat;
-         std::int32_t pCatchableTypeArray;
-     };
-     #pragma warning(disable:4200)
-     #if IS_CLANG
-      #pragma clang diagnostic push
-      #pragma clang diagnostic ignored "-Wc99-extensions"
-     #endif
-     struct CatchableTypeArray {
-         uint32_t nCatchableTypes;
-         int32_t arrayOfCatchableTypes[];
-     };
-     #if IS_CLANG
-      #pragma clang diagnostic pop
-     #endif
-     #pragma warning (pop)
-     #pragma pack(pop)
-    #else
-     using CatchableTypeArray = ::_CatchableTypeArray;
-     using CatchableType = ::_CatchableType;
-     using ThrowInfo = ::_ThrowInfo;
+    #pragma pack(push, 4)
+    struct CatchableType {
+        std::uint32_t properties;
+        std::int32_t pType;
+        std::uint32_t non_virtual_adjustment; // these next three are from _PMD
+        std::uint32_t offset_to_virtual_base_ptr;
+        std::uint32_t virtual_base_table_index;
+        std::uint32_t sizeOrOffset;
+        std::int32_t copyFunction;
+    };
+    struct ThrowInfo {
+        std::uint32_t attributes;
+        std::int32_t pmfnUnwind;
+        std::int32_t pForwardCompat;
+        std::int32_t pCatchableTypeArray;
+    };
+    #pragma warning(push)
+    #pragma warning(disable:4200)
+    #if IS_CLANG
+     #pragma clang diagnostic push
+     #pragma clang diagnostic ignored "-Wc99-extensions"
     #endif
+    struct CatchableTypeArray {
+        uint32_t nCatchableTypes;
+        int32_t arrayOfCatchableTypes[];
+    };
+    #if IS_CLANG
+     #pragma clang diagnostic pop
+    #endif
+    #pragma warning(pop)
+    #pragma pack(pop)
 
     static constexpr unsigned EH_MAGIC_NUMBER1 = 0x19930520; // '?msc' version magic, see ehdata.h
     static constexpr unsigned EH_EXCEPTION_NUMBER = 0xE06D7363;  // '?msc', 'msc' | 0xE0000000
@@ -174,6 +169,7 @@ namespace detail {
             #ifdef _WIN64
              return reinterpret_cast<T>((uintptr_t)module_pointer + (uintptr_t)address);
             #else
+             (void)module_pointer;
              return reinterpret_cast<T>(address);
             #endif
         }
