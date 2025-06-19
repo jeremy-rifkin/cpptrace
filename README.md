@@ -1513,6 +1513,10 @@ target_link_libraries(main PRIVATE cpptrace::cpptrace)
 Cpptrace supports C++20 modules: `import cpptrace;`. You'll need a modern toolchain in order to use C++20 modules (i.e.
 relatively new compilers, cmake, etc).
 
+For features involving macros you will have to `#include` headers with the macro definitions:
+- `<cpptrace/exceptions_macros.hpp>`: `CPPTRACE_WRAP` and `CPPTRACE_WRAP_BLOCK`
+- `<cpptrace/from_current_macros.hpp>`: `CPPTRACE_TRY`, `CPPTRACE_CATCH`, etc.
+
 # Platform Logistics
 
 Windows and macOS require a little extra work to get everything in the right place.
