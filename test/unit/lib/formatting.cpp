@@ -21,17 +21,21 @@ namespace {
 
 #if UINTPTR_MAX > 0xffffffff
  #define ADDR_PREFIX "00000000"
+ #define PADDING_TAG "        "
  #define INLINED_TAG "(inlined)         "
 #else
+ #define PADDING_TAG ""
  #define ADDR_PREFIX ""
  #define INLINED_TAG "(inlined) "
 #endif
 
-cpptrace::stacktrace make_test_stacktrace() {
+cpptrace::stacktrace make_test_stacktrace(size_t count = 1) {
     cpptrace::stacktrace trace;
-    trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "foo()", false});
-    trace.frames.push_back({0x2, 0x1002, {30}, {40}, "bar.cpp", "bar()", false});
-    trace.frames.push_back({0x3, 0x1003, {40}, {25}, "foo.cpp", "main", false});
+    for(size_t i = 0; i < count; i++) {
+        trace.frames.push_back({0x1, 0x1001, {20}, {30}, "foo.cpp", "foo()", false});
+        trace.frames.push_back({0x2, 0x1002, {30}, {40}, "bar.cpp", "bar()", false});
+        trace.frames.push_back({0x3, 0x1003, {40}, {25}, "foo.cpp", "main", false});
+    }
     return trace;
 }
 
@@ -121,6 +125,124 @@ TEST(FormatterTest, NoAddresses) {
             "#0 in foo() at foo.cpp:20:30",
             "#1 in bar() at bar.cpp:30:40",
             "#2 in main at foo.cpp:40:25"
+        )
+    );
+}
+
+TEST(FormatterTest, BreakBeforeFilename) {
+    auto formatter = cpptrace::formatter{}
+        .break_before_filename(true);
+    EXPECT_THAT(
+        split(formatter.format(make_test_stacktrace()), "\n"),
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "         at foo.cpp:20:30",
+            "#1 0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "         at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "         at foo.cpp:40:25"
+        )
+    );
+}
+
+TEST(FormatterTest, BreakBeforeFilenameNoAddresses) {
+    auto formatter = cpptrace::formatter{}
+        .break_before_filename(true)
+        .addresses(cpptrace::formatter::address_mode::none);
+    // Check that if no address is present, the filename indent is reduced
+    EXPECT_THAT(
+        split(formatter.format(make_test_stacktrace()), "\n"),
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 in foo()",
+            "   at foo.cpp:20:30",
+            "#1 in bar()",
+            "   at bar.cpp:30:40",
+            "#2 in main",
+            "   at foo.cpp:40:25"
+        )
+    );
+}
+
+TEST(FormatterTest, BreakBeforeFilenameInlines) {
+    auto formatter = cpptrace::formatter{}
+        .break_before_filename(true);
+
+    // Check that indentation is computed correctly when elements are inlined
+    auto trace = make_test_stacktrace();
+    trace.frames[1].is_inline = true;
+    EXPECT_THAT(
+        split(formatter.format(trace), "\n"),
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "         at foo.cpp:20:30",
+            "#1 " INLINED_TAG " in bar()",
+            "     " PADDING_TAG "         at bar.cpp:30:40",
+            "#2 0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "         at foo.cpp:40:25"
+        )
+    );
+}
+
+TEST(FormatterTest, BreakBeforeFilenameLongTrace) {
+    // Check that indentation is computed correctly for longer traces (where the
+    // frame number is padded)
+    auto formatter = cpptrace::formatter{}
+        .break_before_filename(true);
+
+    EXPECT_THAT(
+        split(formatter.format(make_test_stacktrace(4)), "\n"),
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0  0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "          at foo.cpp:20:30",
+            "#1  0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "          at bar.cpp:30:40",
+            "#2  0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "          at foo.cpp:40:25",
+            "#3  0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "          at foo.cpp:20:30",
+            "#4  0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "          at bar.cpp:30:40",
+            "#5  0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "          at foo.cpp:40:25",
+            "#6  0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "          at foo.cpp:20:30",
+            "#7  0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "          at bar.cpp:30:40",
+            "#8  0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "          at foo.cpp:40:25",
+            "#9  0x" ADDR_PREFIX "00000001 in foo()",
+            "     " PADDING_TAG "          at foo.cpp:20:30",
+            "#10 0x" ADDR_PREFIX "00000002 in bar()",
+            "     " PADDING_TAG "          at bar.cpp:30:40",
+            "#11 0x" ADDR_PREFIX "00000003 in main",
+            "     " PADDING_TAG "          at foo.cpp:40:25"
+        )
+    );
+}
+
+TEST(FormatterTest, BreakBeforeFilenameColors) {
+    // Check that indentation is computed correctly with colors enabled
+    // (If microfmt is updated to count the number of characters printed,
+    // it will need to _exclude_ colors for the purposes of computing
+    // alignment)
+    auto formatter = cpptrace::formatter{}
+        .break_before_filename(true)
+        .colors(cpptrace::formatter::color_mode::always);
+
+    EXPECT_THAT(
+        split(formatter.format(make_test_stacktrace()), "\n"),
+        ElementsAre(
+            "Stack trace (most recent call first):",
+            "#0 \x1B[34m0x" ADDR_PREFIX "00000001\x1B[0m in \x1B[33mfoo()\x1B[0m",
+            "     " PADDING_TAG "         at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m20\x1B[0m:\x1B[34m30\x1B[0m",
+            "#1 \x1B[34m0x" ADDR_PREFIX "00000002\x1B[0m in \x1B[33mbar()\x1B[0m",
+            "     " PADDING_TAG "         at \x1B[32mbar.cpp\x1B[0m:\x1B[34m30\x1B[0m:\x1B[34m40\x1B[0m",
+            "#2 \x1B[34m0x" ADDR_PREFIX "00000003\x1B[0m in \x1B[33mmain\x1B[0m",
+            "     " PADDING_TAG "         at \x1B[32mfoo.cpp\x1B[0m:\x1B[34m40\x1B[0m:\x1B[34m25\x1B[0m"
         )
     );
 }

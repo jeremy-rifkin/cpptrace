@@ -74,10 +74,10 @@ void lookup_symbol(const options& options, cpptrace::frame_ptr address) {
     }
 }
 #elif IS_APPLE
-void dump_symbols(const std::filesystem::path&) {
+void dump_symbols(const options&) {
     fmt::println("Not implemented yet (TODO)");
 }
-void lookup_symbol(const std::filesystem::path&, cpptrace::frame_ptr) {
+void lookup_symbol(const options&, cpptrace::frame_ptr) {
     fmt::println("Not implemented yet (TODO)");
 }
 #else
