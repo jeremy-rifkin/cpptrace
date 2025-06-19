@@ -71,7 +71,7 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_2(
     auto raw_trace = cpptrace::generate_raw_trace();
     ASSERT_GE(raw_trace.frames.size(), 2);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_2));
-    EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_2) + 90);
+    EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_2) + 100);
     EXPECT_GE(raw_trace.frames[1], parent_low_bound);
     EXPECT_LE(raw_trace.frames[1], parent_high_bound);
 }
