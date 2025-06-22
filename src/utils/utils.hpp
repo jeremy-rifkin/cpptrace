@@ -17,6 +17,20 @@
 #include "utils/optional.hpp"
 #include "utils/result.hpp"
 
+// compatible for c++11 but GCC < 5
+#if defined(__GNUC__) && (__GNUC__ < 5) && !defined(__clang__)
+#if 201103L <= __cplusplus
+namespace std
+{
+template <typename T>
+struct is_trivially_copyable
+{
+    static constexpr bool value = __has_trivial_copy(T) && __has_trivial_assign(T) && __has_trivial_destructor(T);
+};
+} // namespace std
+#endif
+#endif
+
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
     bool isatty(int fd);
