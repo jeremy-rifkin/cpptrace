@@ -99,7 +99,7 @@ function(test_cpptrace)
     unit/lib/prune_symbol.cpp
   )
 
-  target_compile_features("${CPPTRACE_TEST_NAME}" PRIVATE cxx_std_20)
+  target_compile_features("${CPPTRACE_TEST_NAME}" PRIVATE cxx_std_11)
   target_link_libraries("${CPPTRACE_TEST_NAME}" PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
   target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE ${CPPTRACE_DEFINE})
 
