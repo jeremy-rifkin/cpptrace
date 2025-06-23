@@ -571,7 +571,12 @@ namespace detail {
         void** type_info_vtable_pointer = *static_cast<void***>(type_info_pointer);
         // the type info vtable pointer points to two pointers inside the vtable, adjust it back
         type_info_vtable_pointer -= 2;
-        auto* can_catch_fn = reinterpret_cast<decltype(can_catch)*>(type_info_vtable_pointer[6]);
+        auto* can_catch_fn =
+            #if IS_GCC
+             // error: ISO C++ forbids casting between pointer-to-function and pointer-to-object on old gcc
+             __extension__
+            #endif
+            reinterpret_cast<decltype(can_catch)*>(type_info_vtable_pointer[6]);
         return can_catch_fn(type, throw_type, throw_obj, outer);
     }
     #endif
