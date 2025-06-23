@@ -240,8 +240,8 @@ TEST(TryCatch, CatchOrdering) {
 
 namespace {
     struct copy_move_tracker {
-        inline static int copy = 0;
-        inline static int move = 0;
+        static int copy;
+        static int move;
         copy_move_tracker() = default;
         copy_move_tracker(const copy_move_tracker&) {
             copy++;
@@ -262,6 +262,8 @@ namespace {
             move = 0;
         }
     };
+    int copy_move_tracker::copy = 0;
+    int copy_move_tracker::move = 0;
 }
 
 TEST(TryCatch, Value) {
@@ -314,8 +316,8 @@ TEST(TryCatch, ConstRef) {
 
 namespace {
     struct copy_move_tracker_callable {
-        inline static int copy = 0;
-        inline static int move = 0;
+        static int copy;
+        static int move;
         copy_move_tracker_callable() = default;
         copy_move_tracker_callable(const copy_move_tracker&) {
             copy++;
@@ -337,6 +339,8 @@ namespace {
         }
         void operator()() const {}
     };
+    int copy_move_tracker_callable::copy;
+    int copy_move_tracker_callable::move;
 }
 
 TEST(TryCatch, LvalueCallable) {
