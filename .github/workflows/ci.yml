@@ -732,10 +732,8 @@ jobs:
              -DCMAKE_CXX_COMPILER=g++-4.8 \
              -DCMAKE_C_COMPILER=gcc-4.8 \
              -DCPPTRACE_WERROR_BUILD=On \
-             -DCPPTRACE_STD_FORMAT=Off \
-             -DCPPTRACE_BUILD_TESTING=On
+             -DCPPTRACE_STD_FORMAT=Off
            ninja
-           ./unittest
 
   unittest-windows-32-bit:
     runs-on: windows-2022

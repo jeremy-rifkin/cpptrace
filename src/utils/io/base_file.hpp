@@ -17,7 +17,7 @@ namespace detail {
         template<
             typename T,
             typename std::enable_if<
-                std::is_standard_layout<T>::value && std::is_trivially_copyable<T>::value && !is_span<T>::value,
+                std::is_standard_layout<T>::value && is_trivially_copyable<T>::value && !is_span<T>::value,
                 int
             >::type = 0
         >
@@ -33,7 +33,7 @@ namespace detail {
         template<
             typename T,
             typename std::enable_if<
-                std::is_standard_layout<T>::value && std::is_trivially_copyable<T>::value,
+                std::is_standard_layout<T>::value && is_trivially_copyable<T>::value,
                 int
             >::type = 0
         >
