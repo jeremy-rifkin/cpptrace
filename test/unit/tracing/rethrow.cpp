@@ -96,7 +96,7 @@ TEST(Rethrow, RethrowPreservesTrace) {
         (void)tco_guard;
     } CPPTRACE_CATCH(const std::runtime_error& e) {
         EXPECT_TRUE(cpptrace::current_exception_was_rethrown());
-        EXPECT_EQ(e.what(), "foobar"sv);
+        EXPECT_EQ(e.what(), std::string("foobar"));
         auto trace = cpptrace::from_current_exception();
         ASSERT_GE(trace.frames.size(), 4);
         auto it = std::find_if(
@@ -151,7 +151,7 @@ TEST(Rethrow, RethrowTraceCorrect) {
         (void)tco_guard;
     } CPPTRACE_CATCH(const std::runtime_error& e) {
         EXPECT_TRUE(cpptrace::current_exception_was_rethrown());
-        EXPECT_EQ(e.what(), "foobar"sv);
+        EXPECT_EQ(e.what(), std::string("foobar"));
         auto rethrow_trace = cpptrace::from_current_exception_rethrow();
         ASSERT_GE(rethrow_trace.frames.size(), 4);
         // reverse to get the last one matching instead of "`stacktrace_from_current_rethrow_2'::`1'::catch$4()" on msvc
@@ -230,7 +230,7 @@ TEST(Rethrow, RethrowDoesntInterfereWithSubsequentTraces) {
         stacktrace_from_current_basic_1(line_numbers);
     } CPPTRACE_CATCH(const std::runtime_error& e) {
         EXPECT_FALSE(cpptrace::current_exception_was_rethrown());
-        EXPECT_EQ(e.what(), "foobar"sv);
+        EXPECT_EQ(e.what(), std::string("foobar"));
         auto trace = cpptrace::from_current_exception();
         ASSERT_GE(trace.frames.size(), 4);
         auto it = std::find_if(

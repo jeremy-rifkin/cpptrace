@@ -80,7 +80,7 @@ TEST(TryCatch, Basic) {
         },
         [&] (const std::runtime_error& e) {
             did_catch = true;
-            EXPECT_EQ(e.what(), "foobar"sv);
+            EXPECT_EQ(e.what(), std::string("foobar"));
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
             check_trace(cpptrace::from_current_exception(), test_name);
         }
@@ -112,7 +112,7 @@ TEST(TryCatch, Upcast) {
         },
         [&] (const std::exception& e) {
             did_catch = true;
-            EXPECT_EQ(e.what(), "foobar"sv);
+            EXPECT_EQ(e.what(), std::string("foobar"));
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
             check_trace(cpptrace::from_current_exception(), test_name);
         }
@@ -174,7 +174,7 @@ TEST(TryCatch, CorrectHandler) {
         },
         [&] (const std::runtime_error& e) {
             did_catch = true;
-            EXPECT_EQ(e.what(), "foobar"sv);
+            EXPECT_EQ(e.what(), std::string("foobar"));
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
             check_trace(cpptrace::from_current_exception(), test_name);
         },
