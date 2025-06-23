@@ -58,7 +58,8 @@ TEST(RawTrace, Basic) {
     #ifndef _MSC_VER
     raw_trace_basic_precise();
     #endif
-    [[maybe_unused]] volatile int x = 0; // prevent raw_trace_basic_precise() above being a jmp
+    volatile int x = 0; // prevent raw_trace_basic_precise() above being a jmp
+    (void)x;
 }
 
 
