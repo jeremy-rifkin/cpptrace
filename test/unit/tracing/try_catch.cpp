@@ -69,7 +69,7 @@ namespace {
 }
 
 TEST(TryCatch, Basic) {
-    constexpr std::string test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -101,7 +101,7 @@ TEST(TryCatch, NoException) {
 }
 
 TEST(TryCatch, Upcast) {
-    constexpr std::string test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -157,7 +157,7 @@ TEST(TryCatch, NoMatchingHandler) {
 }
 
 TEST(TryCatch, CorrectHandler) {
-    constexpr std::string test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -185,7 +185,7 @@ TEST(TryCatch, CorrectHandler) {
 }
 
 TEST(TryCatch, BlanketHandler) {
-    constexpr std::string test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -212,7 +212,7 @@ TEST(TryCatch, BlanketHandler) {
 }
 
 TEST(TryCatch, CatchOrdering) {
-    constexpr std::string test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
