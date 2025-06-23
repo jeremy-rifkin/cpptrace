@@ -96,7 +96,7 @@ namespace detail {
         frame.AddrBStore.Mode  = AddrModeFlat;
         frame.AddrStack.Offset = context.IntSp;
         frame.AddrStack.Mode   = AddrModeFlat;
-        #elif defined(__aarch64__)
+        #elif defined(_M_ARM64) || defined(__aarch64__)
         machine_type           = IMAGE_FILE_MACHINE_ARM64;
         frame.AddrPC.Offset    = context.Pc;
         frame.AddrPC.Mode      = AddrModeFlat;
