@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <exception>
 #include <stdexcept>
-#include <string_view>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -30,7 +29,7 @@ namespace {
         throw E(std::forward<Args>(args)...);
     }
 
-    void check_trace(const cpptrace::stacktrace& trace, std::string_view file, int line) {
+    void check_trace(const cpptrace::stacktrace& trace, std::string file, int line) {
         (void)trace;
         (void)file;
         (void)line;
@@ -45,7 +44,7 @@ namespace {
         #endif
     }
 
-    void check_trace(const cpptrace::stacktrace& trace, std::string_view try_name) {
+    void check_trace(const cpptrace::stacktrace& trace, std::string try_name) {
         EXPECT_NE(
             std::find_if(
                 trace.begin(),
@@ -70,7 +69,7 @@ namespace {
 }
 
 TEST(TryCatch, Basic) {
-    constexpr std::string_view test_name = __func__;
+    constexpr std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -102,7 +101,7 @@ TEST(TryCatch, NoException) {
 }
 
 TEST(TryCatch, Upcast) {
-    constexpr std::string_view test_name = __func__;
+    constexpr std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -158,7 +157,7 @@ TEST(TryCatch, NoMatchingHandler) {
 }
 
 TEST(TryCatch, CorrectHandler) {
-    constexpr std::string_view test_name = __func__;
+    constexpr std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -186,7 +185,7 @@ TEST(TryCatch, CorrectHandler) {
 }
 
 TEST(TryCatch, BlanketHandler) {
-    constexpr std::string_view test_name = __func__;
+    constexpr std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -213,7 +212,7 @@ TEST(TryCatch, BlanketHandler) {
 }
 
 TEST(TryCatch, CatchOrdering) {
-    constexpr std::string_view test_name = __func__;
+    constexpr std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(

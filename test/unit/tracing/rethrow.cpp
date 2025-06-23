@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <exception>
-#include <string_view>
 #include <string>
 
 #include <gtest/gtest.h>
