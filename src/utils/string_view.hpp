@@ -31,7 +31,7 @@ namespace detail {
         using const_iterator = const char*;
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<reverse_iterator>;
-        static constexpr std::size_t npos = std::string::npos;
+        CPPTRACE_EXPORT static constexpr std::size_t npos = std::string::npos;
 
         string_view() : ptr(nullptr), count(0) {}
         string_view(const char* str) : ptr(str), count(std::strlen(str)) {}
@@ -108,7 +108,7 @@ namespace detail {
         using const_iterator = const char*;
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<reverse_iterator>;
-        static constexpr std::size_t npos = string_view::npos;
+        CPPTRACE_EXPORT static constexpr std::size_t npos = string_view::npos;
 
         cstring_view() : ptr(nullptr), count(0) {}
         cstring_view(const char* str) : ptr(str), count(std::strlen(str)) {}

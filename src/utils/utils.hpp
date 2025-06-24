@@ -165,11 +165,19 @@ namespace detail {
         return value < 10 ? 1 : 1 + n_digits(value / 10);
     }
 
+    #if defined(__GNUC__) && (__GNUC__ < 5) && !defined(__clang__)
+    template<typename T>
+    using is_trivially_copyable = std::is_trivial<T>;
+    #else
+    template<typename T>
+    using is_trivially_copyable = std::is_trivially_copyable<T>;
+    #endif
+
     // TODO: Re-evaluate use of off_t
     template<
         typename T,
         typename std::enable_if<
-            std::is_standard_layout<T>::value && std::is_trivially_copyable<T>::value,
+            std::is_standard_layout<T>::value && is_trivially_copyable<T>::value,
             int
         >::type = 0
     >
@@ -235,7 +243,7 @@ namespace detail {
         //  <= 19.23 msvc also appears to fail (but for a different reason https://godbolt.org/z/6Y5EvdWPK)
         //  <= 19.39 msvc also has trouble with it for different reasons https://godbolt.org/z/aPPPT7z3z
         typename std::enable_if<
-            std::is_standard_layout<T>::value && std::is_trivially_copyable<T>::value,
+            std::is_standard_layout<T>::value && is_trivially_copyable<T>::value,
             int
         >::type = 0,
         typename std::enable_if<
