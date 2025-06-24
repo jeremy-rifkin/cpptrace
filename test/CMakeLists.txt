@@ -99,7 +99,7 @@ function(test_cpptrace)
     unit/lib/prune_symbol.cpp
   )
 
-  target_compile_features("${CPPTRACE_TEST_NAME}" PRIVATE cxx_std_20)
+  target_compile_features("${CPPTRACE_TEST_NAME}" PRIVATE cxx_std_11)
   target_link_libraries("${CPPTRACE_TEST_NAME}" PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
   target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE ${CPPTRACE_DEFINE})
 
@@ -130,7 +130,7 @@ if(NOT CPPTRACE_SKIP_UNIT)
     FetchContent_Declare(
       googletest
       GIT_REPOSITORY "https://github.com/google/googletest.git"
-      GIT_TAG        f8d7d77c06936315286eb55f8de22cd23c188571 # v1.14.0
+      GIT_TAG        58d77fa8070e8cec2dc1ed015d66b454c8d78850 # v1.12.1, last to support C++11
     )
     # For Windows: Prevent overriding the parent project's compiler/linker settings
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

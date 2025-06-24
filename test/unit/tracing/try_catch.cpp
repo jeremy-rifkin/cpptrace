@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <exception>
 #include <stdexcept>
-#include <string_view>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -30,7 +29,7 @@ namespace {
         throw E(std::forward<Args>(args)...);
     }
 
-    void check_trace(const cpptrace::stacktrace& trace, std::string_view file, int line) {
+    void check_trace(const cpptrace::stacktrace& trace, std::string file, int line) {
         (void)trace;
         (void)file;
         (void)line;
@@ -45,7 +44,7 @@ namespace {
         #endif
     }
 
-    void check_trace(const cpptrace::stacktrace& trace, std::string_view try_name) {
+    void check_trace(const cpptrace::stacktrace& trace, std::string try_name) {
         EXPECT_NE(
             std::find_if(
                 trace.begin(),
@@ -70,7 +69,7 @@ namespace {
 }
 
 TEST(TryCatch, Basic) {
-    constexpr std::string_view test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -80,7 +79,7 @@ TEST(TryCatch, Basic) {
         },
         [&] (const std::runtime_error& e) {
             did_catch = true;
-            EXPECT_EQ(e.what(), "foobar"sv);
+            EXPECT_EQ(e.what(), std::string("foobar"));
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
             check_trace(cpptrace::from_current_exception(), test_name);
         }
@@ -102,7 +101,7 @@ TEST(TryCatch, NoException) {
 }
 
 TEST(TryCatch, Upcast) {
-    constexpr std::string_view test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -112,7 +111,7 @@ TEST(TryCatch, Upcast) {
         },
         [&] (const std::exception& e) {
             did_catch = true;
-            EXPECT_EQ(e.what(), "foobar"sv);
+            EXPECT_EQ(e.what(), std::string("foobar"));
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
             check_trace(cpptrace::from_current_exception(), test_name);
         }
@@ -158,7 +157,7 @@ TEST(TryCatch, NoMatchingHandler) {
 }
 
 TEST(TryCatch, CorrectHandler) {
-    constexpr std::string_view test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -174,7 +173,7 @@ TEST(TryCatch, CorrectHandler) {
         },
         [&] (const std::runtime_error& e) {
             did_catch = true;
-            EXPECT_EQ(e.what(), "foobar"sv);
+            EXPECT_EQ(e.what(), std::string("foobar"));
             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
             check_trace(cpptrace::from_current_exception(), test_name);
         },
@@ -186,7 +185,7 @@ TEST(TryCatch, CorrectHandler) {
 }
 
 TEST(TryCatch, BlanketHandler) {
-    constexpr std::string_view test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -213,7 +212,7 @@ TEST(TryCatch, BlanketHandler) {
 }
 
 TEST(TryCatch, CatchOrdering) {
-    constexpr std::string_view test_name = __func__;
+    std::string test_name = __func__;
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
@@ -241,8 +240,8 @@ TEST(TryCatch, CatchOrdering) {
 
 namespace {
     struct copy_move_tracker {
-        inline static int copy = 0;
-        inline static int move = 0;
+        static int copy;
+        static int move;
         copy_move_tracker() = default;
         copy_move_tracker(const copy_move_tracker&) {
             copy++;
@@ -263,6 +262,8 @@ namespace {
             move = 0;
         }
     };
+    int copy_move_tracker::copy = 0;
+    int copy_move_tracker::move = 0;
 }
 
 TEST(TryCatch, Value) {
@@ -315,8 +316,8 @@ TEST(TryCatch, ConstRef) {
 
 namespace {
     struct copy_move_tracker_callable {
-        inline static int copy = 0;
-        inline static int move = 0;
+        static int copy;
+        static int move;
         copy_move_tracker_callable() = default;
         copy_move_tracker_callable(const copy_move_tracker&) {
             copy++;
@@ -338,6 +339,8 @@ namespace {
         }
         void operator()() const {}
     };
+    int copy_move_tracker_callable::copy;
+    int copy_move_tracker_callable::move;
 }
 
 TEST(TryCatch, LvalueCallable) {

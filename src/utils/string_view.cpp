@@ -8,6 +8,8 @@
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
+    constexpr std::size_t string_view::npos;
+
     char string_view::operator[](size_t i) const {
         ASSERT(i < size());
         return ptr[i];
@@ -46,6 +48,8 @@ namespace detail {
     bool operator==(string_view a, string_view b) {
         return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size()) == 0;
     }
+
+    constexpr std::size_t cstring_view::npos;
 
     cstring_view cstring_view::substr(std::size_t pos) const {
         ASSERT(pos <= count);
