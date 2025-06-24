@@ -14,9 +14,6 @@ import cpptrace;
 #include <cpptrace/cpptrace.hpp>
 #endif
 
-using namespace std::literals;
-
-
 
 TEST(ObjectTrace, Empty) {
     cpptrace::object_trace empty;

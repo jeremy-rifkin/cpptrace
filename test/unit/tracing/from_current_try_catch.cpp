@@ -15,8 +15,6 @@ import cpptrace;
 #include <cpptrace/from_current.hpp>
 #endif
 
-using namespace std::literals;
-
 
 static volatile int truthy = 2;
 

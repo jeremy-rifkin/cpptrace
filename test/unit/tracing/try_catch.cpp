@@ -20,7 +20,6 @@ import cpptrace;
 #include "cpptrace/basic.hpp"
 #endif
 
-using namespace std::literals;
 
 namespace {
     template<typename E, typename... Args>

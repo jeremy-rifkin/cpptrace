@@ -14,7 +14,6 @@ import cpptrace;
 #include <cpptrace/cpptrace.hpp>
 #endif
 
-using namespace std::literals;
 
 // Raw trace tests
 
