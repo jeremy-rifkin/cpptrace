@@ -190,7 +190,7 @@ int counting_helper::active = 0;
 
 TEST(MaybeOwnedTest, NonOwningPointer) {
     ASSERT_EQ(counting_helper::active, 0);
-    auto instance = std::make_unique<counting_helper>(42);
+    auto instance = cpptrace::detail::make_unique<counting_helper>(42);
     EXPECT_EQ(counting_helper::active, 1);
     {
         maybe_owned<counting_helper> non_owning(instance.get());
@@ -204,7 +204,7 @@ TEST(MaybeOwnedTest, NonOwningPointer) {
 
 TEST(MaybeOwnedTest, OwningPointer) {
     ASSERT_EQ(counting_helper::active, 0);
-    auto instance = std::make_unique<counting_helper>(42);
+    auto instance = cpptrace::detail::make_unique<counting_helper>(42);
     EXPECT_EQ(counting_helper::active, 1);
     {
         maybe_owned<counting_helper> non_owning(std::move(instance));
