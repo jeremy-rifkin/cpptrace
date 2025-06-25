@@ -96,6 +96,14 @@ namespace detail {
         frame.AddrBStore.Mode  = AddrModeFlat;
         frame.AddrStack.Offset = context.IntSp;
         frame.AddrStack.Mode   = AddrModeFlat;
+        #elif defined(_M_ARM) || defined(__arm__)
+        machine_type           = IMAGE_FILE_MACHINE_ARM;
+        frame.AddrPC.Offset    = context.Pc;
+        frame.AddrPC.Mode      = AddrModeFlat;
+        frame.AddrFrame.Offset = context.R11;
+        frame.AddrFrame.Mode   = AddrModeFlat;
+        frame.AddrStack.Offset = context.Sp;
+        frame.AddrStack.Mode   = AddrModeFlat;
         #elif defined(_M_ARM64) || defined(__aarch64__)
         machine_type           = IMAGE_FILE_MACHINE_ARM64;
         frame.AddrPC.Offset    = context.Pc;
