@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v1.0.2](#v102)
 - [v1.0.1](#v101)
 - [v1.0.0](#v100)
 - [v0.8.3](#v083)
@@ -30,6 +31,20 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v1.0.2
+
+Added:
+- Added `break_before_filename` formatting option https://github.com/jeremy-rifkin/cpptrace/issues/259 (@codeinred)
+
+Fixes:
+- Fixed 32-bit clang-cl build
+- Fixed build on gcc 4.8.5
+- Fixed StackWalk64 for 64-bit arm https://github.com/jeremy-rifkin/cpptrace/pull/270 (@mcourteaux)
+- Fixed compatibility issue with cmake versions before 3.23
+
+Other:
+- Added a couple notes to the README
 
 # v1.0.1
 
