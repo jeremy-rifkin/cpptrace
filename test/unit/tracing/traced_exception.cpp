@@ -13,8 +13,6 @@ import cpptrace;
 #include <cpptrace/cpptrace.hpp>
 #endif
 
-using namespace std::literals;
-
 
 static volatile int truthy = 2;
 

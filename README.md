@@ -384,6 +384,7 @@ namespace cpptrace {
         formatter& filtered_frame_placeholders(bool);
         formatter& filter(std::function<bool(const stacktrace_frame&)>);
         formatter& transform(std::function<stacktrace_frame(stacktrace_frame)>);
+        formatter& break_before_filename(bool do_break = true);
 
         std::string format(const stacktrace_frame&) const;
         std::string format(const stacktrace_frame&, bool color) const;
@@ -422,6 +423,7 @@ Options:
 | `filtered_frame_placeholders` | Whether to still print filtered frames as just `#n (filtered)`     | `true`                                                                   |
 | `filter`                      | A predicate to filter frames with                                  | None                                                                     |
 | `transform`                   | A transformer which takes a stacktrace frame and modifies it       | None                                                                     |
+| `break_before_filename`       | Print symbol and line source location on different lines           | `false`                                                                  |
 
 The `automatic` color mode attempts to detect if a stream that may be attached to a terminal. As such, it will not use
 colors for the `formatter::format` method and it may not be able to detect if some ostreams correspond to terminals or
