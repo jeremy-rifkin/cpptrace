@@ -14,6 +14,15 @@ install(
 
 # copy target build output artifacts to OS dependent locations
 # (Except includes, that just sets a compiler flag with the path)
+
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.23")
+  set(
+    FILE_SET_ARGS
+    FILE_SET CXX_MODULES
+    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/cpptrace"
+  )
+endif()
+
 install(
   TARGETS ${target_name}
   EXPORT ${package_name}-targets
@@ -26,8 +35,7 @@ install(
   COMPONENT ${package_name}_development
   INCLUDES #
   DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-  FILE_SET CXX_MODULES
-  DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/cpptrace"
+  ${FILE_SET_ARGS}
 )
 
 # create config file that points to targets file

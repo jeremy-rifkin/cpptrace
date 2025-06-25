@@ -157,7 +157,7 @@ target_sources(
     src/platform/dbghelp_utils.cpp
 )
 
-if(HAS_CXX20_MODULES)
+if(HAS_CXX20_MODULES AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.23")
   target_sources(
     ${target_name} PUBLIC
     FILE_SET CXX_MODULES
