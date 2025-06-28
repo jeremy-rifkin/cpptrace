@@ -58,7 +58,7 @@ Cpptrace also has a C API, docs [here](docs/c-api.md).
   - [Package Managers](#package-managers)
     - [Conan](#conan)
     - [Vcpkg](#vcpkg)
-  - [C++20 Moduels](#c20-moduels)
+  - [C++20 Modules](#c20-modules)
 - [Platform Logistics](#platform-logistics)
   - [Windows](#windows)
   - [macOS](#macos)
@@ -437,7 +437,7 @@ The `symbols` option provides a few settings for pretty-printing symbol names:
   equivalent to `cpptrace::prettify_symbol`.
 - `symbol_mode::pruned` prunes demangled symbols by removing return types, template arguments, and function parameters.
   It also does some minimal normalization. For example, it prunes `ns::S<int, float>::~S()` to `ns::S::~S`. If cpptrace
-  is unable to parse the symbol it will uses the full symbol. This is equivalent to `cpptrace::prune_symbol`.
+  is unable to parse the symbol it will use the full symbol. This is equivalent to `cpptrace::prune_symbol`.
 
 Recommended practice with formatters: It's generally preferable to create formatters objects that are long-lived rather
 than to create them on the fly every time a trace needs to be formatted.
@@ -597,9 +597,9 @@ CPPTRACE_TRY {
 
 > [!IMPORTANT]
 > There is an unfortunate limitation with `return` statements in these try/catch macros: The implementation on Windows
-> requires wrapping the try body in an immediately-invoked lambda and and as such `return` statements would return from
-> the lambda not the enclosing function. Cpptrace guards against misleading `return`s compiling by requiring the lambdas
-> to return a special internal type, but, if you're writing code that will be compiled on windows it's important to not
+> requires wrapping the try body in an immediately-invoked lambda and as such `return` statements would return from the
+> lambda not the enclosing function. Cpptrace guards against misleading `return`s compiling by requiring the lambdas to
+> return a special internal type, but, if you're writing code that will be compiled on windows it's important to not
 > write `return` statements within CPPTRACE_TRY. For example, this is invalid:
 > ```cpp
 > CPPTRACE_TRY {
@@ -1510,7 +1510,7 @@ find_package(cpptrace CONFIG REQUIRED)
 target_link_libraries(main PRIVATE cpptrace::cpptrace)
 ```
 
-## C++20 Moduels
+## C++20 Modules
 
 Cpptrace supports C++20 modules: `import cpptrace;`. You'll need a modern toolchain in order to use C++20 modules (i.e.
 relatively new compilers, cmake, etc).
@@ -1724,7 +1724,7 @@ Cpptrace provides functionality beyond what the standard library provides and wh
 ## What does cpptrace have over other C++ stacktrace libraries?
 
 Other C++ stacktrace libraries, such as boost stacktrace and backward-cpp, fall short when it comes to portability and
-ease of use. In testing, I found neither to provide adaquate coverage of various environments. Even when they can be
+ease of use. In testing, I found neither to provide adequate coverage of various environments. Even when they can be
 made to work in an environment they require manual configuration from the end-user, possibly requiring manual
 installation of third-party dependencies. This is a highly undesirable burden to impose on users, especially when it is
 for a software package which just provides diagnostics as opposed to core functionality. Additionally, cpptrace provides
