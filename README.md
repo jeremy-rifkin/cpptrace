@@ -342,6 +342,14 @@ namespace cpptrace {
         bool color = false
     );
 
+    std::string get_snippet(
+        const std::string& path,
+        std::size_t line,
+        nullable<std::uint32_t> column,
+        std::size_t context_size,
+        bool color = false
+    );
+
     bool isatty(int fd);
 
     extern const int stdin_fileno;

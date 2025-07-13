@@ -20,7 +20,17 @@ CPPTRACE_BEGIN_NAMESPACE
     }
 
     std::string get_snippet(const std::string& path, std::size_t line, std::size_t context_size, bool color) {
-        return detail::get_snippet(path, line, context_size, color);
+        return detail::get_snippet(path, line, nullable<std::uint32_t>::null(), context_size, color);
+    }
+
+    std::string get_snippet(
+        const std::string& path,
+        std::size_t line,
+        nullable<std::uint32_t> column,
+        std::size_t context_size,
+        bool color
+    ) {
+        return detail::get_snippet(path, line, column, context_size, color);
     }
 
     bool isatty(int fd) {

@@ -104,7 +104,13 @@ namespace detail {
     constexpr std::size_t margin_width = 8;
 
     // 1-indexed line
-    std::string get_snippet(const std::string& path, std::size_t target_line, std::size_t context_size, bool color) {
+    std::string get_snippet(
+        const std::string& path,
+        std::size_t target_line,
+        nullable<std::uint32_t> column,
+        std::size_t context_size,
+        bool color
+    ) {
         const auto& manager = get_manager(path);
         if(!manager.ok()) {
             return "";
@@ -126,15 +132,35 @@ namespace detail {
         // make the snippet
         std::string snippet;
         for(auto line = begin; line <= end; line++) {
-            if(color && line == target_line) {
-                snippet += YELLOW;
-            }
             auto line_str = std::to_string(line);
-            snippet += microfmt::format("{>{}}: ", margin_width, line_str);
-            if(color && line == target_line) {
-                snippet += RESET;
+            if(line == target_line) {
+                if(color) {
+                    snippet += YELLOW;
+                }
+                auto line_width = line_str.size() + 3;
+                snippet += microfmt::format(
+                    "{>{}} > {}: ",
+                    line_width > margin_width ? 0 : margin_width - line_width,
+                    "",
+                    line_str
+                );
+                if(color) {
+                    snippet += RESET;
+                }
+            } else {
+                snippet += microfmt::format("{>{}}: ", margin_width, line_str);
             }
             snippet += lines[line - original_begin];
+            if(line == target_line && column.has_value()) {
+                snippet += microfmt::format("\n{>{}}", margin_width + 2 + column.value() - 1, "");
+                if(color) {
+                    snippet += YELLOW;
+                }
+                snippet += "^";
+                if(color) {
+                    snippet += RESET;
+                }
+            }
             if(line != end) {
                 snippet += '\n';
             }

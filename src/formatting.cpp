@@ -263,6 +263,7 @@ CPPTRACE_BEGIN_NAMESPACE
                         auto snippet = detail::get_snippet(
                             frame.filename,
                             frame.line.value(),
+                            frame.column,
                             options.context_lines,
                             color
                         );

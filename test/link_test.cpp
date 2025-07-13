@@ -68,6 +68,9 @@ int main() {
 
     cpptrace::demangle("test");
     cpptrace::get_snippet(__FILE__, 1, 1);
+    cpptrace::get_snippet(__FILE__, 1, 1, false);
+    cpptrace::get_snippet(__FILE__, 1, 1, 1);
+    cpptrace::get_snippet(__FILE__, 1, 1, 1, false);
     cpptrace::isatty(cpptrace::stderr_fileno);
 
     cpptrace::register_terminate_handler();
