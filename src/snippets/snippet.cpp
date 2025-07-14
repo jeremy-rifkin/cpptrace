@@ -103,17 +103,17 @@ namespace detail {
     // how wide the margin for the line number should be
     constexpr std::size_t margin_width = 8;
 
-    // 1-indexed line
-    std::string get_snippet(
-        const std::string& path,
-        std::size_t target_line,
-        nullable<std::uint32_t> column,
-        std::size_t context_size,
-        bool color
-    ) {
+    struct snippet_context {
+        std::size_t original_begin;
+        std::size_t begin;
+        std::size_t end;
+        std::vector<std::string> lines;
+    };
+
+    optional<snippet_context> get_lines(const std::string& path, std::size_t target_line, std::size_t context_size) {
         const auto& manager = get_manager(path);
         if(!manager.ok()) {
-            return "";
+            return nullopt;
         }
         auto begin = target_line <= context_size + 1 ? 1 : target_line - context_size;
         auto original_begin = begin;
@@ -129,39 +129,78 @@ namespace detail {
         while(end > target_line && lines[end - original_begin].empty()) {
             end--;
         }
-        // make the snippet
+        return snippet_context{original_begin, begin, end, std::move(lines)};
+    }
+
+    std::string write_line_number(std::size_t line, std::size_t target_line, bool color) {
         std::string snippet;
-        for(auto line = begin; line <= end; line++) {
-            auto line_str = std::to_string(line);
-            if(line == target_line) {
-                if(color) {
-                    snippet += YELLOW;
-                }
-                auto line_width = line_str.size() + 3;
-                snippet += microfmt::format(
-                    "{>{}} > {}: ",
-                    line_width > margin_width ? 0 : margin_width - line_width,
-                    "",
-                    line_str
-                );
-                if(color) {
-                    snippet += RESET;
-                }
-            } else {
-                snippet += microfmt::format("{>{}}: ", margin_width, line_str);
+        auto line_str = std::to_string(line);
+        if(line == target_line) {
+            if(color) {
+                snippet += YELLOW;
             }
-            snippet += lines[line - original_begin];
-            if(line == target_line && column.has_value()) {
-                snippet += microfmt::format("\n{>{}}", margin_width + 2 + column.value() - 1, "");
-                if(color) {
-                    snippet += YELLOW;
-                }
-                snippet += "^";
-                if(color) {
-                    snippet += RESET;
-                }
+            auto line_width = line_str.size() + 3;
+            snippet += microfmt::format(
+                "{>{}} > {}: ",
+                line_width > margin_width ? 0 : margin_width - line_width,
+                "",
+                line_str
+            );
+            if(color) {
+                snippet += RESET;
             }
-            if(line != end) {
+        } else {
+            snippet += microfmt::format("{>{}}: ", margin_width, line_str);
+        }
+        return snippet;
+    }
+
+    std::string write_carrot(std::uint32_t column, bool color) {
+        std::string snippet;
+        snippet += microfmt::format("\n{>{}}", margin_width + 2 + column - 1, "");
+        if(color) {
+            snippet += YELLOW;
+        }
+        snippet += "^";
+        if(color) {
+            snippet += RESET;
+        }
+        return snippet;
+    }
+
+    std::string write_line(
+        std::size_t line,
+        nullable<std::uint32_t> column,
+        std::size_t target_line,
+        bool color,
+        const snippet_context& context
+    ) {
+        std::string snippet;
+        snippet += write_line_number(line, target_line, color);
+        snippet += context.lines[line - context.original_begin];
+        if(line == target_line && column.has_value()) {
+            snippet += write_carrot(column.value(), color);
+        }
+        return snippet;
+    }
+
+    // 1-indexed line
+    std::string get_snippet(
+        const std::string& path,
+        std::size_t target_line,
+        nullable<std::uint32_t> column,
+        std::size_t context_size,
+        bool color
+    ) {
+        const auto context_res = get_lines(path, target_line, context_size);
+        if(!context_res) {
+            return "";
+        }
+        const auto& context = context_res.unwrap();
+        std::string snippet;
+        for(auto line = context.begin; line <= context.end; line++) {
+            snippet += write_line(line, column, target_line, color, context);
+            if(line != context.end) {
                 snippet += '\n';
             }
         }
