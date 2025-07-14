@@ -273,7 +273,7 @@ TEST(FormatterTest, Snippets) {
     cpptrace::stacktrace trace;
     unsigned line = __LINE__ + 1;
     trace.frames.push_back({0x1, 0x1001, {line}, {20}, __FILE__, "foo()", false});
-    trace.frames.push_back({0x2, 0x1002, {line + 1}, {20}, __FILE__, "foo()", false});
+    trace.frames.push_back({0x2, 0x1002, {line + 1}, {}, __FILE__, "foo()", false});
     auto formatter = cpptrace::formatter{}
         .snippets(true);
     auto res = split(formatter.format(trace), "\n");
@@ -291,12 +291,12 @@ TEST(FormatterTest, Snippets) {
             ),
             cpptrace::microfmt::format("                             ^"),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{}}, __FILE__, \"foo()\", false});",
                 line + 1
             ),
             cpptrace::microfmt::format("     {}:     auto formatter = cpptrace::formatter{{}}", line + 2),
             // frame 2
-            cpptrace::microfmt::format("#1 0x" ADDR_PREFIX "00000002 in foo() at {}:{}:20", __FILE__, line + 1),
+            cpptrace::microfmt::format("#1 0x" ADDR_PREFIX "00000002 in foo() at {}:{}", __FILE__, line + 1),
             cpptrace::microfmt::format("     {}:     unsigned line = __LINE__ + 1;", line - 1),
             cpptrace::microfmt::format(
                 "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"foo()\", false});",
@@ -306,7 +306,6 @@ TEST(FormatterTest, Snippets) {
                 "   > {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"foo()\", false});",
                 line + 1
             ),
-            cpptrace::microfmt::format("                             ^"),
             cpptrace::microfmt::format("     {}:     auto formatter = cpptrace::formatter{{}}", line + 2),
             cpptrace::microfmt::format("     {}:         .snippets(true);", line + 3)
         )
@@ -330,16 +329,15 @@ TEST(FormatterTest, Snippets) {
                 line + 1
             ),
             // frame 2
-            cpptrace::microfmt::format("#1 0x" ADDR_PREFIX "00000002 in foo() at {}:{}:20", __FILE__, line + 1),
+            cpptrace::microfmt::format("#1 0x" ADDR_PREFIX "00000002 in foo() at {}:{}", __FILE__, line + 1),
             cpptrace::microfmt::format(
                 "     {}:     trace.frames.push_back({0x1, 0x1001, {line}, {{20}}, __FILE__, \"foo()\", false});",
                 line
             ),
             cpptrace::microfmt::format(
-                "   > {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"foo()\", false});",
+                "   > {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{}}, __FILE__, \"foo()\", false});",
                 line + 1
             ),
-            cpptrace::microfmt::format("                             ^"),
             cpptrace::microfmt::format("     {}:     auto formatter = cpptrace::formatter{{}}", line + 2)
         )
     );
