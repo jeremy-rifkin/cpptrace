@@ -303,7 +303,7 @@ TEST(FormatterTest, Snippets) {
                 line
             ),
             cpptrace::microfmt::format(
-                "   > {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"foo()\", false});",
+                "   > {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{}}, __FILE__, \"foo()\", false});",
                 line + 1
             ),
             cpptrace::microfmt::format("     {}:     auto formatter = cpptrace::formatter{{}}", line + 2),
@@ -325,7 +325,7 @@ TEST(FormatterTest, Snippets) {
             ),
             cpptrace::microfmt::format("                             ^"),
             cpptrace::microfmt::format(
-                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{20}}, __FILE__, \"foo()\", false});",
+                "     {}:     trace.frames.push_back({0x2, 0x1002, {line + 1}, {{}}, __FILE__, \"foo()\", false});",
                 line + 1
             ),
             // frame 2
