@@ -689,6 +689,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
+           sudo apt update
            sudo apt install gcc-10 g++-10 libgcc-10-dev clang-19 clang-tools-19 ninja-build gcc-multilib g++-multilib g++-10-multilib
     - name: build and test
       run: |
@@ -714,6 +715,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
+           sudo apt update
            wget http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-4.8/g++-4.8_4.8.5-4ubuntu8_amd64.deb
            wget http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-4.8/libstdc++-4.8-dev_4.8.5-4ubuntu8_amd64.deb
            wget http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-4.8/gcc-4.8-base_4.8.5-4ubuntu8_amd64.deb
