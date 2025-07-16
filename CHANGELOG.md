@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v1.0.3](#v103)
 - [v1.0.2](#v102)
 - [v1.0.1](#v101)
 - [v1.0.0](#v100)
@@ -31,6 +32,13 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v1.0.3
+
+Added:
+- Added line indicator to make source code snippets in case colors aren't being used
+- Added column indicator to source code snippets
+- Added 32-bit ARM support for StackWalk64 https://github.com/jeremy-rifkin/cpptrace/pull/271 (@Xottab-DUTY)
 
 # v1.0.2
 
