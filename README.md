@@ -123,9 +123,6 @@ int main() {
 
 ![from_current](res/from_current.png)
 
-There are a few extraneous frames at the top of the stack corresponding to internals of exception handling in the
-standard library. These are a small price to pay for stack traces on all exceptions.
-
 Cpptrace also provides a handful of traced exception objects that store stack traces when thrown. This is useful when
 the exceptions might not be caught by `CPPTRACE_CATCH`:
 ```cpp
@@ -556,9 +553,6 @@ Any declarator `catch` accepts works with `CPPTRACE_CATCH`, including `...`. Thi
 
 ![from_current](res/from_current.png)
 
-There are a few extraneous frames at the top of the stack corresponding to standard library exception handling
-internals. These are a small price to pay for stack traces on all exceptions.
-
 API functions:
 - `cpptrace::raw_trace_from_current_exception`: Returns `const raw_trace&` from the current exception.
 - `cpptrace::from_current_exception`: Returns a resolved `const stacktrace&` from the current exception. Invalidates
@@ -604,6 +598,10 @@ CPPTRACE_TRY {
     cpptrace::from_current_exception().print(); // the trace for std::runtime_error("bar"), again
 }
 ```
+
+Note: Internally the trace contains some extra frames for calls like `__cxa_throw`, `_UnwindRaiseException`, etc. These
+are filtered out during stacktrace printing but they will be present if you manually inspect the vector of stacktrace
+frames.
 
 > [!IMPORTANT]
 > There is an unfortunate limitation with `return` statements in these try/catch macros: The implementation on Windows
