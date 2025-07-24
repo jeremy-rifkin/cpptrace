@@ -6,6 +6,7 @@
 #include "utils/replace_all.hpp"
 #include "snippets/snippet.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <string>
 #include <functional>
@@ -69,6 +70,7 @@ CPPTRACE_BEGIN_NAMESPACE
             bool columns = true;
             symbol_mode symbols = symbol_mode::full;
             bool show_filtered_frames = true;
+            bool hide_exception_machinery = true;
             std::function<bool(const stacktrace_frame&)> filter;
             std::function<stacktrace_frame(stacktrace_frame)> transform;
         } options;
@@ -109,6 +111,9 @@ CPPTRACE_BEGIN_NAMESPACE
         }
         void break_before_filename(bool do_break) {
             options.break_before_filename = do_break;
+        }
+        void hide_exception_machinery(bool do_hide) {
+            options.hide_exception_machinery = do_hide;
         }
 
         std::string format(
@@ -213,6 +218,25 @@ CPPTRACE_BEGIN_NAMESPACE
             return do_color;
         }
 
+        size_t get_trace_start(const stacktrace& trace) const {
+            if(!options.hide_exception_machinery) {
+                return 0;
+            }
+            // Look for c++ exception machinery and skip it if it's present, otherwise start at the beginning
+            // On itanium this is identifiable by __cxa_throw
+            // https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html 2.4.1
+            // On windows this is identifiable by CxxThrowException (maybe with an underscore?)
+            // https://www.youtube.com/watch?v=COEv2kq_Ht8 40:10
+            // https://github.com/CppCon/CppCon2018/blob/master/Presentations/unwinding_the_stack_exploring_how_cpp_exceptions_work_on_windows/unwinding_the_stack_exploring_how_cpp_exceptions_work_on_windows__james_mcnellis__cppcon_2018.pdf slide 157
+            // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/cxxthrowexception?view=msvc-170
+            auto it = std::find_if(trace.begin(), trace.end(), [] (const stacktrace_frame& frame) {
+                return frame.symbol == "__cxa_throw"
+                    || frame.symbol == "CxxThrowException"
+                    || frame.symbol == "_CxxThrowException";
+            });
+            return it == trace.end() ? 0 : it - trace.begin() + 1;
+        }
+
         void print_internal(std::ostream& stream, const stacktrace_frame& input_frame, detail::optional<bool> color_override, size_t col_indent) const {
             bool color = should_do_color(stream, color_override);
             maybe_ensure_virtual_terminal_processing(stream, color);
@@ -235,14 +259,14 @@ CPPTRACE_BEGIN_NAMESPACE
             if(!options.header.empty()) {
                 stream << options.header << '\n';
             }
-            std::size_t counter = 0;
             const auto& frames = trace.frames;
             if(frames.empty()) {
                 stream << "<empty trace>";
                 return;
             }
             const auto frame_number_width = detail::n_digits(static_cast<int>(frames.size()) - 1);
-            for(size_t i = 0; i < frames.size(); ++i) {
+            std::size_t counter = 0;
+            for(size_t i = get_trace_start(trace); i < frames.size(); ++i) {
                 detail::optional<stacktrace_frame> transformed_frame;
                 if(options.transform) {
                     transformed_frame = options.transform(frames[i]);
@@ -427,6 +451,10 @@ CPPTRACE_BEGIN_NAMESPACE
     }
     formatter& formatter::break_before_filename(bool do_break) {
         pimpl->break_before_filename(do_break);
+        return *this;
+    }
+    formatter& formatter::hide_exception_machinery(bool do_hide) {
+        pimpl->hide_exception_machinery(do_hide);
         return *this;
     }
 

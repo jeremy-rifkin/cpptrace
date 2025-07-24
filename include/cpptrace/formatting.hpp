@@ -57,6 +57,7 @@ CPPTRACE_BEGIN_NAMESPACE
         formatter& filter(std::function<bool(const stacktrace_frame&)>);
         formatter& transform(std::function<stacktrace_frame(stacktrace_frame)>);
         formatter& break_before_filename(bool do_break = true);
+        formatter& hide_exception_machinery(bool do_hide = true);
 
         std::string format(const stacktrace_frame&) const;
         std::string format(const stacktrace_frame&, bool color) const;
