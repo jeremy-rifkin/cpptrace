@@ -1,6 +1,7 @@
 # Changelog
 
 - [Changelog](#changelog)
+- [v1.0.4](#v104)
 - [v1.0.3](#v103)
 - [v1.0.2](#v102)
 - [v1.0.1](#v101)
@@ -32,6 +33,20 @@
 - [v0.2.0](#v020)
 - [v0.1.1](#v011)
 - [v0.1](#v01)
+
+# v1.0.4
+
+Added
+- Added filtering for C++ exception handling internals during printing. This cleans up output from current exceptions
+  and std::terminate traces.
+
+Fixed:
+- Fixed reported version number for cpptrace
+
+Other:
+- Bumped default libdwarf to 2.1.0
+- Updated stacktrace output for the cpptrace terminate handler
+- Updated demo program
 
 # v1.0.3
 
