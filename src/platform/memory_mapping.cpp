@@ -32,8 +32,6 @@ namespace detail {
         GetSystemInfo(&info);
         return info.dwPageSize;
     }
-    constexpr auto memory_readonly = PAGE_READONLY;
-    constexpr auto memory_readwrite = PAGE_READWRITE;
     int mprotect_page_and_return_old_protections(void* page, int page_size, int protections) {
         DWORD old_protections;
         if(!VirtualProtect(page, page_size, protections, &old_protections)) {
