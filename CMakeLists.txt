@@ -155,6 +155,7 @@ target_sources(
     src/utils/string_view.cpp
     src/utils/utils.cpp
     src/platform/dbghelp_utils.cpp
+    src/platform/memory_mapping.cpp
 )
 
 if(HAS_CXX20_MODULES AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.23")
