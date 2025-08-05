@@ -158,7 +158,7 @@ target_sources(
     src/platform/memory_mapping.cpp
 )
 
-if(HAS_CXX20_MODULES AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.23")
+if(HAS_CXX20_MODULES AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.28")
   target_sources(
     ${target_name} PUBLIC
     FILE_SET CXX_MODULES
