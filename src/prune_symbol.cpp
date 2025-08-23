@@ -60,22 +60,68 @@ namespace detail {
     }
 
     // http://eel.is/c++draft/lex.operators#nt:operator-or-punctuator
-    const std::vector<string_view> punctuators_and_operators = []() {
-        std::vector<string_view> vec{
-            "{",        "}",        "[",        "]",        "(",        ")",
-            "<:",       ":>",       "<%",       "%>",       ";",        ":",        "...",
-            "?",        "::",       ".",        ".*",       "->",       "->*",      "~",
-            "!",        "+",        "-",        "*",        "/",        "%",        "^",        "&",        "|",
-            "=",        "+=",       "-=",       "*=",       "/=",       "%=",       "^=",       "&=",       "|=",
-            "==",       "!=",       "<",        ">",        "<=",       ">=",       "<=>",      "&&",       "||",
-            "<<",       ">>",       "<<=",      ">>=",      "++",       "--",       ",",
-            // "and",      "or",       "xor",      "not",      "bitand",   "bitor",    "compl",
-            // "and_eq",   "or_eq",    "xor_eq",   "not_eq",
-            "#", // extension for {lambda()#1}
-        };
-        std::sort(vec.begin(), vec.end(), [](string_view a, string_view b) { return a.size() > b.size(); });
-        return vec;
-    } ();
+    //
+    // These must be ordered by length, longest first.
+    const string_view punctuators_and_operators[] {
+        // 3 character operators
+        "->*",
+        "...",
+        "<=>",
+        "<<=",
+        ">>=",
+        // 2 character operators
+        "<:",
+        ":>",
+        "<%",
+        "%>",
+        "::",
+        ".*",
+        "->",
+        "+=",
+        "-=",
+        "*=",
+        "/=",
+        "%=",
+        "^=",
+        "&=",
+        "|=",
+        "==",
+        "!=",
+        "<=",
+        ">=",
+        "&&",
+        "||",
+        "<<",
+        ">>",
+        "++",
+        "--",
+        // 1 character operators
+        "{",
+        "}",
+        "[",
+        "]",
+        "(",
+        ")",
+        ";",
+        ":",
+        "?",
+        ".",
+        "~",
+        "!",
+        "+",
+        "-",
+        "*",
+        "/",
+        "%",
+        "^",
+        "&",
+        "|",
+        "=",
+        "<",
+        ">",
+        ",",
+        "#",
+    };
 
     const std::array<string_view, 2> anonymous_namespace_spellings = {"(anonymous namespace)", "`anonymous namespace'"};
 
