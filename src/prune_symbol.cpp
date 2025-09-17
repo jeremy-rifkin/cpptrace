@@ -60,7 +60,6 @@ namespace detail {
     }
 
     // http://eel.is/c++draft/lex.operators#nt:operator-or-punctuator
-    //
     // These must be ordered by length, longest first.
     const string_view punctuators_and_operators[] {
         // 3 character operators
@@ -120,7 +119,7 @@ namespace detail {
         "<",
         ">",
         ",",
-        "#",
+        "#", // extension for {lambda()#1}
     };
 
     const std::array<string_view, 2> anonymous_namespace_spellings = {"(anonymous namespace)", "`anonymous namespace'"};
