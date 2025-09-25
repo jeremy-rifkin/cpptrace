@@ -347,7 +347,7 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     endif()
   else()
     include(FetchContent)
-    if(CPPTRACE_ENABLE_DEBUG_DECOMPRESSION)
+    if(CPPTRACE_ENABLE_LIBDWARF_COMPRESSION_SUPPORT)
       # First, dependencies: Zstd and zlib (currently relying on system zlib)
       if(CPPTRACE_USE_EXTERNAL_ZSTD)
         find_package(zstd)
@@ -381,7 +381,7 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       GIT_SHALLOW ${CPPTRACE_LIBDWARF_SHALLOW}
     )
     FetchContent_MakeAvailable(libdwarf)
-    if(CPPTRACE_ENABLE_DEBUG_DECOMPRESSION)
+    if(CPPTRACE_ENABLE_LIBDWARF_COMPRESSION_SUPPORT)
       target_include_directories(
         dwarf
         PRIVATE
