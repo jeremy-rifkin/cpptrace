@@ -8,7 +8,7 @@
 #if defined(_WIN32)
  #undef IS_WINDOWS
  #define IS_WINDOWS 1
-#elif defined(__linux)
+#elif defined(__linux) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
  #undef IS_LINUX
  #define IS_LINUX 1
 #elif defined(__APPLE__)
