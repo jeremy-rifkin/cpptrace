@@ -12,32 +12,65 @@ cc_library(
     ]),
     copts = select(
         {
-            "@rules_cc//cc/compiler:msvc-cl": ["/W4", "/permissive-"],
-            "@rules_cc//cc/compiler:gcc": ["--std=c++11", "-fPIC","-Wall", "-Wextra", "-Werror=return-type", "-Wundef", "-Wuseless-cast", "-Wmaybe-uninitialized"],
+            "@rules_cc//cc/compiler:msvc-cl": [
+                "/W4",
+                "/permissive-",
+            ],
+            "@rules_cc//cc/compiler:gcc": [
+                "--std=c++11",
+                "-fPIC",
+                "-Wall",
+                "-Wextra",
+                "-Werror=return-type",
+                "-Wundef",
+                "-Wuseless-cast",
+                "-Wmaybe-uninitialized",
+            ],
             "//conditions:default": [],
-        }
+        },
     ),
-    linkopts = select({
-        "@platforms//os:windows": ["dbghelp.lib"],
-        "//conditions:default": [],
-    }),
+    defines = ["CPPTRACE_STATIC_DEFINE"],
     includes = [
         "include",
         "src",
     ],
-    defines = ["CPPTRACE_STATIC_DEFINE"],
+    linkopts = select({
+        "@platforms//os:windows": ["dbghelp.lib"],
+        "//conditions:default": [],
+    }),
     local_defines = select({
-        "@platforms//os:windows": ["NOMINMAX", "CPPTRACE_DEMANGLE_WITH_WINAPI", "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP", "CPPTRACE_UNWIND_WITH_DBGHELP"],
-        "@platforms//os:linux": ["CPPTRACE_HAS_DL_FIND_OBJECT", "CPPTRACE_DEMANGLE_WITH_CXXABI", "CPPTRACE_UNWIND_WITH_LIBUNWIND", "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF"],
-        "@platforms//os:macos": ["CPPTRACE_HAS_MACH_VM", "CPPTRACE_DEMANGLE_WITH_CXXABI", "CPPTRACE_UNWIND_WITH_LIBUNWIND", "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF"],
+        "@platforms//os:windows": [
+            "NOMINMAX",
+            "CPPTRACE_DEMANGLE_WITH_WINAPI",
+            "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+            "CPPTRACE_UNWIND_WITH_DBGHELP",
+        ],
+        "@platforms//os:linux": [
+            "CPPTRACE_HAS_DL_FIND_OBJECT",
+            "CPPTRACE_DEMANGLE_WITH_CXXABI",
+            "CPPTRACE_UNWIND_WITH_LIBUNWIND",
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+        ],
+        "@platforms//os:macos": [
+            "CPPTRACE_HAS_MACH_VM",
+            "CPPTRACE_DEMANGLE_WITH_CXXABI",
+            "CPPTRACE_UNWIND_WITH_LIBUNWIND",
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+        ],
         "//conditions:default": [],
     }) + select({
-        "@rules_cc//cc/compiler:gcc": ["HAS_ATTRIBUTE_PACKED", "CPPTRACE_HAS_CXX_EXCEPTION_TYPE"],
+        "@rules_cc//cc/compiler:gcc": [
+            "HAS_ATTRIBUTE_PACKED",
+            "CPPTRACE_HAS_CXX_EXCEPTION_TYPE",
+        ],
         "//conditions:default": [],
     }),
     visibility = ["//visibility:public"],
     deps = select({
         "@platforms//os:windows": [],
-        "//conditions:default": ["@libdwarf","@libunwind"],
+        "//conditions:default": [
+            "@libdwarf",
+            "@libunwind",
+        ],
     }),
 )

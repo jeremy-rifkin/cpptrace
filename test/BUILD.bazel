@@ -17,6 +17,19 @@ cc_test(
         "unit/tracing/stacktrace.cpp",
         "unit/tracing/traced_exception.cpp",
     ],
+    copts = select(
+        {
+            "@rules_cc//cc/compiler:msvc-cl": [
+                "/Od",
+                "/Z7",
+            ],
+            "@rules_cc//cc/compiler:gcc": [
+                "-g",
+                "-O0",
+            ],
+            "//conditions:default": [],
+        },
+    ),
     linkstatic = 1,
     local_defines = [
         "CPPTRACE_NO_TEST_SNIPPETS",

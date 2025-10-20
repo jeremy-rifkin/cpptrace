@@ -1,4 +1,2 @@
 test --strip=never
 test --test_output=all
-test --copt=/Od
-test --copt=/Z7
