@@ -54,8 +54,8 @@ cc_library(
         "@platforms//os:macos": [
             "CPPTRACE_HAS_MACH_VM",
             "CPPTRACE_DEMANGLE_WITH_CXXABI",
-            "CPPTRACE_UNWIND_WITH_LIBUNWIND",
             "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+            "CPPTRACE_UNWIND_WITH_EXECINFO",
         ],
         "//conditions:default": [],
     }) + select({
@@ -67,10 +67,13 @@ cc_library(
     }),
     visibility = ["//visibility:public"],
     deps = select({
-        "@platforms//os:windows": [],
-        "//conditions:default": [
-            "@libdwarf",
+        "@platforms//os:linux": [
             "@libunwind",
+            "@libdwarf",
         ],
+        "@platforms//os:macos": [
+            "@libdwarf",
+        ],
+        "//conditions:default": [],
     }),
 )
