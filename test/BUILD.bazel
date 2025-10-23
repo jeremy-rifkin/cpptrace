@@ -20,8 +20,10 @@ cc_test(
     copts = select(
         {
             "@rules_cc//cc/compiler:msvc-cl": [
-                "/Od",
                 "/Z7",
+                "/FS",
+                "/W4",
+                "/permissive-",
             ],
             "//conditions:default": [
                 "-g",

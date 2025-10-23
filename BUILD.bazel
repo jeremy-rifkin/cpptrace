@@ -15,6 +15,7 @@ cc_library(
             "@rules_cc//cc/compiler:msvc-cl": [
                 "/W4",
                 "/permissive-",
+                "/FS",
             ],
             "@rules_cc//cc/compiler:gcc": [
                 "--std=c++11",
