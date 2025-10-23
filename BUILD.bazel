@@ -38,6 +38,10 @@ cc_library(
         "@platforms//os:windows": ["dbghelp.lib"],
         "//conditions:default": [],
     }),
+    linkstatic = select({
+        "@platforms//os:windows": False,
+        "//conditions:default": True,
+    }),
     local_defines = select({
         "@platforms//os:windows": [
             "NOMINMAX",
