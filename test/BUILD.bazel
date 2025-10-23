@@ -29,10 +29,6 @@ cc_test(
             ],
         },
     ),
-    data = select({
-        "@platforms//os:windows": ["//:cpptrace"],
-        "//conditions:default": [],
-    }),
     linkstatic = 1,
     local_defines = [
         "CPPTRACE_NO_TEST_SNIPPETS",
@@ -40,8 +36,6 @@ cc_test(
     deps = [
         "@googletest//:gtest",
         "@googletest//:gtest_main",
-    ] + select({
-        "@platforms//os:windows": [],
-        "//conditions:default": ["//:cpptrace"],
-    }),
+        "//:cpptrace",
+    ],
 )
