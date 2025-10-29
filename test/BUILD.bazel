@@ -36,8 +36,8 @@ cc_test(
     ),
     linkstatic = 1,
     deps = [
+        "//:cpptrace",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
-        "//:cpptrace",
     ],
 )

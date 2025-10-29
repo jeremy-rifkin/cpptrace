@@ -74,7 +74,7 @@ cc_library(
             "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
             "CPPTRACE_UNWIND_WITH_EXECINFO",
         ],
-        "//conditions:default": ["NOMINMAX",],
+        "//conditions:default": ["NOMINMAX"],
     }) + select({
         "@rules_cc//cc/compiler:msvc-cl": [],
         "//conditions:default": [
@@ -85,8 +85,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = select({
         "@platforms//os:linux": [
-            "@libunwind",
             "@libdwarf",
+            "@libunwind",
         ],
         "@platforms//os:macos": [
             "@libdwarf",
