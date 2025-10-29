@@ -29,8 +29,6 @@ cc_test(
                 "-g",
                 "-O0",
                 "-gdwarf-4",
-                "-fno-limit-debug-info",
-                "-fno-standalone-debug",
             ],
         },
     ),
