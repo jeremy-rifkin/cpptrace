@@ -32,6 +32,7 @@ cc_test(
             ],
         },
     ),
+    local_defines = ["CPPTRACE_NO_TEST_SNIPPETS"],
     linkstatic = 1,
     deps = [
         "//:cpptrace",
