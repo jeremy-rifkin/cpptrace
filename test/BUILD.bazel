@@ -28,13 +28,13 @@ cc_test(
             "//conditions:default": [
                 "-g",
                 "-O0",
+                "-gdwarf-4",
+                "-fno-limit-debug-info",
+                "-fno-standalone-debug",
             ],
         },
     ),
     linkstatic = 1,
-    local_defines = [
-        "CPPTRACE_NO_TEST_SNIPPETS",
-    ],
     deps = [
         "@googletest//:gtest",
         "@googletest//:gtest_main",

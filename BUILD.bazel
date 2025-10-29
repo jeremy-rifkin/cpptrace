@@ -1,5 +1,26 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
+COMMON_FLAGS = [
+    "--std=c++11",
+    "-fPIC",
+    "-Wall",
+    "-Wextra",
+    "-Werror=return-type",
+    "-Wundef",
+    "-g",
+    "-O0",
+    "-gdwarf-4",
+    "-fPIC",
+]
+
+GCC_FLAGS = COMMON_FLAGS + [
+    "-Wuseless-cast",
+    "-Wmaybe-uninitialized",
+    "-fdiagnostics-color=always",
+]
+
+CLANG_FLAGS = COMMON_FLAGS + ["-fcolor-diagnostics"]
+
 cc_library(
     name = "cpptrace",
     srcs = glob([
@@ -17,17 +38,9 @@ cc_library(
                 "/permissive-",
                 "/FS",
             ],
-            "@rules_cc//cc/compiler:gcc": [
-                "--std=c++11",
-                "-fPIC",
-                "-Wall",
-                "-Wextra",
-                "-Werror=return-type",
-                "-Wundef",
-                "-Wuseless-cast",
-                "-Wmaybe-uninitialized",
-            ],
-            "//conditions:default": [],
+            "@rules_cc//cc/compiler:gcc": GCC_FLAGS,
+            "@rules_cc//cc/compiler:clang": CLANG_FLAGS,
+            "//conditions:default": COMMON_FLAGS,
         },
     ),
     defines = ["CPPTRACE_STATIC_DEFINE"],
@@ -45,7 +58,6 @@ cc_library(
     }),
     local_defines = select({
         "@platforms//os:windows": [
-            "NOMINMAX",
             "CPPTRACE_DEMANGLE_WITH_WINAPI",
             "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
             "CPPTRACE_UNWIND_WITH_DBGHELP",
@@ -62,13 +74,13 @@ cc_library(
             "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
             "CPPTRACE_UNWIND_WITH_EXECINFO",
         ],
-        "//conditions:default": [],
+        "//conditions:default": ["NOMINMAX",],
     }) + select({
-        "@rules_cc//cc/compiler:gcc": [
+        "@rules_cc//cc/compiler:msvc-cl": [],
+        "//conditions:default": [
             "HAS_ATTRIBUTE_PACKED",
             "CPPTRACE_HAS_CXX_EXCEPTION_TYPE",
         ],
-        "//conditions:default": [],
     }),
     visibility = ["//visibility:public"],
     deps = select({
