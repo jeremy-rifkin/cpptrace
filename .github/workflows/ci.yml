@@ -737,6 +737,28 @@ jobs:
              -DCPPTRACE_STD_FORMAT=Off
            ninja
 
+  unittest-freebsd:
+    runs-on: ubuntu-24.04
+    needs: unittest-linux
+    steps:
+    - uses: actions/checkout@v4
+    - name: build and test
+      id: test
+      uses: vmactions/freebsd-vm@v1
+      with:
+        usesh: true
+        run: |
+          pkg install -y cmake lang/gcc ninja
+          mkdir build
+          cd build
+          cmake .. \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCPPTRACE_WERROR_BUILD=On \
+            -DCPPTRACE_STD_FORMAT=Off
+          ninja
+          ./unittest
+
   unittest-windows-32-bit:
     runs-on: windows-2022
     needs: unittest-windows
