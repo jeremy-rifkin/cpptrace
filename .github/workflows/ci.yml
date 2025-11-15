@@ -755,7 +755,8 @@ jobs:
             -GNinja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCPPTRACE_WERROR_BUILD=On \
-            -DCPPTRACE_STD_FORMAT=Off
+            -DCPPTRACE_STD_FORMAT=Off \
+            -DCPPTRACE_BUILD_TESTING=On
           ninja
           ./unittest
 
