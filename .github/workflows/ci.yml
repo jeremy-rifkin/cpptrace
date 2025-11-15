@@ -748,7 +748,7 @@ jobs:
       with:
         usesh: true
         run: |
-          pkg install -y cmake lang/gcc ninja
+          pkg install -y cmake lang/gcc ninja git
           mkdir build
           cd build
           cmake .. \
