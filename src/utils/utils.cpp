@@ -23,13 +23,11 @@ namespace detail {
         #endif
     }
 
-    int fileno(std::FILE* stream) {
-        #if IS_WINDOWS
-         return _fileno(stream);
-        #else
-         return ::fileno(stream);
-        #endif
-    }
+    #if IS_WINDOWS
+     int fileno(std::FILE* stream) {
+          return _fileno(stream);
+     }
+    #endif
 
     void enable_virtual_terminal_processing_if_needed() noexcept {
         // enable colors / ansi processing if necessary
