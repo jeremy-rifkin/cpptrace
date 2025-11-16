@@ -276,6 +276,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
   SET(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
 endif()
 
+if(CPPTRACE_DELAYLOAD_DBGHELP AND BUILD_SHARED_LIBS AND MSVC AND (CPPTRACE_UNWIND_WITH_DBGHELP OR CPPTRACE_GET_SYMBOLS_WITH_DBGHELP))
+  target_link_libraries(${target_name} PRIVATE delayimp.lib)
+  target_link_options(${target_name} PRIVATE /DELAYLOAD:dbghelp.dll)
+endif()
+
 # =================================================== Back-end setup ===================================================
 
 if(HAS_CXX_EXCEPTION_TYPE)
