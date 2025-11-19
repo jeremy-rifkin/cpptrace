@@ -20,7 +20,9 @@
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
     bool isatty(int fd);
-    int fileno(std::FILE* stream);
+    #if IS_WINDOWS
+     int fileno(std::FILE* stream);
+    #endif
 
     void enable_virtual_terminal_processing_if_needed() noexcept;
 
