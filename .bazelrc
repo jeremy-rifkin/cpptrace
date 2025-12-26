@@ -1,3 +1,7 @@
 test --strip=never
 test --test_output=all
-test --copt=-g
+test --spawn_strategy=local
+test --compilation_mode=dbg
+build --strip=never
+build --spawn_strategy=local
+build --compilation_mode=dbg

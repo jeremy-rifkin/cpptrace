@@ -576,7 +576,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           sudo apt install -y libtool libncurses5
+           sudo apt install -y libtool libncurses5 libc6-dev
     - name: test dbg
       run: |
            bazel test //... -c dbg

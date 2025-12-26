@@ -13,3 +13,7 @@ bazel-*/
 cmake-build-*/
 
 test/jank/data
+
+# bazel out
+bazel-*
+MODULE.bazel.lock
