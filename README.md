@@ -1727,7 +1727,8 @@ Cpptrace provides functionality beyond what the standard library provides and wh
 - Providing traced exception objects
 - Providing an API for signal-safe stacktrace generation
 - Providing a way to retrieve stack traces from arbitrary exceptions, not just special cpptrace traced exception
-  objects. This is a feature coming to C++26, but cpptrace provides a solution for C++11.
+  objects. This is a feature that has been proposed for a future version of the C++ standard,
+  but cpptrace provides a solution for C++11.
 
 ## What does cpptrace have over other C++ stacktrace libraries?
 
