@@ -140,6 +140,7 @@ namespace addr2line {
         }
         // TODO: check status from addr2line?
         waitpid(pid, nullptr, 0);
+        close(output_pipe.end.read);
         return output;
     }
     #elif IS_WINDOWS
