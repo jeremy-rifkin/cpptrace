@@ -101,7 +101,7 @@ raw_trace.resolve().print();
 ```
 
 One of the most important features cpptrace offers is the ability to retrieve stack traces on arbitrary exceptions.
-More information on this system [below]((#traces-from-all-exceptions-cpptrace_try-and-cpptrace_catch)).
+More information on this system [below](#traces-from-all-exceptions-cpptrace_try-and-cpptrace_catch).
 ```cpp
 #include <cpptrace/from_current.hpp>
 #include <iostream>
