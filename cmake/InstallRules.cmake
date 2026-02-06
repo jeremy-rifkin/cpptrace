@@ -77,7 +77,7 @@ if(CPPTRACE_PROVIDE_EXPORT_SET)
   export(
     TARGETS ${target_name}
     NAMESPACE cpptrace::
-    FILE "${PROJECT_BINARY_DIR}/${package_name}-targets.cmake"
+    FILE "${PROJECT_BINARY_DIR}/cmake/${package_name}-targets.cmake"
   )
 endif()
 
