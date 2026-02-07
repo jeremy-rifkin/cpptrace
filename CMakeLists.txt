@@ -352,24 +352,28 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     endif()
   else()
     include(FetchContent)
-    # First, dependencies: Zstd and zlib (currently relying on system zlib)
-    if(CPPTRACE_USE_EXTERNAL_ZSTD)
-      find_package(zstd)
+    if(CPPTRACE_ENABLE_LIBDWARF_COMPRESSION_SUPPORT)
+      # First, dependencies: Zstd and zlib (currently relying on system zlib)
+      if(CPPTRACE_USE_EXTERNAL_ZSTD)
+        find_package(zstd)
+      else()
+        cmake_policy(SET CMP0074 NEW)
+        set(ZSTD_BUILD_PROGRAMS OFF)
+        set(ZSTD_BUILD_CONTRIB OFF)
+        set(ZSTD_BUILD_TESTS OFF)
+        set(ZSTD_BUILD_STATIC ON)
+        set(ZSTD_BUILD_SHARED OFF)
+        set(ZSTD_LEGACY_SUPPORT OFF)
+        FetchContent_Declare(
+            zstd
+            SOURCE_SUBDIR build/cmake
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+            URL "${CPPTRACE_ZSTD_URL}"
+        )
+        FetchContent_MakeAvailable(zstd)
+      endif()
     else()
-      cmake_policy(SET CMP0074 NEW)
-      set(ZSTD_BUILD_PROGRAMS OFF)
-      set(ZSTD_BUILD_CONTRIB OFF)
-      set(ZSTD_BUILD_TESTS OFF)
-      set(ZSTD_BUILD_STATIC ON)
-      set(ZSTD_BUILD_SHARED OFF)
-      set(ZSTD_LEGACY_SUPPORT OFF)
-      FetchContent_Declare(
-          zstd
-          SOURCE_SUBDIR build/cmake
-          DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-          URL "${CPPTRACE_ZSTD_URL}"
-      )
-      FetchContent_MakeAvailable(zstd)
+      set(ENABLE_DECOMPRESSION FALSE)
     endif()
     # Libdwarf itself
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
@@ -382,11 +386,13 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
       GIT_SHALLOW ${CPPTRACE_LIBDWARF_SHALLOW}
     )
     FetchContent_MakeAvailable(libdwarf)
-    target_include_directories(
-      dwarf
-      PRIVATE
-      ${zstd_SOURCE_DIR}/lib
-    )
+    if(CPPTRACE_ENABLE_LIBDWARF_COMPRESSION_SUPPORT)
+      target_include_directories(
+        dwarf
+        PRIVATE
+        ${zstd_SOURCE_DIR}/lib
+      )
+    endif()
     if(CPPTRACE_PROVIDE_EXPORT_SET_FOR_LIBDWARF)
       export(
         TARGETS dwarf
