@@ -1,34 +1,104 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+COMMON_FLAGS = [
+    "--std=c++11",
+    "-fPIC",
+    "-Wall",
+    "-Wextra",
+    "-Werror=return-type",
+    "-Wundef",
+    "-g",
+    "-O0",
+    "-gdwarf-4",
+    "-fPIC",
+]
+
+GCC_FLAGS = COMMON_FLAGS + [
+    "-Wuseless-cast",
+    "-Wmaybe-uninitialized",
+    "-fdiagnostics-color=always",
+]
+
+CLANG_FLAGS = COMMON_FLAGS + ["-fcolor-diagnostics"]
+
 cc_library(
     name = "cpptrace",
     srcs = glob([
         "src/**/*.hpp",
         "src/**/*.cpp",
     ]),
-    local_defines = [
-        "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
-        "CPPTRACE_DEMANGLE_WITH_CXXABI",
-        "CPPTRACE_UNWIND_WITH_LIBUNWIND"
-    ],
     hdrs = glob([
         "include/cpptrace/*.hpp",
         "include/ctrace/*.h",
     ]),
+    copts = select(
+        {
+            "@rules_cc//cc/compiler:msvc-cl": [
+                "/W4",
+                "/permissive-",
+                "/FS",
+            ],
+            "@rules_cc//cc/compiler:gcc": [
+                "-Wall",
+                "-Wextra",
+                "-Werror=return-type",
+                "-Wundef",
+                "-Wuninitialized",
+                "-fPIC",
+                "-std=c++11",
+            ],
+            "@rules_cc//cc/compiler:clang": CLANG_FLAGS,
+            "//conditions:default": COMMON_FLAGS,
+        },
+    ),
+    defines = ["CPPTRACE_STATIC_DEFINE"],
     includes = [
         "include",
-        "src"
+        "src",
     ],
-    deps = [
-        "@libdwarf//:libdwarf",
-        "@libunwind//:libunwind"
-    ],
-    copts = [
-        "-Wall",
-        "-Wextra",
-        "-Werror=return-type",
-        "-Wundef",
-        "-Wuninitialized",
-        "-fPIC",
-        "-std=c++11"
-    ],
+    linkopts = select({
+        "@platforms//os:windows": ["dbghelp.lib"],
+        "//conditions:default": [],
+    }),
+    linkstatic = select({
+        "@platforms//os:windows": False,
+        "//conditions:default": True,
+    }),
+    local_defines = select({
+        "@platforms//os:windows": [
+            "CPPTRACE_DEMANGLE_WITH_WINAPI",
+            "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+            "CPPTRACE_UNWIND_WITH_DBGHELP",
+        ],
+        "@platforms//os:linux": [
+            "CPPTRACE_HAS_DL_FIND_OBJECT",
+            "CPPTRACE_DEMANGLE_WITH_CXXABI",
+            "CPPTRACE_UNWIND_WITH_LIBUNWIND",
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+        ],
+        "@platforms//os:macos": [
+            "CPPTRACE_HAS_MACH_VM",
+            "CPPTRACE_DEMANGLE_WITH_CXXABI",
+            "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+            "CPPTRACE_UNWIND_WITH_EXECINFO",
+        ],
+        "//conditions:default": ["NOMINMAX"],
+    }) + select({
+        "@rules_cc//cc/compiler:msvc-cl": [],
+        "//conditions:default": [
+            "HAS_ATTRIBUTE_PACKED",
+            "CPPTRACE_HAS_CXX_EXCEPTION_TYPE",
+        ],
+    }),
     visibility = ["//visibility:public"],
+    deps = select({
+        "@platforms//os:linux": [
+            "@libdwarf",
+            "@libunwind",
+        ],
+        "@platforms//os:macos": [
+            "@libdwarf",
+        ],
+        "//conditions:default": [],
+    }),
 )
