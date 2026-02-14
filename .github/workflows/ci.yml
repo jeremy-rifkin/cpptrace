@@ -54,6 +54,8 @@ jobs:
         shared: [--shared, ""]
     steps:
     - uses: actions/checkout@v4
+    - name: gcc
+      run: brew install gcc@12
     - name: libdwarf
       run: |
            cd ..
@@ -144,6 +146,8 @@ jobs:
     needs: test-macos
     steps:
     - uses: actions/checkout@v4
+    - name: gcc
+      run: brew install gcc@12
     - name: libdwarf
       run: |
            cd ..
@@ -212,7 +216,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
-           brew install ninja
+           brew install gcc@12 ninja
            python3 -m venv env
            env/bin/pip install colorama
     - name: libdwarf
@@ -618,7 +622,7 @@ jobs:
         xcode-version: "15.4"
     - name: dependencies
       run: |
-           brew install ninja
+           brew install gcc@12 ninja
            python3 -m venv env
            env/bin/pip install colorama
            cd ..
