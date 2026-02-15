@@ -34,7 +34,7 @@ jobs:
            cpptrace/ci/setup-prerequisites.sh
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config ${{matrix.shared}}
   test-linux-arm:
     runs-on: ubuntu-22.04-arm
     strategy:
@@ -64,7 +64,7 @@ jobs:
            cpptrace/ci/setup-prerequisites.sh
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config ${{matrix.shared}}
   test-macos:
     runs-on: macos-14
     strategy:
@@ -96,7 +96,7 @@ jobs:
            env/bin/pip install colorama
     - name: build and test
       run: |
-           env/bin/python ci/test-all-configs.py --${{matrix.compiler}} --default-config
+           env/bin/python ci/test-all-configs.py --${{matrix.compiler}} --default-config ${{matrix.shared}}
   test-windows:
     runs-on: windows-2022
     strategy:
@@ -131,7 +131,7 @@ jobs:
            }
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config ${{matrix.shared}}
   test-windows-old:
     runs-on: windows-2022
     strategy:
@@ -156,7 +156,7 @@ jobs:
            }
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config ${{matrix.shared}}
   test-linux-all-configurations:
     runs-on: ubuntu-22.04
     strategy:
@@ -187,7 +187,7 @@ jobs:
            cpptrace/ci/setup-prerequisites.sh
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}}
+           python3 ci/test-all-configs.py --${{matrix.compiler}} ${{matrix.shared}}
   test-macos-all-configurations:
     runs-on: macos-14
     strategy:
@@ -220,7 +220,7 @@ jobs:
            env/bin/pip install colorama
     - name: build and test
       run: |
-           env/bin/python ci/test-all-configs.py --${{matrix.compiler}}
+           env/bin/python ci/test-all-configs.py --${{matrix.compiler}} ${{matrix.shared}}
   test-windows-all-configurations:
     runs-on: windows-2022
     strategy:
@@ -256,7 +256,7 @@ jobs:
            }
     - name: build and test
       run: |
-           python3 ci/test-all-configs.py --${{matrix.compiler}}
+           python3 ci/test-all-configs.py --${{matrix.compiler}} ${{matrix.shared}}
 
 
   build-linux-all-remaining-configurations:
