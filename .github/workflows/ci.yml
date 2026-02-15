@@ -114,7 +114,7 @@ jobs:
     - name: Resolve prereqs path
       if: matrix.compiler == 'gcc'
       id: prereqs-path
-      run: echo "dir=$(Resolve-Path ..).Path" >> $env:GITHUB_OUTPUT
+      run: echo "dir=$((Resolve-Path ..).Path)" >> $env:GITHUB_OUTPUT
     - name: Cache prerequisites
       if: matrix.compiler == 'gcc'
       uses: actions/cache@v4
@@ -239,7 +239,7 @@ jobs:
     - name: Resolve prereqs path
       if: matrix.compiler == 'gcc'
       id: prereqs-path
-      run: echo "dir=$(Resolve-Path ..).Path" >> $env:GITHUB_OUTPUT
+      run: echo "dir=$((Resolve-Path ..).Path)" >> $env:GITHUB_OUTPUT
     - name: Cache prerequisites
       if: matrix.compiler == 'gcc'
       uses: actions/cache@v4
@@ -337,7 +337,7 @@ jobs:
     - name: Resolve prereqs path
       if: matrix.compiler == 'gcc'
       id: prereqs-path
-      run: echo "dir=$(Resolve-Path ..).Path" >> $env:GITHUB_OUTPUT
+      run: echo "dir=$((Resolve-Path ..).Path)" >> $env:GITHUB_OUTPUT
     - name: Cache prerequisites
       if: matrix.compiler == 'gcc'
       uses: actions/cache@v4
