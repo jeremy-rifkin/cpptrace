@@ -18,6 +18,40 @@ def get_c_compiler_counterpart(compiler: str) -> str:
 
 MAX_LINE_DIFF = 2
 
+ALL_UNWIND_OPTIONS = [
+    "CPPTRACE_UNWIND_WITH_UNWIND",
+    "CPPTRACE_UNWIND_WITH_LIBUNWIND",
+    "CPPTRACE_UNWIND_WITH_EXECINFO",
+    "CPPTRACE_UNWIND_WITH_WINAPI",
+    "CPPTRACE_UNWIND_WITH_DBGHELP",
+    "CPPTRACE_UNWIND_WITH_NOTHING",
+]
+ALL_SYMBOL_OPTIONS = [
+    "CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE",
+    "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
+    "CPPTRACE_GET_SYMBOLS_WITH_LIBDL",
+    "CPPTRACE_GET_SYMBOLS_WITH_ADDR2LINE",
+    "CPPTRACE_GET_SYMBOLS_WITH_DBGHELP",
+    "CPPTRACE_GET_SYMBOLS_WITH_NOTHING",
+]
+ALL_DEMANGLE_OPTIONS = [
+    "CPPTRACE_DEMANGLE_WITH_CXXABI",
+    "CPPTRACE_DEMANGLE_WITH_WINAPI",
+    "CPPTRACE_DEMANGLE_WITH_NOTHING",
+]
+
+def backend_args(matrix):
+    """Generate explicit OFF/ON args for all backend options to enable incremental builds."""
+    args = []
+    for opt in ALL_UNWIND_OPTIONS:
+        args.append(f"-D{opt}={'On' if opt == matrix['unwind'] else 'Off'}")
+    for opt in ALL_SYMBOL_OPTIONS:
+        args.append(f"-D{opt}={'On' if opt == matrix['symbols'] else 'Off'}")
+    for opt in ALL_DEMANGLE_OPTIONS:
+        args.append(f"-D{opt}={'On' if opt == matrix['demangle'] else 'Off'}")
+    args.append(f"-DCPPTRACE_BUILD_TEST_RDYNAMIC={'On' if matrix['symbols'] == 'CPPTRACE_GET_SYMBOLS_WITH_LIBDL' else 'Off'}")
+    return args
+
 def similarity(name: str, target: List[str]) -> int:
     parts = name.split(".txt")[0].split(".")
     c = 0
@@ -128,16 +162,12 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_WERROR_BUILD=On",
-            f"-D{matrix['unwind']}=On",
-            f"-D{matrix['symbols']}=On",
-            f"-D{matrix['demangle']}=On",
+            *backend_args(matrix),
             "-DCPPTRACE_BACKTRACE_PATH=/usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h",
             "-DCPPTRACE_BUILD_TESTING=On",
             "-DCPPTRACE_SKIP_UNIT=On",
             f"-DBUILD_SHARED_LIBS={matrix['shared']}"
         ]
-        if matrix['symbols'] == "CPPTRACE_GET_SYMBOLS_WITH_LIBDL":
-           args.append("-DCPPTRACE_BUILD_TEST_RDYNAMIC=On")
         succeeded = runner.run_command(*args)
         if succeeded:
             return runner.run_command("ninja")
@@ -153,9 +183,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_WERROR_BUILD=On",
-            f"-D{matrix['unwind']}=On",
-            f"-D{matrix['symbols']}=On",
-            f"-D{matrix['demangle']}=On",
+            *backend_args(matrix),
             "-DCPPTRACE_BUILD_TESTING=On",
             "-DCPPTRACE_SKIP_UNIT=On",
             f"-DBUILD_SHARED_LIBS={matrix['shared']}"
@@ -268,9 +296,14 @@ def test_full_or_auto(runner: MatrixRunner):
             )
 
 def build_and_test(runner: MatrixRunner):
-    matrix = runner.current_config()
+    last = runner.last_config()
+    current = runner.current_config()
 
-    if os.path.exists("build"):
+    # Only purge on compiler change, incremental rebuilds handle the rest
+    if (
+        last is None
+        or last["compiler"] != current["compiler"]
+    ) and os.path.exists("build"):
         shutil.rmtree("build", ignore_errors=True)
 
     if not os.path.exists("build"):
@@ -287,9 +320,14 @@ def build_and_test(runner: MatrixRunner):
     return good
 
 def build_and_test_full_or_auto(runner: MatrixRunner):
-    matrix = runner.current_config()
+    last = runner.last_config()
+    current = runner.current_config()
 
-    if os.path.exists("build"):
+    # Only purge on compiler change, incremental rebuilds handle the rest
+    if (
+        last is None
+        or last["compiler"] != current["compiler"]
+    ) and os.path.exists("build"):
         shutil.rmtree("build", ignore_errors=True)
 
     if not os.path.exists("build"):
