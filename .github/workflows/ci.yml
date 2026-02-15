@@ -683,9 +683,21 @@ jobs:
         key: prereqs-unittest-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('ci/setup-prerequisites-unittest.sh') }}
     - name: dependencies
       run: |
-           sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev ninja-build
+           sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev ninja-build ccache
            cd ..
            cpptrace/ci/setup-prerequisites-unittest.sh
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-unittest-linux-x64-${{ matrix.compiler }}-${{ matrix.stdlib }}-dw${{ matrix.dwarf_version }}-split${{ matrix.split_dwarf }}-${{ github.sha }}
+        restore-keys: |
+          ccache-unittest-linux-x64-${{ matrix.compiler }}-${{ matrix.stdlib }}-dw${{ matrix.dwarf_version }}-split${{ matrix.split_dwarf }}-
+    - name: Configure ccache
+      run: |
+        ccache --set-config=max_size=300M
+        ccache --set-config=compression=true
+        ccache -z
     - name: build and test
       run: |
            python3 ci/unittest.py \
@@ -735,9 +747,21 @@ jobs:
         key: prereqs-unittest-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('ci/setup-prerequisites-unittest.sh') }}
     - name: dependencies
       run: |
-            sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev ninja-build
+            sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev ninja-build ccache
             cd ..
             cpptrace/ci/setup-prerequisites-unittest.sh
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-unittest-linux-arm-${{ matrix.compiler }}-${{ matrix.stdlib }}-dw${{ matrix.dwarf_version }}-split${{ matrix.split_dwarf }}-${{ github.sha }}
+        restore-keys: |
+          ccache-unittest-linux-arm-${{ matrix.compiler }}-${{ matrix.stdlib }}-dw${{ matrix.dwarf_version }}-split${{ matrix.split_dwarf }}-
+    - name: Configure ccache
+      run: |
+        ccache --set-config=max_size=300M
+        ccache --set-config=compression=true
+        ccache -z
     - name: build and test
       run: |
             python3 ci/unittest.py \
@@ -768,11 +792,23 @@ jobs:
         key: prereqs-unittest-macos-${{ hashFiles('ci/setup-prerequisites-unittest-macos.sh') }}
     - name: dependencies
       run: |
-           brew install gcc@12 ninja
+           brew install gcc@12 ninja ccache
            python3 -m venv env
            env/bin/pip install colorama
            cd ..
            cpptrace/ci/setup-prerequisites-unittest-macos.sh
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/ccache
+        key: ccache-unittest-macos-${{ github.sha }}
+        restore-keys: |
+          ccache-unittest-macos-
+    - name: Configure ccache
+      run: |
+        ccache --set-config=max_size=300M
+        ccache --set-config=compression=true
+        ccache -z
     - name: build and test
       run: |
            env/bin/python ci/unittest.py

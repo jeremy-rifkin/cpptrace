@@ -15,6 +15,7 @@ def get_c_compiler_counterpart(compiler: str) -> str:
     return compiler.replace("clang++", "clang").replace("g++", "gcc")
 
 def build(runner: MatrixRunner):
+    use_ccache = shutil.which("ccache") is not None
     if platform.system() == "Linux":
         matrix = runner.current_config()
         if "stdlib" in matrix and matrix["stdlib"] == "libc++":
@@ -25,6 +26,7 @@ def build(runner: MatrixRunner):
             "cmake",
             "..",
             "-GNinja",
+            *(["-DCMAKE_CXX_COMPILER_LAUNCHER=ccache", "-DCMAKE_C_COMPILER_LAUNCHER=ccache"] if use_ccache else []),
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_BUILD_TYPE={matrix['build_type']}",
@@ -55,6 +57,7 @@ def build(runner: MatrixRunner):
             "cmake",
             "..",
             "-GNinja",
+            *(["-DCMAKE_CXX_COMPILER_LAUNCHER=ccache", "-DCMAKE_C_COMPILER_LAUNCHER=ccache"] if use_ccache else []),
             f"-DCMAKE_CXX_COMPILER={matrix['compiler']}",
             f"-DCMAKE_C_COMPILER={get_c_compiler_counterpart(matrix['compiler'])}",
             f"-DCMAKE_BUILD_TYPE={matrix['build_type']}",
