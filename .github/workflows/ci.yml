@@ -43,6 +43,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -117,6 +120,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -220,6 +226,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -265,6 +274,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -345,6 +357,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build
       run: |
@@ -388,6 +403,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build
       run: |
@@ -455,6 +473,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build
       run: |
@@ -494,6 +515,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: Integration tests
       run: bash ci/integration-test.sh "$HOME/cpptrace-install" --ccache
@@ -518,6 +542,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: Integration tests
       run: bash ci/integration-test.sh "$HOME/cpptrace-install" --ccache
@@ -542,6 +569,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(Split-Path $env:GITHUB_WORKSPACE)"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: Integration tests
       run: ci/integration-test-windows.ps1 -InstallPrefix C:/foo -Ccache
@@ -568,6 +598,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(Split-Path $env:GITHUB_WORKSPACE)"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: Integration tests
       run: ci/integration-test-windows.ps1 -InstallPrefix C:/foo -Ccache
@@ -618,6 +651,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -682,6 +718,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -729,6 +768,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -780,6 +822,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -823,6 +868,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -871,6 +919,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
