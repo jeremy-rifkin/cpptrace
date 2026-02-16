@@ -16,6 +16,7 @@ for SHARED in On Off; do
 
     # -- findpackage --
     echo "::group::findpackage ($LABEL)"
+    SECONDS=0
     mkdir build && cd build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=$SHARED \
         -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" -DCPPTRACE_WERROR_BUILD=On
@@ -27,9 +28,11 @@ for SHARED in On Off; do
     ninja
     ./main
     echo "::endgroup::"
+    echo "findpackage ($LABEL) completed in ${SECONDS}s"
 
     # -- add_subdirectory --
     echo "::group::add_subdirectory ($LABEL)"
+    SECONDS=0
     cd "$WORKSPACE_DIR"
     cp -rv cpptrace/test/add_subdirectory-integration .
     cp -rv cpptrace add_subdirectory-integration
@@ -39,9 +42,11 @@ for SHARED in On Off; do
     ninja
     ./main
     echo "::endgroup::"
+    echo "add_subdirectory ($LABEL) completed in ${SECONDS}s"
 
     # -- fetchcontent --
     echo "::group::fetchcontent ($LABEL)"
+    SECONDS=0
     cd "$WORKSPACE_DIR"
     cp -rv cpptrace/test/fetchcontent-integration .
     mkdir fetchcontent-integration/build && cd fetchcontent-integration/build
@@ -50,6 +55,7 @@ for SHARED in On Off; do
     ninja
     ./main
     echo "::endgroup::"
+    echo "fetchcontent ($LABEL) completed in ${SECONDS}s"
 
     # -- cleanup --
     echo "::group::cleanup ($LABEL)"

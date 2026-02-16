@@ -19,44 +19,53 @@ foreach ($shared in "On", "Off") {
 
     # -- findpackage --
     Write-Output "::group::findpackage ($label)"
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     mkdir build
     cd build
-    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=$shared `
-        -DCMAKE_INSTALL_PREFIX=$InstallPrefix -DCPPTRACE_WERROR_BUILD=On
+    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug "-DBUILD_SHARED_LIBS=$shared" `
+        "-DCMAKE_INSTALL_PREFIX=$InstallPrefix" -DCPPTRACE_WERROR_BUILD=On
     ninja install
     cd $workspaceDir
     cp -Recurse cpptrace/test/findpackage-integration .
     mkdir findpackage-integration/build
     cd findpackage-integration/build
-    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=$InstallPrefix
+    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_PREFIX_PATH=$InstallPrefix"
     ninja
     .\main.exe
+    $sw.Stop()
     Write-Output "::endgroup::"
+    Write-Output "findpackage ($label) completed in $([math]::Round($sw.Elapsed.TotalSeconds))s"
 
     # -- add_subdirectory --
     Write-Output "::group::add_subdirectory ($label)"
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     cd $workspaceDir
     cp -Recurse cpptrace/test/add_subdirectory-integration .
     cp -Recurse cpptrace add_subdirectory-integration
     mkdir add_subdirectory-integration/build
     cd add_subdirectory-integration/build
-    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=$shared `
+    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug "-DBUILD_SHARED_LIBS=$shared" `
         -DCPPTRACE_WERROR_BUILD=On @ccacheFlags
     ninja
     .\main.exe
+    $sw.Stop()
     Write-Output "::endgroup::"
+    Write-Output "add_subdirectory ($label) completed in $([math]::Round($sw.Elapsed.TotalSeconds))s"
 
     # -- fetchcontent --
     Write-Output "::group::fetchcontent ($label)"
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     cd $workspaceDir
     cp -Recurse cpptrace/test/fetchcontent-integration .
     mkdir fetchcontent-integration/build
     cd fetchcontent-integration/build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" `
-        -DBUILD_SHARED_LIBS=$shared -DCPPTRACE_WERROR_BUILD=On @ccacheFlags
+        "-DBUILD_SHARED_LIBS=$shared" -DCPPTRACE_WERROR_BUILD=On @ccacheFlags
     ninja
     .\main.exe
+    $sw.Stop()
     Write-Output "::endgroup::"
+    Write-Output "fetchcontent ($label) completed in $([math]::Round($sw.Elapsed.TotalSeconds))s"
 
     # -- cleanup --
     Write-Output "::group::cleanup ($label)"
