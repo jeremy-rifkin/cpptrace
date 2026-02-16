@@ -7,7 +7,12 @@ $ErrorActionPreference = "Stop"
 
 $ccacheFlags = @()
 if ($Ccache) {
-    $ccacheFlags = @("-DCMAKE_CXX_COMPILER_LAUNCHER=ccache", "-DCMAKE_C_COMPILER_LAUNCHER=ccache")
+    $ccacheFlags = @(
+        "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
+        "-DCMAKE_C_COMPILER_LAUNCHER=ccache",
+        "-DCMAKE_POLICY_DEFAULT_CMP0141=NEW",
+        "-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded"
+    )
 }
 
 $checkoutDir = Get-Location
@@ -23,13 +28,13 @@ foreach ($shared in "On", "Off") {
     mkdir build
     cd build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug "-DBUILD_SHARED_LIBS=$shared" `
-        "-DCMAKE_INSTALL_PREFIX=$InstallPrefix" -DCPPTRACE_WERROR_BUILD=On
+        "-DCMAKE_INSTALL_PREFIX=$InstallPrefix" -DCPPTRACE_WERROR_BUILD=On @ccacheFlags
     ninja install
     cd $workspaceDir
     cp -Recurse cpptrace/test/findpackage-integration .
     mkdir findpackage-integration/build
     cd findpackage-integration/build
-    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_PREFIX_PATH=$InstallPrefix"
+    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_PREFIX_PATH=$InstallPrefix" @ccacheFlags
     ninja
     .\main.exe
     $sw.Stop()

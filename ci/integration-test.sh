@@ -19,12 +19,12 @@ for SHARED in On Off; do
     SECONDS=0
     mkdir build && cd build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=$SHARED \
-        -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" -DCPPTRACE_WERROR_BUILD=On
+        -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" -DCPPTRACE_WERROR_BUILD=On $CCACHE_FLAGS
     ninja install
     cd "$WORKSPACE_DIR"
     cp -rv cpptrace/test/findpackage-integration .
     mkdir findpackage-integration/build && cd findpackage-integration/build
-    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="$INSTALL_PREFIX"
+    cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="$INSTALL_PREFIX" $CCACHE_FLAGS
     ninja
     ./main
     echo "::endgroup::"
