@@ -372,9 +372,8 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     set(BUILD_DWARFDUMP FALSE)
     FetchContent_Declare(
       libdwarf
-      GIT_REPOSITORY ${CPPTRACE_LIBDWARF_REPO}
-      GIT_TAG ${CPPTRACE_LIBDWARF_TAG}
-      GIT_SHALLOW ${CPPTRACE_LIBDWARF_SHALLOW}
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+      URL "${CPPTRACE_LIBDWARF_URL}"
     )
     FetchContent_MakeAvailable(libdwarf)
     target_include_directories(

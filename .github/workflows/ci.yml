@@ -43,6 +43,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -117,6 +120,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -220,6 +226,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -265,6 +274,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -345,6 +357,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build
       run: |
@@ -388,6 +403,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build
       run: |
@@ -455,6 +473,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build
       run: |
@@ -476,266 +497,115 @@ jobs:
            ./speedtest | python3 ../../../ci/speedtest.py ${{matrix.compiler}} ${{matrix.config}}
 
 
-  test-linux-fetchcontent:
+  test-linux-integration:
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
     needs: test-linux-all-configurations
     steps:
     - uses: actions/checkout@v4
-    - name: test
+    - name: Install ccache
+      run: sudo apt install ccache
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-integration-linux-${{ runner.arch }}-${{ github.sha }}
+        restore-keys: |
+          ccache-integration-linux-${{ runner.arch }}-
+    - name: Configure ccache
       run: |
-           tag=$(git rev-parse --abbrev-ref HEAD)
-           echo $tag
-           cd ..
-           cp -rv cpptrace/test/fetchcontent-integration .
-           mkdir fetchcontent-integration/build
-           cd fetchcontent-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           ninja
-           ./main
-  test-linux-findpackage:
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
-    needs: test-linux-all-configurations
-    steps:
-    - uses: actions/checkout@v4
-    - name: test
-      run: |
-           tag=$(git rev-parse --abbrev-ref HEAD)
-           mkdir build
-           cd build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           sudo ninja install
-           cd ../..
-           cp -rv cpptrace/test/findpackage-integration .
-           mkdir findpackage-integration/build
-           cd findpackage-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug
-           ninja
-           ./main
-  test-linux-add_subdirectory:
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
-    needs: test-linux-all-configurations
-    steps:
-    - uses: actions/checkout@v4
-    - name: build
-      run: |
-           cd ..
-           cp -rv cpptrace/test/add_subdirectory-integration .
-           cp -rv cpptrace add_subdirectory-integration
-           mkdir add_subdirectory-integration/build
-           cd add_subdirectory-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           ninja
-           ./main
+        ccache --set-config=max_size=300M
+        ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
+        ccache -z
+    - name: Integration tests
+      run: bash ci/integration-test.sh "$HOME/cpptrace-install" --ccache
+    - name: ccache stats
+      run: ccache -s
 
-  test-macos-fetchcontent:
+  test-macos-integration:
     runs-on: macos-14
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
     needs: test-macos-all-configurations
     steps:
     - uses: actions/checkout@v4
-    - name: test
+    - name: Install ccache
+      run: brew install ccache
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/ccache
+        key: ccache-integration-macos-${{ github.sha }}
+        restore-keys: |
+          ccache-integration-macos-
+    - name: Configure ccache
       run: |
-           tag=$(git rev-parse --abbrev-ref HEAD)
-           echo $tag
-           cd ..
-           cp -rv cpptrace/test/fetchcontent-integration .
-           mkdir fetchcontent-integration/build
-           cd fetchcontent-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG=$tag -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           ninja
-           ./main
-  test-macos-findpackage:
-    runs-on: macos-14
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
-    needs: test-macos-all-configurations
-    steps:
-    - uses: actions/checkout@v4
-    - name: test
-      run: |
-           tag=$(git rev-parse --abbrev-ref HEAD)
-           echo $tag
-           mkdir build
-           cd build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           sudo ninja install
-           cd ../..
-           cp -rv cpptrace/test/findpackage-integration .
-           mkdir findpackage-integration/build
-           cd findpackage-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug
-           ninja
-           ./main
-  test-macos-add_subdirectory:
-    runs-on: macos-14
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
-    needs: test-macos-all-configurations
-    steps:
-    - uses: actions/checkout@v4
-    - name: test
-      run: |
-           cd ..
-           cp -rv cpptrace/test/add_subdirectory-integration .
-           cp -rv cpptrace add_subdirectory-integration
-           mkdir add_subdirectory-integration/build
-           cd add_subdirectory-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           ninja
-           ./main
+        ccache --set-config=max_size=300M
+        ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
+        ccache -z
+    - name: Integration tests
+      run: bash ci/integration-test.sh "$HOME/cpptrace-install" --ccache
+    - name: ccache stats
+      run: ccache -s
 
-  test-mingw-fetchcontent:
+  test-mingw-integration:
     runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
     needs: test-windows-all-configurations
     steps:
     - uses: actions/checkout@v4
-    - name: test
+    - name: Install ccache
+      run: choco install ccache --no-progress -y
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\ccache
+        key: ccache-integration-mingw-${{ github.sha }}
+        restore-keys: |
+          ccache-integration-mingw-
+    - name: Configure ccache
       run: |
-           $tag=$(git rev-parse --abbrev-ref HEAD)
-           echo $tag
-           cd ..
-           cp -Recurse cpptrace/test/fetchcontent-integration .
-           mkdir fetchcontent-integration/build
-           cd fetchcontent-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           ninja
-           .\main.exe
-  test-mingw-findpackage:
+        ccache --set-config=max_size=300M
+        ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(Split-Path $env:GITHUB_WORKSPACE)"
+        ccache --set-config=sloppiness=locale,time_macros
+        ccache -z
+    - name: Integration tests
+      run: ci/integration-test-windows.ps1 -InstallPrefix C:/foo -Ccache
+    - name: ccache stats
+      run: ccache -s
+
+  test-windows-integration:
     runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
-    needs: test-windows-all-configurations
-    steps:
-    - uses: actions/checkout@v4
-    - name: test
-      run: |
-           $tag=$(git rev-parse --abbrev-ref HEAD)
-           echo $tag
-           mkdir build
-           cd build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCMAKE_INSTALL_PREFIX=C:/foo -DCPPTRACE_WERROR_BUILD=On
-           ninja install
-           cd ../..
-           mv cpptrace/test/findpackage-integration .
-           mkdir findpackage-integration/build
-           cd findpackage-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo
-           ninja
-           ./main
-  test-mingw-add_subdirectory:
-    runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
-    needs: test-windows-all-configurations
-    steps:
-    - uses: actions/checkout@v4
-    - name: test
-      run: |
-           cd ..
-           cp -Recurse cpptrace/test/add_subdirectory-integration .
-           cp -Recurse cpptrace add_subdirectory-integration
-           mkdir add_subdirectory-integration/build
-           cd add_subdirectory-integration/build
-           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           ninja
-           .\main.exe
-  test-windows-fetchcontent:
-    runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
     needs: test-windows-all-configurations
     steps:
     - uses: actions/checkout@v4
     - name: Enable Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1.13.0
-    - name: test
+    - name: Install ccache
+      run: choco install ccache --no-progress -y
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\ccache
+        key: ccache-integration-msvc-${{ github.sha }}
+        restore-keys: |
+          ccache-integration-msvc-
+    - name: Configure ccache
       run: |
-           $tag=$(git rev-parse --abbrev-ref HEAD)
-           echo $tag
-           cd ..
-           cp -Recurse cpptrace/test/fetchcontent-integration .
-           mkdir fetchcontent-integration/build
-           cd fetchcontent-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           msbuild demo_project.sln
-           .\Debug\main.exe
-  test-windows-findpackage:
-    runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
-    needs: test-windows-all-configurations
-    steps:
-    - uses: actions/checkout@v4
-    - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.13.0
-    - name: test
-      run: |
-           $tag=$(git rev-parse --abbrev-ref HEAD)
-           echo $tag
-           mkdir build
-           cd build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCMAKE_INSTALL_PREFIX=C:/foo -DCPPTRACE_WERROR_BUILD=On
-           msbuild cpptrace.sln
-           msbuild INSTALL.vcxproj
-           cd ../..
-           mv cpptrace/test/findpackage-integration .
-           mkdir findpackage-integration/build
-           cd findpackage-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/foo
-           msbuild demo_project.sln
-           .\Debug\main.exe
-  test-windows-add_subdirectory:
-    runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [On, Off]
-    needs: test-windows-all-configurations
-    steps:
-    - uses: actions/checkout@v4
-    - name: Enable Developer Command Prompt
-      uses: ilammy/msvc-dev-cmd@v1.13.0
-    - name: test
-      run: |
-           cd ..
-           cp -Recurse cpptrace/test/add_subdirectory-integration .
-           cp -Recurse cpptrace add_subdirectory-integration
-           mkdir add_subdirectory-integration/build
-           cd add_subdirectory-integration/build
-           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=${{matrix.shared}} -DCPPTRACE_WERROR_BUILD=On
-           msbuild demo_project.sln
-           .\Debug\main.exe
+        ccache --set-config=max_size=300M
+        ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(Split-Path $env:GITHUB_WORKSPACE)"
+        ccache --set-config=sloppiness=locale,time_macros
+        ccache -z
+    - name: Integration tests
+      run: ci/integration-test-windows.ps1 -InstallPrefix C:/foo -Ccache
+    - name: ccache stats
+      run: ccache -s
 
 
   unittest-linux:
@@ -781,6 +651,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -845,6 +718,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -892,6 +768,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -943,6 +822,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -986,6 +868,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
@@ -1034,6 +919,9 @@ jobs:
       run: |
         ccache --set-config=max_size=300M
         ccache --set-config=compression=true
+        ccache --set-config=hash_dir=false
+        ccache --set-config=base_dir="$(dirname "$GITHUB_WORKSPACE")"
+        ccache --set-config=sloppiness=locale,time_macros
         ccache -z
     - name: build and test
       run: |
