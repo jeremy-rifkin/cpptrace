@@ -13,7 +13,7 @@ TAG="$(git rev-parse --abbrev-ref HEAD)"
 
 # Share FetchContent downloads across builds so deps are only fetched once
 DEPS_DIR="$WORKSPACE_DIR/deps-cache"
-DISCONNECTED_FLAG=""
+DEPS_CACHE_FLAGS=""
 
 for SHARED in On Off; do
     if [ "$SHARED" = "On" ]; then LABEL="shared"; else LABEL="static"; fi
@@ -24,9 +24,10 @@ for SHARED in On Off; do
     mkdir build && cd build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=$SHARED \
         -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" -DCPPTRACE_WERROR_BUILD=On \
-        -DFETCHCONTENT_BASE_DIR="$DEPS_DIR" $DISCONNECTED_FLAG $CCACHE_FLAGS
-    # After the first configure populates deps, skip re-fetching in subsequent builds
-    DISCONNECTED_FLAG="-DFETCHCONTENT_UPDATES_DISCONNECTED=ON"
+        -DFETCHCONTENT_BASE_DIR="$DEPS_DIR" $DEPS_CACHE_FLAGS $CCACHE_FLAGS
+    # After the first configure populates deps, point subsequent builds at the
+    # already-extracted source dirs so cmake skips re-downloading entirely.
+    DEPS_CACHE_FLAGS="-DFETCHCONTENT_SOURCE_DIR_ZSTD=$DEPS_DIR/zstd-src -DFETCHCONTENT_SOURCE_DIR_LIBDWARF=$DEPS_DIR/libdwarf-src"
     ninja install
     cd "$WORKSPACE_DIR"
     cp -rv cpptrace/test/findpackage-integration .
@@ -45,7 +46,7 @@ for SHARED in On Off; do
     cp -rv cpptrace add_subdirectory-integration
     mkdir add_subdirectory-integration/build && cd add_subdirectory-integration/build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=$SHARED \
-        -DCPPTRACE_WERROR_BUILD=On -DFETCHCONTENT_BASE_DIR="$DEPS_DIR" $DISCONNECTED_FLAG $CCACHE_FLAGS
+        -DCPPTRACE_WERROR_BUILD=On $DEPS_CACHE_FLAGS $CCACHE_FLAGS
     ninja
     ./main
     echo "::endgroup::"
@@ -59,7 +60,7 @@ for SHARED in On Off; do
     mkdir fetchcontent-integration/build && cd fetchcontent-integration/build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$TAG" \
         -DBUILD_SHARED_LIBS=$SHARED -DCPPTRACE_WERROR_BUILD=On \
-        -DFETCHCONTENT_BASE_DIR="$DEPS_DIR" $DISCONNECTED_FLAG $CCACHE_FLAGS
+        -DFETCHCONTENT_BASE_DIR="$DEPS_DIR" $DEPS_CACHE_FLAGS $CCACHE_FLAGS
     ninja
     ./main
     echo "::endgroup::"

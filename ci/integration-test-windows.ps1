@@ -21,7 +21,7 @@ $tag = git rev-parse --abbrev-ref HEAD
 
 # Share FetchContent downloads across builds so deps are only fetched once
 $depsDir = "$workspaceDir/deps-cache"
-$disconnectedFlag = @()
+$depsCacheFlags = @()
 
 foreach ($shared in "On", "Off") {
     if ($shared -eq "On") { $label = "shared" } else { $label = "static" }
@@ -33,9 +33,13 @@ foreach ($shared in "On", "Off") {
     cd build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug "-DBUILD_SHARED_LIBS=$shared" `
         "-DCMAKE_INSTALL_PREFIX=$InstallPrefix" -DCPPTRACE_WERROR_BUILD=On `
-        "-DFETCHCONTENT_BASE_DIR=$depsDir" @disconnectedFlag @ccacheFlags
-    # After the first configure populates deps, skip re-fetching in subsequent builds
-    $disconnectedFlag = @("-DFETCHCONTENT_UPDATES_DISCONNECTED=ON")
+        "-DFETCHCONTENT_BASE_DIR=$depsDir" @depsCacheFlags @ccacheFlags
+    # After the first configure populates deps, point subsequent builds at the
+    # already-extracted source dirs so cmake skips re-downloading entirely.
+    $depsCacheFlags = @(
+        "-DFETCHCONTENT_SOURCE_DIR_ZSTD=$depsDir/zstd-src",
+        "-DFETCHCONTENT_SOURCE_DIR_LIBDWARF=$depsDir/libdwarf-src"
+    )
     ninja install
     cd $workspaceDir
     cp -Recurse cpptrace/test/findpackage-integration .
@@ -57,7 +61,7 @@ foreach ($shared in "On", "Off") {
     mkdir add_subdirectory-integration/build
     cd add_subdirectory-integration/build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug "-DBUILD_SHARED_LIBS=$shared" `
-        -DCPPTRACE_WERROR_BUILD=On "-DFETCHCONTENT_BASE_DIR=$depsDir" @disconnectedFlag @ccacheFlags
+        -DCPPTRACE_WERROR_BUILD=On @depsCacheFlags @ccacheFlags
     ninja
     .\main.exe
     $sw.Stop()
@@ -73,7 +77,7 @@ foreach ($shared in "On", "Off") {
     cd fetchcontent-integration/build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" `
         "-DBUILD_SHARED_LIBS=$shared" -DCPPTRACE_WERROR_BUILD=On `
-        "-DFETCHCONTENT_BASE_DIR=$depsDir" @disconnectedFlag @ccacheFlags
+        "-DFETCHCONTENT_BASE_DIR=$depsDir" @depsCacheFlags @ccacheFlags
     ninja
     .\main.exe
     $sw.Stop()
