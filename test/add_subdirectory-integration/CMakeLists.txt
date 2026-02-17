@@ -4,7 +4,8 @@ project(demo_project VERSION 0.0.1 LANGUAGES CXX)
 
 add_executable(main main.cpp)
 
-add_subdirectory(cpptrace)
+set(CPPTRACE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cpptrace" CACHE PATH "")
+add_subdirectory("${CPPTRACE_SOURCE_DIR}" cpptrace-build)
 target_link_libraries(main cpptrace::cpptrace)
 target_compile_features(main PRIVATE cxx_std_11)
 

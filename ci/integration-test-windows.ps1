@@ -57,11 +57,11 @@ foreach ($shared in "On", "Off") {
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     cd $workspaceDir
     cp -Recurse cpptrace/test/add_subdirectory-integration .
-    cp -Recurse cpptrace add_subdirectory-integration
     mkdir add_subdirectory-integration/build
     cd add_subdirectory-integration/build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug "-DBUILD_SHARED_LIBS=$shared" `
-        -DCPPTRACE_WERROR_BUILD=On @depsCacheFlags @ccacheFlags
+        -DCPPTRACE_WERROR_BUILD=On "-DCPPTRACE_SOURCE_DIR=$checkoutDir" `
+        @depsCacheFlags @ccacheFlags
     ninja
     .\main.exe
     $sw.Stop()
@@ -77,6 +77,7 @@ foreach ($shared in "On", "Off") {
     cd fetchcontent-integration/build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$tag" `
         "-DBUILD_SHARED_LIBS=$shared" -DCPPTRACE_WERROR_BUILD=On `
+        "-DFETCHCONTENT_SOURCE_DIR_cpptrace=$checkoutDir" `
         "-DFETCHCONTENT_BASE_DIR=$depsDir" @depsCacheFlags @ccacheFlags
     ninja
     .\main.exe

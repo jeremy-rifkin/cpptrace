@@ -43,10 +43,10 @@ for SHARED in On Off; do
     SECONDS=0
     cd "$WORKSPACE_DIR"
     cp -rv cpptrace/test/add_subdirectory-integration .
-    cp -rv cpptrace add_subdirectory-integration
     mkdir add_subdirectory-integration/build && cd add_subdirectory-integration/build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=$SHARED \
-        -DCPPTRACE_WERROR_BUILD=On $DEPS_CACHE_FLAGS $CCACHE_FLAGS
+        -DCPPTRACE_WERROR_BUILD=On -DCPPTRACE_SOURCE_DIR="$CHECKOUT_DIR" \
+        $DEPS_CACHE_FLAGS $CCACHE_FLAGS
     ninja
     ./main
     echo "::endgroup::"
@@ -60,6 +60,7 @@ for SHARED in On Off; do
     mkdir fetchcontent-integration/build && cd fetchcontent-integration/build
     cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCPPTRACE_TAG="$TAG" \
         -DBUILD_SHARED_LIBS=$SHARED -DCPPTRACE_WERROR_BUILD=On \
+        -DFETCHCONTENT_SOURCE_DIR_cpptrace="$CHECKOUT_DIR" \
         -DFETCHCONTENT_BASE_DIR="$DEPS_DIR" $DEPS_CACHE_FLAGS $CCACHE_FLAGS
     ninja
     ./main
