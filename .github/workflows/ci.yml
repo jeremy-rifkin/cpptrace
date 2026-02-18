@@ -984,6 +984,7 @@ jobs:
       with:
         usesh: true
         run: |
+          pkg_add -u pcre2
           pkg_add cmake ninja-build git
           mkdir build
           cd build
