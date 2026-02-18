@@ -984,7 +984,7 @@ jobs:
       with:
         usesh: true
         run: |
-          pkg_add cmake ninja-build
+          pkg_add cmake ninja-build git
           mkdir build
           cd build
           cmake .. \
@@ -1007,7 +1007,7 @@ jobs:
       with:
         usesh: true
         run: |
-          pkg_add cmake ninja
+          pkg_add cmake ninja git
           mkdir build
           cd build
           cmake .. \
