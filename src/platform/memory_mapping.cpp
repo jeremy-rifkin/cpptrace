@@ -114,9 +114,10 @@ namespace detail {
     }
     #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
     // Fetch VM mappings via sysctl with retry on ENOMEM.
-    // On all BSDs, sysctl returns ENOMEM when the buffer is too small (mappings grew between the
-    // size query and the data fetch). When this happens, oldlenp gives the amount copied, not
-    // the amount needed, so we must re-query the size from scratch.
+    // Freebsd uses a len * 4/3 heuristic in kinfo_getvmmap, we try to be more robust by retrying.
+    // On all BSD I have investigated, sysctl returns ENOMEM when the buffer is too small (mappings grew between the
+    // size query and the data fetch). When this happens, oldlenp gives the amount copied, not the amount needed, so we
+    // must re-query the size from scratch.
     std::vector<char> sysctl_vmmap(const int* mib, unsigned int miblen) {
         constexpr int max_retries = 3;
         for(int attempt = 0; attempt < max_retries; attempt++) {
@@ -124,6 +125,8 @@ namespace detail {
             if(sysctl(mib, miblen, nullptr, &len, nullptr, 0) != 0) {
                 throw internal_error("sysctl vmmap size query failed: {}", strerror(errno));
             }
+            // https://github.com/lattera/freebsd/blob/401a161083850a9a4ce916f37520c084cff1543b/lib/libutil/kinfo_getvmmap.c#L32C2-L32C20
+            len = len * 4 / 3;
             std::vector<char> buf(len);
             if(sysctl(mib, miblen, buf.data(), &len, nullptr, 0) == 0) {
                 buf.resize(len);
