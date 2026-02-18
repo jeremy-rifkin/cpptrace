@@ -6,9 +6,22 @@ import cpptrace;
 #include <cpptrace/cpptrace.hpp>
 #endif
 
-int main(int argc, char** argv) {
-    testing::InitGoogleTest(&argc, argv);
+void init() {
     cpptrace::absorb_trace_exceptions(false);
     cpptrace::use_default_stderr_logger();
+}
+
+#ifndef _MSC_VER
+__attribute__((constructor(0)))
+void do_init() {
+    init();
+}
+#endif
+
+int main(int argc, char** argv) {
+    testing::InitGoogleTest(&argc, argv);
+    #ifdef _MSC_VER
+     init();
+    #endif
     return RUN_ALL_TESTS();
 }
