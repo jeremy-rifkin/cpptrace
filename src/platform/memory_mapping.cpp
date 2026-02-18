@@ -125,8 +125,12 @@ namespace detail {
             if(sysctl(mib, miblen, nullptr, &len, nullptr, 0) != 0) {
                 throw internal_error("sysctl vmmap size query failed: {}", strerror(errno));
             }
+            auto original_len = len;
             // https://github.com/lattera/freebsd/blob/401a161083850a9a4ce916f37520c084cff1543b/lib/libutil/kinfo_getvmmap.c#L32C2-L32C20
             len = len * 4 / 3;
+            // OpenBSD requires the buffer size to be a multiple of sizeof(kinfo_vmentry)
+            len -= len % sizeof(struct kinfo_vmentry);
+            len = std::max(len, original_len);
             std::vector<char> buf(len);
             if(sysctl(mib, miblen, buf.data(), &len, nullptr, 0) == 0) {
                 buf.resize(len);
@@ -135,7 +139,6 @@ namespace detail {
             if(errno != ENOMEM) {
                 throw internal_error("sysctl vmmap failed: {}", strerror(errno));
             }
-            // ENOMEM: mappings grew between size query and data fetch, retry with fresh size
         }
         throw internal_error("sysctl vmmap failed after {} retries due to growing memory mappings", max_retries);
     }
