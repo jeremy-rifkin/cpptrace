@@ -11,7 +11,7 @@ void init() {
     cpptrace::use_default_stderr_logger();
 }
 
-#if defined(_MSC_VER) && !defined(__APPLE__)
+#if !defined(_MSC_VER) && !defined(__APPLE__)
 #define CONSTRUCTOR_INIT 1
 __attribute__((constructor(101)))
 void do_init() {
