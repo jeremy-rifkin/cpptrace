@@ -12,7 +12,7 @@ void init() {
 }
 
 #ifndef _MSC_VER
-__attribute__((constructor(0)))
+__attribute__((constructor(101)))
 void do_init() {
     init();
 }
