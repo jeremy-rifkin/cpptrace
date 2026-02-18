@@ -11,16 +11,19 @@ void init() {
     cpptrace::use_default_stderr_logger();
 }
 
-#ifndef _MSC_VER
+#if defined(_MSC_VER) && !defined(__APPLE__)
+#define CONSTRUCTOR_INIT 1
 __attribute__((constructor(101)))
 void do_init() {
     init();
 }
+#else
+#define CONSTRUCTOR_INIT 0
 #endif
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
-    #ifdef _MSC_VER
+    #if !CONSTRUCTOR_INIT
      init();
     #endif
     return RUN_ALL_TESTS();
