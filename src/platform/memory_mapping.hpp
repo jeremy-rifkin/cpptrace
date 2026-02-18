@@ -21,6 +21,9 @@ namespace detail {
      constexpr auto memory_readwrite = PROT_READ | PROT_WRITE;
     #endif
     int get_page_size();
+    #if !IS_WINDOWS
+     int get_page_protections(void* page);
+    #endif
     int mprotect_page_and_return_old_protections(void* page, int page_size, int protections);
     void mprotect_page(void* page, int page_size, int protections);
     void* allocate_page(int page_size);

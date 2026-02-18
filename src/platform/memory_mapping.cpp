@@ -18,6 +18,11 @@
   #ifdef CPPTRACE_HAS_MACH_VM
    #include <mach/mach_vm.h>
   #endif
+ #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+  #include <sys/sysctl.h>
+  #if defined(__FreeBSD__)
+   #include <sys/user.h>
+  #endif
  #else
   #include <fstream>
   #include <ios>
@@ -107,6 +112,131 @@ namespace detail {
         }
         return perms;
     }
+    #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+    #if !defined(__OpenBSD__)
+    // Fetch VM mappings via sysctl with retry on ENOMEM.
+    // FreeBSD uses a len * 4/3 heuristic in kinfo_getvmmap, we try to be more robust by retrying.
+    // On all BSD I have investigated, sysctl returns ENOMEM when the buffer is too small (mappings grew between the
+    // size query and the data fetch). When this happens, oldlenp gives the amount copied, not the amount needed, so we
+    // must re-query the size from scratch.
+    std::vector<char> sysctl_vmmap(const int* mib, unsigned int miblen) {
+        constexpr int max_retries = 3;
+        for(int attempt = 0; attempt < max_retries; attempt++) {
+            size_t len = 0;
+            if(sysctl(mib, miblen, nullptr, &len, nullptr, 0) != 0) {
+                throw internal_error("sysctl vmmap size query failed: {}", strerror(errno));
+            }
+            auto original_len = len;
+            // https://github.com/lattera/freebsd/blob/401a161083850a9a4ce916f37520c084cff1543b/lib/libutil/kinfo_getvmmap.c#L32C2-L32C20
+            len = len * 4 / 3;
+            len -= len % sizeof(struct kinfo_vmentry);
+            len = std::max(len, original_len);
+            std::vector<char> buf(len);
+            if(sysctl(mib, miblen, buf.data(), &len, nullptr, 0) == 0) {
+                buf.resize(len);
+                return buf;
+            }
+            if(errno != ENOMEM) {
+                throw internal_error("sysctl vmmap failed: {}", strerror(errno));
+            }
+        }
+        throw internal_error("sysctl vmmap failed after {} retries due to growing memory mappings", max_retries);
+    }
+    #endif
+    #if defined(__FreeBSD__)
+    int get_page_protections(void* page) {
+        int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_VMMAP, getpid()};
+        auto buf = sysctl_vmmap(mib, 4);
+        auto addr = reinterpret_cast<uintptr_t>(page);
+        char* pos = buf.data();
+        char* end = pos + buf.size();
+        while(pos < end) {
+            auto* entry = reinterpret_cast<struct kinfo_vmentry*>(pos);
+            if(entry->kve_structsize == 0) break;
+            if(addr >= entry->kve_start && addr < entry->kve_end) {
+                int perms = 0;
+                if(entry->kve_protection & KVME_PROT_READ)  perms |= PROT_READ;
+                if(entry->kve_protection & KVME_PROT_WRITE) perms |= PROT_WRITE;
+                if(entry->kve_protection & KVME_PROT_EXEC)  perms |= PROT_EXEC;
+                return perms;
+            }
+            pos += entry->kve_structsize;
+        }
+        throw internal_error(
+            "Failed to find mapping for {>16:0h} via sysctl KERN_PROC_VMMAP",
+            reinterpret_cast<uintptr_t>(page)
+        );
+    }
+    #elif defined(__NetBSD__)
+    int get_page_protections(void* page) {
+        int mib[5] = {
+            CTL_VM, VM_PROC, VM_PROC_MAP, getpid(),
+            static_cast<int>(sizeof(struct kinfo_vmentry))
+        };
+        auto buf = sysctl_vmmap(mib, 5);
+        auto addr = reinterpret_cast<uintptr_t>(page);
+        auto count = buf.size() / sizeof(struct kinfo_vmentry);
+        auto* entries = reinterpret_cast<struct kinfo_vmentry*>(buf.data());
+        for(size_t i = 0; i < count; i++) {
+            if(addr >= entries[i].kve_start && addr < entries[i].kve_end) {
+                int perms = 0;
+                if(entries[i].kve_protection & KVME_PROT_READ)  perms |= PROT_READ;
+                if(entries[i].kve_protection & KVME_PROT_WRITE) perms |= PROT_WRITE;
+                if(entries[i].kve_protection & KVME_PROT_EXEC)  perms |= PROT_EXEC;
+                return perms;
+            }
+        }
+        throw internal_error(
+            "Failed to find mapping for {>16:0h} via sysctl VM_PROC_MAP",
+            reinterpret_cast<uintptr_t>(page)
+        );
+    }
+    #elif defined(__OpenBSD__)
+    // OpenBSD's KERN_PROC_VMMAP returns at most VMMAP_MAXLEN (64KB) per call and rejects larger buffers with EINVAL.
+    // The API is paginated, setting kve_start in the first buffer entry tells the kernel where to resume.
+    int get_page_protections(void* page) {
+        int mib[3] = {CTL_KERN, KERN_PROC_VMMAP, getpid()};
+        size_t buf_size = 0;
+        if(sysctl(mib, 3, nullptr, &buf_size, nullptr, 0) != 0) {
+            throw internal_error("sysctl vmmap size query failed: {}", strerror(errno));
+        }
+        buf_size -= buf_size % sizeof(struct kinfo_vmentry);
+        auto addr = reinterpret_cast<uintptr_t>(page);
+        std::vector<char> buf(buf_size);
+        unsigned long next_start = 0;
+        while(true) {
+            reinterpret_cast<struct kinfo_vmentry*>(buf.data())->kve_start = next_start;
+            size_t len = buf_size;
+            if(sysctl(mib, 3, buf.data(), &len, nullptr, 0) != 0) {
+                throw internal_error("sysctl vmmap failed: {}", strerror(errno));
+            }
+            if(len == 0) {
+                break;
+            }
+            auto count = len / sizeof(struct kinfo_vmentry);
+            auto* entries = reinterpret_cast<struct kinfo_vmentry*>(buf.data());
+            for(size_t i = 0; i < count; i++) {
+                if(addr >= entries[i].kve_start && addr < entries[i].kve_end) {
+                    int perms = 0;
+                    if(entries[i].kve_protection & KVE_PROT_READ)  perms |= PROT_READ;
+                    if(entries[i].kve_protection & KVE_PROT_WRITE) perms |= PROT_WRITE;
+                    if(entries[i].kve_protection & KVE_PROT_EXEC)  perms |= PROT_EXEC;
+                    return perms;
+                }
+            }
+            if(len < buf_size) {
+                break;
+            }
+            // basic sanity check for forward progress
+            VERIFY(next_start == 0 || entries[count - 1].kve_end > next_start);
+            next_start = entries[count - 1].kve_end;
+        }
+        throw internal_error(
+            "Failed to find mapping for {>16:0h} via sysctl KERN_PROC_VMMAP",
+            reinterpret_cast<uintptr_t>(page)
+        );
+    }
+    #endif
     #else
     // Code for reading /proc/self/maps
     // Unfortunately this is the canonical and only way to get memory permissions on linux
