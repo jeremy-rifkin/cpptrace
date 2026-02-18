@@ -995,6 +995,7 @@ jobs:
             -DCPPTRACE_STD_FORMAT=Off \
             -DCPPTRACE_BUILD_TESTING=On
           ninja
+          paxctl +m ./unittest
           ./unittest
 
   unittest-openbsd:
