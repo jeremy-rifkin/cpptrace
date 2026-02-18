@@ -294,6 +294,7 @@ namespace detail {
         if(type_info_addr - page_addr + sizeof(void*) > static_cast<unsigned>(page_size)) {
             throw internal_error("pointer crosses page boundaries");
         }
+        #if IS_WINDOWS
         auto old_protections = mprotect_page_and_return_old_protections(
             reinterpret_cast<void*>(page_addr),
             page_size,
@@ -301,6 +302,20 @@ namespace detail {
         );
         *static_cast<void**>(type_info_pointer) = static_cast<void*>(new_vtable + 2);
         mprotect_page(reinterpret_cast<void*>(page_addr), page_size, old_protections);
+        #else
+        auto old_protections = get_page_protections(reinterpret_cast<void*>(page_addr));
+        // If the page is already writable, skip mprotect entirely.
+        // This isn't just an optimization, it's needed on openbsd where mprotect would fail with EPERM but we can use
+        // -Wl,-z,norelro to make the pages we care about writable
+        bool need_mprotect = !(old_protections & PROT_WRITE);
+        if(need_mprotect) {
+            mprotect_page(reinterpret_cast<void*>(page_addr), page_size, memory_readwrite);
+        }
+        *static_cast<void**>(type_info_pointer) = static_cast<void*>(new_vtable + 2);
+        if(need_mprotect) {
+            mprotect_page(reinterpret_cast<void*>(page_addr), page_size, old_protections);
+        }
+        #endif
     }
 
     bool can_catch(
