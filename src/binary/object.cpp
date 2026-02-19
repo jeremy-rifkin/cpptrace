@@ -14,7 +14,7 @@
 #if IS_LINUX || IS_APPLE
  #include <unistd.h>
  #include <dlfcn.h>
- #if IS_LINUX
+ #if IS_LINUX && (defined(CPPTRACE_HAS_DL_FIND_OBJECT) || defined(CPPTRACE_HAS_DLADDR1))
   #include <link.h> // needed for dladdr1's link_map info
  #endif
 #elif IS_WINDOWS
