@@ -1022,6 +1022,30 @@ jobs:
           ninja
           ./unittest
 
+  unittest-cygwin:
+    runs-on: windows-2022
+    needs: unittest-linux
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Cygwin
+      uses: cygwin/cygwin-install-action@v4
+      with:
+        packages: cmake gcc-g++ ninja git
+    - name: build and test
+      shell: C:\cygwin\bin\bash.exe --login -o igncr {0}
+      run: |
+        cd "$GITHUB_WORKSPACE"
+        mkdir build
+        cd build
+        cmake .. \
+          -GNinja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCPPTRACE_WERROR_BUILD=On \
+          -DCPPTRACE_STD_FORMAT=Off \
+          -DCPPTRACE_BUILD_TESTING=On
+        ninja
+        ./unittest.exe
+
   unittest-windows-32-bit:
     runs-on: windows-2022
     needs: unittest-windows
