@@ -15,7 +15,7 @@
 #include <utility>
 #include <vector>
 
-#if IS_LINUX || IS_APPLE
+#if IS_LINUX || IS_APPLE || IS_CYGWIN
  #include <unistd.h>
  #include <sys/types.h>
  #include <sys/wait.h>
@@ -27,7 +27,7 @@
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
 namespace addr2line {
-    #if IS_LINUX || IS_APPLE
+    #if IS_LINUX || IS_APPLE || IS_CYGWIN
     bool has_addr2line() {
         static std::mutex mutex;
         static bool has_addr2line = false;

@@ -4,12 +4,15 @@
 #define IS_WINDOWS 0
 #define IS_LINUX 0
 #define IS_APPLE 0
-#define IS_CYGWIN 0 // If IS_CYGWIN is set IS_LINUX will also be set, for better or worse
+#define IS_CYGWIN 0
 
 #if defined(_WIN32)
  #undef IS_WINDOWS
  #define IS_WINDOWS 1
-#elif defined(__linux) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__CYGWIN__)
+#elif defined(__CYGWIN__)
+ #undef IS_CYGWIN
+ #define IS_CYGWIN 1
+#elif defined(__linux) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
  #undef IS_LINUX
  #define IS_LINUX 1
 #elif defined(__APPLE__)
@@ -17,11 +20,6 @@
  #define IS_APPLE 1
 #else
  #error "Unexpected platform"
-#endif
-
-#ifdef __CYGWIN__
- #undef IS_CYGWIN
- #define IS_CYGWIN 1
 #endif
 
 #define IS_CLANG 0

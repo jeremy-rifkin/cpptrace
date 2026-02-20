@@ -7,7 +7,7 @@
 #include "utils/span.hpp"
 #include "utils/utils.hpp"
 
-#if IS_LINUX && !IS_CYGWIN
+#if IS_LINUX
 
 #include <cstdint>
 #include <string>

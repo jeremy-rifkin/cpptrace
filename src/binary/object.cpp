@@ -11,7 +11,7 @@
 #include <mutex>
 #include <unordered_map>
 
-#if (IS_LINUX || IS_APPLE) && !IS_CYGWIN
+#if IS_LINUX || IS_APPLE
  #include <unistd.h>
  #include <dlfcn.h>
  #if IS_LINUX && (defined(CPPTRACE_HAS_DL_FIND_OBJECT) || defined(CPPTRACE_HAS_DLADDR1))
@@ -26,7 +26,7 @@
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
-    #if (IS_LINUX || IS_APPLE) && !IS_CYGWIN
+    #if IS_LINUX || IS_APPLE
     #if defined(CPPTRACE_HAS_DL_FIND_OBJECT) || defined(CPPTRACE_HAS_DLADDR1)
     std::string resolve_l_name(const char* l_name) {
         if(l_name != nullptr && l_name[0] != 0) {

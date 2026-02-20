@@ -85,7 +85,7 @@ namespace libdwarf {
         return final_trace;
     }
 
-    #if (IS_LINUX || IS_APPLE) && !IS_CYGWIN
+    #if IS_LINUX || IS_APPLE
     CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
     void try_resolve_jit_frame(const cpptrace::object_frame& dlframe, frame_with_inlines& frame) {
         auto object_res = lookup_jit_object(dlframe.raw_address);
@@ -124,7 +124,7 @@ namespace libdwarf {
             try {
                 const auto& object_name = group.first;
                 if(object_name.empty()) {
-                    #if (IS_LINUX || IS_APPLE) && !IS_CYGWIN
+                    #if IS_LINUX || IS_APPLE
                     for(const auto& entry : group.second) {
                         try_resolve_jit_frame(entry.first.get(), entry.second.get());
                     }
@@ -132,7 +132,7 @@ namespace libdwarf {
                     continue;
                 }
                 // TODO PERF: Potentially a duplicate open and parse with module base stuff (and debug map resolver)
-                #if IS_LINUX && !IS_CYGWIN
+                #if IS_LINUX
                 auto object = open_elf_cached(object_name);
                 #elif IS_APPLE
                 auto object = open_mach_o_cached(object_name);
@@ -142,7 +142,7 @@ namespace libdwarf {
                     const auto& dlframe = entry.first.get();
                     auto& frame = entry.second.get();
                     try_resolve_frame(resolver.get(), dlframe, frame);
-                    #if (IS_LINUX || IS_APPLE) && !IS_CYGWIN
+                    #if IS_LINUX || IS_APPLE
                     // fallback to symbol tables
                     if(frame.frame.symbol.empty() && object.has_value()) {
                         frame.frame.symbol = object
