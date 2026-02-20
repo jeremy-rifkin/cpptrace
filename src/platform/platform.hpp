@@ -4,10 +4,14 @@
 #define IS_WINDOWS 0
 #define IS_LINUX 0
 #define IS_APPLE 0
+#define IS_CYGWIN 0
 
 #if defined(_WIN32)
  #undef IS_WINDOWS
  #define IS_WINDOWS 1
+#elif defined(__CYGWIN__)
+ #undef IS_CYGWIN
+ #define IS_CYGWIN 1
 #elif defined(__linux) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
  #undef IS_LINUX
  #define IS_LINUX 1

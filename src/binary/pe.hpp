@@ -4,7 +4,7 @@
 #include "platform/platform.hpp"
 #include "utils/utils.hpp"
 
-#if IS_WINDOWS
+#if IS_WINDOWS || IS_CYGWIN
 #include <cstdint>
 #include <string>
 

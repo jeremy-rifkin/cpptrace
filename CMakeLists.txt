@@ -451,6 +451,10 @@ if(CPPTRACE_GET_SYMBOLS_WITH_DBGHELP)
   target_link_libraries(${target_name} PRIVATE dbghelp)
 endif()
 
+if(CYGWIN)
+  target_link_libraries(${target_name} PRIVATE kernel32)
+endif()
+
 if(CPPTRACE_GET_SYMBOLS_WITH_NOTHING)
   target_compile_definitions(${target_name} PRIVATE CPPTRACE_GET_SYMBOLS_WITH_NOTHING)
 endif()

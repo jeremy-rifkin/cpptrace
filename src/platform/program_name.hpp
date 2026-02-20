@@ -66,7 +66,7 @@ namespace detail {
 }
 CPPTRACE_END_NAMESPACE
 
-#elif IS_LINUX
+#elif IS_LINUX || IS_CYGWIN
 
 #include <sys/types.h>
 #include <unistd.h>

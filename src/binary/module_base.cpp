@@ -15,7 +15,7 @@
  #else
   #include "binary/elf.hpp"
  #endif
-#elif IS_WINDOWS
+#elif IS_WINDOWS || IS_CYGWIN
  #include "binary/pe.hpp"
 #endif
 
@@ -72,7 +72,7 @@ namespace detail {
             return it->second;
         }
     }
-    #else // Windows
+    #else // Windows / Cygwin
     Result<std::uintptr_t, internal_error> get_module_image_base(const std::string& object_path) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
