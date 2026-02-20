@@ -4,6 +4,7 @@
 #define IS_WINDOWS 0
 #define IS_LINUX 0
 #define IS_APPLE 0
+#define IS_CYGWIN 0 // If IS_CYGWIN is set IS_LINUX will also be set, for better or worse
 
 #if defined(_WIN32)
  #undef IS_WINDOWS
@@ -16,6 +17,11 @@
  #define IS_APPLE 1
 #else
  #error "Unexpected platform"
+#endif
+
+#ifdef __CYGWIN__
+ #undef IS_CYGWIN
+ #define IS_CYGWIN 1
 #endif
 
 #define IS_CLANG 0

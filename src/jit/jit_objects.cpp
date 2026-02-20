@@ -15,7 +15,7 @@
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
-    #if (IS_LINUX || IS_APPLE) && !defined(__CYGWIN__)
+    #if (IS_LINUX || IS_APPLE) && !IS_CYGWIN
     class jit_object_manager {
         struct object_entry {
             const char* object_start;
@@ -135,7 +135,7 @@ namespace detail {
         manager.clear_all_jit_objects();
     }
 
-    #if (IS_LINUX || IS_APPLE) && !defined(__CYGWIN__)
+    #if (IS_LINUX || IS_APPLE) && !IS_CYGWIN
     optional<jit_object_lookup_result> lookup_jit_object(frame_ptr pc) {
         return get_jit_object_manager().lookup(pc);
     }

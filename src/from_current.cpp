@@ -294,7 +294,7 @@ namespace detail {
         if(type_info_addr - page_addr + sizeof(void*) > static_cast<unsigned>(page_size)) {
             throw internal_error("pointer crosses page boundaries");
         }
-        #if IS_WINDOWS || defined(__CYGWIN__)
+        #if IS_WINDOWS || IS_CYGWIN
         auto old_protections = mprotect_page_and_return_old_protections(
             reinterpret_cast<void*>(page_addr),
             page_size,

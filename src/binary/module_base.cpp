@@ -7,7 +7,7 @@
 #include <mutex>
 #include <unordered_map>
 
-#if (IS_LINUX || IS_APPLE) && !defined(__CYGWIN__)
+#if (IS_LINUX || IS_APPLE) && !IS_CYGWIN
  #include <unistd.h>
  #include <dlfcn.h>
  #if IS_APPLE
@@ -15,13 +15,13 @@
  #else
   #include "binary/elf.hpp"
  #endif
-#elif IS_WINDOWS || defined(__CYGWIN__)
+#elif IS_WINDOWS || IS_CYGWIN
  #include "binary/pe.hpp"
 #endif
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
-    #if IS_LINUX && !defined(__CYGWIN__)
+    #if IS_LINUX && !IS_CYGWIN
     Result<std::uintptr_t, internal_error> get_module_image_base(const std::string& object_path) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);

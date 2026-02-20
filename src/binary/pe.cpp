@@ -4,7 +4,7 @@
 #include "utils/error.hpp"
 #include "utils/utils.hpp"
 
-#if IS_WINDOWS || defined(__CYGWIN__)
+#if IS_WINDOWS || IS_CYGWIN
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -31,13 +31,13 @@ namespace detail {
         // https://drive.google.com/file/d/0B3_wGJkuWLytbnIxY1J5WUs4MEk/view?pli=1&resourcekey=0-n5zZ2UW39xVTH8ZSu6C2aQ
         // https://0xrick.github.io/win-internals/pe3/
         // Endianness should always be little for dos and pe headers
+        std::FILE* file_ptr;
         #ifdef __CYGWIN__
-         std::FILE* file_ptr = std::fopen(object_path.c_str(), "rb");
+         file_ptr = std::fopen(object_path.c_str(), "rb");
          if(!file_ptr) {
              return internal_error("Unable to read object file {}", object_path);
          }
         #else
-         std::FILE* file_ptr;
          errno_t ret = fopen_s(&file_ptr, object_path.c_str(), "rb");
          if(ret != 0 || file_ptr == nullptr) {
              return internal_error("Unable to read object file {}", object_path);
