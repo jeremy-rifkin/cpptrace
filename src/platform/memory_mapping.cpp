@@ -5,7 +5,7 @@
 
 #ifndef _MSC_VER
 
-#if IS_WINDOWS
+#if IS_WINDOWS || defined(__CYGWIN__)
  #ifndef WIN32_LEAN_AND_MEAN
   #define WIN32_LEAN_AND_MEAN
  #endif
@@ -31,7 +31,10 @@
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
-    #if IS_WINDOWS
+    #if IS_WINDOWS || defined(__CYGWIN__)
+    // Cygwin uses GCC/Itanium ABI but Cygwin's mprotect seems to require 64KB-aligned addresses (allocation
+    // granularity returned by sysconf(_SC_PAGESIZE)) while we need actual page granularity for typeinfo surgery.
+    // Using the windows API here works best.
     int get_page_size() {
         SYSTEM_INFO info;
         GetSystemInfo(&info);

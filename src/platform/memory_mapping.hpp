@@ -2,7 +2,7 @@
 
 #ifndef _MSC_VER
 
-#if IS_WINDOWS
+#if IS_WINDOWS || defined(__CYGWIN__)
  #ifndef WIN32_LEAN_AND_MEAN
   #define WIN32_LEAN_AND_MEAN
  #endif
@@ -13,7 +13,7 @@
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
-    #if IS_WINDOWS
+    #if IS_WINDOWS || defined(__CYGWIN__)
      constexpr auto memory_readonly = PAGE_READONLY;
      constexpr auto memory_readwrite = PAGE_READWRITE;
     #else
@@ -21,7 +21,7 @@ namespace detail {
      constexpr auto memory_readwrite = PROT_READ | PROT_WRITE;
     #endif
     int get_page_size();
-    #if !IS_WINDOWS
+    #if !IS_WINDOWS && !defined(__CYGWIN__)
      int get_page_protections(void* page);
     #endif
     int mprotect_page_and_return_old_protections(void* page, int page_size, int protections);
