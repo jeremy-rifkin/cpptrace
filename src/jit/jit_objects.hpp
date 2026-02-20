@@ -13,7 +13,7 @@ namespace detail {
     void unregister_jit_object(const char*);
     void clear_all_jit_objects();
 
-    #if IS_LINUX || IS_APPLE
+    #if (IS_LINUX || IS_APPLE) && !defined(__CYGWIN__)
     #if IS_LINUX
      using jit_object_type = elf;
     #elif IS_APPLE

@@ -7,7 +7,7 @@
 #include "utils/io/file.hpp"
 #include "utils/string_view.hpp"
 
-#if IS_LINUX
+#if IS_LINUX && !defined(__CYGWIN__)
 
 #include <array>
 #include <cstdint>

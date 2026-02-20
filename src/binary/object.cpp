@@ -11,13 +11,13 @@
 #include <mutex>
 #include <unordered_map>
 
-#if IS_LINUX || IS_APPLE
+#if (IS_LINUX || IS_APPLE) && !defined(__CYGWIN__)
  #include <unistd.h>
  #include <dlfcn.h>
  #if IS_LINUX && (defined(CPPTRACE_HAS_DL_FIND_OBJECT) || defined(CPPTRACE_HAS_DLADDR1))
   #include <link.h> // needed for dladdr1's link_map info
  #endif
-#elif IS_WINDOWS
+#elif IS_WINDOWS || defined(__CYGWIN__)
  #ifndef WIN32_LEAN_AND_MEAN
   #define WIN32_LEAN_AND_MEAN
  #endif
@@ -26,7 +26,7 @@
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
-    #if IS_LINUX || IS_APPLE
+    #if (IS_LINUX || IS_APPLE) && !defined(__CYGWIN__)
     #if defined(CPPTRACE_HAS_DL_FIND_OBJECT) || defined(CPPTRACE_HAS_DLADDR1)
     std::string resolve_l_name(const char* l_name) {
         if(l_name != nullptr && l_name[0] != 0) {
