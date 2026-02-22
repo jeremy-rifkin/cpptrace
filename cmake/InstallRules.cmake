@@ -39,10 +39,10 @@ install(
 )
 
 # create config file that points to targets file
-configure_file(
+configure_package_config_file(
   "${PROJECT_SOURCE_DIR}/cmake/in/cpptrace-config-cmake.in"
   "${PROJECT_BINARY_DIR}/cmake/${package_name}-config.cmake"
-  @ONLY
+  INSTALL_DESTINATION "${CPPTRACE_INSTALL_CMAKEDIR}"
 )
 
 # copy config file for find_package to find
