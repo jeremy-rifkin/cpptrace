@@ -81,11 +81,13 @@ if(CPPTRACE_PROVIDE_EXPORT_SET)
   )
 endif()
 
-# Findzstd.cmake
+# Find modules for dependencies
 # vcpkg doesn't like anything being put in share/, which is where this goes apparently on their setup
 if(NOT CPPTRACE_VCPKG)
   install(
-    FILES "${PROJECT_SOURCE_DIR}/cmake/Findzstd.cmake"
+    FILES
+    "${PROJECT_SOURCE_DIR}/cmake/Findzstd.cmake"
+    "${PROJECT_SOURCE_DIR}/cmake/FindLibunwind.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${package_name}"
   )
 endif()
