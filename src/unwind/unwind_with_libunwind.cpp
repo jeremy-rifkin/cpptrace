@@ -12,25 +12,15 @@
 
 #include <libunwind.h>
 
-#if IS_APPLE && (defined(__arm64__) || defined(__aarch64__))
- #include <ptrauth.h>
-#endif
-
 namespace {
 // Strip pointer authentication code from an instruction address.
 // Apple's unw_get_reg(UNW_REG_IP) may return PAC-signed addresses with signature bits in
 // the upper bytes.
 inline uintptr_t depaci(uintptr_t pc) {
     #if defined(__APPLE__) && (defined(__arm64__) || defined(__aarch64__))
-     #pragma clang diagnostic push
-     #pragma clang diagnostic ignored "-Wgnu-statement-expression-from-macro-expansion"
-     return reinterpret_cast<uintptr_t>(
-         ptrauth_strip(reinterpret_cast<void*>(pc), ptrauth_key_asia)
-     );
-     #pragma clang diagnostic pop
-    #else
-     return pc;
+     __asm__ volatile("xpaci %0" : "+r"(pc));
     #endif
+    return pc;
 }
 }
 
