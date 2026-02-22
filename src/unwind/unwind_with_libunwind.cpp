@@ -22,9 +22,12 @@ namespace {
 // the upper bytes.
 inline uintptr_t depaci(uintptr_t pc) {
     #if defined(__APPLE__) && (defined(__arm64__) || defined(__aarch64__))
+     #pragma clang diagnostic push
+     #pragma clang diagnostic ignored "-Wgnu-statement-expression-from-macro-expansion"
      return reinterpret_cast<uintptr_t>(
          ptrauth_strip(reinterpret_cast<void*>(pc), ptrauth_key_asia)
      );
+     #pragma clang diagnostic pop
     #else
      return pc;
     #endif
