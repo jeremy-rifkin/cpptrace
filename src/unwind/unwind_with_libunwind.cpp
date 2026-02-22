@@ -12,6 +12,25 @@
 
 #include <libunwind.h>
 
+#if IS_APPLE && (defined(__arm64__) || defined(__aarch64__))
+ #include <ptrauth.h>
+#endif
+
+namespace {
+// Strip pointer authentication code from an instruction address.
+// Apple's unw_get_reg(UNW_REG_IP) may return PAC-signed addresses with signature bits in
+// the upper bytes.
+inline uintptr_t depaci(uintptr_t pc) {
+    #if defined(__APPLE__) && (defined(__arm64__) || defined(__aarch64__))
+     return reinterpret_cast<uintptr_t>(
+         ptrauth_strip(reinterpret_cast<void*>(pc), ptrauth_key_asia)
+     );
+    #else
+     return pc;
+    #endif
+}
+}
+
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
     CPPTRACE_FORCE_NO_INLINE
@@ -26,13 +45,7 @@ namespace detail {
             unw_word_t pc;
             unw_word_t sp;
             unw_get_reg(&cursor, UNW_REG_IP, &pc);
-            #if defined(__APPLE__) && (defined(__arm64__) || defined(__aarch64__))
-            // Apple's unw_get_reg(UNW_REG_IP) may return pointer-authenticated addresses with PAC
-            // signature bits in the upper bytes
-            uintptr_t stripped = pc;
-            __asm__ volatile("xpaci %0" : "+r"(stripped));
-            pc = stripped;
-            #endif
+            pc = depaci(pc);
             unw_get_reg(&cursor, UNW_REG_SP, &sp);
             if(skip) {
                 skip--;
@@ -60,11 +73,7 @@ namespace detail {
             unw_word_t sp;
             // thread and signal-safe https://www.nongnu.org/libunwind/man/unw_get_reg(3).html
             unw_get_reg(&cursor, UNW_REG_IP, &pc);
-            #if defined(__APPLE__) && (defined(__arm64__) || defined(__aarch64__))
-            uintptr_t stripped = pc;
-            __asm__ volatile("xpaci %0" : "+r"(stripped));
-            pc = stripped;
-            #endif
+            pc = depaci(pc);
             unw_get_reg(&cursor, UNW_REG_SP, &sp);
             if(skip) {
                 skip--;
