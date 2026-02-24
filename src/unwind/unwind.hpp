@@ -6,7 +6,8 @@
 #include <cstddef>
 #include <vector>
 
-#ifdef CPPTRACE_UNWIND_WITH_DBGHELP
+#if defined(CPPTRACE_UNWIND_WITH_DBGHELP) || defined(CPPTRACE_UNWIND_WITH_RTLVIRTUALUNWIND)
+ #define CPPTRACE_UNWIND_WITH_EXCEPTION_POINTERS
  #ifndef WIN32_LEAN_AND_MEAN
   #define WIN32_LEAN_AND_MEAN
  #endif
@@ -22,7 +23,7 @@ namespace detail {
     constexpr std::size_t hard_max_frames = 400;
     #endif
 
-    #ifdef CPPTRACE_UNWIND_WITH_DBGHELP
+    #ifdef CPPTRACE_UNWIND_WITH_EXCEPTION_POINTERS
      CPPTRACE_FORCE_NO_INLINE
      std::vector<frame_ptr> capture_frames(
          std::size_t skip,

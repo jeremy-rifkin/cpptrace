@@ -142,6 +142,7 @@ target_sources(
     src/symbols/symbols_with_libdwarf.cpp
     src/symbols/symbols_with_nothing.cpp
     src/unwind/unwind_with_dbghelp.cpp
+    src/unwind/unwind_with_rtlvirtualunwind.cpp
     src/unwind/unwind_with_execinfo.cpp
     src/unwind/unwind_with_libunwind.cpp
     src/unwind/unwind_with_nothing.cpp
@@ -497,6 +498,10 @@ if(CPPTRACE_UNWIND_WITH_DBGHELP)
   endif()
   target_compile_definitions(${target_name} PRIVATE CPPTRACE_UNWIND_WITH_DBGHELP)
   target_link_libraries(${target_name} PRIVATE dbghelp)
+endif()
+
+if(CPPTRACE_UNWIND_WITH_RTLVIRTUALUNWIND)
+  target_compile_definitions(${target_name} PRIVATE CPPTRACE_UNWIND_WITH_RTLVIRTUALUNWIND)
 endif()
 
 if(CPPTRACE_UNWIND_WITH_NOTHING)
