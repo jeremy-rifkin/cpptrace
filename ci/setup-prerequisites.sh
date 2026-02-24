@@ -18,7 +18,7 @@ if [ ! -f libdwarf/build/src/lib/libdwarf/libdwarf.a ]; then
     cd libdwarf
     git init
     git remote add origin https://github.com/jeremy-rifkin/libdwarf-lite.git
-    git fetch --depth 1 origin 5dfb2cd2aacf2bf473e5bfea79e41289f88b3a5f # 2.1.0
+    git fetch --depth 1 origin 4f89892a51054aa38697a94cebfdab1855acc4d9 # 2.3.0
     git checkout FETCH_HEAD
     mkdir build
     cd build
