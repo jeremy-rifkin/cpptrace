@@ -1464,7 +1464,7 @@ make install
 cd ~/scratch/cpptrace-test
 git clone https://github.com/jeremy-rifkin/libdwarf-lite.git
 cd libdwarf-lite
-git checkout 4f89892a51054aa38697a94cebfdab1855acc4d9 # 2.3.0
+git checkout 5dfb2cd2aacf2bf473e5bfea79e41289f88b3a5f # 2.1.0
 mkdir build
 cd build
 cmake .. -DPIC_ALWAYS=On -DBUILD_DWARFDUMP=Off -DCMAKE_PREFIX_PATH=~/scratch/cpptrace-test/resources -DCMAKE_INSTALL_PREFIX=~/scratch/cpptrace-test/resources
