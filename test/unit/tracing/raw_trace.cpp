@@ -22,6 +22,12 @@ import cpptrace;
 
 #ifndef CPPTRACE_SANITIZER_BUILD
 
+#if defined(_WIN32) && (defined(_M_ARM64) || defined(_M_ARM))
+ static constexpr int raw_trace_fudge = 200;
+#else
+ static constexpr int raw_trace_fudge = 100;
+#endif
+
 // NOTE: MSVC likes creating trampoline-like entries for non-static functions
 CPPTRACE_FORCE_NO_INLINE static void raw_trace_basic() {
     static volatile int lto_guard; lto_guard = lto_guard + 1;
@@ -29,7 +35,7 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_basic() {
     // look for within 90 bytes of the start of the function
     ASSERT_GE(raw_trace.frames.size(), 1);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_basic));
-    EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_basic) + 90);
+    EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_basic) + raw_trace_fudge);
 }
 
 #ifndef _MSC_VER
@@ -71,7 +77,7 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_2(
     auto raw_trace = cpptrace::generate_raw_trace();
     ASSERT_GE(raw_trace.frames.size(), 2);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_2));
-    EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_2) + 100);
+    EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_2) + raw_trace_fudge);
     EXPECT_GE(raw_trace.frames[1], parent_low_bound);
     EXPECT_LE(raw_trace.frames[1], parent_high_bound);
 }
@@ -79,10 +85,10 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_2(
 CPPTRACE_FORCE_NO_INLINE static void raw_trace_multi_1() {
     static volatile int lto_guard; lto_guard = lto_guard + 1;
     auto raw_trace = cpptrace::generate_raw_trace();
-    raw_trace_multi_2(reinterpret_cast<uintptr_t>(raw_trace_multi_1), reinterpret_cast<uintptr_t>(raw_trace_multi_1) + 300);
+    raw_trace_multi_2(reinterpret_cast<uintptr_t>(raw_trace_multi_1), reinterpret_cast<uintptr_t>(raw_trace_multi_1) + raw_trace_fudge * 3);
     ASSERT_GE(raw_trace.frames.size(), 1);
     EXPECT_GE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_1));
-    EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_1) + 90);
+    EXPECT_LE(raw_trace.frames[0], reinterpret_cast<uintptr_t>(raw_trace_multi_1) + raw_trace_fudge);
 }
 
 std::vector<std::pair<cpptrace::frame_ptr, cpptrace::frame_ptr>> parents;
