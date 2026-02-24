@@ -21,6 +21,7 @@
 #endif
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <functional>
