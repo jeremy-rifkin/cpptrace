@@ -24,6 +24,7 @@ ALL_UNWIND_OPTIONS = [
     "CPPTRACE_UNWIND_WITH_EXECINFO",
     "CPPTRACE_UNWIND_WITH_WINAPI",
     "CPPTRACE_UNWIND_WITH_DBGHELP",
+    "CPPTRACE_UNWIND_WITH_RTLVIRTUALUNWIND",
     "CPPTRACE_UNWIND_WITH_NOTHING",
 ]
 ALL_SYMBOL_OPTIONS = [
@@ -433,6 +434,7 @@ def run_windows_matrix(compilers: list, shared: bool):
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_WINAPI",
                 "CPPTRACE_UNWIND_WITH_DBGHELP",
+                "CPPTRACE_UNWIND_WITH_RTLVIRTUALUNWIND",
                 "CPPTRACE_UNWIND_WITH_UNWIND", # Broken on github actions for some reason
                 #"CPPTRACE_UNWIND_WITH_NOTHING",
             ],
