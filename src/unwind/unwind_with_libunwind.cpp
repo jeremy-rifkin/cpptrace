@@ -12,17 +12,7 @@
 
 #include <libunwind.h>
 
-namespace {
-// Strip pointer authentication code from an instruction address.
-// Apple's unw_get_reg(UNW_REG_IP) may return PAC-signed addresses with signature bits in
-// the upper bytes.
-inline uintptr_t depaci(uintptr_t pc) {
-    #if defined(__APPLE__) && (defined(__arm64__) || defined(__aarch64__))
-     __asm__ volatile("xpaci %0" : "+r"(pc));
-    #endif
-    return pc;
-}
-}
+#include "platform/pac.hpp"
 
 CPPTRACE_BEGIN_NAMESPACE
 namespace detail {
@@ -38,7 +28,7 @@ namespace detail {
             unw_word_t pc;
             unw_word_t sp;
             unw_get_reg(&cursor, UNW_REG_IP, &pc);
-            pc = depaci(pc);
+            pc = depac(pc);
             unw_get_reg(&cursor, UNW_REG_SP, &sp);
             if(skip) {
                 skip--;
@@ -66,7 +56,7 @@ namespace detail {
             unw_word_t sp;
             // thread and signal-safe https://www.nongnu.org/libunwind/man/unw_get_reg(3).html
             unw_get_reg(&cursor, UNW_REG_IP, &pc);
-            pc = depaci(pc);
+            pc = depac(pc);
             unw_get_reg(&cursor, UNW_REG_SP, &sp);
             if(skip) {
                 skip--;
