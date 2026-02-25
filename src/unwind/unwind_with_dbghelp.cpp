@@ -4,7 +4,6 @@
 #include "unwind/unwind.hpp"
 #include "utils/common.hpp"
 #include "utils/utils.hpp"
-#include "platform/pac.hpp"
 #include "platform/dbghelp_utils.hpp"
 
 #include <vector>
@@ -39,10 +38,6 @@ namespace detail {
         ZeroMemory(&context, sizeof(CONTEXT));
         if(exception_pointers) {
             context = *exception_pointers->ContextRecord;
-            #if defined(_M_ARM64) || defined(__aarch64__)
-             context.Pc = depac(context.Pc);
-             context.Lr = depac(context.Lr);
-            #endif
         } else {
             skip++; // we're unwinding from the capture_frames frame, skip it
             #if defined(_M_IX86) || defined(__i386__)
@@ -149,11 +144,6 @@ namespace detail {
                 // Either failed or finished walking
                 break;
             }
-            #if defined(_M_ARM64) || defined(__aarch64__)
-             frame.AddrPC.Offset = depac(frame.AddrPC.Offset);
-             context.Pc = depac(context.Pc);
-             context.Lr = depac(context.Lr);
-            #endif
             if(frame.AddrPC.Offset != 0) {
                 // Valid frame
                 if(skip) {
