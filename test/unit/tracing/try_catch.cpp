@@ -21,11 +21,16 @@ import cpptrace;
 #endif
 
 
+static volatile int truthy = 2;
+
 namespace {
     template<typename E, typename... Args>
     CPPTRACE_FORCE_NO_INLINE
-    void do_throw(Args&&... args) {
-        throw E(std::forward<Args>(args)...);
+    int do_throw(Args&&... args) {
+        if(truthy) {
+            throw E(std::forward<Args>(args)...);
+        }
+        return 2;
     }
 
     void check_trace(const cpptrace::stacktrace& trace, std::string file, int line) {
@@ -74,7 +79,8 @@ TEST(TryCatch, Basic) {
     cpptrace::try_catch(
         [&] {
             line = __LINE__ + 1;
-            do_throw<std::runtime_error>("foobar");
+            volatile int x = do_throw<std::runtime_error>("foobar");
+            (void)x;
         },
         [&] (const std::runtime_error& e) {
             did_catch = true;
@@ -106,7 +112,8 @@ TEST(TryCatch, Upcast) {
     cpptrace::try_catch(
         [&] {
             line = __LINE__ + 1;
-            do_throw<std::runtime_error>("foobar");
+            volatile int x = do_throw<std::runtime_error>("foobar");
+            (void)x;
         },
         [&] (const std::exception& e) {
             did_catch = true;
@@ -125,7 +132,8 @@ TEST(TryCatch, NoHandler) {
         cpptrace::try_catch(
             [&] {
                 line = __LINE__ + 1;
-                do_throw<std::exception>();
+                volatile int x = do_throw<std::exception>();
+                (void)x;
             },
             [&] (const std::runtime_error&) {
                 FAIL();
@@ -145,7 +153,8 @@ TEST(TryCatch, NoMatchingHandler) {
         cpptrace::try_catch(
             [&] {
                 line = __LINE__ + 1;
-                do_throw<std::exception>();
+                volatile int x = do_throw<std::exception>();
+                (void)x;
             }
         );
         FAIL();
@@ -162,7 +171,8 @@ TEST(TryCatch, CorrectHandler) {
     cpptrace::try_catch(
         [&] {
             line = __LINE__ + 1;
-            do_throw<std::runtime_error>("foobar");
+            volatile int x = do_throw<std::runtime_error>("foobar");
+            (void)x;
         },
         [&] (int) {
             FAIL();
@@ -190,7 +200,8 @@ TEST(TryCatch, BlanketHandler) {
     cpptrace::try_catch(
         [&] {
             line = __LINE__ + 1;
-            do_throw<std::exception>();
+            volatile int x = do_throw<std::exception>();
+            (void)x;
         },
         [&] (int) {
             FAIL();
@@ -217,7 +228,8 @@ TEST(TryCatch, CatchOrdering) {
     cpptrace::try_catch(
         [&] {
             line = __LINE__ + 1;
-            do_throw<std::runtime_error>("foobar");
+            volatile int x = do_throw<std::runtime_error>("foobar");
+            (void)x;
         },
         [&] (int) {
             FAIL();
@@ -270,7 +282,8 @@ TEST(TryCatch, Value) {
     copy_move_tracker::reset();
     cpptrace::try_catch(
         [&] {
-            do_throw<copy_move_tracker>();
+            volatile int x = do_throw<copy_move_tracker>();
+            (void)x;
         },
         [&] (copy_move_tracker) {
             did_catch = true;
@@ -286,7 +299,8 @@ TEST(TryCatch, Ref) {
     copy_move_tracker::reset();
     cpptrace::try_catch(
         [&] {
-            do_throw<copy_move_tracker>();
+            volatile int x = do_throw<copy_move_tracker>();
+            (void)x;
         },
         [&] (copy_move_tracker&) {
             did_catch = true;
@@ -302,7 +316,8 @@ TEST(TryCatch, ConstRef) {
     copy_move_tracker::reset();
     cpptrace::try_catch(
         [&] {
-            do_throw<copy_move_tracker>();
+            volatile int x = do_throw<copy_move_tracker>();
+            (void)x;
         },
         [&] (const copy_move_tracker&) {
             did_catch = true;
