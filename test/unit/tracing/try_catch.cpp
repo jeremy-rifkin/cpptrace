@@ -21,6 +21,12 @@ import cpptrace;
 #endif
 
 
+#if defined(_MSC_VER) && !defined(__clang__)
+ #define NOINLINE_LAMBDA [[msvc::noinline]]
+#else
+ #define NOINLINE_LAMBDA __attribute__((noinline))
+#endif
+
 static volatile int truthy = 2;
 
 namespace {
@@ -77,7 +83,7 @@ TEST(TryCatch, Basic) {
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
-        [&] {
+        [&] () NOINLINE_LAMBDA {
             line = __LINE__ + 1;
             volatile int x = do_throw<std::runtime_error>("foobar");
             (void)x;
@@ -110,7 +116,7 @@ TEST(TryCatch, Upcast) {
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
-        [&] {
+        [&] () NOINLINE_LAMBDA {
             line = __LINE__ + 1;
             volatile int x = do_throw<std::runtime_error>("foobar");
             (void)x;
@@ -130,7 +136,7 @@ TEST(TryCatch, NoHandler) {
     bool did_catch = false;
     try {
         cpptrace::try_catch(
-            [&] {
+            [&] () NOINLINE_LAMBDA {
                 line = __LINE__ + 1;
                 volatile int x = do_throw<std::exception>();
                 (void)x;
@@ -151,7 +157,7 @@ TEST(TryCatch, NoMatchingHandler) {
     bool did_catch = false;
     try {
         cpptrace::try_catch(
-            [&] {
+            [&] () NOINLINE_LAMBDA {
                 line = __LINE__ + 1;
                 volatile int x = do_throw<std::exception>();
                 (void)x;
@@ -169,7 +175,7 @@ TEST(TryCatch, CorrectHandler) {
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
-        [&] {
+        [&] () NOINLINE_LAMBDA {
             line = __LINE__ + 1;
             volatile int x = do_throw<std::runtime_error>("foobar");
             (void)x;
@@ -198,7 +204,7 @@ TEST(TryCatch, BlanketHandler) {
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
-        [&] {
+        [&] () NOINLINE_LAMBDA {
             line = __LINE__ + 1;
             volatile int x = do_throw<std::exception>();
             (void)x;
@@ -226,7 +232,7 @@ TEST(TryCatch, CatchOrdering) {
     int line = 0;
     bool did_catch = false;
     cpptrace::try_catch(
-        [&] {
+        [&] () NOINLINE_LAMBDA {
             line = __LINE__ + 1;
             volatile int x = do_throw<std::runtime_error>("foobar");
             (void)x;
