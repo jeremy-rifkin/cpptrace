@@ -298,11 +298,11 @@ namespace libdwarf {
         }
 
         bool find_die_namespace_prefix(
-            const die_object& cu_die,
+            const die_object& parent_die,
             Dwarf_Off target_offset,
             std::string& prefix
         ) {
-            auto child = cu_die.get_child();
+            auto child = parent_die.get_child();
             if(!child) {
                 return false;
             }
@@ -335,6 +335,9 @@ namespace libdwarf {
                         tag == DW_TAG_module
                         || tag == DW_TAG_imported_module
                         || tag == DW_TAG_compile_unit
+                        || tag == DW_TAG_subprogram
+                        || tag == DW_TAG_lexical_block
+                        || tag == DW_TAG_inlined_subroutine
                     ) {
                         if(find_die_namespace_prefix(die, target_offset, prefix)) {
                             found = true;
@@ -348,7 +351,7 @@ namespace libdwarf {
         }
 
         std::string get_die_namespace_prefix(const die_object& cu_die, const die_object& target_die) {
-            // It's possible we get here even when we otherwise would have had a cached_prefix thanks to
+            // It's possible we get here even when we otherwise would have had a walked_prefix thanks to
             // DW_AT_specification and DW_AT_abstract_origin
             auto it = namespace_prefix_cache.find(target_die.get_global_offset());
             if(it != namespace_prefix_cache.end()) {
@@ -363,7 +366,7 @@ namespace libdwarf {
             const die_object& cu_die,
             const die_object& die,
             Dwarf_Half dwversion,
-            optional<string_view> cached_prefix = nullopt
+            optional<string_view> walked_prefix = nullopt
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
             optional<std::string> name;
@@ -375,8 +378,8 @@ namespace libdwarf {
                 // DW_AT_name is unqualified according to the DWARF standard
                 // In cache_mode == speed we preprocess all the namespace prefixes
                 // otherwise we have to reconstruct the namespace by walking the DWARF tree
-                auto prefix = cached_prefix.has_value()
-                    ? std::string(cached_prefix.unwrap())
+                auto prefix = walked_prefix.has_value()
+                    ? std::string(walked_prefix.unwrap())
                     : get_die_namespace_prefix(cu_die, die);
                 name = prefix + raw_name.unwrap();
             }
@@ -514,10 +517,10 @@ namespace libdwarf {
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
             std::vector<stacktrace_frame>& inlines,
-            optional<string_view> cached_prefix = nullopt
+            optional<string_view> walked_prefix = nullopt
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram);
-            const auto name = subprogram_symbol(cu_die, die, dwversion, cached_prefix);
+            const auto name = subprogram_symbol(cu_die, die, dwversion, walked_prefix);
             if(should_resolve_inlined_calls()) {
                 get_inlines_info(cu_die, die, pc, dwversion, inlines);
             }
@@ -533,7 +536,7 @@ namespace libdwarf {
             Dwarf_Half dwversion,
             stacktrace_frame& frame,
             std::vector<stacktrace_frame>& inlines,
-            const std::string& prefix
+            std::string& prefix
         ) {
             bool found = false;
             walk_die_list(
@@ -569,9 +572,8 @@ namespace libdwarf {
                         }
                         auto child = die.get_child();
                         if(child) {
+                            auto old_size = prefix.size();
                             auto tag = die.get_tag();
-                            std::string extended_prefix;
-                            const std::string* child_prefix = &prefix;
                             if(
                                 tag == DW_TAG_namespace
                                 || tag == DW_TAG_class_type
@@ -579,13 +581,15 @@ namespace libdwarf {
                             ) {
                                 auto name = die.get_string_attribute(DW_AT_name);
                                 if(name) {
-                                    extended_prefix = prefix;
-                                    extended_prefix += name.unwrap();
-                                    extended_prefix += "::";
-                                    child_prefix = &extended_prefix;
+                                    prefix += name.unwrap();
+                                    prefix += "::";
                                 }
                             }
-                            if(retrieve_symbol_walk(cu_die, child, pc, dwversion, frame, inlines, *child_prefix)) {
+                            bool child_found = retrieve_symbol_walk(
+                                cu_die, child, pc, dwversion, frame, inlines, prefix
+                            );
+                            prefix.resize(old_size);
+                            if(child_found) {
                                 found = true;
                                 return false;
                             }
@@ -617,30 +621,28 @@ namespace libdwarf {
                 [this, &cu_die, dwversion, &subprogram_cache, &prefix] (const die_object& die) {
                     switch(die.get_tag()) {
                         case DW_TAG_subprogram:
-                            {
-                                const auto& interned = *prefix_pool.insert(prefix).first;
-                                namespace_prefix_cache.emplace(die.get_global_offset(), interned);
-                                auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
-                                // TODO: Feels super inefficient and some day should maybe use an interval tree.
-                                if(!ranges_vec.empty()) {
-                                    auto die_handle = subprogram_cache.add_item(die.clone());
-                                    for(auto range : ranges_vec) {
-                                        subprogram_cache.insert(die_handle, range.first, range.second);
-                                    }
-                                }
-                                // Walk children to get things like lambdas
-                                // TODO: Somehow find a way to get better names here? For gcc it's just "operator()"
-                                // On clang it's better
-                                auto child = die.get_child();
-                                if(child) {
-                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache, prefix);
-                                }
-                            }
-                            break;
                         case DW_TAG_inlined_subroutine:
                             {
                                 const auto& interned = *prefix_pool.insert(prefix).first;
                                 namespace_prefix_cache.emplace(die.get_global_offset(), interned);
+                                if(die.get_tag() == DW_TAG_subprogram) {
+                                    auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
+                                    // TODO: Feels super inefficient and some day should maybe use an interval
+                                    // tree.
+                                    if(!ranges_vec.empty()) {
+                                        auto die_handle = subprogram_cache.add_item(die.clone());
+                                        for(auto range : ranges_vec) {
+                                            subprogram_cache.insert(die_handle, range.first, range.second);
+                                        }
+                                    }
+                                }
+                                // Walk children to get things like lambdas
+                                // TODO: Somehow find a way to get better names here? For gcc it's just
+                                // "operator()". On clang it's better.
+                                auto child = die.get_child();
+                                if(child) {
+                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache, prefix);
+                                }
                             }
                             break;
                         case DW_TAG_namespace:
@@ -660,6 +662,7 @@ namespace libdwarf {
                                 }
                             }
                             break;
+                        case DW_TAG_lexical_block:
                         case DW_TAG_module:
                         case DW_TAG_imported_module:
                         case DW_TAG_compile_unit:
@@ -690,7 +693,8 @@ namespace libdwarf {
             std::vector<stacktrace_frame>& inlines
         ) {
             if(get_cache_mode() == cache_mode::prioritize_memory) {
-                retrieve_symbol_walk(cu_die, cu_die, pc, dwversion, frame, inlines, "");
+                std::string prefix;
+                retrieve_symbol_walk(cu_die, cu_die, pc, dwversion, frame, inlines, prefix);
             } else {
                 auto off = cu_die.get_global_offset();
                 auto it = subprograms_cache.find(off);
@@ -709,11 +713,7 @@ namespace libdwarf {
                     auto& entry = maybe_entry.unwrap();
                     if(entry.pc_in_die(cu_die, dwversion, pc)) {
                         frame.symbol = retrieve_symbol_for_subprogram(
-                            cu_die,
-                            entry,
-                            pc,
-                            dwversion,
-                            inlines
+                            cu_die, entry, pc, dwversion, inlines
                         );
                     }
                 }
