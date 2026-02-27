@@ -87,6 +87,7 @@ function(test_cpptrace)
     unit/tracing/try_catch.cpp
     unit/tracing/traced_exception.cpp
     unit/tracing/rethrow.cpp
+    unit/tracing/namespace_resolution.cpp
     unit/internals/optional.cpp
     unit/internals/lru_cache.cpp
     unit/internals/result.cpp
