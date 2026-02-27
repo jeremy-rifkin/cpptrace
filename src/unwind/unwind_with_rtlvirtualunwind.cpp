@@ -45,44 +45,50 @@ namespace detail {
         }
 
         std::vector<frame_ptr> trace;
+        bool handled_leaf = false;
         while(trace.size() < max_depth) {
             DWORD64 image_base;
-            PRUNTIME_FUNCTION function_entry = RtlLookupFunctionEntry(context_pc(context), &image_base, NULL);
+            auto pc = context_pc(context);
+            PRUNTIME_FUNCTION function_entry = RtlLookupFunctionEntry(pc, &image_base, NULL);
             if(!function_entry) {
-                break;
+                if(handled_leaf) {
+                    break;
+                }
+                handled_leaf = true;
             }
             if(skip) {
                 skip--;
             } else {
-                // Same adjustment as StackWalk64
-                trace.push_back(to_frame_ptr(context_pc(context)) - 1);
+                trace.push_back(to_frame_ptr(pc) - 1);
             }
-            #if defined(_M_X64) || defined(__x86_64__)
-            PVOID handler_data;
-            DWORD64 establisher_frame;
-            RtlVirtualUnwind(
-                UNW_FLAG_NHANDLER,
-                image_base,
-                context_pc(context),
-                function_entry,
-                &context,
-                &handler_data,
-                &establisher_frame,
-                NULL
-            );
-            #elif defined(_M_ARM64) || defined(__aarch64__)
-            BOOLEAN in_function;
-            FRAME_POINTERS establisher_frame;
-            RtlVirtualUnwind(
-                image_base,
-                context_pc(context),
-                function_entry,
-                &context,
-                &in_function,
-                &establisher_frame,
-                NULL
-            );
-            #endif
+            if(function_entry) {
+                PVOID handler_data;
+                DWORD64 establisher_frame;
+                RtlVirtualUnwind(
+                    UNW_FLAG_NHANDLER,
+                    image_base,
+                    pc,
+                    function_entry,
+                    &context,
+                    &handler_data,
+                    &establisher_frame,
+                    NULL
+                );
+            } else {
+                // Leaf functions may not have unwind / .pdata entries. Handle that case here.
+                // We only come here once and handled_leaf = true is set above
+                // https://learn.microsoft.com/en-us/cpp/build/arm-exception-handling?view=msvc-170
+                // https://searchfox.org/firefox-main/source/mozglue/misc/StackWalk.cpp#653-655
+                // https://github.com/dotnet/runtime/blob/133c7bde3fb7dd914f423ffb3e408cc61787e0bb/src/coreclr/vm/stackwalk.cpp#L573-L600
+                #if defined(_M_X64) || defined(__x86_64__)
+                 context.Rip = *reinterpret_cast<DWORD64*>(context.Rsp);
+                 context.Rsp += sizeof(DWORD64);
+                #elif defined(_M_ARM64) || defined(__aarch64__)
+                 context.Pc = context.Lr;
+                #else
+                 #error "Unsupported arch for leaf function handling"
+                #endif
+            }
             if(context_pc(context) == 0) {
                 break;
             }
