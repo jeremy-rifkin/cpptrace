@@ -69,12 +69,11 @@ namespace libdwarf {
         // string pool for namespace prefixes
         std::unordered_set<std::string> prefix_pool;
         // Map from CU -> Sorted subprograms vector
-        struct subprogram_entry {
-            die_object die;
-            string_view namespace_prefix;
-        };
-        using subprogram_map = range_map<Dwarf_Addr, subprogram_entry>;
+        using subprogram_map = range_map<Dwarf_Addr, die_object>;
         std::unordered_map<Dwarf_Off, subprogram_map> subprograms_cache;
+        // Map from subprogram die offset -> namespace prefix - best to have this separate from the subprogram cache
+        // since we may have entries here that don't have ranges
+        std::unordered_map<Dwarf_Off, string_view> namespace_prefix_cache;
         // Vector of ranges and their corresponding CU offsets
         struct compile_unit {
             die_object die;
@@ -349,6 +348,12 @@ namespace libdwarf {
         }
 
         std::string get_die_namespace_prefix(const die_object& cu_die, const die_object& target_die) {
+            // It's possible we get here even when we otherwise would have had a cached_prefix thanks to
+            // DW_AT_specification and DW_AT_abstract_origin
+            auto it = namespace_prefix_cache.find(target_die.get_global_offset());
+            if(it != namespace_prefix_cache.end()) {
+                return std::string(it->second.data(), it->second.size());
+            }
             std::string prefix;
             find_die_namespace_prefix(cu_die, target_die.get_global_offset(), prefix);
             return prefix;
@@ -613,13 +618,12 @@ namespace libdwarf {
                     switch(die.get_tag()) {
                         case DW_TAG_subprogram:
                             {
+                                const auto& interned = *prefix_pool.insert(prefix).first;
+                                namespace_prefix_cache.emplace(die.get_global_offset(), interned);
                                 auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
                                 // TODO: Feels super inefficient and some day should maybe use an interval tree.
                                 if(!ranges_vec.empty()) {
-                                    const auto& interned = *prefix_pool.insert(prefix).first;
-                                    auto die_handle = subprogram_cache.add_item(
-                                        subprogram_entry{die.clone(), interned}
-                                    );
+                                    auto die_handle = subprogram_cache.add_item(die.clone());
                                     for(auto range : ranges_vec) {
                                         subprogram_cache.insert(die_handle, range.first, range.second);
                                     }
@@ -631,6 +635,12 @@ namespace libdwarf {
                                 if(child) {
                                     preprocess_subprograms(cu_die, child, dwversion, subprogram_cache, prefix);
                                 }
+                            }
+                            break;
+                        case DW_TAG_inlined_subroutine:
+                            {
+                                const auto& interned = *prefix_pool.insert(prefix).first;
+                                namespace_prefix_cache.emplace(die.get_global_offset(), interned);
                             }
                             break;
                         case DW_TAG_namespace:
@@ -697,14 +707,13 @@ namespace libdwarf {
                 // If the vector has been empty this can happen
                 if(maybe_entry.has_value()) {
                     auto& entry = maybe_entry.unwrap();
-                    if(entry.die.pc_in_die(cu_die, dwversion, pc)) {
+                    if(entry.pc_in_die(cu_die, dwversion, pc)) {
                         frame.symbol = retrieve_symbol_for_subprogram(
                             cu_die,
-                            entry.die,
+                            entry,
                             pc,
                             dwversion,
-                            inlines,
-                            entry.namespace_prefix
+                            inlines
                         );
                     }
                 }
