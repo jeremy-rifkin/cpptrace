@@ -11,6 +11,7 @@
 #include "utils/error.hpp"
 #include "utils/utils.hpp"
 #include "utils/lru_cache.hpp"
+#include "utils/io/file.hpp"
 #include "platform/path.hpp"
 #include "platform/program_name.hpp" // For CPPTRACE_MAX_PATH
 #include "logging.hpp"
@@ -20,6 +21,7 @@
 #endif
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <functional>
@@ -904,9 +906,35 @@ namespace libdwarf {
             }
         }
 
+        optional<std::string> get_dwo_path(const die_object& cu_die, std::string dwo_name) {
+            if(is_absolute(dwo_name)) {
+                return dwo_name;
+            }
+            if(auto comp_dir = cu_die.get_string_attribute(DW_AT_comp_dir)) {
+                return comp_dir.unwrap() + PATH_SEP + dwo_name;
+            }
+            // maybe default to dwo_name but for now not doing anything
+            return nullopt;
+        }
+
+        Result<bool, internal_error> is_clang_pcm_file(cstring_view dwo_path) {
+            // Clang AST file magic bytes are CPCH:
+            // https://github.com/llvm/llvm-project/blob/main/clang/lib/Serialization/ASTWriter.cpp#L5483-L5487
+            auto file_res = file::open(dwo_path);
+            if(file_res.is_error()) {
+                return std::move(file_res).unwrap_error();
+            }
+            auto& file_obj = file_res.unwrap_value();
+            auto magic = file_obj.read<std::array<char, 4>>(0);
+            if(magic.is_error()) {
+                return std::move(magic).unwrap_error();
+            }
+            return magic.unwrap_value() == std::array<char, 4>{'C', 'P', 'C', 'H'};
+        }
+
         void perform_dwarf_fission_resolution(
             const die_object& cu_die,
-            const optional<std::string>& dwo_name,
+            cstring_view dwo_path,
             const object_frame& object_frame_info,
             stacktrace_frame& frame,
             std::vector<stacktrace_frame>& inlines
@@ -914,43 +942,76 @@ namespace libdwarf {
             // Split dwarf / debug fission / dwo is handled here
             // Location of the split full CU is a combination of DW_AT_dwo_name/DW_AT_GNU_dwo_name and DW_AT_comp_dir
             // https://gcc.gnu.org/wiki/DebugFission
-            if(dwo_name) {
-                // TODO: DWO ID?
-                auto comp_dir = cu_die.get_string_attribute(DW_AT_comp_dir);
-                Dwarf_Half offset_size = 0;
-                Dwarf_Half dwversion = 0;
-                dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
-                std::string path;
-                if(is_absolute(dwo_name.unwrap())) {
-                    path = dwo_name.unwrap();
-                } else if(comp_dir) {
-                    path = comp_dir.unwrap() + PATH_SEP + dwo_name.unwrap();
-                } else {
-                    // maybe default to dwo_name but for now not doing anything
-                    return;
+            // TODO: DWO ID?
+            Dwarf_Half offset_size = 0;
+            Dwarf_Half dwversion = 0;
+            dwarf_get_version_of_die(cu_die.get(), &dwversion, &offset_size);
+            // todo: slight inefficiency in this copy-back strategy due to other frame members
+            frame_with_inlines res;
+            if(get_cache_mode() == cache_mode::prioritize_memory) {
+                dwarf_resolver resolver(
+                    dwo_path,
+                    skeleton_info{cu_die.clone(), dwversion, *this}
+                );
+                res = resolver.resolve_frame(object_frame_info);
+            } else {
+                auto off = cu_die.get_global_offset();
+                auto it = split_full_cu_resolvers.find(off);
+                if(it == split_full_cu_resolvers.end()) {
+                    it = split_full_cu_resolvers.emplace(
+                        off,
+                        detail::make_unique<dwarf_resolver>(
+                            dwo_path,
+                            skeleton_info{cu_die.clone(), dwversion, *this}
+                        )
+                    ).first;
                 }
-                // todo: slight inefficiency in this copy-back strategy due to other frame members
-                frame_with_inlines res;
-                if(get_cache_mode() == cache_mode::prioritize_memory) {
-                    dwarf_resolver resolver(
-                        path,
-                        skeleton_info{cu_die.clone(), dwversion, *this}
-                    );
-                    res = resolver.resolve_frame(object_frame_info);
-                } else {
-                    auto off = cu_die.get_global_offset();
-                    auto it = split_full_cu_resolvers.find(off);
-                    if(it == split_full_cu_resolvers.end()) {
-                        it = split_full_cu_resolvers.emplace(
-                            off,
-                            detail::make_unique<dwarf_resolver>(path, skeleton_info{cu_die.clone(), dwversion, *this})
-                        ).first;
-                    }
-                    res = it->second->resolve_frame(object_frame_info);
-                }
-                frame = std::move(res.frame);
-                inlines = std::move(res.inlines);
+                res = it->second->resolve_frame(object_frame_info);
             }
+            frame = std::move(res.frame);
+            inlines = std::move(res.inlines);
+        }
+
+        // returns true if the cu looks like it's debug fission, informs resolve_frame_core to not go down the normal
+        // path
+        bool try_perform_dwarf_fission_resolution(
+            const die_object& cu_die,
+            const object_frame& object_frame_info,
+            stacktrace_frame& frame,
+            std::vector<stacktrace_frame>& inlines
+        ) {
+            // gnu non-standard debug-fission may create non-skeleton CU DIEs and just add dwo attributes
+            // clang emits dwo names in the split CUs, so guard against going down the dwarf fission path (which
+            // doesn't infinitely recurse because it's not emitted as an absolute path and there's no comp dir but
+            // it's good to guard against the infinite recursion anyway)
+            auto dwo_name = get_dwo_name(cu_die);
+            if(dwo_name && !skeleton) {
+                auto dwo_path = get_dwo_path(cu_die, dwo_name.unwrap());
+                if(!dwo_path) {
+                    return true;
+                }
+                // Clang -gmodules emits a CU with a DW_AT_dwo_name reference to a .pcm file, which is a clang ast file.
+                // The reference is just for type information, function information is still written to the object
+                // file's dwarf. Even though the CU seems to be generated with no range information and so lookup_cu
+                // should never find this CU, let's check if the file looks like a clang ast file and if so not go down
+                // the fission path.
+                auto res = is_clang_pcm_file(dwo_path.unwrap());
+                if(res.is_error()) {
+                    // if res is an error either the file couldn't be found or four bytes from it couldn't be read,
+                    // libdwarf will probably error too but we'll continue down the fission path anyway
+                    res.drop_error();
+                } else if(res.unwrap_value()) {
+                    // if this is a clang pcm file ignore it, it doesn't contain dwarf
+                    return false;
+                }
+                perform_dwarf_fission_resolution(cu_die, dwo_path.unwrap(), object_frame_info, frame, inlines);
+                return true;
+            }
+            if(cu_die.get_tag() == DW_TAG_skeleton_unit) {
+                // It's possible for a DW_TAG_skeleton_unit to exist with no dwo name
+                return true;
+            }
+            return false;
         }
 
         CPPTRACE_FORCE_NO_INLINE_FOR_PROFILING
@@ -967,17 +1028,12 @@ namespace libdwarf {
             optional<cu_info> cu = lookup_cu(pc);
             if(cu) {
                 const auto& cu_die = cu.unwrap().cu_die.get();
-                // gnu non-standard debug-fission may create non-skeleton CU DIEs and just add dwo attributes
-                // clang emits dwo names in the split CUs, so guard against going down the dwarf fission path (which
-                // doesn't infinitely recurse because it's not emitted as an absolute path and there's no comp dir but
-                // it's good to guard against the infinite recursion anyway)
-                auto dwo_name = get_dwo_name(cu_die);
-                if(cu_die.get_tag() == DW_TAG_skeleton_unit || (dwo_name && !skeleton)) {
-                    perform_dwarf_fission_resolution(cu_die, dwo_name, object_frame_info, frame, inlines);
-                } else {
-                    retrieve_line_info(cu_die, pc, frame);
-                    retrieve_symbol(cu_die, pc, cu.unwrap().dwversion, frame, inlines);
+                if(try_perform_dwarf_fission_resolution(cu_die, object_frame_info, frame, inlines)) {
+                    return;
                 }
+                // normal path: resolve in this CU
+                retrieve_line_info(cu_die, pc, frame);
+                retrieve_symbol(cu_die, pc, cu.unwrap().dwversion, frame, inlines);
             }
         }
 
