@@ -164,6 +164,25 @@ jobs:
     - name: build and test
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config ${{matrix.shared}}
+  test-windows-arm:
+    runs-on: windows-11-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, clang]
+        shared: [--shared, ""]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.13.0
+      with:
+        arch: arm64
+    - name: dependencies
+      run: |
+           pip3 install colorama
+    - name: build and test
+      run: |
+           python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config ${{matrix.shared}}
   test-windows-old:
     runs-on: windows-2022
     strategy:
@@ -811,6 +830,32 @@ jobs:
            cmake --build . --config ${{matrix.build_type}}
            ./${{matrix.build_type}}/unittest
     # TODO: Macos, mingw
+  unittest-windows-arm:
+    runs-on: windows-11-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [cl, clang++]
+        shared: [OFF]
+        build_type: [Debug, RelWithDebInfo]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.13.0
+      with:
+        arch: arm64
+    - name: build and test
+      run: |
+           mkdir build
+           cd build
+           cmake .. `
+            -DCMAKE_CXX_COMPILER=${{matrix.compiler}} `
+            -DCMAKE_C_COMPILER=${{matrix.compiler == 'clang++' && 'clang' || matrix.compiler}} `
+            -DBUILD_SHARED_LIBS=${{matrix.shared}} `
+            -DCPPTRACE_WERROR_BUILD=On `
+            -DCPPTRACE_BUILD_TESTING=On
+           cmake --build . --config ${{matrix.build_type}}
+           ./${{matrix.build_type}}/unittest
 
   unittest-linux-modules:
     runs-on: ubuntu-24.04

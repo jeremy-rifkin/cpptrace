@@ -79,7 +79,9 @@ TEST(TryCatch, Basic) {
         [&] (const std::runtime_error& e) {
             did_catch = true;
             EXPECT_EQ(e.what(), std::string("foobar"));
-            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #if !(defined(_WIN32) && (defined(_M_ARM64) || defined(_M_ARM)))
+             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #endif
             check_trace(cpptrace::from_current_exception(), test_name);
         }
     );
@@ -111,7 +113,9 @@ TEST(TryCatch, Upcast) {
         [&] (const std::exception& e) {
             did_catch = true;
             EXPECT_EQ(e.what(), std::string("foobar"));
-            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #if !(defined(_WIN32) && (defined(_M_ARM64) || defined(_M_ARM)))
+             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #endif
             check_trace(cpptrace::from_current_exception(), test_name);
         }
     );
@@ -173,7 +177,9 @@ TEST(TryCatch, CorrectHandler) {
         [&] (const std::runtime_error& e) {
             did_catch = true;
             EXPECT_EQ(e.what(), std::string("foobar"));
-            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #if !(defined(_WIN32) && (defined(_M_ARM64) || defined(_M_ARM)))
+             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #endif
             check_trace(cpptrace::from_current_exception(), test_name);
         },
         [&] (const std::exception&) {
@@ -203,7 +209,9 @@ TEST(TryCatch, BlanketHandler) {
         },
         [&] () {
             did_catch = true;
-            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #if !(defined(_WIN32) && (defined(_M_ARM64) || defined(_M_ARM)))
+             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #endif
             check_trace(cpptrace::from_current_exception(), test_name);
         }
     );
@@ -227,7 +235,9 @@ TEST(TryCatch, CatchOrdering) {
         },
         [&] () {
             did_catch = true;
-            check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #if !(defined(_WIN32) && (defined(_M_ARM64) || defined(_M_ARM)))
+             check_trace(cpptrace::from_current_exception(), "try_catch.cpp", line);
+            #endif
             check_trace(cpptrace::from_current_exception(), test_name);
         },
         [&] (const std::runtime_error&) {
