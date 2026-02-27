@@ -78,17 +78,19 @@ include(cmake/Autoconfig.cmake)
 
 # =================================================== Library Setup ====================================================
 
-if(NOT CPPTRACE_BUILD_NO_SYMBOLS)
+set(
+  debug
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g>
+  $<$<CXX_COMPILER_ID:MSVC>:/DEBUG>
+)
+
+if(CPPTRACE_BUILD_NO_SYMBOLS)
   set(
-    debug
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g>
-    $<$<CXX_COMPILER_ID:MSVC>:/DEBUG>
+    test_debug
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g0>
   )
 else()
-  add_compile_options($<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g0>)
-  set(
-    debug
-  )
+  set(test_debug ${debug})
 endif()
 
 # Target that we can modify (can't modify ALIAS targets)

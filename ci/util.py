@@ -20,12 +20,17 @@ ansi_escape = re.compile(r'''
 ''', re.VERBOSE)
 
 class MatrixRunner:
-    def __init__(self, matrix, exclude):
+    def __init__(self, matrix, exclude, strata=None):
         self.matrix = matrix
         self.exclude = exclude
-        self.include = self.parse_includes()
-        self.keys = [*matrix.keys()]
-        self.values = [*matrix.values()]
+        self.strata = strata or []
+        self.slices = self.parse_slices()
+        strata_keys = list(self.strata[0].keys()) if self.strata else []
+        self.keys = list(matrix.keys()) + strata_keys
+        self.values = (
+            [list(v) for v in matrix.values()]
+            + [list(dict.fromkeys(v for s in self.strata for v in s[k])) for k in strata_keys]
+        )
         self.results = {} # insertion-ordered
         self.failed = False
         self.work = self.get_work()
@@ -33,16 +38,16 @@ class MatrixRunner:
         self.last_matrix_config = None
         self.current_matrix_config = None
 
-    def parse_includes(self) -> Dict[str, List[str]]:
-        includes: Dict[str, List[str]] = dict()
+    def parse_slices(self) -> Dict[str, List[str]]:
+        slices: Dict[str, List[str]] = dict()
         for arg in sys.argv:
             if arg.startswith("--slice="):
                 rest = arg[len("--slice="):]
                 key, value = rest.split(":")
-                if key not in includes:
-                    includes[key] = []
-                includes[key].append(value)
-        return includes
+                if key not in slices:
+                    slices[key] = []
+                slices[key].append(value)
+        return slices
 
     def run_command(self, *args: List[str], always_output=False, output_matcher=None) -> bool:
         self.log(f"{Fore.CYAN}{Style.BRIGHT}Running Command \"{' '.join(args)}\"{Style.RESET_ALL}")
@@ -87,36 +92,44 @@ class MatrixRunner:
     def log(self, *args, **kwargs):
         print(*args, **kwargs, flush=True)
 
-    def do_exclude(self, matrix_config, exclude):
-        return all(map(lambda k: matrix_config[k] == exclude[k], exclude.keys()))
+    def do_exclude(self, config, exclude):
+        return all(config[k] == exclude[k] for k in exclude)
 
-    def do_include(self, matrix_config, include):
-        if len(include) == 0:
-            return True
-        return all(map(lambda k: matrix_config[k] in include[k], include.keys()))
+    def do_slice(self, config, slices):
+        return not slices or all(config[k] in slices[k] for k in slices)
 
     def assignment_to_matrix_config(self, assignment):
-        matrix_config = {}
-        for k, v in zip(self.matrix.keys(), assignment):
-            matrix_config[k] = v
-        return matrix_config
+        return dict(zip(self.keys, assignment))
 
     def get_work(self):
         work = []
-        for assignment in itertools.product(*self.matrix.values()):
-            config = self.assignment_to_matrix_config(assignment)
-            if any(map(lambda ex: self.do_exclude(config, ex), self.exclude)):
-                continue
-            if not self.do_include(config, self.include):
-                continue
-            work.append(assignment)
+        if self.strata:
+            seen = set()
+            strata_configs = []
+            strata_keys = list(self.strata[0].keys())
+            for stratum in self.strata:
+                for vals in itertools.product(*[stratum[k] for k in strata_keys]):
+                    if vals not in seen:
+                        seen.add(vals)
+                        strata_configs.append(vals)
+        else:
+            strata_configs = [()]
+        for base_vals in itertools.product(*self.matrix.values()):
+            for strata_vals in strata_configs:
+                assignment = base_vals + strata_vals
+                config = self.assignment_to_matrix_config(assignment)
+                if any(self.do_exclude(config, ex) for ex in self.exclude):
+                    continue
+                if not self.do_slice(config, self.slices):
+                    continue
+                work.append(assignment)
         return work
 
     def run(self, fn):
         for i, assignment in enumerate(self.work):
             matrix_config = self.assignment_to_matrix_config(assignment)
-            config_tuple = tuple(self.values[i].index(p) for i, p in enumerate(assignment))
-            config_str = ', '.join(map(lambda v: str(v), matrix_config.values()))
+            config_tuple = tuple(self.values[j].index(p) for j, p in enumerate(assignment))
+            config_str = ', '.join(str(v) for v in matrix_config.values())
             if config_str == "":
                 self.log(f"{Fore.BLUE}{Style.BRIGHT}{'=' * 10} [{i + 1}/{len(self.work)}] Running with blank config {'=' * 10}{Style.RESET_ALL}")
             else:

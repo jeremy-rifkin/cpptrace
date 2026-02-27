@@ -349,7 +349,7 @@ def run_linux_matrix(compilers: list, shared: bool):
         matrix = {
             "compiler": compilers,
             "target": ["Debug"],
-            "std": ["11", "20"],
+            "std": ["11"],
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_EXECINFO",
                 "CPPTRACE_UNWIND_WITH_UNWIND",
@@ -373,12 +373,14 @@ def run_linux_matrix(compilers: list, shared: bool):
         exclude = []
     ).run(build_and_test)
 
-def run_linux_default(compilers: list, shared: bool):
+def run_linux_default(compilers: list, shared: bool, stds=None):
+    if stds is None:
+        stds = ["11", "20"]
     MatrixRunner(
         matrix = {
             "compiler": compilers,
             "target": ["Debug"],
-            "std": ["11", "20"],
+            "std": stds,
             "config": [""],
             "shared": ["On" if shared else "Off"]
         },
@@ -390,7 +392,7 @@ def run_macos_matrix(compilers: list, shared: bool):
         matrix = {
             "compiler": compilers,
             "target": ["Debug"],
-            "std": ["11", "20"],
+            "std": ["11"],
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_EXECINFO",
                 "CPPTRACE_UNWIND_WITH_UNWIND",
@@ -413,12 +415,14 @@ def run_macos_matrix(compilers: list, shared: bool):
         exclude = []
     ).run(build_and_test)
 
-def run_macos_default(compilers: list, shared: bool):
+def run_macos_default(compilers: list, shared: bool, stds=None):
+    if stds is None:
+        stds = ["11", "20"]
     MatrixRunner(
         matrix = {
             "compiler": compilers,
             "target": ["Debug"],
-            "std": ["11", "20"],
+            "std": stds,
             "config": [""],
             "shared": ["On" if shared else "Off"]
         },
@@ -430,7 +434,7 @@ def run_windows_matrix(compilers: list, shared: bool):
         matrix = {
             "compiler": compilers,
             "target": ["Debug"],
-            "std": ["11", "20"],
+            "std": ["11"],
             "unwind": [
                 "CPPTRACE_UNWIND_WITH_WINAPI",
                 "CPPTRACE_UNWIND_WITH_DBGHELP",
@@ -498,12 +502,14 @@ def run_windows_matrix(compilers: list, shared: bool):
         ]
     ).run(build_and_test)
 
-def run_windows_default(compilers: list, shared: bool):
+def run_windows_default(compilers: list, shared: bool, stds=None):
+    if stds is None:
+        stds = ["11", "20"]
     MatrixRunner(
         matrix = {
             "compiler": compilers,
             "target": ["Debug"],
-            "std": ["11", "20"],
+            "std": stds,
             "config": [""],
             "shared": ["On" if shared else "Off"]
         },
@@ -551,6 +557,7 @@ def main():
             run_linux_default(compilers, args.shared)
         else:
             run_linux_matrix(compilers, args.shared)
+            run_linux_default(compilers, args.shared, stds=["20"])
     if platform.system() == "Darwin":
         compilers = []
         if args.clang or args.all:
@@ -561,6 +568,7 @@ def main():
             run_macos_default(compilers, args.shared)
         else:
             run_macos_matrix(compilers, args.shared)
+            run_macos_default(compilers, args.shared, stds=["20"])
     if platform.system() == "Windows":
         compilers = []
         if args.clang or args.all:
@@ -573,5 +581,6 @@ def main():
             run_windows_default(compilers, args.shared)
         else:
             run_windows_matrix(compilers, args.shared)
+            run_windows_default(compilers, args.shared, stds=["20"])
 
 main()

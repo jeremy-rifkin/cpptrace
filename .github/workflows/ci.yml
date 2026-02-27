@@ -642,8 +642,6 @@ jobs:
       matrix:
         compiler: [g++-10, clang++-18]
         stdlib: [libstdc++, libc++]
-        dwarf_version: [4, 5]
-        split_dwarf: [OFF, ON]
         exclude:
           - compiler: g++-10
             stdlib: libc++
@@ -687,9 +685,7 @@ jobs:
       run: |
            python3 ci/unittest.py \
             --slice=compiler:${{matrix.compiler}} \
-            --slice=stdlib:${{matrix.stdlib}} \
-            --slice=dwarf_version:${{matrix.dwarf_version}} \
-            --slice=split_dwarf:${{matrix.split_dwarf}}
+            --slice=stdlib:${{matrix.stdlib}}
   unittest-linux-bazel:
     runs-on: ubuntu-22.04
     steps:
@@ -711,8 +707,6 @@ jobs:
       matrix:
         compiler: [g++-10, clang++-18]
         stdlib: [libstdc++, libc++]
-        dwarf_version: [4, 5]
-        split_dwarf: [OFF, ON]
         exclude:
           - compiler: g++-10
             stdlib: libc++
@@ -756,9 +750,7 @@ jobs:
       run: |
             python3 ci/unittest.py \
             --slice=compiler:${{matrix.compiler}} \
-            --slice=stdlib:${{matrix.stdlib}} \
-            --slice=dwarf_version:${{matrix.dwarf_version}} \
-            --slice=split_dwarf:${{matrix.split_dwarf}}
+            --slice=stdlib:${{matrix.stdlib}}
   unittest-macos:
     runs-on: macos-14
     steps:

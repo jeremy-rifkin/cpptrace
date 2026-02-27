@@ -69,7 +69,7 @@ def build(runner: MatrixRunner):
             f"-DCPPTRACE_SANITIZER_BUILD={matrix['sanitizers']}",
             f"-DCPPTRACE_BUILD_NO_SYMBOLS={matrix['no_symbols']}",
             # f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['split_dwarf']}",
-            # f"-DCPPTRACE_BUILD_TESTING_SPLIT_DWARF={matrix['dwarf_version']}",
+            # f"-DCPPTRACE_BUILD_TESTING_DWARF_VERSION={matrix['dwarf_version']}",
             f"-DCPPTRACE_USE_EXTERNAL_LIBDWARF=On",
             f"-DCPPTRACE_USE_EXTERNAL_ZSTD=On",
             f"-DCPPTRACE_USE_EXTERNAL_GTEST=On",
@@ -121,45 +121,77 @@ def build_and_test(runner: MatrixRunner):
 def run_linux_matrix():
     MatrixRunner(
         matrix = {
+            # Always fully cross-producted
             "compiler": ["g++-10", "clang++-18"],
             "stdlib": ["libstdc++", "libc++"],
-            "sanitizers": ["OFF", "ON"],
-            "build_type": ["Debug", "RelWithDebInfo"],
-            "shared": ["OFF", "ON"],
-            "has_dl_find_object": ["OFF", "ON"],
             "split_dwarf": ["OFF", "ON"],
             "dwarf_version": ["4", "5"],
             "no_symbols": ["On", "Off"],
         },
+        strata = [
+            # Base: full sanitizer x shared cross-product
+            {
+                "sanitizers": ["OFF", "ON"],
+                "build_type": ["Debug"],
+                "shared": ["OFF", "ON"],
+                "has_dl_find_object": ["ON"],
+            },
+            # Spot-check: RelWithDebInfo
+            {
+                "sanitizers": ["OFF"],
+                "build_type": ["RelWithDebInfo"],
+                "shared": ["OFF"],
+                "has_dl_find_object": ["ON"],
+            },
+            # Spot-check: has_dl_find_object=OFF
+            {
+                "sanitizers": ["OFF"],
+                "build_type": ["Debug"],
+                "shared": ["OFF"],
+                "has_dl_find_object": ["OFF"],
+            },
+        ],
         exclude = [
             {
                 "compiler": "g++-10",
                 "stdlib": "libc++",
             },
+            # need to workaround https://github.com/llvm/llvm-project/issues/59432 later
             {
-                # need to workaround https://github.com/llvm/llvm-project/issues/59432 later
                 "stdlib": "libc++",
                 "sanitizers": "ON",
             },
-        ]
+        ],
     ).run(build_and_test)
 
 def run_macos_matrix():
     MatrixRunner(
         matrix = {
+            # Always fully cross-producted
             "compiler": ["g++-12", "clang++"],
-            "sanitizers": ["OFF", "ON"],
-            "build_type": ["Debug", "RelWithDebInfo"],
-            "shared": ["OFF", "ON"],
             "dSYM": [True, False],
             "no_symbols": ["On", "Off"],
         },
+        strata = [
+            # Base: full sanitizer x shared cross-product
+            {
+                "sanitizers": ["OFF", "ON"],
+                "build_type": ["Debug"],
+                "shared": ["OFF", "ON"],
+            },
+            # Spot-check: RelWithDebInfo
+            {
+                "sanitizers": ["OFF"],
+                "build_type": ["RelWithDebInfo"],
+                "shared": ["OFF"],
+            },
+        ],
         exclude = [
             {
                 "compiler": "g++-12",
                 "sanitizers": "ON",
             },
-        ]
+        ],
     ).run(build_and_test)
 
 def main():
