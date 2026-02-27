@@ -40,13 +40,8 @@ namespace detail {
     #if defined(_MSC_VER) && defined(CPPTRACE_UNWIND_WITH_EXCEPTION_POINTERS)
      CPPTRACE_FORCE_NO_INLINE void collect_current_trace(std::size_t skip, EXCEPTION_POINTERS* exception_ptrs) {
          try {
-             #if defined(_M_IX86) || defined(__i386__)
-              (void)skip; // don't skip any frames, the context record is at the throw point
-              auto trace = raw_trace{detail::capture_frames(0, SIZE_MAX, exception_ptrs)};
-             #else
-              (void)exception_ptrs;
-              auto trace = raw_trace{detail::capture_frames(skip + 1, SIZE_MAX)};
-             #endif
+             (void)skip; // don't skip any frames, the context record is at the throw point
+             auto trace = raw_trace{detail::capture_frames(0, SIZE_MAX, exception_ptrs)};
              save_current_trace(std::move(trace));
          } catch(...) {
              detail::log_and_maybe_propagate_exception(std::current_exception());
