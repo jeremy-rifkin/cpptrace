@@ -710,13 +710,8 @@ namespace libdwarf {
                 const auto& subprogram_cache = it->second;
                 auto maybe_die = subprogram_cache.lookup(pc);
                 // If the vector has been empty this can happen
-                if(maybe_die.has_value()) {
-                    auto& die = maybe_die.unwrap();
-                    if(die.pc_in_die(cu_die, dwversion, pc)) {
-                        frame.symbol = retrieve_symbol_for_subprogram(
-                            cu_die, die, pc, dwversion, inlines
-                        );
-                    }
+                if(maybe_die.has_value() && maybe_die.unwrap().pc_in_die(cu_die, dwversion, pc)) {
+                    frame.symbol = retrieve_symbol_for_subprogram(cu_die, maybe_die.unwrap(), pc, dwversion, inlines);
                 }
             }
         }
