@@ -352,7 +352,7 @@ namespace libdwarf {
             // DW_AT_specification and DW_AT_abstract_origin
             auto it = namespace_prefix_cache.find(target_die.get_global_offset());
             if(it != namespace_prefix_cache.end()) {
-                return std::string(it->second.data(), it->second.size());
+                return std::string(it->second);
             }
             std::string prefix;
             find_die_namespace_prefix(cu_die, target_die.get_global_offset(), prefix);
@@ -373,8 +373,9 @@ namespace libdwarf {
                 name = std::move(linkage_name);
             } else if(auto raw_name = die.get_string_attribute(DW_AT_name)) {
                 // DW_AT_name is unqualified according to the DWARF standard
-                // In cache_mode == speed we preprocess all the namespace prefixes
-                // otherwise we have to reconstruct the namespace by walking the DWARF tree
+                // In cache_mode == speed we preprocess all the namespace prefixes and a cache will hit in
+                // get_die_namespace_prefix, otherwise hopefully we can use the prefix we collected while walking
+                // and otherwise we'll have to re-walk from the cu_die to create the namespace prefix
                 auto prefix = walked_prefix.has_value()
                     ? std::string(walked_prefix.unwrap())
                     : get_die_namespace_prefix(cu_die, die);
