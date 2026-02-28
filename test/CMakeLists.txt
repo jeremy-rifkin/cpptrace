@@ -87,6 +87,7 @@ function(test_cpptrace)
     unit/tracing/try_catch.cpp
     unit/tracing/traced_exception.cpp
     unit/tracing/rethrow.cpp
+    unit/tracing/namespace_resolution.cpp
     unit/internals/optional.cpp
     unit/internals/lru_cache.cpp
     unit/internals/result.cpp
@@ -116,6 +117,9 @@ function(test_cpptrace)
   endif()
   if(CPPTRACE_BUILD_NO_SYMBOLS)
     target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE CPPTRACE_BUILD_NO_SYMBOLS)
+  endif()
+  if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+    target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
   endif()
   target_include_directories("${CPPTRACE_TEST_NAME}" PRIVATE ../src)
   add_test(NAME ${CPPTRACE_TEST_NAME} COMMAND ${CPPTRACE_TEST_NAME})

@@ -30,6 +30,7 @@
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // It's been tricky to piece together how to handle all this dwarf stuff. Some resources I've used are
@@ -65,9 +66,14 @@ namespace libdwarf {
         Dwarf_Signed arange_count = 0;
         // Map from CU -> Line context
         lru_cache<Dwarf_Off, line_table_info> line_tables{get_dwarf_resolver_line_table_cache_size()};
+        // string pool for namespace prefixes
+        std::unordered_set<std::string> prefix_pool;
         // Map from CU -> Sorted subprograms vector
         using subprogram_map = range_map<Dwarf_Addr, die_object>;
         std::unordered_map<Dwarf_Off, subprogram_map> subprograms_cache;
+        // Map from subprogram die offset -> namespace prefix - best to have this separate from the subprogram cache
+        // since we may have entries here that don't have ranges
+        std::unordered_map<Dwarf_Off, string_view> namespace_prefix_cache;
         // Vector of ranges and their corresponding CU offsets
         struct compile_unit {
             die_object die;
@@ -291,9 +297,73 @@ namespace libdwarf {
             }
         }
 
+        bool find_die_namespace_prefix(
+            const die_object& parent_die,
+            Dwarf_Off target_offset,
+            std::string& prefix
+        ) {
+            auto child = parent_die.get_child();
+            if(!child) {
+                return false;
+            }
+            bool found = false;
+            walk_die_list(
+                child,
+                [this, target_offset, &prefix, &found] (const die_object& die) {
+                    if(die.get_global_offset() == target_offset) {
+                        found = true;
+                        return false;
+                    }
+                    auto tag = die.get_tag();
+                    bool contributes_prefix = tag == DW_TAG_namespace
+                        || tag == DW_TAG_class_type
+                        || tag == DW_TAG_structure_type;
+                    if(
+                        contributes_prefix
+                        || tag == DW_TAG_module
+                        || tag == DW_TAG_imported_module
+                        || tag == DW_TAG_compile_unit
+                        || tag == DW_TAG_subprogram
+                        || tag == DW_TAG_lexical_block
+                        || tag == DW_TAG_inlined_subroutine
+                    ) {
+                        auto old_size = prefix.size();
+                        if(contributes_prefix) {
+                            auto name = die.get_string_attribute(DW_AT_name);
+                            if(name) {
+                                prefix += name.unwrap();
+                                prefix += "::";
+                            }
+                        }
+                        if(find_die_namespace_prefix(die, target_offset, prefix)) {
+                            found = true;
+                            return false;
+                        }
+                        prefix.resize(old_size);
+                    }
+                    return true;
+                }
+            );
+            return found;
+        }
+
+        std::string get_die_namespace_prefix(const die_object& cu_die, const die_object& target_die) {
+            // It's possible we get here even when we otherwise would have had a walked_prefix thanks to
+            // DW_AT_specification and DW_AT_abstract_origin
+            auto it = namespace_prefix_cache.find(target_die.get_global_offset());
+            if(it != namespace_prefix_cache.end()) {
+                return std::string(it->second);
+            }
+            std::string prefix;
+            find_die_namespace_prefix(cu_die, target_die.get_global_offset(), prefix);
+            return prefix;
+        }
+
         std::string subprogram_symbol(
+            const die_object& cu_die,
             const die_object& die,
-            Dwarf_Half dwversion
+            Dwarf_Half dwversion,
+            optional<string_view> walked_prefix = nullopt
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
             optional<std::string> name;
@@ -301,18 +371,25 @@ namespace libdwarf {
                 name = std::move(linkage_name);
             } else if(auto linkage_name = die.get_string_attribute(DW_AT_MIPS_linkage_name)) {
                 name = std::move(linkage_name);
-            } else if(auto linkage_name = die.get_string_attribute(DW_AT_name)) {
-                name = std::move(linkage_name);
+            } else if(auto raw_name = die.get_string_attribute(DW_AT_name)) {
+                // DW_AT_name is unqualified according to the DWARF standard
+                // In cache_mode == speed we preprocess all the namespace prefixes and a cache will hit in
+                // get_die_namespace_prefix, otherwise hopefully we can use the prefix we collected while walking
+                // and otherwise we'll have to re-walk from the cu_die to create the namespace prefix
+                auto prefix = walked_prefix.has_value()
+                    ? std::string(walked_prefix.unwrap())
+                    : get_die_namespace_prefix(cu_die, die);
+                name = prefix + raw_name.unwrap();
             }
             if(name.has_value()) {
                 return std::move(name).unwrap();
             } else {
                 if(die.has_attr(DW_AT_specification)) {
                     die_object spec = die.resolve_reference_attribute(DW_AT_specification);
-                    return subprogram_symbol(spec, dwversion);
+                    return subprogram_symbol(cu_die, spec, dwversion);
                 } else if(die.has_attr(DW_AT_abstract_origin)) {
                     die_object spec = die.resolve_reference_attribute(DW_AT_abstract_origin);
-                    return subprogram_symbol(spec, dwversion);
+                    return subprogram_symbol(cu_die, spec, dwversion);
                 }
             }
             return "";
@@ -375,7 +452,7 @@ namespace libdwarf {
                     child,
                     [this, &cu_die, pc, dwversion, &inlines, &target_die, &current_obj_holder] (const die_object& die) {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(cu_die, dwversion, pc)) {
-                            const auto name = subprogram_symbol(die, dwversion);
+                            const auto name = subprogram_symbol(cu_die, die, dwversion);
                             auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
                             // TODO: Refactor.... Probably put logic in resolve_filename.
                             if(file_i) {
@@ -437,10 +514,11 @@ namespace libdwarf {
             const die_object& die,
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
-            std::vector<stacktrace_frame>& inlines
+            std::vector<stacktrace_frame>& inlines,
+            optional<string_view> walked_prefix = nullopt
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram);
-            const auto name = subprogram_symbol(die, dwversion);
+            const auto name = subprogram_symbol(cu_die, die, dwversion, walked_prefix);
             if(should_resolve_inlined_calls()) {
                 get_inlines_info(cu_die, die, pc, dwversion, inlines);
             }
@@ -455,12 +533,13 @@ namespace libdwarf {
             Dwarf_Addr pc,
             Dwarf_Half dwversion,
             stacktrace_frame& frame,
-            std::vector<stacktrace_frame>& inlines
+            std::vector<stacktrace_frame>& inlines,
+            std::string& prefix
         ) {
             bool found = false;
             walk_die_list(
                 die,
-                [this, &cu_die, pc, dwversion, &frame, &inlines, &found] (const die_object& die) {
+                [this, &cu_die, pc, dwversion, &frame, &inlines, &found, &prefix] (const die_object& die) {
                     if(dump_dwarf) {
                         std::fprintf(
                             stderr,
@@ -485,13 +564,30 @@ namespace libdwarf {
                             );
                         }
                         if(die.get_tag() == DW_TAG_subprogram) {
-                            frame.symbol = retrieve_symbol_for_subprogram(cu_die, die, pc, dwversion, inlines);
+                            frame.symbol = retrieve_symbol_for_subprogram(cu_die, die, pc, dwversion, inlines, prefix);
                             found = true;
                             return false;
                         }
                         auto child = die.get_child();
                         if(child) {
-                            if(retrieve_symbol_walk(cu_die, child, pc, dwversion, frame, inlines)) {
+                            auto old_size = prefix.size();
+                            auto tag = die.get_tag();
+                            if(
+                                tag == DW_TAG_namespace
+                                || tag == DW_TAG_class_type
+                                || tag == DW_TAG_structure_type
+                            ) {
+                                auto name = die.get_string_attribute(DW_AT_name);
+                                if(name) {
+                                    prefix += name.unwrap();
+                                    prefix += "::";
+                                }
+                            }
+                            bool child_found = retrieve_symbol_walk(
+                                cu_die, child, pc, dwversion, frame, inlines, prefix
+                            );
+                            prefix.resize(old_size);
+                            if(child_found) {
                                 found = true;
                                 return false;
                             }
@@ -515,41 +611,63 @@ namespace libdwarf {
             const die_object& cu_die,
             const die_object& die,
             Dwarf_Half dwversion,
-            subprogram_map& subprogram_cache
+            subprogram_map& subprogram_cache,
+            std::string& prefix
         ) {
             walk_die_list(
                 die,
-                [this, &cu_die, dwversion, &subprogram_cache] (const die_object& die) {
+                [this, &cu_die, dwversion, &subprogram_cache, &prefix] (const die_object& die) {
                     switch(die.get_tag()) {
                         case DW_TAG_subprogram:
+                        case DW_TAG_inlined_subroutine:
                             {
-                                auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
-                                // TODO: Feels super inefficient and some day should maybe use an interval tree.
-                                if(!ranges_vec.empty()) {
-                                    auto die_handle = subprogram_cache.add_item(die.clone());
-                                    for(auto range : ranges_vec) {
-                                        subprogram_cache.insert(die_handle, range.first, range.second);
+                                const auto& interned = *prefix_pool.insert(prefix).first;
+                                namespace_prefix_cache.emplace(die.get_global_offset(), interned);
+                                if(die.get_tag() == DW_TAG_subprogram) {
+                                    auto ranges_vec = die.get_rangelist_entries(cu_die, dwversion);
+                                    // TODO: Feels super inefficient and some day should maybe use an interval
+                                    // tree.
+                                    if(!ranges_vec.empty()) {
+                                        auto die_handle = subprogram_cache.add_item(die.clone());
+                                        for(auto range : ranges_vec) {
+                                            subprogram_cache.insert(die_handle, range.first, range.second);
+                                        }
                                     }
                                 }
                                 // Walk children to get things like lambdas
-                                // TODO: Somehow find a way to get better names here? For gcc it's just "operator()"
-                                // On clang it's better
+                                // TODO: Somehow find a way to get better names here? For gcc it's just
+                                // "operator()". On clang it's better.
                                 auto child = die.get_child();
                                 if(child) {
-                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache);
+                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache, prefix);
                                 }
                             }
                             break;
                         case DW_TAG_namespace:
                         case DW_TAG_structure_type:
                         case DW_TAG_class_type:
+                            {
+                                auto child = die.get_child();
+                                if(child) {
+                                    auto old_size = prefix.size();
+                                    auto name = die.get_string_attribute(DW_AT_name);
+                                    if(name) {
+                                        prefix += name.unwrap();
+                                        prefix += "::";
+                                    }
+                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache, prefix);
+                                    prefix.resize(old_size);
+                                }
+                            }
+                            break;
+                        case DW_TAG_lexical_block:
                         case DW_TAG_module:
                         case DW_TAG_imported_module:
                         case DW_TAG_compile_unit:
                             {
                                 auto child = die.get_child();
                                 if(child) {
-                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache);
+                                    preprocess_subprograms(cu_die, child, dwversion, subprogram_cache, prefix);
                                 }
                             }
                             break;
@@ -573,14 +691,16 @@ namespace libdwarf {
             std::vector<stacktrace_frame>& inlines
         ) {
             if(get_cache_mode() == cache_mode::prioritize_memory) {
-                retrieve_symbol_walk(cu_die, cu_die, pc, dwversion, frame, inlines);
+                std::string prefix;
+                retrieve_symbol_walk(cu_die, cu_die, pc, dwversion, frame, inlines, prefix);
             } else {
                 auto off = cu_die.get_global_offset();
                 auto it = subprograms_cache.find(off);
                 if(it == subprograms_cache.end()) {
                     // TODO: Refactor. Do the sort in the preprocess function and return the vec directly.
                     subprogram_map subprogram_cache;
-                    preprocess_subprograms(cu_die, cu_die, dwversion, subprogram_cache);
+                    std::string prefix;
+                    preprocess_subprograms(cu_die, cu_die, dwversion, subprogram_cache, prefix);
                     subprogram_cache.finalize();
                     subprograms_cache.emplace(off, std::move(subprogram_cache));
                     it = subprograms_cache.find(off);
