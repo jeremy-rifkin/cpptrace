@@ -315,34 +315,31 @@ namespace libdwarf {
                         return false;
                     }
                     auto tag = die.get_tag();
-                    if(
-                        tag == DW_TAG_namespace
+                    bool contributes_prefix = tag == DW_TAG_namespace
                         || tag == DW_TAG_class_type
-                        || tag == DW_TAG_structure_type
-                    ) {
-                        auto old_size = prefix.size();
-                        auto name = die.get_string_attribute(DW_AT_name);
-                        if(name) {
-                            prefix += name.unwrap();
-                            prefix += "::";
-                        }
-                        if(find_die_namespace_prefix(die, target_offset, prefix)) {
-                            found = true;
-                            return false;
-                        }
-                        prefix.resize(old_size);
-                    } else if(
-                        tag == DW_TAG_module
+                        || tag == DW_TAG_structure_type;
+                    if(
+                        contributes_prefix
+                        || tag == DW_TAG_module
                         || tag == DW_TAG_imported_module
                         || tag == DW_TAG_compile_unit
                         || tag == DW_TAG_subprogram
                         || tag == DW_TAG_lexical_block
                         || tag == DW_TAG_inlined_subroutine
                     ) {
+                        auto old_size = prefix.size();
+                        if(contributes_prefix) {
+                            auto name = die.get_string_attribute(DW_AT_name);
+                            if(name) {
+                                prefix += name.unwrap();
+                                prefix += "::";
+                            }
+                        }
                         if(find_die_namespace_prefix(die, target_offset, prefix)) {
                             found = true;
                             return false;
                         }
+                        prefix.resize(old_size);
                     }
                     return true;
                 }
