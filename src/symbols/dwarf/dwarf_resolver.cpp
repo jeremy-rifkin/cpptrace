@@ -707,13 +707,14 @@ namespace libdwarf {
                     subprograms_cache.emplace(off, std::move(subprogram_cache));
                     it = subprograms_cache.find(off);
                 }
-                auto maybe_entry = it->second.lookup(pc);
+                const auto& subprogram_cache = it->second;
+                auto maybe_die = subprogram_cache.lookup(pc);
                 // If the vector has been empty this can happen
-                if(maybe_entry.has_value()) {
-                    auto& entry = maybe_entry.unwrap();
-                    if(entry.pc_in_die(cu_die, dwversion, pc)) {
+                if(maybe_die.has_value()) {
+                    auto& die = maybe_die.unwrap();
+                    if(die.pc_in_die(cu_die, dwversion, pc)) {
                         frame.symbol = retrieve_symbol_for_subprogram(
-                            cu_die, entry, pc, dwversion, inlines
+                            cu_die, die, pc, dwversion, inlines
                         );
                     }
                 }
