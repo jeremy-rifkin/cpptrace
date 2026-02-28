@@ -21,6 +21,11 @@ import cpptrace;
 #endif
 
 
+// These tests are to check that we properly construct namespace prefixes for unqualified DW_AT_name
+// We can't force a compiler to use DW_AT_name for these functions, but, hopefully having a test will allow the code to
+// get coverage at least on some compilers in the test matrix
+
+
 namespace ns_test {
     CPPTRACE_FORCE_NO_INLINE void namespaced_func() {
         static volatile int lto_guard; lto_guard = lto_guard + 1;
@@ -37,7 +42,8 @@ TEST(NamespaceResolution, BasicNamespace) {
     ns_test::namespaced_func();
 }
 
-namespace ns_outer { namespace ns_inner {
+namespace ns_outer {
+namespace ns_inner {
     CPPTRACE_FORCE_NO_INLINE void nested_ns_func() {
         static volatile int lto_guard; lto_guard = lto_guard + 1;
         auto line = __LINE__ + 1;
@@ -47,7 +53,8 @@ namespace ns_outer { namespace ns_inner {
         EXPECT_LINE(trace.frames[0].line.value(), line);
         EXPECT_THAT(trace.frames[0].symbol, testing::HasSubstr("ns_outer::ns_inner::nested_ns_func"));
     }
-}}
+}
+}
 
 TEST(NamespaceResolution, NestedNamespace) {
     ns_outer::ns_inner::nested_ns_func();
