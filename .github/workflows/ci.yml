@@ -16,6 +16,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
+           sudo apt update
            sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
            pip3 install colorama
     - name: Resolve prereqs path
@@ -46,6 +47,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
+           sudo apt update
            sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
            pip3 install colorama
     - name: Resolve prereqs path
@@ -169,6 +171,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
+           sudo apt update
            sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
            pip3 install colorama
     - name: Resolve prereqs path
@@ -270,6 +273,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
+           sudo apt update
            sudo apt install gcc-10 g++-10 libgcc-10-dev libunwind8-dev ninja-build
            pip3 install colorama
     - name: Resolve prereqs path
@@ -371,7 +375,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: dependencies
-      run: sudo apt install gcc-11 g++-11 libgcc-11-dev ninja-build
+      run: sudo apt update && sudo apt install gcc-11 g++-11 libgcc-11-dev ninja-build
     - name: build
       run: |
            mkdir -p build
@@ -683,6 +687,7 @@ jobs:
         key: prereqs-unittest-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('ci/setup-prerequisites-unittest.sh') }}
     - name: dependencies
       run: |
+           sudo apt update
            sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev ninja-build ccache
            cd ..
            cpptrace/ci/setup-prerequisites-unittest.sh
@@ -711,6 +716,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
+           sudo apt update
            sudo apt install -y libtool libncurses5
     - name: test dbg
       run: |
@@ -747,6 +753,7 @@ jobs:
         key: prereqs-unittest-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('ci/setup-prerequisites-unittest.sh') }}
     - name: dependencies
       run: |
+            sudo apt update
             sudo apt install gcc-10 g++-10 libgcc-10-dev ninja-build libc++-dev ninja-build ccache
             cd ..
             cpptrace/ci/setup-prerequisites-unittest.sh
@@ -847,6 +854,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: dependencies
       run: |
+           sudo apt update
            sudo apt install ninja-build clang-19 clang-tools-19
     - name: build and test
       run: |
