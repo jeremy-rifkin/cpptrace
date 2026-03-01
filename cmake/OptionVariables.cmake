@@ -116,6 +116,12 @@ set(
 # depends on CMAKE_INSTALL_LIBDIR which is marked as advanced in GNUInstallDirs
 mark_as_advanced(CPPTRACE_INSTALL_CMAKEDIR)
 
+# ---- Autodetect Options ----
+
+# If enabled the calls to check_support will not enforce C++11 and use
+# whatever the host project has set
+option(CPPTRACE_INHERIT_HOST_PROPERTIES "Inherit host properties" Off)
+
 # ---- Symbol Options ----
 
 option(CPPTRACE_GET_SYMBOLS_WITH_LIBBACKTRACE "" OFF)
