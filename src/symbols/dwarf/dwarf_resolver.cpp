@@ -359,38 +359,48 @@ namespace libdwarf {
             return prefix;
         }
 
+        // Follows DW_AT_specification or DW_AT_abstract_origin reference
+        static optional<die_object> maybe_resolve_subprogram_reference(const die_object& die) {
+            if(die.has_attr(DW_AT_specification)) {
+                return die.resolve_reference_attribute(DW_AT_specification);
+            }
+            if(die.has_attr(DW_AT_abstract_origin)) {
+                return die.resolve_reference_attribute(DW_AT_abstract_origin);
+            }
+            return nullopt;
+        }
+
         std::string subprogram_symbol(
             const die_object& cu_die,
             const die_object& die,
-            Dwarf_Half dwversion,
             optional<string_view> walked_prefix = nullopt
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram || die.get_tag() == DW_TAG_inlined_subroutine);
-            optional<std::string> name;
-            if(auto linkage_name = die.get_string_attribute(DW_AT_linkage_name)) {
-                name = std::move(linkage_name);
-            } else if(auto linkage_name = die.get_string_attribute(DW_AT_MIPS_linkage_name)) {
-                name = std::move(linkage_name);
-            } else if(auto raw_name = die.get_string_attribute(DW_AT_name)) {
-                // DW_AT_name is unqualified according to the DWARF standard
-                // In cache_mode == speed we preprocess all the namespace prefixes and a cache will hit in
-                // get_die_namespace_prefix, otherwise hopefully we can use the prefix we collected while walking
-                // and otherwise we'll have to re-walk from the cu_die to create the namespace prefix
+            optional<die_object> ref_holder;
+            const die_object* current = &die;
+            while(current) {
+                if(auto linkage_name = die.get_string_attribute(DW_AT_linkage_name)) {
+                    return std::move(linkage_name).unwrap();
+                }
+                if(auto linkage_name = die.get_string_attribute(DW_AT_MIPS_linkage_name)) {
+                    return std::move(linkage_name).unwrap();
+                }
+                if(auto raw_name = current->get_string_attribute(DW_AT_name)) {
+                    // DW_AT_name is unqualified according to the DWARF standard
+                    // In cache_mode == speed we preprocess all the namespace prefixes and a cache will hit in
+                    // get_die_namespace_prefix, otherwise hopefully we can use the prefix we collected while walking
+                    // and otherwise we'll have to re-walk from the cu_die to create the namespace prefix
                 auto prefix = walked_prefix.has_value()
                     ? std::string(walked_prefix.unwrap())
-                    : get_die_namespace_prefix(cu_die, die);
-                name = prefix + raw_name.unwrap();
+                        : get_die_namespace_prefix(cu_die, *current);
+                    return prefix + raw_name.unwrap();
             }
-            if(name.has_value()) {
-                return std::move(name).unwrap();
-            } else {
-                if(die.has_attr(DW_AT_specification)) {
-                    die_object spec = die.resolve_reference_attribute(DW_AT_specification);
-                    return subprogram_symbol(cu_die, spec, dwversion);
-                } else if(die.has_attr(DW_AT_abstract_origin)) {
-                    die_object spec = die.resolve_reference_attribute(DW_AT_abstract_origin);
-                    return subprogram_symbol(cu_die, spec, dwversion);
-                }
+                // let's try to follow DW_AT_specification / DW_AT_abstract_origin
+                // when we do so, we discard any walked prefix we have since the referenced die might live in a
+                // different series of nested namespaces etc
+                walked_prefix.reset();
+                ref_holder = maybe_resolve_subprogram_reference(*current);
+                current = ref_holder ? &ref_holder.unwrap() : nullptr;
             }
             return "";
         }
@@ -452,7 +462,7 @@ namespace libdwarf {
                     child,
                     [this, &cu_die, pc, dwversion, &inlines, &target_die, &current_obj_holder] (const die_object& die) {
                         if(die.get_tag() == DW_TAG_inlined_subroutine && die.pc_in_die(cu_die, dwversion, pc)) {
-                            const auto name = subprogram_symbol(cu_die, die, dwversion);
+                            const auto name = subprogram_symbol(cu_die, die);
                             auto file_i = die.get_unsigned_attribute(DW_AT_call_file);
                             // TODO: Refactor.... Probably put logic in resolve_filename.
                             if(file_i) {
@@ -518,7 +528,7 @@ namespace libdwarf {
             optional<string_view> walked_prefix = nullopt
         ) {
             ASSERT(die.get_tag() == DW_TAG_subprogram);
-            const auto name = subprogram_symbol(cu_die, die, dwversion, walked_prefix);
+            const auto name = subprogram_symbol(cu_die, die, walked_prefix);
             if(should_resolve_inlined_calls()) {
                 get_inlines_info(cu_die, die, pc, dwversion, inlines);
             }

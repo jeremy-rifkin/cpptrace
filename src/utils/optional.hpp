@@ -163,6 +163,16 @@ namespace detail {
         NODISCARD T value_or(U&& default_value) && {
             return holds_value ? static_cast<T>(std::move(uvalue)) : static_cast<T>(std::forward<U>(default_value));
         }
+
+        template<typename F>
+        NODISCARD optional or_else(F&& f) const & {
+            return holds_value ? *this : std::forward<F>(f)();
+        }
+
+        template<typename F>
+        NODISCARD optional or_else(F&& f) && {
+            return holds_value ? std::move(*this) : std::forward<F>(f)();
+        }
     };
 }
 CPPTRACE_END_NAMESPACE
