@@ -120,7 +120,7 @@ mark_as_advanced(CPPTRACE_INSTALL_CMAKEDIR)
 
 # If enabled the calls to check_support will not enforce C++11 and use
 # whatever the host project has set
-option(CPPTRACE_INHERIT_HOST_PROPERTIES "Inherit host properties" Off)
+option(CPPTRACE_INHERIT_HOST_STANDARD "Inherit host C++ standard" Off)
 
 # ---- Symbol Options ----
 
