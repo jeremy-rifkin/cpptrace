@@ -1,6 +1,10 @@
 #include <algorithm>
 #include <string>
 
+#ifdef _MSC_VER
+ #include <windows.h>
+#endif
+
 #include <gtest/gtest.h>
 #include <gtest/gtest-matchers.h>
 #include <gmock/gmock.h>
