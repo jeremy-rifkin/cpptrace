@@ -91,6 +91,8 @@ else()
   )
 endif()
 
+add_subdirectory(third_party)
+
 # Target that we can modify (can't modify ALIAS targets)
 # Target name should not be the same as ${PROJECT_NAME}, causes add_subdirectory issues
 set(target_name "cpptrace-lib")
@@ -347,26 +349,6 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     endif()
   else()
     include(FetchContent)
-    # First, dependencies: Zstd and zlib (currently relying on system zlib)
-    if(CPPTRACE_USE_EXTERNAL_ZSTD)
-      find_package(zstd)
-    else()
-      cmake_policy(SET CMP0074 NEW)
-      set(ZSTD_BUILD_PROGRAMS OFF)
-      set(ZSTD_BUILD_CONTRIB OFF)
-      set(ZSTD_BUILD_TESTS OFF)
-      set(ZSTD_BUILD_STATIC ON)
-      set(ZSTD_BUILD_SHARED OFF)
-      set(ZSTD_LEGACY_SUPPORT OFF)
-      FetchContent_Declare(
-          zstd
-          SOURCE_SUBDIR build/cmake
-          DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-          URL "${CPPTRACE_ZSTD_URL}"
-      )
-      FetchContent_MakeAvailable(zstd)
-    endif()
-    # Libdwarf itself
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(PIC_ALWAYS TRUE)
     set(BUILD_DWARFDUMP FALSE)
