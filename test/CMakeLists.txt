@@ -100,7 +100,7 @@ function(test_cpptrace)
   )
 
   target_compile_features("${CPPTRACE_TEST_NAME}" PRIVATE cxx_std_11)
-  target_link_libraries("${CPPTRACE_TEST_NAME}" PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
+  target_link_libraries("${CPPTRACE_TEST_NAME}" PRIVATE ${target_name} gtest_main gmock_main)
   target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE ${CPPTRACE_DEFINE})
 
   target_compile_options("${CPPTRACE_TEST_NAME}" PRIVATE ${warning_options} $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-pedantic -Wno-attributes>)
