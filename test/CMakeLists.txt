@@ -100,7 +100,7 @@ function(test_cpptrace)
   )
 
   target_compile_features("${CPPTRACE_TEST_NAME}" PRIVATE cxx_std_11)
-  target_link_libraries("${CPPTRACE_TEST_NAME}" PRIVATE ${target_name} GTest::gtest_main GTest::gmock_main)
+  target_link_libraries("${CPPTRACE_TEST_NAME}" PRIVATE ${target_name} gtest gmock gtest_main)
   target_compile_definitions("${CPPTRACE_TEST_NAME}" PRIVATE ${CPPTRACE_DEFINE})
 
   target_compile_options("${CPPTRACE_TEST_NAME}" PRIVATE ${warning_options} $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-pedantic -Wno-attributes>)
@@ -123,18 +123,9 @@ endfunction()
 
 # primarily a workaround for github actions issue https://github.com/actions/runner-images/issues/8659
 if(NOT CPPTRACE_SKIP_UNIT)
-  if(CPPTRACE_USE_EXTERNAL_GTEST)
-    find_package(GTest)
-  else()
-    include(FetchContent)
-    FetchContent_Declare(
-      googletest
-      GIT_REPOSITORY "https://github.com/google/googletest.git"
-      GIT_TAG        58d77fa8070e8cec2dc1ed015d66b454c8d78850 # v1.12.1, last to support C++11
-    )
+  if(NOT CPPTRACE_USE_EXTERNAL_GTEST)
     # For Windows: Prevent overriding the parent project's compiler/linker settings
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
   endif()
 
   test_cpptrace(TEST_NAME unittest)

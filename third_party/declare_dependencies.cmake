@@ -1,0 +1,5 @@
+include("${CMAKE_CURRENT_SOURCE_DIR}/benchmark/declare_benchmark.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/fmt/declare_fmt.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/googletest/declare_googletest.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/lyra/declare_lyra.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/zstd/declare_zstd.cmake")
