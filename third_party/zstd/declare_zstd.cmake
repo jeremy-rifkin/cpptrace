@@ -1,5 +1,10 @@
+if(NOT CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF OR NOT CPPTRACE_USE_EXTERNAL_LIBDWARF)
+  return()
+endif()
+
 if(CPPTRACE_USE_EXTERNAL_ZSTD)
-  find_package(zstd)
+  message(STATUS "Using external zstd")
+  find_package(zstd REQUIRED)
 else()
   # libdwarf depends on zstd, so it's a logic error for libdwarf to already be in our declaration
   # list.

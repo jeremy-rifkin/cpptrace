@@ -9,5 +9,5 @@ function(declaration_is_unique declaration)
   endif()
 endfunction()
 
-include("${CMAKE_CURRENT_SOURCE_DIR}/FetchContent_Declare.cmake")
-include("${CMAKE_CURRENT_SOURCE_DIR}/FetchContent_MakeAvailable.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/declare_dependencies.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/acquire_dependencies.cmake")
