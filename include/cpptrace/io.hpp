@@ -32,14 +32,14 @@ CPPTRACE_END_NAMESPACE
 #if defined(CPPTRACE_STD_FORMAT) && defined(__cpp_lib_format)
  template <>
  struct std::formatter<cpptrace::stacktrace_frame> : std::formatter<std::string> {
-     auto format(cpptrace::stacktrace_frame frame, format_context& ctx) const {
+     auto format(const cpptrace::stacktrace_frame& frame, format_context& ctx) const {
          return formatter<string>::format(frame.to_string(), ctx);
      }
  };
 
  template <>
  struct std::formatter<cpptrace::stacktrace> : std::formatter<std::string> {
-     auto format(cpptrace::stacktrace trace, format_context& ctx) const {
+     auto format(const cpptrace::stacktrace& trace, format_context& ctx) const {
          return formatter<string>::format(trace.to_string(), ctx);
      }
  };
