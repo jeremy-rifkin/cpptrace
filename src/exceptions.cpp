@@ -146,13 +146,6 @@ CPPTRACE_BEGIN_NAMESPACE
         return user_message.c_str();
     }
 
-    system_error::system_error(int error_code, std::string&& message_arg, raw_trace&& trace) noexcept
-        : runtime_error(
-            message_arg + ": " + std::error_code(error_code, std::generic_category()).message(),
-            std::move(trace)
-          ),
-          ec(std::error_code(error_code, std::generic_category())) {}
-
     const std::error_code& system_error::code() const noexcept {
         return ec;
     }
