@@ -185,10 +185,60 @@ CPPTRACE_BEGIN_NAMESPACE
         std::error_code ec;
     public:
         explicit system_error(
+            std::error_code error_code = std::error_code{},
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : runtime_error(
+                error_code.message(),
+                std::move(trace)
+            ),
+            ec(std::move(error_code)) {}
+
+        explicit system_error(
+            std::error_code error_code,
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : runtime_error(
+                message_arg + ": " + error_code.message(),
+                std::move(trace)
+            ),
+            ec(std::move(error_code)) {}
+
+        explicit system_error(
+            int error_code,
+            const std::error_category& error_category,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : runtime_error(
+                std::error_code(error_code, error_category).message(),
+                std::move(trace)
+            ),
+            ec(error_code, error_category) {}
+
+        explicit system_error(
+            int error_code,
+            const std::error_category& error_category,
+            std::string&& message_arg,
+            raw_trace&& trace = detail::get_raw_trace_and_absorb()
+        ) noexcept
+            : runtime_error(
+                message_arg + ": " + std::error_code(error_code, error_category).message(),
+                std::move(trace)
+            ),
+            ec(error_code, error_category) {}
+
+        explicit system_error(
             int error_code,
             std::string&& message_arg,
             raw_trace&& trace = detail::get_raw_trace_and_absorb()
-        ) noexcept;
+        ) noexcept
+            : system_error(
+            std::error_code{error_code, std::generic_category()},
+            std::move(message_arg),
+            std::move(trace)
+          ){}
+
         const std::error_code& code() const noexcept;
     };
 
