@@ -1,3 +1,5 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
 cc_library(
     name = "cpptrace",
     srcs = glob([
@@ -7,7 +9,7 @@ cc_library(
     local_defines = [
         "CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF",
         "CPPTRACE_DEMANGLE_WITH_CXXABI",
-        "CPPTRACE_UNWIND_WITH_LIBUNWIND"
+        "CPPTRACE_UNWIND_WITH_LIBUNWIND",
     ],
     hdrs = glob([
         "include/cpptrace/*.hpp",
@@ -15,11 +17,11 @@ cc_library(
     ]),
     includes = [
         "include",
-        "src"
+        "src",
     ],
     deps = [
         "@libdwarf//:libdwarf",
-        "@libunwind//:libunwind"
+        "@libunwind//:libunwind",
     ],
     copts = [
         "-Wall",
@@ -28,7 +30,7 @@ cc_library(
         "-Wundef",
         "-Wuninitialized",
         "-fPIC",
-        "-std=c++11"
+        "-std=c++11",
     ],
     visibility = ["//visibility:public"],
 )
