@@ -9,7 +9,7 @@ repro*/
 __pycache__/
 scratch
 tmp/
-bazel-*/
+/bazel-*
 cmake-build-*/
 
 test/jank/data
