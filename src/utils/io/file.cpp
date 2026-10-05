@@ -1,4 +1,6 @@
-#define _CRT_SECURE_NO_WARNINGS
+#ifndef _CRT_SECURE_NO_WARNINGS
+ #define _CRT_SECURE_NO_WARNINGS
+#endif
 #include "utils/io/file.hpp"
 
 CPPTRACE_BEGIN_NAMESPACE
