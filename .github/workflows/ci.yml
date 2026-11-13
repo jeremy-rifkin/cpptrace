@@ -83,7 +83,7 @@ jobs:
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}} --default-config ${{matrix.shared}}
   test-macos:
-    runs-on: macos-14
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
@@ -256,7 +256,7 @@ jobs:
       run: |
            python3 ci/test-all-configs.py --${{matrix.compiler}} ${{matrix.shared}}
   test-macos-all-configurations:
-    runs-on: macos-14
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
@@ -388,7 +388,7 @@ jobs:
       run: |
            python3 ci/build-in-all-remaining-configs.py --${{matrix.compiler}}
   build-macos-all-remaining-configurations:
-    runs-on: macos-14
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
@@ -552,7 +552,7 @@ jobs:
       run: ccache -s
 
   test-macos-integration:
-    runs-on: macos-14
+    runs-on: macos-15
     needs: test-macos-all-configurations
     steps:
     - uses: actions/checkout@v4
@@ -760,12 +760,12 @@ jobs:
             --slice=dwarf_version:${{matrix.dwarf_version}} \
             --slice=split_dwarf:${{matrix.split_dwarf}}
   unittest-macos:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
     - uses: actions/checkout@v4
     - uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: "15.4"
+        xcode-version: "16.4"
     - name: Resolve prereqs path
       id: prereqs-path
       run: echo "dir=$(cd .. && pwd)" >> "$GITHUB_OUTPUT"

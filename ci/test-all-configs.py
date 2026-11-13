@@ -196,7 +196,7 @@ def build(runner: MatrixRunner):
             if matrix["compiler"] == "g++":
                 return runner.run_command("ninja")
             else:
-                return runner.run_command("msbuild", "cpptrace.sln")
+                return runner.run_command("cmake", "--build", ".")
     return False
 
 def build_full_or_auto(runner: MatrixRunner):
@@ -249,7 +249,7 @@ def build_full_or_auto(runner: MatrixRunner):
             if matrix["compiler"] == "g++":
                 return runner.run_command("ninja")
             else:
-                return runner.run_command("msbuild", "cpptrace.sln")
+                return runner.run_command("cmake", "--build", ".")
     return False
 
 def test(runner: MatrixRunner):

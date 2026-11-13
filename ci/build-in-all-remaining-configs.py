@@ -96,7 +96,7 @@ def build(runner: MatrixRunner):
             if matrix["compiler"] == "g++":
                 succeeded = runner.run_command("make", "-j", "VERBOSE=1")
             else:
-                succeeded = runner.run_command("msbuild", "cpptrace.sln")
+                succeeded = runner.run_command("cmake", "--build", ".")
 
     os.chdir("..")
     print()
