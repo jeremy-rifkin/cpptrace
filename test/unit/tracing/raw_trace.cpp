@@ -41,8 +41,10 @@ CPPTRACE_FORCE_NO_INLINE static void raw_trace_basic() {
 #ifndef _MSC_VER
 CPPTRACE_FORCE_NO_INLINE void raw_trace_basic_precise() {
     static volatile int lto_guard; lto_guard = lto_guard + 1;
+    // declared before the label so the computed goto doesn't jump over an initialization
+    cpptrace::raw_trace raw_trace;
     a:
-    auto raw_trace = cpptrace::generate_raw_trace();
+    raw_trace = cpptrace::generate_raw_trace();
     b:
     // This is stupid, but without it gcc was optimizing both &&a and &&b to point to the start of the function's body
     volatile auto x = 0;
@@ -101,8 +103,9 @@ CPPTRACE_FORCE_NO_INLINE void record_parent(uintptr_t low_bound, uintptr_t high_
 #ifndef _MSC_VER
 CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_3() {
     static volatile int lto_guard; lto_guard = lto_guard + 1;
+    cpptrace::raw_trace raw_trace;
     a:
-    auto raw_trace = cpptrace::generate_raw_trace();
+    raw_trace = cpptrace::generate_raw_trace();
     b:
     volatile auto x = 0;
     if(x) {
@@ -122,8 +125,9 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_3() {
 
 CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_2() {
     static volatile int lto_guard; lto_guard = lto_guard + 1;
+    cpptrace::raw_trace raw_trace;
     a:
-    auto raw_trace = cpptrace::generate_raw_trace();
+    raw_trace = cpptrace::generate_raw_trace();
     b:
     volatile auto x = 0;
     if(x) {
@@ -153,8 +157,9 @@ CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_2() {
 
 CPPTRACE_FORCE_NO_INLINE void raw_trace_multi_precise_1() {
     static volatile int lto_guard; lto_guard = lto_guard + 1;
+    cpptrace::raw_trace raw_trace;
     a:
-    auto raw_trace = cpptrace::generate_raw_trace();
+    raw_trace = cpptrace::generate_raw_trace();
     b:
     volatile auto x = 0;
     if(x) {

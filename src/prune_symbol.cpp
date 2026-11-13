@@ -197,6 +197,14 @@ namespace detail {
         }
     };
 
+    #if defined(__clang__) && defined(__has_warning)
+     #if __has_warning("-Wc2y-extensions")
+      #define CPPTRACE_IGNORE_C2Y_EXTENSIONS
+      #pragma clang diagnostic push
+      #pragma clang diagnostic ignored "-Wc2y-extensions"
+     #endif
+    #endif
+
     #define CONCAT_IMPL(X, Y) X##Y
     #define CONCAT(X, Y) CONCAT_IMPL(X, Y)
     #define UNIQUE(X) CONCAT(X, __COUNTER__)
@@ -1001,6 +1009,11 @@ namespace detail {
             return std::move(name_output);
         }
     };
+
+    #ifdef CPPTRACE_IGNORE_C2Y_EXTENSIONS
+     #pragma clang diagnostic pop
+     #undef CPPTRACE_IGNORE_C2Y_EXTENSIONS
+    #endif
 
     NODISCARD std::string prune_symbol(string_view symbol) {
         detail::symbol_tokenizer tokenizer(symbol);
